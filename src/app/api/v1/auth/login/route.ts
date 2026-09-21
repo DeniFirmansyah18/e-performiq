@@ -1,77 +1,104 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { DUMMY_USERS } from '@/lib/dummy-data';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { sql } from 'drizzle-orm';
+import { db } from '@/lib/db/client';
+import { verifyPassword } from '@/lib/auth/password';
+import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
+import { ok, problem, parseBody } from '@/lib/api/response';
+import { AuthError } from '@/lib/auth/errors';
+import { logAction } from '@/lib/services/auditService';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const LoginSchema = z.object({
+  email: z.string().email('Format email tidak valid'),
+  password: z.string().min(1, 'Password wajib diisi'),
+});
 
 // POST /api/v1/auth/login
-// PRD §11.2 - Autentikasi, mengembalikan JWT Access Token
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { email, password } = body;
+    const { email, password } = await parseBody(req, LoginSchema);
 
-    if (!email) {
-      return NextResponse.json(
-        {
-          type: 'https://api.e-performiq.com/errors/missing-credentials',
-          title: 'Authentication Failed',
-          status: 400,
-          detail: 'Email dan password wajib diisi.',
-          instance: '/api/v1/auth/login',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
+    const result = await db.execute(sql`
+      SELECT u.id, u.employee_id as "employeeId", u.email, u.password_hash as "passwordHash",
+             u.role, u.is_active as "isActive",
+             e.full_name as "name", e.employee_code as "employeeCode", e.avatar_url as "avatarUrl",
+             d.department_name as "department", jp.position_title as "position"
+        FROM users u
+        LEFT JOIN employees e ON e.id = u.employee_id
+        LEFT JOIN departments d ON d.id = e.department_id
+        LEFT JOIN job_positions jp ON jp.id = e.position_id
+       WHERE LOWER(u.email) = LOWER(${email})
+    `);
 
-    const user = DUMMY_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
-
+    const user = result.rows[0] as any;
     if (!user) {
-      return NextResponse.json(
-        {
-          type: 'https://api.e-performiq.com/errors/invalid-credentials',
-          title: 'Authentication Failed',
-          status: 401,
-          detail: 'Email atau kata sandi tidak valid. Silakan periksa kembali.',
-          instance: '/api/v1/auth/login',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 401 }
-      );
+      throw new AuthError('Email atau kata sandi tidak valid. Silakan periksa kembali.');
     }
 
-    // Simulate JWT token generation (dummy, not real JWT)
-    const mockToken = Buffer.from(JSON.stringify({ userId: user.id, role: user.role, exp: Date.now() + 8 * 3600 * 1000 })).toString('base64');
-    const mockRefreshToken = Buffer.from(JSON.stringify({ userId: user.id, exp: Date.now() + 7 * 24 * 3600 * 1000 })).toString('base64');
+    if (!user.isActive) {
+      throw new AuthError('Akun pengguna telah dinonaktifkan. Hubungi administrator.');
+    }
 
-    return NextResponse.json({
-      status: 'success',
-      data: {
-        access_token: `eyJhbGciOiJIUzI1NiJ9.${mockToken}.mock_signature`,
-        refresh_token: `eyJhbGciOiJIUzI1NiJ9.${mockRefreshToken}.mock_refresh_signature`,
-        token_type: 'Bearer',
-        expires_in: 28800,
-        user: {
-          id: user.id,
-          employee_id: user.employeeId,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          department: user.department,
-          position: user.position,
-          avatar_url: user.avatarUrl,
-        },
+    const isValid = await verifyPassword(password, user.passwordHash);
+    if (!isValid) {
+      throw new AuthError('Email atau kata sandi tidak valid. Silakan periksa kembali.');
+    }
+
+    const token = await signSession({
+      userId: user.id,
+      employeeId: user.employeeId,
+      role: user.role,
+      email: user.email,
+    });
+
+    // Update last_login_at
+    await db.execute(sql`
+      UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ${user.id}::uuid
+    `);
+
+    // Log audit login
+    await logAction(db, {
+      userId: user.id,
+      actionType: 'LOGIN',
+      entityName: 'users',
+      recordId: user.id,
+      description: `User login berhasil via enterprise auth: ${user.email} (${user.role})`,
+      ipAddress: req.ip || req.headers.get('x-forwarded-for') || '127.0.0.1',
+      userAgent: req.headers.get('user-agent') || 'E-PerformIQ Client',
+    });
+
+    const response = ok({
+      access_token: token,
+      token_type: 'Bearer',
+      expires_in: 28800,
+      user: {
+        id: user.id,
+        employee_id: user.employeeId,
+        email: user.email,
+        name: user.name ?? 'Administrator',
+        role: user.role,
+        department: user.department ?? 'Corporate',
+        position: user.position ?? user.role,
+        avatar_url: user.avatarUrl,
       },
     });
-  } catch {
-    return NextResponse.json(
-      {
-        type: 'https://api.e-performiq.com/errors/internal-error',
-        title: 'Internal Server Error',
-        status: 500,
-        detail: 'Terjadi kesalahan internal pada server. Silakan coba kembali.',
-        instance: '/api/v1/auth/login',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
+
+    // Set HttpOnly cookie
+    response.cookies.set({
+      name: SESSION_COOKIE_NAME,
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 28800, // 8 hours
+      path: '/',
+    });
+
+    return response;
+  } catch (err) {
+    return problem(err, '/api/v1/auth/login');
   }
 }
