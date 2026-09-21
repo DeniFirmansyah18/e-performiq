@@ -7,35 +7,36 @@ export function calculateVMAI(pillars: StrategicPillar[], gcgComplianceFactor: n
   let totalWeights = 0;
 
   const perspectives = {
-    financial: { score: 92.4, status: 'OPTIMAL', driver: 'MPP Budget Adherence & Cost Efficiency' },
-    customer: { score: 87.1, status: 'COMPLIANT', driver: 'Internal CSAT & Onboarding Assimilation Index' },
-    internalProcess: { score: 94.8, status: 'EXCELLENT', driver: 'Zero Fatal SOP Error & SLA Operational Speed' },
-    learningGrowth: { score: 83.3, status: 'ATTENTION_REQUIRED', driver: 'Training Hours & Talent Retention in Tech' },
+    financial: { score: 0, status: 'NO_DATA', driver: 'Belum ada pilar Financial' },
+    customer: { score: 0, status: 'NO_DATA', driver: 'Belum ada pilar Customer' },
+    internalProcess: { score: 0, status: 'NO_DATA', driver: 'Belum ada pilar Internal Process' },
+    learningGrowth: { score: 0, status: 'NO_DATA', driver: 'Belum ada pilar Learning & Growth' },
   };
 
   pillars.forEach((p) => {
-    const ratio = p.targetScore > 0 ? (p.achievedScore / p.targetScore) : 1;
+    const ratio = p.targetScore > 0 ? (p.achievedScore / p.targetScore) : 0;
     weightedScoreSum += (p.strategicWeight * ratio * 100);
     totalWeights += p.strategicWeight;
 
     // Map to perspectives
     const normalizedScore = Number(((p.achievedScore / p.targetScore) * 100).toFixed(1));
+    const status = normalizedScore >= 90 ? 'OPTIMAL' : normalizedScore >= 80 ? 'COMPLIANT' : 'ATTENTION_REQUIRED';
     if (p.perspective === 'FINANCIAL') {
-      perspectives.financial.score = normalizedScore;
+      perspectives.financial = { score: normalizedScore, status, driver: p.pillarName };
     } else if (p.perspective === 'CUSTOMER') {
-      perspectives.customer.score = normalizedScore;
+      perspectives.customer = { score: normalizedScore, status, driver: p.pillarName };
     } else if (p.perspective === 'INTERNAL_PROCESS') {
-      perspectives.internalProcess.score = normalizedScore;
+      perspectives.internalProcess = { score: normalizedScore, status, driver: p.pillarName };
     } else if (p.perspective === 'LEARNING_GROWTH') {
-      perspectives.learningGrowth.score = normalizedScore;
+      perspectives.learningGrowth = { score: normalizedScore, status, driver: p.pillarName };
     }
   });
 
-  const baseVMAI = totalWeights > 0 ? (weightedScoreSum / totalWeights) : 89.4;
+  const baseVMAI = totalWeights > 0 ? (weightedScoreSum / totalWeights) : 0;
   const overallVMAI = Number((baseVMAI * gcgComplianceFactor).toFixed(2));
 
-  let alignmentStatus: 'EXCEPTIONAL' | 'ALIGNED' | 'SUB_STANDARD' | 'CRITICAL' = 'ALIGNED';
-  let statusDescription = 'Strategically Aligned with Leading Corporate Standard';
+  let alignmentStatus: 'EXCEPTIONAL' | 'ALIGNED' | 'SUB_STANDARD' | 'CRITICAL' = 'CRITICAL';
+  let statusDescription = 'Belum ada data pilar strategis atau deviasi kritis.';
 
   if (overallVMAI >= 95.0) {
     alignmentStatus = 'EXCEPTIONAL';
@@ -46,7 +47,7 @@ export function calculateVMAI(pillars: StrategicPillar[], gcgComplianceFactor: n
   } else if (overallVMAI >= 70.0) {
     alignmentStatus = 'SUB_STANDARD';
     statusDescription = 'Sub-Standard Deviation Identified - Operational Review Required';
-  } else {
+  } else if (overallVMAI > 0) {
     alignmentStatus = 'CRITICAL';
     statusDescription = 'Critical Misalignment - GCG Breach or Strategy Disconnect';
   }

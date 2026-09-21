@@ -1,6 +1,20 @@
 // Severance & Pension Handover Estimator (PP No. 35/2021 & UU Cipta Kerja)
 // (PRD Section 3.3 & Section 10.2 Table 15)
 
+export function calculateServiceYears(joinDate: string | Date, endDate: string | Date): number {
+  const start = new Date(joinDate);
+  const end = new Date(endDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+    return 0;
+  }
+  let years = end.getFullYear() - start.getFullYear();
+  const m = end.getMonth() - start.getMonth();
+  if (m < 0 || (m === 0 && end.getDate() < start.getDate())) {
+    years--;
+  }
+  return Math.max(0, years);
+}
+
 export interface SeveranceInput {
   serviceYears: number;
   baseSalary: number;
