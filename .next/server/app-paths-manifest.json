@@ -1,0 +1,8 @@
+{
+  "/page": "app/page.js",
+  "/dashboard/hr-command/page": "app/dashboard/hr-command/page.js",
+  "/dashboard/manager-cockpit/page": "app/dashboard/manager-cockpit/page.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/executive/page": "app/dashboard/executive/page.js",
+  "/dashboard/employee-portal/page": "app/dashboard/employee-portal/page.js"
+}
