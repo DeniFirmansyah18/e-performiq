@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 
@@ -6,7 +7,7 @@ const globalForDb = globalThis as unknown as {
 };
 
 function createDb() {
-  const dataDir = process.env.PGLITE_DATA_DIR ?? '.pglite';
+  const dataDir = process.env.PGLITE_DATA_DIR ?? resolve(process.cwd(), '.pglite');
   const client = new PGlite(dataDir);
   return drizzle(client);
 }
