@@ -1,45 +1,91 @@
 {
   "pages": {
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+    "/_not-found/page": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/app/_not-found/page-249a96859fd8d649.js"
     ],
     "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
-    ],
-    "/dashboard/executive/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/executive/page.js"
-    ],
-    "/dashboard/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/layout.js"
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/css/eb6aa2973f60bd81.css",
+      "static/chunks/733-da354d49ae9da0ab.js",
+      "static/chunks/app/layout-86f50ccc5f9faa2b.js"
     ],
     "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/733-da354d49ae9da0ab.js",
+      "static/chunks/app/login/page-26cd811a647855e7.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/733-da354d49ae9da0ab.js",
+      "static/chunks/app/page-04b91096dfc4fcc5.js"
+    ],
+    "/dashboard/audit-governance/page": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/733-da354d49ae9da0ab.js",
+      "static/chunks/app/dashboard/audit-governance/page-10a8d6b1cf1859fa.js"
+    ],
+    "/dashboard/layout": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/590-aa128eaff3aec4b2.js",
+      "static/chunks/733-da354d49ae9da0ab.js",
+      "static/chunks/app/dashboard/layout-ad8f83cc842a5d0d.js"
     ],
     "/dashboard/employee-portal/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/employee-portal/page.js"
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/733-da354d49ae9da0ab.js",
+      "static/chunks/app/dashboard/employee-portal/page-d57cf15ac0a1269d.js"
     ],
-    "/dashboard/hr-command/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/hr-command/page.js"
+    "/dashboard/executive/page": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/590-aa128eaff3aec4b2.js",
+      "static/chunks/app/dashboard/executive/page-4ea598a5744b8186.js"
+    ],
+    "/dashboard/ninebox-matrix/page": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/590-aa128eaff3aec4b2.js",
+      "static/chunks/app/dashboard/ninebox-matrix/page-8b03349d5f0ee1a6.js"
     ],
     "/dashboard/manager-cockpit/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/manager-cockpit/page.js"
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/app/dashboard/manager-cockpit/page-cdbb43ea29c63148.js"
+    ],
+    "/dashboard/hr-command/page": [
+      "static/chunks/webpack-616e068a201ad621.js",
+      "static/chunks/fd9d1056-81863b327d1131b7.js",
+      "static/chunks/117-754a91d941d35db7.js",
+      "static/chunks/main-app-18dde10f0021c92a.js",
+      "static/chunks/app/dashboard/hr-command/page-2ebdb717698a5c67.js"
     ]
   }
 }

@@ -3,6 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/context/AuthContext';
+import { UserRole } from '@/types';
 import {
   LineChart,
   Network,
@@ -17,19 +19,23 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { activeRole } = useAuth();
 
-  const corePortals = [
-    { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart },
-    { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network },
-    { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare },
-    { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: Sparkles },
+  const corePortals: Array<{ name: string; href: string; icon: any; roles: UserRole[] }> = [
+    { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD', 'SUPER_ADMIN', 'AUDITOR'] },
+    { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
+    { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER'] },
+    { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: Sparkles, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR'] },
   ];
 
-  const modulesGovernance = [
-    { name: '9-Box Talent Matrix', href: '/dashboard/ninebox-matrix', icon: Grid3X3 },
-    { name: 'Offboarding & Clearance', href: '/dashboard/hr-command?tab=offboarding', icon: ClipboardCheck },
-    { name: 'GCG Audit & Compliance', href: '/dashboard/audit-governance', icon: Scale },
+  const modulesGovernance: Array<{ name: string; href: string; icon: any; roles: UserRole[] }> = [
+    { name: '9-Box Talent Matrix', href: '/dashboard/ninebox-matrix', icon: Grid3X3, roles: ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'] },
+    { name: 'Offboarding & Clearance', href: '/dashboard/hr-command?tab=offboarding', icon: ClipboardCheck, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
+    { name: 'GCG Audit & Compliance', href: '/dashboard/audit-governance', icon: Scale, roles: ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER'] },
   ];
+
+  const visibleCorePortals = corePortals.filter((p) => p.roles.includes(activeRole));
+  const visibleModules = modulesGovernance.filter((m) => m.roles.includes(activeRole));
 
   const bottomNav = [
     { name: 'Settings & Preferences', href: '#', icon: Settings },
@@ -46,7 +52,7 @@ export default function Sidebar() {
             Core Portals
           </p>
           <nav className="space-y-1">
-            {corePortals.map((item) => {
+            {visibleCorePortals.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
               return (
@@ -68,31 +74,33 @@ export default function Sidebar() {
         </div>
 
         {/* Section 2: Modules & Governance */}
-        <div>
-          <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] mb-2">
-            Modules & Governance
-          </p>
-          <nav className="space-y-1">
-            {modulesGovernance.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-[#007a5a] text-white shadow-sm'
-                      : 'text-[#334155] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-[#64748b]'}`} />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        {visibleModules.length > 0 && (
+          <div>
+            <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] mb-2">
+              Modules & Governance
+            </p>
+            <nav className="space-y-1">
+              {visibleModules.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+                      isActive
+                        ? 'bg-[#007a5a] text-white shadow-sm'
+                        : 'text-[#334155] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-[#64748b]'}`} />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        )}
 
       </div>
 

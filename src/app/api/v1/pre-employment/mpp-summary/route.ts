@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   let plans = DUMMY_MANPOWER_PLANS;
   if (departmentId) {
-    plans = plans.filter((p) => p.departmentId === departmentId);
+    plans = plans.filter((p) => p.department === departmentId);
   }
 
   const totalApprovedQuota = plans.reduce((acc, p) => acc + p.approvedQuota, 0);
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     : 0;
 
   // Compute average QoH from recruitment assessments
-  const qohScores = DUMMY_RECRUITMENT_ASSESSMENTS.map((r) => r.computedQohScore);
+  const qohScores = DUMMY_RECRUITMENT_ASSESSMENTS.map((r) => r.computedQoH);
   const avgQoH = qohScores.length > 0
     ? Number((qohScores.reduce((a, b) => a + b, 0) / qohScores.length).toFixed(2))
     : 0;
@@ -63,8 +63,8 @@ export async function GET(req: NextRequest) {
       },
       departmental_breakdown: plans.map((p) => ({
         plan_id: p.id,
-        department_id: p.departmentId,
-        position_id: p.positionId,
+        department_id: p.department,
+        position_id: p.position,
         approved_quota: p.approvedQuota,
         hired_count: p.hiredCount,
         remaining: p.approvedQuota - p.hiredCount,

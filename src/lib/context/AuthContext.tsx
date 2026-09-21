@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from '@/types';
 import { DUMMY_USERS } from '@/lib/dummy-data';
 
@@ -10,70 +10,117 @@ interface AuthContextType {
   activePeriod: string;
   setActivePeriod: (period: string) => void;
   switchRole: (role: UserRole) => void;
-  loginAs: (role: UserRole) => void;
-  loginWithCredentials: (email: string, pass: string) => boolean;
-  logout: () => void;
+  loginAs: (role: UserRole) => Promise<boolean>;
+  loginWithCredentials: (email: string, pass: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
+
+const ROLE_EMAILS: Record<UserRole, string> = {
+  BOD: 'hendra.gunawan@eperformiq.co.id',
+  HR_MANAGER: 'siti.nurhaliza@eperformiq.co.id',
+  PEOPLE_MANAGER: 'danu.tech@eperformiq.co.id',
+  EMPLOYEE: 'budi.pratama@eperformiq.co.id',
+  AUDITOR: 'bambang.audit@eperformiq.co.id',
+  SUPER_ADMIN: 'admin@eperformiq.co.id',
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Default to BOD or stored role
   const [currentUser, setCurrentUser] = useState<User>(DUMMY_USERS[0]);
   const [activeRole, setActiveRole] = useState<UserRole>('BOD');
   const [activePeriod, setActivePeriod] = useState<string>('2026-Q3');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Sync session on mount from API
   useEffect(() => {
-    // Sync with localStorage if client side
-    if (typeof window !== 'undefined') {
-      const savedRole = localStorage.getItem('eperformiq_active_role') as UserRole;
-      if (savedRole) {
-        const found = DUMMY_USERS.find((u) => u.role === savedRole);
-        if (found) {
-          setCurrentUser(found);
-          setActiveRole(found.role);
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data?.user) {
+            const u = json.data.user;
+            const formatted: User = {
+              id: u.id,
+              employeeId: u.employee_id || u.employeeId || '',
+              email: u.email,
+              name: u.name,
+              role: u.role,
+              department: u.department || 'Corporate',
+              position: u.position || u.role,
+              avatarUrl: u.avatar_url || u.avatarUrl,
+            };
+            setCurrentUser(formatted);
+            setActiveRole(u.role);
+            setIsAuthenticated(true);
+          }
         }
+      } catch {
+        // use default state
       }
     }
+    checkSession();
   }, []);
 
-  const switchRole = (role: UserRole) => {
-    const target = DUMMY_USERS.find((u) => u.role === role);
-    if (target) {
-      setCurrentUser(target);
-      setActiveRole(role);
-      setIsAuthenticated(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('eperformiq_active_role', role);
-      }
-    }
-  };
+  const loginWithCredentials = async (email: string, pass: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
 
-  const loginAs = (role: UserRole) => {
-    switchRole(role);
-  };
-
-  const loginWithCredentials = (email: string, _pass: string): boolean => {
-    const user = DUMMY_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (user) {
-      setCurrentUser(user);
-      setActiveRole(user.role);
-      setIsAuthenticated(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('eperformiq_active_role', user.role);
+      if (!res.ok) {
+        setIsLoading(false);
+        return false;
       }
+
+      const json = await res.json();
+      const u = json.data.user;
+      const formatted: User = {
+        id: u.id,
+        employeeId: u.employee_id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        department: u.department,
+        position: u.position,
+        avatarUrl: u.avatar_url,
+      };
+
+      setCurrentUser(formatted);
+      setActiveRole(u.role);
+      setIsAuthenticated(true);
+      setIsLoading(false);
       return true;
+    } catch {
+      setIsLoading(false);
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('eperformiq_active_role');
+  const loginAs = async (role: UserRole): Promise<boolean> => {
+    const email = ROLE_EMAILS[role];
+    if (!email) return false;
+    return loginWithCredentials(email, 'enterprise2026');
+  };
+
+  const switchRole = (role: UserRole) => {
+    loginAs(role);
+  };
+
+  const logout = async () => {
+    try {
+      await fetch('/api/v1/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
     }
+    setIsAuthenticated(false);
   };
 
   return (
@@ -88,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithCredentials,
         logout,
         isAuthenticated,
+        isLoading,
       }}
     >
       {children}

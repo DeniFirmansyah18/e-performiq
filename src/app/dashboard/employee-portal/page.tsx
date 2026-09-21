@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/context/AuthContext';
 import {
   Download,
   Send,
@@ -18,9 +19,71 @@ import {
   GitBranch,
   Plus,
   Lock,
+  Edit3,
+  X,
 } from 'lucide-react';
 
 export default function EmployeePortalPage() {
+  const { currentUser } = useAuth();
+  const [kpis, setKpis] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedKpi, setSelectedKpi] = useState<any | null>(null);
+  const [newActual, setNewActual] = useState('');
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const loadKpis = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/performance/individual-kpis');
+      if (res.ok) {
+        const json = await res.json();
+        setKpis(json.data?.items || []);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadKpis();
+  }, [loadKpis]);
+
+  const handleUpdateActual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedKpi) return;
+    setIsUpdating(true);
+    setStatusMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/individual-kpis', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kpi_id: selectedKpi.kpi_id,
+          action: 'UPDATE_ACTUAL',
+          actual_value: Number(newActual),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setStatusMsg({
+          type: 'success',
+          text: `Realisasi '${selectedKpi.kpi_title}' berhasil diperbarui menjadi ${newActual}! Achievement: ${json.data?.achievementPercentage}%`,
+        });
+        setSelectedKpi(null);
+        setNewActual('');
+        loadKpis();
+      } else {
+        setStatusMsg({ type: 'error', text: json.detail || 'Gagal memperbarui nilai realisasi.' });
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
       
@@ -213,7 +276,7 @@ export default function EmployeePortalPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
                     <Users className="h-3.5 w-3.5 text-[#007a5a]" />
-                    Core Values & 360°
+                    Core Values & 360Â°
                   </div>
                   <span className="text-xs font-bold text-[#0f172a] font-mono">13.50%</span>
                 </div>
@@ -269,7 +332,7 @@ export default function EmployeePortalPage() {
             <Sparkles className="h-4 w-4 text-[#007a5a] flex-shrink-0" />
             <div>
               <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider block">
-                Corporate Objective Alignment
+                Corporate Objective Alignment (PostgreSQL Live)
               </span>
               <span>
                 BSC Level 1: &ldquo;<strong>Modernisasi Infrastruktur Digital & Tata Kelola GCG Tanpa Downtime Kritis</strong>&rdquo;
@@ -283,181 +346,106 @@ export default function EmployeePortalPage() {
           </div>
         </div>
 
-        {/* Three Cascaded KR Cards */}
+        {/* Status Notification */}
+        {statusMsg && (
+          <div className={`p-3 rounded-lg text-xs font-semibold flex items-center justify-between ${
+            statusMsg.type === 'success' ? 'bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]' : 'bg-[#fce8e6] text-[#c5221f] border border-[#f5c2c7]'
+          }`}>
+            <span>{statusMsg.text}</span>
+            <button onClick={() => setStatusMsg(null)}><X className="h-3.5 w-3.5" /></button>
+          </div>
+        )}
+
+        {/* Modal Update Actual */}
+        {selectedKpi && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
+              <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+                <h3 className="text-sm font-extrabold text-[#0f172a]">Input Nilai Realisasi KPI</h3>
+                <button onClick={() => setSelectedKpi(null)} className="text-[#64748b] hover:text-[#0f172a]"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-[#0f172a]">{selectedKpi.kpi_title}</p>
+                <p className="text-[11px] text-[#64748b]">Pilar: {selectedKpi.strategic_pillar_name} (Bobot: {selectedKpi.kpi_weight}%)</p>
+                <p className="text-[11px] text-[#64748b]">Target: {selectedKpi.target_value}</p>
+              </div>
+              <form onSubmit={handleUpdateActual} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Nilai Realisasi Aktual Baru</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    required
+                    value={newActual}
+                    onChange={(e) => setNewActual(e.target.value)}
+                    placeholder={`Masukkan angka (contoh: ${selectedKpi.target_value})`}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setSelectedKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg">Batal</button>
+                  <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm">
+                    {isUpdating ? 'Menyimpan...' : 'Simpan Realisasi'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Real Database KPIs from PostgreSQL */}
         <div className="space-y-4 pt-2">
-          
-          {/* KR-ETS-01 */}
-          <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-                  KR-ETS-01
-                </span>
-                <h3 className="text-xs font-bold text-[#0f172a]">
-                  Implementasi Arsitektur High Availability Multi-Region AWS & On-Premise
-                </h3>
-              </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded-full">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#137333]" />
-                On Track (95%)
-              </span>
-            </div>
-
-            <p className="text-xs text-[#64748b]">
-              Menjamin uptime service tier-1 perbankan minimal 99.98% per triwulan dan audit sertifikasi ISO 27001.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-[#334155] pt-1">
-              <span>Bobot: <strong>20%</strong></span>
-              <span>Target: <strong>99.98% High Availability</strong></span>
-              <span className="text-[#007a5a] font-bold">Realisasi: 99.99% (Terlampaui)</span>
-            </div>
-
-            {/* Bottom Attachments & Feedback */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#f1f5f9]">
-              <div className="p-2.5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-[#007a5a]" />
-                  <div>
-                    <p className="font-semibold text-[#0f172a]">SLA_Report_AWS_Datadog_Q3.pdf</p>
-                    <p className="text-[10px] text-[#64748b]">Diverifikasi Sistem Ops &bull; 2.4 MB</p>
+          {kpis.length > 0 ? (
+            kpis.map((kpi, idx) => (
+              <div key={kpi.kpi_id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+                      KPI-0{idx + 1}
+                    </span>
+                    <h3 className="text-xs font-bold text-[#0f172a]">
+                      {kpi.kpi_title}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      kpi.status === 'APPROVED' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${kpi.status === 'APPROVED' ? 'bg-[#137333]' : 'bg-[#d97706]'}`} />
+                      {kpi.status === 'APPROVED' ? 'Disetujui Atasan' : 'Menunggu Approval'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setSelectedKpi(kpi);
+                        setNewActual(String(kpi.actual_value));
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#007a5a] hover:bg-[#e6f4ea] border border-[#cbd5e1]"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      <span>Update Realisasi</span>
+                    </button>
                   </div>
                 </div>
-                <button className="text-[11px] font-semibold text-[#0284c7] hover:underline">Ganti</button>
-              </div>
 
-              <div className="p-2.5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] flex items-start gap-2 text-xs">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
-                  alt="VP Eng"
-                  className="h-6 w-6 rounded-full object-cover mt-0.5"
-                />
-                <div>
-                  <p className="text-[10px] text-[#64748b]">
-                    <strong>Ir. H. Gunawan</strong> &bull; 3 hari lalu
-                  </p>
-                  <p className="text-[11px] text-[#334155] italic mt-0.5">
-                    &ldquo;Eksekusi failover multi-region sangat rapi. Pastikan dokumentasi simulasi DR dilaporkan ke komite GCG.&rdquo;
-                  </p>
+                <p className="text-xs text-[#64748b]">
+                  Pilar Strategis: <strong>{kpi.strategic_pillar_name}</strong> &bull; Perspektif BSC: <strong>{kpi.perspective}</strong>
+                </p>
+
+                <div className="flex flex-wrap items-center justify-between text-xs font-mono text-[#334155] pt-1">
+                  <span>Bobot: <strong>{kpi.kpi_weight}%</strong></span>
+                  <span>Target: <strong>{kpi.target_value}</strong></span>
+                  <span className="text-[#007a5a] font-bold">
+                    Realisasi: {kpi.actual_value} ({kpi.achievement_pct}%)
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* KR-ETS-02 */}
-          <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
-                  KR-ETS-02
-                </span>
-                <h3 className="text-xs font-bold text-[#0f172a]">
-                  Optimasi Rasio Efisiensi Komputasi Cloud (FinOps Initiative)
-                </h3>
-              </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded-full">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#0369a1]" />
-                Review Mandiri (88%)
-              </span>
-            </div>
-
-            <p className="text-xs text-[#64748b]">
-              Reduksi idle resource pada kluster staging dan right-sizing container instance perusahaan.
+            ))
+          ) : (
+            <p className="text-xs text-[#64748b] italic py-4 text-center">
+              {loading ? 'Memuat data KPI dari PostgreSQL...' : 'Belum ada sasaran KPI tercatat.'}
             </p>
-
-            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-[#334155] pt-1">
-              <span>Bobot: <strong>15%</strong></span>
-              <span>Target: <strong>Penghematan USD 12,000 / Bulan</strong></span>
-              <span className="text-[#0369a1] font-bold">Realisasi: USD 10,650 (88%)</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#f1f5f9]">
-              <div className="p-2.5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-[#007a5a]" />
-                  <div>
-                    <p className="font-semibold text-[#0f172a]">FinOps_Billing_Reduction_Aug2026.xlsx</p>
-                    <p className="text-[10px] text-[#64748b]">Signed Finance Dept &bull; 1.1 MB</p>
-                  </div>
-                </div>
-                <button className="text-[11px] font-semibold text-[#0284c7] hover:underline">Perbarui</button>
-              </div>
-
-              <div className="p-2.5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] flex items-start gap-2 text-xs">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
-                  alt="VP Eng"
-                  className="h-6 w-6 rounded-full object-cover mt-0.5"
-                />
-                <div>
-                  <p className="text-[10px] text-[#64748b]">
-                    <strong>Ir. H. Gunawan</strong> &bull; 1 minggu lalu
-                  </p>
-                  <p className="text-[11px] text-[#334155] italic mt-0.5">
-                    &ldquo;Realisasi finops sangat memuaskan, usulkan masuk ke forum Kaizen bulanan untuk disalin unit lain.&rdquo;
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* KR-ETS-03 */}
-          <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-                  KR-ETS-03
-                </span>
-                <h3 className="text-xs font-bold text-[#0f172a]">
-                  Standardisasi Modul Microservices Security Zero-Trust
-                </h3>
-              </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded-full">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#137333]" />
-                Selesai 100%
-              </span>
-            </div>
-
-            <p className="text-xs text-[#64748b]">
-              Menuntaskan enkripsi mTLS dan automated token rotasi untuk 34 core services perbankan.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-[#334155] pt-1">
-              <span>Bobot: <strong>15%</strong></span>
-              <span>Target: <strong>34 Modul Layanan Tervalidasi</strong></span>
-              <span className="text-[#007a5a] font-bold">Realisasi: 34 / 34 (100%)</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#f1f5f9]">
-              <div className="p-2.5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-[#007a5a]" />
-                  <div>
-                    <p className="font-semibold text-[#0f172a]">Cert_Security_Clearance_Audit.pdf</p>
-                    <p className="text-[10px] text-[#64748b]">Signed InfoSec &bull; 3.8 MB</p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">Tervalidasi</span>
-              </div>
-
-              <div className="p-2.5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] flex items-start gap-2 text-xs">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
-                  alt="VP Eng"
-                  className="h-6 w-6 rounded-full object-cover mt-0.5"
-                />
-                <div>
-                  <p className="text-[10px] text-[#64748b]">
-                    <strong>Ir. H. Gunawan</strong> &bull; 2 minggu lalu
-                  </p>
-                  <p className="text-[11px] text-[#334155] italic mt-0.5">
-                    &ldquo;Sempurna. Milestone ini langsung memperkuat pilar GCG compliance divisi kita.&rdquo;
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
+          )}
         </div>
       </div>
 
@@ -509,7 +497,7 @@ export default function EmployeePortalPage() {
           </button>
         </div>
 
-        {/* Card 2: Peer Review 360° Feedback */}
+        {/* Card 2: Peer Review 360Â° Feedback */}
         <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -518,7 +506,7 @@ export default function EmployeePortalPage() {
                   <MessageSquare className="h-4 w-4" />
                 </div>
                 <h3 className="text-sm font-bold text-[#0f172a]">
-                  Peer Review 360° Feedback
+                  Peer Review 360Â° Feedback
                 </h3>
               </div>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#fef3c7] text-[#92400e]">

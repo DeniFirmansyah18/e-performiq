@@ -17,6 +17,33 @@ import {
 
 export default function ManagerCockpitPage() {
   const [filterType, setFilterType] = useState<'all' | 'ready' | 'attention'>('all');
+  const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const handleApproveAll = async () => {
+    setIsApproving(true);
+    setApprovalMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/individual-kpis', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kpi_id: 'f0000000-0000-4000-8000-000000000001',
+          action: 'APPROVE',
+        }),
+      });
+      if (res.ok) {
+        setApprovalMsg('Persetujuan KPI tim Engineering berhasil disahkan & tersimpan ke PostgreSQL audit trail.');
+      } else {
+        const json = await res.json();
+        setApprovalMsg(json.detail || 'Gagal menyetujui KPI tim.');
+      }
+    } catch {
+      setApprovalMsg('Terjadi kesalahan koneksi.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   const teamRoster = [
     {
@@ -147,12 +174,24 @@ export default function ManagerCockpitPage() {
             <span>Ekspor Rekapitulasi</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors">
+          <button
+            onClick={handleApproveAll}
+            disabled={isApproving}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors"
+          >
             <CheckSquare className="h-3.5 w-3.5 text-white" />
-            <span>Approve Semua Nilai Tim</span>
+            <span>{isApproving ? 'Menyetujui...' : 'Approve Semua Nilai Tim'}</span>
           </button>
         </div>
       </div>
+
+      {/* Approval Status Alert */}
+      {approvalMsg && (
+        <div className="p-3 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] flex items-center justify-between">
+          <span>{approvalMsg}</span>
+          <button onClick={() => setApprovalMsg(null)} className="text-[#137333] hover:underline font-bold">Tutup</button>
+        </div>
+      )}
 
       {/* 2. Four Metric Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

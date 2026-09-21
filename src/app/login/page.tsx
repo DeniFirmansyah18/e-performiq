@@ -65,20 +65,24 @@ export default function LoginPage() {
     },
   };
 
-  const handleRoleQuickLogin = (role: UserRole) => {
+  const handleRoleQuickLogin = async (role: UserRole) => {
     setIsLoading(true);
-    loginAs(role);
-    setTimeout(() => {
+    setErrorMsg('');
+    const ok = await loginAs(role);
+    setIsLoading(false);
+    if (ok) {
       if (role === 'BOD') router.push('/dashboard/executive');
       else if (role === 'HR_MANAGER') router.push('/dashboard/hr-command');
       else if (role === 'PEOPLE_MANAGER') router.push('/dashboard/manager-cockpit');
       else if (role === 'EMPLOYEE') router.push('/dashboard/employee-portal');
       else if (role === 'AUDITOR') router.push('/dashboard/audit-governance');
       else router.push('/dashboard/executive');
-    }, 300);
+    } else {
+      setErrorMsg('Gagal melakukan login cepat. Pastikan database aktif.');
+    }
   };
 
-  const handleFormLogin = (e: React.FormEvent) => {
+  const handleFormLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -88,7 +92,8 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    const success = loginWithCredentials(email, password);
+    const success = await loginWithCredentials(email, password);
+    setIsLoading(false);
 
     if (success) {
       const user = DUMMY_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
@@ -100,8 +105,7 @@ export default function LoginPage() {
       else if (role === 'AUDITOR') router.push('/dashboard/audit-governance');
       else router.push('/dashboard/executive');
     } else {
-      setIsLoading(false);
-      setErrorMsg('Email tidak terdaftar dalam sistem enterprise. Silakan pilih salah satu akun demo di bawah.');
+      setErrorMsg('Email atau password tidak valid. Silakan periksa kembali atau gunakan tombol role di bawah.');
     }
   };
 
