@@ -4,6 +4,8 @@ export type UserRole = 'SUPER_ADMIN' | 'BOD' | 'HR_MANAGER' | 'PEOPLE_MANAGER' |
 
 export type EmployeeStatus = 'PROBATION' | 'PERMANENT' | 'CONTRACT' | 'RESIGNED' | 'RETIRED';
 
+export type KpiStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+
 export type BSCPerspective = 'FINANCIAL' | 'CUSTOMER' | 'INTERNAL_PROCESS' | 'LEARNING_GROWTH';
 
 export type NineBoxQuadrant = 
@@ -55,7 +57,10 @@ export interface Employee {
   fullName: string;
   email: string;
   phone: string;
-  department: string;
+  departmentId?: string;
+  department?: string;
+  departmentName?: string;
+  positionId?: string;
   position: string;
   managerId?: string;
   managerName?: string;
@@ -75,13 +80,14 @@ export interface IndividualKPI {
   periodId: string;
   strategicPillarId: string;
   strategicPillarName: string;
+  divisionKpiId?: string;
   kpiTitle: string;
   targetValue: number;
   actualValue: number;
   unit: string;
   weight: number; // 0-100
   achievementPercentage: number;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: KpiStatus;
 }
 
 export interface SOPComplianceRecord {
