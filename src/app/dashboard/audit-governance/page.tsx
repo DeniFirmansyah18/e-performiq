@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useApp } from '@/lib/context/AppContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/context/AuthContext';
 import {
   ShieldCheck,
@@ -16,12 +15,45 @@ import {
 } from 'lucide-react';
 
 export default function AuditGovernancePage() {
-  const { auditLogs } = useApp();
   const { currentUser } = useAuth();
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [filterAction, setFilterAction] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/governance/audit-logs');
+      if (res.ok) {
+        const json = await res.json();
+        const items = (json.data?.audit_trail || []).map((l: any) => ({
+          id: String(l.log_id),
+          timestamp: l.timestamp,
+          userName: l.user_name || 'System',
+          userRole: l.user_role || 'SYSTEM',
+          actionType: l.action_type,
+          entityName: l.entity_name,
+          recordId: l.record_id,
+          description: l.description || '-',
+          oldData: l.old_data,
+          newData: l.new_data,
+          ipAddress: l.ip_address,
+        }));
+        setAuditLogs(items);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = auditLogs.filter((log) => {
     const matchesAction = filterAction === 'ALL' || log.actionType === filterAction;

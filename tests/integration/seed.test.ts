@@ -60,4 +60,16 @@ describe('seed data', () => {
     const res = await client.query<{ count: string }>('SELECT count(*)::text AS count FROM users');
     expect(Number(res.rows[0].count)).toBe(6);
   });
+
+  it('memverifikasi keberadaan data pada seluruh 9 tabel Pre/Post-Employment & Analytics', async () => {
+    const tables = [
+      'manpower_plans', 'hiring_requisitions', 'recruitment_assessments',
+      'onboarding_milestones', 'offboarding_requests', 'knowledge_handovers',
+      'severance_calculations', 'lifetime_contributions', 'vmai_scorecards'
+    ];
+    for (const t of tables) {
+      const res = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM ${t}`);
+      expect(Number(res.rows[0].count)).toBeGreaterThan(0);
+    }
+  });
 });

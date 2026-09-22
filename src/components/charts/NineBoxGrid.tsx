@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { NineBoxQuadrant, Employee } from '@/types';
-import { useApp } from '@/lib/context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { NineBoxQuadrant } from '@/types';
 import { Users, X, ArrowUpRight, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface QuadrantInfo {
@@ -14,9 +13,47 @@ interface QuadrantInfo {
   badgeText: string;
 }
 
-export default function NineBoxGrid() {
-  const { employees } = useApp();
+interface Props {
+  employees?: any[];
+}
+
+export default function NineBoxGrid({ employees: propEmployees }: Props) {
+  const [employees, setEmployees] = useState<any[]>(propEmployees || []);
   const [selectedQuadrant, setSelectedQuadrant] = useState<QuadrantInfo | null>(null);
+
+  useEffect(() => {
+    if (propEmployees) {
+      setEmployees(propEmployees);
+      return;
+    }
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/analytics/nine-box-distribution');
+        if (res.ok) {
+          const json = await res.json();
+          const emps: any[] = [];
+          (json.data?.talent_quadrants || []).forEach((q: any) => {
+            (q.employees || []).forEach((e: any) => {
+              emps.push({
+                id: e.employee_id,
+                fullName: e.full_name,
+                employeeCode: e.employee_code,
+                department: e.department,
+                position: e.position,
+                gpa: e.composite_gpa,
+                rating: e.performance_rating,
+                nineBoxQuadrant: q.quadrant,
+              });
+            });
+          });
+          setEmployees(emps);
+        }
+      } catch {
+        // fallback
+      }
+    }
+    load();
+  }, [propEmployees]);
 
   const quadrantDefs: Record<NineBoxQuadrant, QuadrantInfo> = {
     FUTURE_LEADER: {

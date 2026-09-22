@@ -1,7 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/context/AuthContext';
-import { AppProvider } from '@/lib/context/AppContext';
 
 export const metadata: Metadata = {
   title: 'E-PerformIQ | Enterprise Employee Performance & Lifecycle Analytics',
@@ -17,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="dark">
       <body className="bg-[#090d16] text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
-        <AuthProvider>
-          <AppProvider>{children}</AppProvider>
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

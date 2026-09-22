@@ -2,22 +2,21 @@
 
 import React, { useState } from 'react';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
-import { useApp } from '@/lib/context/AppContext';
 import { X, Calculator, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function GPACalculatorModal({ isOpen, onClose }: Props) {
-  const { appraisalBudi, recalculateBudiGPA } = useApp();
-
-  const [kpi, setKpi] = useState<number>(appraisalBudi.kpiScore);
-  const [sop, setSop] = useState<number>(appraisalBudi.sopScore);
-  const [comp, setComp] = useState<number>(appraisalBudi.competencyScore);
-  const [values, setValues] = useState<number>(appraisalBudi.coreValuesScore);
-  const [potential, setPotential] = useState<number>(appraisalBudi.potentialScore);
+export default function GPACalculatorModal({ isOpen, onClose, onSuccess }: Props) {
+  const [kpi, setKpi] = useState<number>(92.5);
+  const [sop, setSop] = useState<number>(96.0);
+  const [comp, setComp] = useState<number>(85.0);
+  const [values, setValues] = useState<number>(90.0);
+  const [potential, setPotential] = useState<number>(3.8);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -29,17 +28,37 @@ export default function GPACalculatorModal({ isOpen, onClose }: Props) {
     potentialScore: potential,
   });
 
-  const handleApply = () => {
-    recalculateBudiGPA(kpi, sop, comp, values, potential);
-    onClose();
+  const handleApply = async () => {
+    setIsSubmitting(true);
+    try {
+      await fetch('/api/v1/performance/appraisals/calculate-gpa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          period_id: 'd0000000-0000-4000-8000-000000000001',
+          employee_id: 'b0000000-0000-4000-8000-000000000004',
+          kpi_actual_score: kpi,
+          sop_compliance_score: sop,
+          competency_gap_score: comp,
+          core_values_360_score: values,
+          potential_assessment_score: potential,
+        }),
+      });
+      if (onSuccess) onSuccess();
+    } catch {
+      // fallback
+    } finally {
+      setIsSubmitting(false);
+      onClose();
+    }
   };
 
   const handleReset = () => {
-    setKpi(appraisalBudi.kpiScore);
-    setSop(appraisalBudi.sopScore);
-    setComp(appraisalBudi.competencyScore);
-    setValues(appraisalBudi.coreValuesScore);
-    setPotential(appraisalBudi.potentialScore);
+    setKpi(92.5);
+    setSop(96.0);
+    setComp(85.0);
+    setValues(90.0);
+    setPotential(3.8);
   };
 
   return (

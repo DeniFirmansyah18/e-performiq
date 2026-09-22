@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Calendar,
@@ -18,39 +18,109 @@ import {
   ArrowRight,
   FileText,
   FileCheck,
+  Check,
+  Calculator,
 } from 'lucide-react';
 
 export default function HROperationsPage() {
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
+  const [mppData, setMppData] = useState<any>(null);
+  const [offboardings, setOffboardings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [resMpp, resOff] = await Promise.all([
+        fetch('/api/v1/pre-employment/mpp-summary'),
+        fetch('/api/v1/offboarding/initiate'),
+      ]);
+      if (resMpp.ok) {
+        const json = await resMpp.json();
+        setMppData(json.data);
+      }
+      if (resOff.ok) {
+        const json = await resOff.json();
+        setOffboardings(json.data || []);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleVerifyHandover = async (handoverId: string) => {
+    try {
+      const res = await fetch(`/api/v1/offboarding/handover/${handoverId}/verify`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        setActionNotice('Item serah terima berhasil diverifikasi!');
+        loadData();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCalculateSeverance = async (requestId: string) => {
+    try {
+      const res = await fetch('/api/v1/offboarding/calculate-severance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offboarding_request_id: requestId,
+          reason_type: 'RESIGNATION',
+          dplk_topup: 168000000,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setActionNotice(`Kalkulasi pesangon berhasil disahkan! Total Disbursed: IDR ${Number(json.data?.totalDisbursement).toLocaleString('id-ID')}`);
+        loadData();
+      } else {
+        setActionNotice(`Gagal: ${json.detail}`);
+      }
+    } catch (err: any) {
+      setActionNotice(err.message);
+    }
+  };
 
   const candidates = [
     {
-      name: 'Annisa Rahmawati',
-      code: 'CAND-2026-091',
-      dept: 'Core Architecture',
+      name: 'Annisa Rahmawati, S.Kom.',
+      code: 'FPTK-2026-ENG-001',
+      dept: 'Core Architecture & DevOps',
       stage: 'Offer Accepted',
       stageBg: 'bg-[#e0f2fe] text-[#0369a1]',
-      score: '91.5 QoH',
+      score: `${mppData?.quality_of_hire?.avg_qoh_score ?? 88.8} QoH`,
       slaOnTrack: true,
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
     },
     {
-      name: 'Bambang Wicaksono',
-      code: 'CAND-2026-104',
+      name: 'Bambang Wicaksono, S.T.',
+      code: 'FPTK-2026-HC-002',
       dept: 'Enterprise Data Ops',
       stage: 'Background Check',
       stageBg: 'bg-[#e6f4ea] text-[#137333]',
-      score: '88.0 QoH',
+      score: '91.0 QoH',
       slaOnTrack: true,
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
     },
     {
       name: 'Citra Melinda, CFA',
-      code: 'CAND-2026-088',
-      dept: 'Governance & Risk',
+      code: 'FPTK-2026-SPI-003',
+      dept: 'Governance & SPI',
       stage: 'User Interview 2',
       stageBg: 'bg-[#e0f2fe] text-[#0369a1]',
-      score: '84.2 QoH',
+      score: '80.0 QoH',
       slaOnTrack: false,
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
     },
@@ -279,60 +349,115 @@ export default function HROperationsPage() {
             </button>
           </div>
 
+          {actionNotice && (
+            <div className="p-3 rounded-lg bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] flex items-center justify-between">
+              <span>{actionNotice}</span>
+              <button onClick={() => setActionNotice(null)} className="font-bold underline">Tutup</button>
+            </div>
+          )}
+
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#e2e8f0] text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">
-                <tr>
-                  <th className="py-2.5 px-3">Nama & Identitas</th>
-                  <th className="py-2.5 px-3">Departemen</th>
-                  <th className="py-2.5 px-3">Fase Transisi</th>
-                  <th className="py-2.5 px-3 text-center">Skor QoH / GPA</th>
-                  <th className="py-2.5 px-3 text-right">SLA Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f1f5f9]">
-                {candidates.map((c, idx) => (
-                  <tr key={idx} className="hover:bg-[#f8fafc] transition-colors">
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={c.avatar}
-                          alt={c.name}
-                          className="h-8 w-8 rounded-full object-cover border border-[#e2e8f0]"
-                        />
-                        <div>
-                          <p className="font-bold text-[#0f172a]">{c.name}</p>
-                          <p className="text-[10px] text-[#64748b] font-mono">{c.code}</p>
-                        </div>
+            {pipelineTab === 'post' ? (
+              <div className="space-y-4">
+                {offboardings.map((off) => (
+                  <div key={off.id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-sm text-[#0f172a]">{off.employeeName}</h4>
+                        <p className="text-[11px] text-[#64748b]">{off.position} &bull; {off.department}</p>
                       </div>
-                    </td>
-                    <td className="py-3 px-3 text-[#334155] font-medium">
-                      {c.dept}
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${c.stageBg}`}>
-                        &bull; {c.stage}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span className="font-bold text-[#0f172a] font-mono">{c.score}</span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      {c.slaOnTrack ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#137333]">
-                          <Clock className="h-3 w-3 text-[#137333]" /> On Track
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#dc2626]">
-                          <AlertTriangle className="h-3 w-3 text-[#dc2626]" /> Alert
-                        </span>
-                      )}
-                    </td>
-                  </tr>
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-[#007a5a]">Clearance: {off.handoverProgress}%</span>
+                        <p className="text-[10px] text-[#64748b]">LWD: {off.lastWorkingDay}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 border-t border-[#f1f5f9] pt-2">
+                      <p className="text-[11px] font-bold text-[#334155]">Checklist Serah Terima Tugas (PRD §8 Hard Gate):</p>
+                      {(off.handovers || []).map((h: any) => (
+                        <div key={h.id} className="flex items-center justify-between p-2 rounded-lg bg-[#f8fafc] text-xs">
+                          <span className={h.isVerified ? 'line-through text-[#64748b]' : 'font-semibold text-[#0f172a]'}>
+                            {h.itemName}
+                          </span>
+                          {h.isVerified ? (
+                            <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">Terverifikasi</span>
+                          ) : (
+                            <button
+                              onClick={() => handleVerifyHandover(h.id)}
+                              className="px-2.5 py-1 rounded bg-[#007a5a] text-white text-[10px] font-bold hover:bg-[#00684a]"
+                            >
+                              Verifikasi
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-[#f1f5f9] flex justify-end">
+                      <button
+                        onClick={() => handleCalculateSeverance(off.id)}
+                        className="px-3.5 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-bold flex items-center gap-1.5"
+                      >
+                        <Calculator className="h-3.5 w-3.5" />
+                        <span>Kalkulasi & Sahkan Pesangon PP 35</span>
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-[#e2e8f0] text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">
+                  <tr>
+                    <th className="py-2.5 px-3">Nama & Identitas</th>
+                    <th className="py-2.5 px-3">Departemen</th>
+                    <th className="py-2.5 px-3">Fase Transisi</th>
+                    <th className="py-2.5 px-3 text-center">Skor QoH / GPA</th>
+                    <th className="py-2.5 px-3 text-right">SLA Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1f5f9]">
+                  {candidates.map((c, idx) => (
+                    <tr key={idx} className="hover:bg-[#f8fafc] transition-colors">
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={c.avatar}
+                            alt={c.name}
+                            className="h-8 w-8 rounded-full object-cover border border-[#e2e8f0]"
+                          />
+                          <div>
+                            <p className="font-bold text-[#0f172a]">{c.name}</p>
+                            <p className="text-[10px] text-[#64748b] font-mono">{c.code}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-[#334155] font-medium">
+                        {c.dept}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${c.stageBg}`}>
+                          &bull; {c.stage}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className="font-bold text-[#0f172a] font-mono">{c.score}</span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        {c.slaOnTrack ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#137333]">
+                            <Clock className="h-3 w-3 text-[#137333]" /> On Track
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#dc2626]">
+                            <AlertTriangle className="h-3 w-3 text-[#dc2626]" /> Alert
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Bottom Banner */}

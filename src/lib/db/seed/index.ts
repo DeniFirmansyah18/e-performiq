@@ -63,7 +63,8 @@ export async function runSeed(client: PGlite): Promise<void> {
       ('b0000000-0000-4000-8000-000000000006','ADM-2023-0006','Rina Kusuma','admin@eperformiq.co.id','+62 811-0006-0006','a0000000-0000-4000-8000-000000000102','a0000000-0000-4000-8000-000000000206','b0000000-0000-4000-8000-000000000002','PERMANENT',22000000,'2023-05-10'),
       ('b0000000-0000-4000-8000-000000000007','EMP-2023-0108','Anisa Wijaya, S.Ds.','anisa.wijaya@eperformiq.co.id','+62 813-7766-3321','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',18000000,'2023-01-10'),
       ('b0000000-0000-4000-8000-000000000008','EMP-2021-0089','Dimas Prasetyo, S.Kom.','dimas.prasetyo@eperformiq.co.id','+62 811-9922-4411','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',24000000,'2021-06-01'),
-      ('b0000000-0000-4000-8000-000000000009','EMP-2024-0230','Rian Hidayat, S.Kom.','rian.hidayat@eperformiq.co.id','+62 815-4433-2211','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','CONTRACT',12500000,'2024-02-15')
+      ('b0000000-0000-4000-8000-000000000009','EMP-2024-0230','Rian Hidayat, S.Kom.','rian.hidayat@eperformiq.co.id','+62 815-4433-2211','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PROBATION',12500000,'2024-02-15'),
+      ('b0000000-0000-4000-8000-000000000010','EMP-2018-0010','Rizky Pratama, M.T.','rizky.pratama@eperformiq.co.id','+62 811-8899-7711','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000203','b0000000-0000-4000-8000-000000000001','RESIGNED',35000000,'2018-04-10')
     ON CONFLICT (id) DO NOTHING;
 
     -- Users (6 roles)
@@ -138,6 +139,62 @@ export async function runSeed(client: PGlite): Promise<void> {
     INSERT INTO audit_logs (user_id, action_type, entity_name, record_id, description) VALUES
       ('e0000000-0000-4000-8000-000000000006','CREATE','system','init','Seed inisialisasi basis data sistem E-PerformIQ v1.0.0')
     ON CONFLICT DO NOTHING;
+
+    -- ================= 9 TABEL TAMBAHAN (Pre-Emp, Post-Emp, VMAI) =================
+    -- 1. Manpower Plans
+    INSERT INTO manpower_plans (id, department_id, position_id, fiscal_year, approved_quota, allocated_budget, utilized_budget, hired_count) VALUES
+      ('50000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204',2026,10,1200000000,960000000,8),
+      ('50000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000102','a0000000-0000-4000-8000-000000000206',2026,5,550000000,530000000,5),
+      ('50000000-0000-4000-8000-000000000003','a0000000-0000-4000-8000-000000000104','a0000000-0000-4000-8000-000000000205',2026,4,480000000,350000000,3)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 2. Hiring Requisitions
+    INSERT INTO hiring_requisitions (id, manpower_plan_id, requisition_code, requested_date, approved_date, sla_target_days) VALUES
+      ('51000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000001','FPTK-2026-ENG-001','2026-06-01','2026-06-05',30),
+      ('51000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000002','FPTK-2026-HC-002','2026-06-10','2026-06-12',25),
+      ('51000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000003','FPTK-2026-SPI-003','2026-06-15','2026-06-18',35)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 3. Recruitment Assessments
+    INSERT INTO recruitment_assessments (id, candidate_name, applied_position_id, hiring_requisition_id, psychometric_score, technical_test_score, competency_interview_score, computed_qoh_score, recruitment_cost, time_to_fill_days, hiring_status) VALUES
+      ('52000000-0000-4000-8000-000000000001','Annisa Rahmawati, S.Kom.','a0000000-0000-4000-8000-000000000204','51000000-0000-4000-8000-000000000001',88.00,92.50,86.00,88.80,6500000,22,'HIRED'),
+      ('52000000-0000-4000-8000-000000000002','Bambang Wicaksono, S.T.','a0000000-0000-4000-8000-000000000204','51000000-0000-4000-8000-000000000001',90.00,94.00,89.00,91.00,8200000,28,'OFFERED'),
+      ('52000000-0000-4000-8000-000000000003','Citra Melinda, CFA','a0000000-0000-4000-8000-000000000205','51000000-0000-4000-8000-000000000003',78.00,82.00,80.00,80.00,7000000,35,'INTERVIEWED')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 4. Onboarding Milestones (Rian Hidayat)
+    INSERT INTO onboarding_milestones (id, employee_id, day_30_score, day_60_score, day_90_score, manager_notes, probation_passed, conversion_date) VALUES
+      ('53000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000009',88.00,86.50,89.00,'Adaptasi budaya sangat cepat. Pemahaman arsitektur komponen sangat matang. Direkomendasikan konversi ke Karyawan Tetap (PKWTT).',TRUE,'2026-10-01')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 5. Offboarding Requests (Rizky Pratama)
+    INSERT INTO offboarding_requests (id, employee_id, reason_for_leaving, resignation_notice_date, last_working_day, is_regrettable_attrition, status) VALUES
+      ('60000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000010','Melanjutkan Studi Doktoral (S3) Luar Negeri','2026-08-30','2026-09-30',TRUE,'CLEARANCE_IN_PROGRESS')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 6. Knowledge & Asset Handovers
+    INSERT INTO knowledge_handovers (id, offboarding_request_id, handover_item_name, category, handover_to_employee_id, is_verified, verified_by, verified_at) VALUES
+      ('61000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','Arsitektur & Kredensial AWS Cloud Production (KMS & Root Access)','ACCESS_KEY','b0000000-0000-4000-8000-000000000004',TRUE,'b0000000-0000-4000-8000-000000000003','2026-09-18T16:00:00Z'),
+      ('61000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000001','Dokumentasi Blueprint Sistem Enterprise E-PerformIQ v1.0','DOCUMENTATION','b0000000-0000-4000-8000-000000000004',TRUE,'b0000000-0000-4000-8000-000000000003','2026-09-19T09:30:00Z'),
+      ('61000000-0000-4000-8000-000000000003','60000000-0000-4000-8000-000000000001','Pengembalian Laptop MacBook Pro M3 Max & ID Card Akses Gedung','PHYSICAL_ASSET','b0000000-0000-4000-8000-000000000006',FALSE,NULL,NULL)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 7. Severance Calculations (PP 35/2021)
+    INSERT INTO severance_calculations (id, offboarding_request_id, service_years, base_salary, severance_pay, service_appreciation_pay, compensation_pay, dplk_topup_amount, total_disbursement, sla_disbursed_days, is_paid, payment_reference_no, paid_at) VALUES
+      ('62000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001',8,35000000,0,0,5250000,168000000,173250000,3,FALSE,NULL,NULL)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 8. Lifetime Contributions (LCI Legacy Vault)
+    INSERT INTO lifetime_contributions (id, employee_id, achievement_title, achievement_type, quantified_impact_idr, points_awarded, date_achieved) VALUES
+      ('63000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004','Paten Sistem Kompresi Data Log Kinerja Karyawan Berbasis Delta Z-Score','PATENT',450000000,150,'2025-11-12'),
+      ('63000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000004','Kaizen Inovasi: Otomatisasi Pipeline CI/CD Mengurangi Biaya Cloud 30%','KAIZEN_SAVING',280000000,100,'2026-04-18'),
+      ('63000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000010','Arsitektur Enterprise Core Service Berkecepatan 30.000 req/detik','PATENT',800000000,200,'2024-08-20')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 9. VMAI Scorecards
+    INSERT INTO vmai_scorecards (id, period_id, overall_vmai_score, alignment_status, financial_pillar_score, customer_pillar_score, internal_pillar_score, growth_pillar_score, gcg_compliance_factor, benchmark_deviation) VALUES
+      ('70000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001',89.40,'ALIGNED',92.40,87.10,94.80,83.30,1.00,4.40)
+    ON CONFLICT (id) DO NOTHING;
   `);
 }
 

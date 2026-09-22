@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
@@ -23,6 +23,28 @@ import {
 
 export default function ExecutiveBoardroomPage() {
   const [resolution, setResolution] = useState<'Bulanan' | 'Kuartalan' | 'Semester'>('Bulanan');
+  const [scorecard, setScorecard] = useState<any>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/analytics/vmai-scorecard');
+        if (res.ok) {
+          const json = await res.json();
+          setScorecard(json.data);
+        }
+      } catch {
+        // fallback
+      }
+    }
+    load();
+  }, []);
+
+  const vmai = scorecard?.vmai_score ?? 89.4;
+  const financialScore = scorecard?.balanced_scorecard_perspectives?.financial?.score ?? 92.4;
+  const customerScore = scorecard?.balanced_scorecard_perspectives?.customer_stakeholder?.score ?? 87.1;
+  const internalScore = scorecard?.balanced_scorecard_perspectives?.internal_business_process?.score ?? 94.8;
+  const learningScore = scorecard?.balanced_scorecard_perspectives?.learning_growth?.score ?? 83.3;
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
@@ -48,7 +70,7 @@ export default function ExecutiveBoardroomPage() {
             </h1>
             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
               <span className="text-[10px] font-bold">GCG</span>
-              <span>Terverifikasi: Faktor 1.00</span>
+              <span>Terverifikasi: Faktor {scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}</span>
             </span>
           </div>
         </div>
@@ -58,7 +80,7 @@ export default function ExecutiveBoardroomPage() {
           {/* Filter Dropdown 1 */}
           <div className="relative">
             <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
-              <span>Semua Pilar Korporat (5 Pilar)</span>
+              <span>Semua Pilar Korporat (4 Pilar BSC)</span>
               <ChevronDown className="h-3.5 w-3.5 text-[#64748b]" />
             </button>
           </div>
@@ -98,10 +120,10 @@ export default function ExecutiveBoardroomPage() {
           </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black text-[#0f172a] font-sans">
-              89.4%
+              {vmai}%
             </span>
             <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              +4.4%
+              +{scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%
             </span>
           </div>
           <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
@@ -119,10 +141,10 @@ export default function ExecutiveBoardroomPage() {
           </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black text-[#0f172a] font-sans">
-              92.4%
+              {financialScore}%
             </span>
             <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              -1.8% MPP
+              Optimal
             </span>
           </div>
           <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
@@ -140,7 +162,7 @@ export default function ExecutiveBoardroomPage() {
           </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black text-[#0f172a] font-sans">
-              87.1%
+              {customerScore}%
             </span>
             <span className="text-[11px] font-bold text-[#475569] bg-[#f1f5f9] px-1.5 py-0.5 rounded">
               CSAT 4.5/5
@@ -161,7 +183,7 @@ export default function ExecutiveBoardroomPage() {
           </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black text-[#0f172a] font-sans">
-              94.8%
+              {internalScore}%
             </span>
             <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
               0 SOP Fail
@@ -178,18 +200,18 @@ export default function ExecutiveBoardroomPage() {
             <span className="text-xs font-semibold text-[#64748b]">
               Pembelajaran & SDM
             </span>
-            <AlertTriangle className="h-4 w-4 text-[#dc2626]" />
+            <GraduationCap className="h-4 w-4 text-[#dc2626]" />
           </div>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black text-[#dc2626] font-sans">
-              83.3%
+            <span className="text-2xl font-black text-[#0f172a] font-sans">
+              {learningScore}%
             </span>
-            <span className="text-[11px] font-bold text-[#c5221f] bg-[#fce8e6] px-1.5 py-0.5 rounded">
-              -6.7% Delta
+            <span className="text-[11px] font-bold text-[#dc2626] bg-[#fce8e6] px-1.5 py-0.5 rounded">
+              Perlu Review
             </span>
           </div>
-          <p className="text-[11px] text-[#dc2626] font-semibold mt-3 pt-2 border-t border-rose-100">
-            Realisasi Mandatori Pelatihan Tertunda
+          <p className="text-[11px] text-[#dc2626] mt-3 pt-2 border-t border-[#f1f5f9] font-medium">
+            Benchmark 88.0%: Target Jam Belajar
           </p>
         </div>
 
