@@ -23,7 +23,9 @@ export async function selectActivePillars(db: Db): Promise<StrategicPillar[]> {
   }));
 }
 
-export async function selectAppraisalsForNineBox(db: Db, periodId?: string) {
+export async function selectAppraisalsForNineBox(db: Db, periodIdentifier?: string) {
+  const isUuid = periodIdentifier && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(periodIdentifier);
+
   const result = await db.execute(sql`
     SELECT pa.id, pa.employee_id as "employeeId", pa.period_id as "periodId",
            pa.total_percentage_score as "totalPercentageScore",
@@ -37,7 +39,15 @@ export async function selectAppraisalsForNineBox(db: Db, periodId?: string) {
       JOIN employees e ON e.id = pa.employee_id
       JOIN departments d ON d.id = e.department_id
       JOIN job_positions jp ON jp.id = e.position_id
-     ${periodId ? sql`WHERE pa.period_id = ${periodId}::uuid` : sql``}
+      LEFT JOIN appraisal_periods ap ON ap.id = pa.period_id
+     WHERE 1=1
+     ${
+       isUuid
+         ? sql`AND pa.period_id = ${periodIdentifier}::uuid`
+         : periodIdentifier && periodIdentifier !== 'ALL'
+         ? sql`AND (ap.period_code = ${periodIdentifier} OR pa.period_id::text = ${periodIdentifier})`
+         : sql``
+     }
   `);
   return result.rows as any[];
 }
