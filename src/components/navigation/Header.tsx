@@ -140,14 +140,18 @@ export default function Header() {
               </div>
 
               <div className="pt-2 border-t border-slate-800">
-                <Link
-                  href="/login"
-                  onClick={logout}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-rose-400 hover:bg-rose-950/30 transition-colors"
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    setIsProfileOpen(false);
+                    await logout();
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-rose-400 hover:bg-rose-950/30 transition-colors text-left font-semibold text-xs"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
+                  <LogOut className="h-4 w-4" />
                   <span>Logout / Keluar Akun</span>
-                </Link>
+                </button>
               </div>
             </div>
           )}

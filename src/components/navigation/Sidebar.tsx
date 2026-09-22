@@ -22,16 +22,16 @@ export default function Sidebar() {
   const { activeRole } = useAuth();
 
   const corePortals: Array<{ name: string; href: string; icon: any; roles: UserRole[] }> = [
-    { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD', 'SUPER_ADMIN', 'AUDITOR'] },
-    { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
-    { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER'] },
-    { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: Sparkles, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR'] },
+    { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD', 'SUPER_ADMIN', 'AUDITOR', 'ASSESSOR'] },
+    { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD', 'ASSESSOR'] },
+    { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'] },
+    { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: Sparkles, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR', 'ASSESSOR'] },
   ];
 
   const modulesGovernance: Array<{ name: string; href: string; icon: any; roles: UserRole[] }> = [
-    { name: '9-Box Talent Matrix', href: '/dashboard/ninebox-matrix', icon: Grid3X3, roles: ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'] },
+    { name: '9-Box Talent Matrix', href: '/dashboard/ninebox-matrix', icon: Grid3X3, roles: ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'ASSESSOR'] },
     { name: 'Offboarding & Clearance', href: '/dashboard/hr-command?tab=offboarding', icon: ClipboardCheck, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
-    { name: 'GCG Audit & Compliance', href: '/dashboard/audit-governance', icon: Scale, roles: ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER'] },
+    { name: 'GCG Audit & Compliance', href: '/dashboard/audit-governance', icon: Scale, roles: ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'] },
   ];
 
   const visibleCorePortals = corePortals.filter((p) => p.roles.includes(activeRole));

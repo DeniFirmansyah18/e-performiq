@@ -6,9 +6,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
+  const hasToken = typeof token === 'string' && token.trim().length > 0;
+
   // Protect dashboard routes
   if (pathname.startsWith('/dashboard')) {
-    if (!token) {
+    if (!hasToken) {
       const loginUrl = new URL('/login', request.url);
       return NextResponse.redirect(loginUrl);
     }
@@ -16,7 +18,7 @@ export function middleware(request: NextRequest) {
 
   // If already logged in and visiting /login
   if (pathname === '/login') {
-    if (token) {
+    if (hasToken) {
       const dashUrl = new URL('/dashboard/executive', request.url);
       return NextResponse.redirect(dashUrl);
     }

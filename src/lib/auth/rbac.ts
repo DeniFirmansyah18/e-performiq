@@ -12,11 +12,11 @@ export type Permission =
 
 /** Satu matriks deklaratif, bukan `if` tersebar di 18 route (spec §6.2). */
 const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
-  'kpi:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR'],
+  'kpi:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
   'kpi:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
   'kpi:approve': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
-  'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
-  'appraisal:calibrate': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD'],
+  'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'ASSESSOR'],
+  'appraisal:calibrate': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'ASSESSOR'],
   'audit:read': ['SUPER_ADMIN', 'AUDITOR'],
 };
 

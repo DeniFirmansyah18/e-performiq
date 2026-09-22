@@ -39,6 +39,13 @@ describe('matriks RBAC', () => {
     expect(can('SUPER_ADMIN', 'audit:read')).toBe(true);
   });
 
+  it('ASSESSOR boleh membaca KPI, menghitung GPA, dan mengkalibrasi penilaian', () => {
+    expect(can('ASSESSOR', 'kpi:read')).toBe(true);
+    expect(can('ASSESSOR', 'appraisal:calculate')).toBe(true);
+    expect(can('ASSESSOR', 'appraisal:calibrate')).toBe(true);
+    expect(can('ASSESSOR', 'kpi:write')).toBe(false);
+  });
+
   it('assertCan melempar ForbiddenError beserta nama permission', () => {
     expect(() => assertCan(session('EMPLOYEE'), 'appraisal:calibrate'))
       .toThrow(ForbiddenError);

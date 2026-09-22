@@ -28,6 +28,7 @@ describe('skema database', () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+          AND table_name != '__migrations'
         ORDER BY table_name`
     );
     const names = res.rows.map((r) => r.table_name).sort();

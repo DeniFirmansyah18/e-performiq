@@ -24,6 +24,7 @@ const ROLE_EMAILS: Record<UserRole, string> = {
   EMPLOYEE: 'budi.pratama@eperformiq.co.id',
   AUDITOR: 'bambang.audit@eperformiq.co.id',
   SUPER_ADMIN: 'admin@eperformiq.co.id',
+  ASSESSOR: 'aris.assessor@eperformiq.co.id',
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,10 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(formatted);
             setActiveRole(u.role);
             setIsAuthenticated(true);
+          } else {
+            setIsAuthenticated(false);
           }
+        } else {
+          setIsAuthenticated(false);
         }
       } catch {
-        // use default state
+        setIsAuthenticated(false);
       }
     }
     checkSession();
@@ -121,6 +126,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ignore
     }
     setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('eperformiq_active_role');
+      window.location.href = '/login';
+    }
   };
 
   return (

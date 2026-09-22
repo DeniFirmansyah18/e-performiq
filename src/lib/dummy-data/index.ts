@@ -68,6 +68,16 @@ export const DUMMY_USERS: User[] = [
     position: 'Chief Internal Auditor',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
   },
+  {
+    id: 'usr-asr-007',
+    employeeId: 'b0000000-0000-4000-8000-000000000011',
+    email: 'aris.assessor@eperformiq.co.id',
+    name: 'Dr. Aris Wicaksono, M.Psi.',
+    role: 'ASSESSOR',
+    department: 'Komite Kalibrasi & Suksesi Talenta',
+    position: 'Lead Talent Assessor & Facilitator',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  },
 ];
 
 // 2. Strategic Pillars (Balanced Scorecard Perspectives)

@@ -12,6 +12,7 @@ export const SEED_USER_EMAILS: ReadonlyArray<{ email: string; role: UserRole }> 
   { email: 'budi.pratama@eperformiq.co.id', role: 'EMPLOYEE' },
   { email: 'bambang.audit@eperformiq.co.id', role: 'AUDITOR' },
   { email: 'admin@eperformiq.co.id', role: 'SUPER_ADMIN' },
+  { email: 'aris.assessor@eperformiq.co.id', role: 'ASSESSOR' },
 ];
 
 /** Idempoten: seluruh INSERT memakai ON CONFLICT DO NOTHING (spec §10). */
@@ -27,7 +28,8 @@ export async function runSeed(client: PGlite): Promise<void> {
       ('a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000001','Information Technology & Engineering','Technology'),
       ('a0000000-0000-4000-8000-000000000102','a0000000-0000-4000-8000-000000000001','Human Capital & Corporate Governance','Corporate'),
       ('a0000000-0000-4000-8000-000000000103','a0000000-0000-4000-8000-000000000001','Dewan Direksi (Board of Directors)','Corporate'),
-      ('a0000000-0000-4000-8000-000000000104','a0000000-0000-4000-8000-000000000001','Satuan Pengawas Internal (SPI)','Corporate')
+      ('a0000000-0000-4000-8000-000000000104','a0000000-0000-4000-8000-000000000001','Satuan Pengawas Internal (SPI)','Corporate'),
+      ('a0000000-0000-4000-8000-000000000105','a0000000-0000-4000-8000-000000000001','Komite Kalibrasi & Suksesi Talenta','Corporate')
     ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO job_positions (id, department_id, position_title, job_grade) VALUES
@@ -36,7 +38,8 @@ export async function runSeed(client: PGlite): Promise<void> {
       ('a0000000-0000-4000-8000-000000000203','a0000000-0000-4000-8000-000000000101','Head of Engineering & Ops','2'),
       ('a0000000-0000-4000-8000-000000000204','a0000000-0000-4000-8000-000000000101','Senior Software Engineer','4'),
       ('a0000000-0000-4000-8000-000000000205','a0000000-0000-4000-8000-000000000104','Chief Internal Auditor','2'),
-      ('a0000000-0000-4000-8000-000000000206','a0000000-0000-4000-8000-000000000102','HR System Administrator','3')
+      ('a0000000-0000-4000-8000-000000000206','a0000000-0000-4000-8000-000000000102','HR System Administrator','3'),
+      ('a0000000-0000-4000-8000-000000000207','a0000000-0000-4000-8000-000000000105','Lead Talent Assessor & Facilitator','2')
     ON CONFLICT (id) DO NOTHING;
 
     -- Level 1: CEO
@@ -64,17 +67,19 @@ export async function runSeed(client: PGlite): Promise<void> {
       ('b0000000-0000-4000-8000-000000000007','EMP-2023-0108','Anisa Wijaya, S.Ds.','anisa.wijaya@eperformiq.co.id','+62 813-7766-3321','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',18000000,'2023-01-10'),
       ('b0000000-0000-4000-8000-000000000008','EMP-2021-0089','Dimas Prasetyo, S.Kom.','dimas.prasetyo@eperformiq.co.id','+62 811-9922-4411','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',24000000,'2021-06-01'),
       ('b0000000-0000-4000-8000-000000000009','EMP-2024-0230','Rian Hidayat, S.Kom.','rian.hidayat@eperformiq.co.id','+62 815-4433-2211','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PROBATION',12500000,'2024-02-15'),
-      ('b0000000-0000-4000-8000-000000000010','EMP-2018-0010','Rizky Pratama, M.T.','rizky.pratama@eperformiq.co.id','+62 811-8899-7711','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000203','b0000000-0000-4000-8000-000000000001','RESIGNED',35000000,'2018-04-10')
+      ('b0000000-0000-4000-8000-000000000010','EMP-2018-0010','Rizky Pratama, M.T.','rizky.pratama@eperformiq.co.id','+62 811-8899-7711','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000203','b0000000-0000-4000-8000-000000000001','RESIGNED',35000000,'2018-04-10'),
+      ('b0000000-0000-4000-8000-000000000011','ASR-2020-0011','Dr. Aris Wicaksono, M.Psi.','aris.assessor@eperformiq.co.id','+62 811-0007-0007','a0000000-0000-4000-8000-000000000105','a0000000-0000-4000-8000-000000000207','b0000000-0000-4000-8000-000000000001','PERMANENT',75000000,'2020-05-01')
     ON CONFLICT (id) DO NOTHING;
 
-    -- Users (6 roles)
+    -- Users (7 roles)
     INSERT INTO users (id, employee_id, email, password_hash, role, is_active) VALUES
       ('e0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','hendra.gunawan@eperformiq.co.id','${hash}','BOD',TRUE),
       ('e0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000002','siti.nurhaliza@eperformiq.co.id','${hash}','HR_MANAGER',TRUE),
       ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE),
       ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','${hash}','EMPLOYEE',TRUE),
       ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','${hash}','AUDITOR',TRUE),
-      ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE)
+      ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE),
+      ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','ASSESSOR',TRUE)
     ON CONFLICT (id) DO NOTHING;
 
     -- Strategic Pillars (BSC 4 Perspektif, sum = 100)

@@ -22,10 +22,10 @@ export default function RootPage() {
   }, [isAuthenticated, activeRole, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#090d16]">
+    <div className="flex min-h-screen items-center justify-center bg-[#f8fafc]">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-        <span className="text-xs text-slate-400 font-medium">Memuat E-PerformIQ Portal...</span>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#007a5a] border-t-transparent" />
+        <span className="text-xs text-[#64748b] font-medium">Memuat E-PerformIQ Portal...</span>
       </div>
     </div>
   );
