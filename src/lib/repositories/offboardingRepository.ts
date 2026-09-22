@@ -46,11 +46,13 @@ export async function selectOffboardingRequests(db: Db) {
            o.created_at as "createdAt",
            e.full_name as "employeeName", e.employee_code as "employeeCode",
            e.base_salary as "baseSalary", e.join_date as "joinDate",
-           d.department_name as "department", jp.position_title as "position"
+           d.department_name as "department", jp.position_title as "position",
+           sc.id as "severanceId", sc.total_disbursement as "severanceTotal", sc.is_paid as "isSeverancePaid"
       FROM offboarding_requests o
       JOIN employees e ON e.id = o.employee_id
       JOIN departments d ON d.id = e.department_id
       JOIN job_positions jp ON jp.id = e.position_id
+      LEFT JOIN severance_calculations sc ON sc.offboarding_request_id = o.id
      ORDER BY o.created_at DESC
   `);
   return result.rows as any[];
@@ -145,7 +147,18 @@ export async function upsertSeveranceRecord(
               compensation_pay as "compensationPay", dplk_topup_amount as "dplkTopup",
               total_disbursement as "totalDisbursement", is_paid as "isPaid"
   `);
-  return result.rows[0] as any;
+  const row = result.rows[0] as any;
+  if (!row) return null;
+  return {
+    ...row,
+    serviceYears: Number(row.serviceYears),
+    baseSalary: Number(row.baseSalary),
+    severancePay: Number(row.severancePay),
+    serviceAppreciationPay: Number(row.serviceAppreciationPay),
+    compensationPay: Number(row.compensationPay),
+    dplkTopup: Number(row.dplkTopup),
+    totalDisbursement: Number(row.totalDisbursement),
+  };
 }
 
 export async function markSeverancePaid(db: Db, severanceId: string, paymentRef: string) {

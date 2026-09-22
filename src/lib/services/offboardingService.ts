@@ -146,8 +146,18 @@ export async function calculateOffboardingSeverance(
     description: `Kalkulasi hak pesangon PP 35/2021 (${calcResult.legalReference}) total: IDR ${calcResult.totalDisbursement}`,
   });
 
+  const totalAmount = Number(record?.totalDisbursement ?? calcResult.totalDisbursement ?? 0);
+
   return {
     ...record,
+    serviceYears: Number(record?.serviceYears ?? serviceYears),
+    baseSalary: Number(record?.baseSalary ?? baseSalary),
+    severancePay: Number(record?.severancePay ?? calcResult.severancePay),
+    serviceAppreciationPay: Number(record?.serviceAppreciationPay ?? calcResult.serviceAppreciationPay),
+    compensationPay: Number(record?.compensationPay ?? calcResult.compensationPay),
+    dplkTopup: Number(record?.dplkTopup ?? dplkTopup),
+    totalDisbursement: totalAmount,
+    totalDisbursementIdr: totalAmount,
     breakdown: calcResult,
   };
 }

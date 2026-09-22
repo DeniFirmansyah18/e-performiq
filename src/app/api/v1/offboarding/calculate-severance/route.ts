@@ -29,9 +29,18 @@ export async function POST(req: NextRequest) {
       body.dplk_topup
     );
 
+    const total = Number(result.totalDisbursement ?? result.breakdown?.totalDisbursement ?? 0);
+
     return ok({
+      ...result,
+      totalDisbursement: total,
+      total_disbursement_idr: total,
       message: 'Kalkulasi pesangon PP 35/2021 berhasil dihitung & disahkan (Clearance 100% Terverifikasi).',
-      data: result,
+      data: {
+        ...result,
+        totalDisbursement: total,
+        total_disbursement_idr: total,
+      },
     });
   } catch (err) {
     return problem(err, '/api/v1/offboarding/calculate-severance');

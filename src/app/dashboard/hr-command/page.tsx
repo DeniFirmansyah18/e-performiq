@@ -83,13 +83,26 @@ export default function HROperationsPage() {
       });
       const json = await res.json();
       if (res.ok) {
-        setActionNotice(`Kalkulasi pesangon berhasil disahkan! Total Disbursed: IDR ${Number(json.data?.totalDisbursement).toLocaleString('id-ID')}`);
+        const rawTotal =
+          json.data?.totalDisbursement ??
+          json.data?.data?.totalDisbursement ??
+          json.data?.total_disbursement_idr ??
+          json.data?.data?.total_disbursement_idr ??
+          json.data?.breakdown?.totalDisbursement ??
+          json.data?.data?.breakdown?.totalDisbursement ??
+          0;
+        const totalNum = Number(rawTotal);
+        const formattedTotal = !isNaN(totalNum) && totalNum > 0
+          ? `Rp ${totalNum.toLocaleString('id-ID')}`
+          : 'Rp 0';
+
+        setActionNotice(`Kalkulasi pesangon berhasil disahkan! Total Hak Kompensasi: ${formattedTotal}`);
         loadData();
       } else {
-        setActionNotice(`Gagal: ${json.detail}`);
+        setActionNotice(`Gagal: ${json.detail || json.message || 'Terjadi kesalahan kalkulasi.'}`);
       }
     } catch (err: any) {
-      setActionNotice(err.message);
+      setActionNotice(`Error: ${err.message}`);
     }
   };
 
@@ -392,13 +405,30 @@ export default function HROperationsPage() {
                         </div>
                       ))}
                     </div>
+
+                    {off.severanceTotal && Number(off.severanceTotal) > 0 && (
+                      <div className="p-3 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-[#137333] uppercase tracking-wider block">
+                            Hak Kompensasi PP 35/2021 Disahkan:
+                          </span>
+                          <span className="font-mono font-extrabold text-sm text-[#007a5a]">
+                            Rp {Number(off.severanceTotal).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-[#137333] bg-white px-2 py-1 rounded-lg border border-[#b7e1cd]">
+                          {off.isSeverancePaid ? 'Telah Ditransfer' : 'Siap Dicairkan (SLA ≤ 7 Hari)'}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="pt-2 border-t border-[#f1f5f9] flex justify-end">
                       <button
                         onClick={() => handleCalculateSeverance(off.id)}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-bold flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
                       >
                         <Calculator className="h-3.5 w-3.5" />
-                        <span>Kalkulasi & Sahkan Pesangon PP 35</span>
+                        <span>{off.severanceTotal ? 'Hitung Ulang & Sahkan Pesangon PP 35' : 'Kalkulasi & Sahkan Pesangon PP 35'}</span>
                       </button>
                     </div>
                   </div>
