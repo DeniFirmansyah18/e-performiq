@@ -279,3 +279,97 @@ export interface AuditLog {
   newData?: Record<string, any>;
   ipAddress: string;
 }
+
+// ======================== GOVERA360 (6-BOX) DOMAIN TYPES ========================
+
+export interface DailyTimesheet {
+  id: string;
+  employeeId: string;
+  workDate: string;
+  regularHours: number;
+  overtimeHours: number;
+  taskSummary: string;
+  approvalStatus: 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  createdAt?: string;
+}
+
+export interface KpiEvidenceAttachment {
+  id: string;
+  individualKpiId: string;
+  fileTitle: string;
+  fileUrl: string;
+  uploadedAt?: string;
+}
+
+export interface CareerPathLevel {
+  id: string;
+  jobPositionId: string;
+  targetPositionId: string;
+  targetPositionTitle?: string;
+  minGpa: number;
+  minServiceMonths: number;
+  requiredSkills: Array<{ skill: string; minLevel: number }>;
+}
+
+export interface MoodleCourseEnrollment {
+  id: string;
+  employeeId: string;
+  moodleCourseId: number;
+  courseTitle: string;
+  completionPct: number;
+  score?: number;
+  isCertified: boolean;
+  enrolledAt: string;
+  completedAt?: string;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  leaveType: 'ANNUAL' | 'SICK' | 'MATERNITY' | 'SPECIAL';
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  reason: string;
+  status: 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  approverId?: string;
+  approvedAt?: string;
+  createdAt?: string;
+}
+
+export interface ExpenseClaim {
+  id: string;
+  employeeId: string;
+  claimCategory: 'MEDICAL' | 'TRAVEL' | 'OPERATIONAL';
+  amount: number;
+  receiptUrl: string;
+  claimDate: string;
+  status: 'SUBMITTED' | 'APPROVED' | 'PAID' | 'REJECTED';
+  processedAt?: string;
+  createdAt?: string;
+}
+
+export interface HelpdeskTicket {
+  id: string;
+  employeeId?: string;
+  isWhistleblowing: boolean;
+  ticketCategory: string;
+  subject: string;
+  detail: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  assignedTo?: string;
+  resolutionNotes?: string;
+  createdAt?: string;
+}
+
+export type TalentRecommendationAction = 'PROMOTION' | 'MUTATION' | 'PIP' | 'MAINTAIN';
+
+export interface TalentRecommendationSignal {
+  action: TalentRecommendationAction;
+  title: string;
+  reason: string;
+  badgeColor: string;
+  durationDays?: number;
+}
+
