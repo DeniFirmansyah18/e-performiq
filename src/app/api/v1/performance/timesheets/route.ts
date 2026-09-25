@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
       return fail('VALIDATION_ERROR', parsed.error.issues[0]?.message ?? 'Data tidak valid', 400);
     }
 
+    if (!session.employeeId) {
+      return fail('FORBIDDEN', 'Akun pengguna ini tidak memiliki ID karyawan aktif.', 403);
+    }
+
     const timesheet = await submitDailyTimesheet({
       employeeId: session.employeeId,
       workDate: parsed.data.workDate,

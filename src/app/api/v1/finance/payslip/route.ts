@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
       return fail('VALIDATION_ERROR', parsed.error.issues[0]?.message ?? 'PIN tidak valid', 400);
     }
 
+    if (!session.employeeId) {
+      return fail('FORBIDDEN', 'Akun pengguna ini tidak memiliki ID karyawan aktif.', 403);
+    }
+
     const payslip = await getVerifiedPayslip({
       employeeId: session.employeeId,
       pin: parsed.data.pin,

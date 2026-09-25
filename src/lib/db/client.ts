@@ -22,4 +22,12 @@ if (process.env.NODE_ENV !== 'production') {
   globalForDb.__eperformiqDb = db;
 }
 
+export async function getDb(): Promise<{
+  query: <T = any>(sql: string, params?: any[]) => Promise<{ rows: T[] }>;
+  execute: (query: any) => Promise<any>;
+}> {
+  const pgliteClient = (db as any).session?.client;
+  return (pgliteClient ?? db) as any;
+}
+
 export type Db = typeof db;

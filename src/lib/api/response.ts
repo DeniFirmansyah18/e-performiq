@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server';
 import type { ZodSchema } from 'zod';
 import { BusinessRuleError } from '@/lib/auth/errors';
 
-export function ok<T>(data: T, init?: ResponseInit): NextResponse {
-  return NextResponse.json({ status: 'success', data }, init);
+export function ok<T>(data: T, initOrMessage?: ResponseInit | string): NextResponse {
+  if (typeof initOrMessage === 'string') {
+    return NextResponse.json({ status: 'success', data, message: initOrMessage });
+  }
+  return NextResponse.json({ status: 'success', data }, initOrMessage);
+}
+
+export function fail(code: string, message: string, status: number = 400): NextResponse {
+  return NextResponse.json({ status: 'error', code, detail: message, message }, { status });
 }
 
 const TYPE_SLUG: Record<number, string> = {
