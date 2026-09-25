@@ -23,6 +23,8 @@ import {
   X,
   Plus,
 } from 'lucide-react';
+import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
+import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 
 export default function HROperationsPage() {
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
@@ -394,6 +396,12 @@ export default function HROperationsPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* Govera360 Strategic Analytics Row (Cost of Workforce & Flight Risk) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CostOfWorkforceCard />
+        <FlightRiskHeatmap />
       </div>
 
       {/* 3. Main Two-Column Layout */}
