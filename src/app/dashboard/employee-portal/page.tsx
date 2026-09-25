@@ -26,7 +26,13 @@ import {
   Sliders,
   AlertCircle,
   AlertTriangle,
+  Clock,
+  Bot,
 } from 'lucide-react';
+import TimesheetModal from '@/components/employee/TimesheetModal';
+import PaySlipModal from '@/components/employee/PaySlipModal';
+import CareerPathModal from '@/components/employee/CareerPathModal';
+import HelpdeskChatbotDrawer from '@/components/employee/HelpdeskChatbotDrawer';
 
 export default function EmployeePortalPage() {
   const { currentUser } = useAuth();
@@ -45,6 +51,12 @@ export default function EmployeePortalPage() {
   const [is360Open, setIs360Open] = useState(false);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [treeData, setTreeData] = useState<any | null>(null);
+
+  // Govera360 Modals
+  const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
+  const [isPayslipOpen, setIsPayslipOpen] = useState(false);
+  const [isCareerOpen, setIsCareerOpen] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   // New KPI Form State
   const [kpiForm, setKpiForm] = useState({
@@ -377,6 +389,38 @@ export default function EmployeePortalPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setIsTimesheetOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50/80 text-xs font-semibold text-emerald-800 shadow-xs hover:bg-emerald-100 transition-colors"
+            >
+              <Clock className="h-3.5 w-3.5 text-emerald-700" />
+              <span>Isi Timesheet Harian</span>
+            </button>
+
+            <button
+              onClick={() => setIsPayslipOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
+            >
+              <Lock className="h-3.5 w-3.5 text-slate-600" />
+              <span>Slip Gaji PIN</span>
+            </button>
+
+            <button
+              onClick={() => setIsCareerOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50/80 text-xs font-semibold text-blue-800 shadow-xs hover:bg-blue-100 transition-colors"
+            >
+              <Compass className="h-3.5 w-3.5 text-blue-700" />
+              <span>Peta Karir &amp; Moodle</span>
+            </button>
+
+            <button
+              onClick={() => setIsChatbotOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-300 bg-amber-50/80 text-xs font-semibold text-amber-900 shadow-xs hover:bg-amber-100 transition-colors"
+            >
+              <Bot className="h-3.5 w-3.5 text-amber-800" />
+              <span>Tanya Chatbot HR</span>
+            </button>
+
             <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]">
               <Download className="h-3.5 w-3.5 text-[#64748b]" />
               <span>Unduh Portofolio KPI</span>
@@ -1275,6 +1319,28 @@ export default function EmployeePortalPage() {
           </div>
         </div>
       )}
+
+      {/* Govera360 Modals */}
+      <TimesheetModal
+        isOpen={isTimesheetOpen}
+        onClose={() => setIsTimesheetOpen(false)}
+        onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
+      />
+
+      <PaySlipModal
+        isOpen={isPayslipOpen}
+        onClose={() => setIsPayslipOpen(false)}
+      />
+
+      <CareerPathModal
+        isOpen={isCareerOpen}
+        onClose={() => setIsCareerOpen(false)}
+      />
+
+      <HelpdeskChatbotDrawer
+        isOpen={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+      />
 
     </div>
   );
