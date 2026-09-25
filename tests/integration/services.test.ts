@@ -118,6 +118,30 @@ describe('kpiService & appraisalService', () => {
     ).rejects.toThrow(ForbiddenError);
   });
 
+  it('Budi dapat menyesuaikan bobot KPI miliknya selama total <= 100%', async () => {
+    const kpis = await kpiService.getEmployeeKpis(db, sess('EMPLOYEE', BUDI, 'budi@x.id'), BUDI, PERIOD_ID);
+    // Ubah KPI pertama (semula 30) menjadi 20
+    const updated = await kpiService.updateKpiWeight(db, sess('EMPLOYEE', BUDI, 'budi@x.id'), kpis[0].id, 20);
+    expect(Number(updated.kpiWeight)).toBe(20);
+
+    // Sekarang total bobot Budi adalah 20 + 25 + 25 + 20 = 90% (ada sisa kuota 10%)
+    // Budi sekarang bisa menambah milestone baru berbobot 10%
+    const newKpi = await kpiService.submitIndividualKpi(db, sess('EMPLOYEE', BUDI, 'budi@x.id'), {
+      employeeId: BUDI,
+      periodId: PERIOD_ID,
+      strategicPillarId: PILLAR_FIN,
+      kpiTitle: 'KPI Baru Pengisi Kuota 10%',
+      targetValue: 50,
+      kpiWeight: 10,
+    });
+    expect(Number(newKpi.kpiWeight)).toBe(10);
+
+    // Bersihkan KPI baru
+    await kpiService.removeIndividualKpi(db, sess('EMPLOYEE', BUDI, 'budi@x.id'), newKpi.id);
+    // Kembalikan bobot semula
+    await kpiService.updateKpiWeight(db, sess('EMPLOYEE', BUDI, 'budi@x.id'), kpis[0].id, 30);
+  });
+
   it('HR Manager dapat menghitung Composite GPA Budi', async () => {
     const appraisal = await appraisalService.calculateAndSaveGPA(db, sess('HR_MANAGER', SITI, 'siti@x.id'), {
       periodId: PERIOD_ID,

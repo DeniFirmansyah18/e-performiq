@@ -5,17 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DUMMY_USERS } from '@/lib/dummy-data';
 import { UserRole } from '@/types';
+import UserGuideModal from '@/components/guide/UserGuideModal';
 import {
   Layers,
   Lock,
   Mail,
   ShieldCheck,
   ArrowRight,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   Building2,
   KeyRound,
+  BookOpen,
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('enterprise2026');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const roleMeta: Record<UserRole, { label: string; desc: string; badge: string; badgeColor: string }> = {
     BOD: {
@@ -133,9 +135,20 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#137333] bg-[#e6f4ea] border border-[#b7e1cd] px-3 py-1.5 rounded-full">
-          <ShieldCheck className="h-4 w-4" />
-          <span>ISO 30414 &amp; GCG Compliant</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#008060] bg-[#E3F1DF] hover:bg-[#D4EBD0] border border-[#B4E3B2] px-3.5 py-1.5 rounded-[12px] transition-all cursor-pointer shadow-xs"
+          >
+            <BookOpen className="h-3.5 w-3.5 text-[#008060]" />
+            <span>Panduan &amp; Acuan Standar</span>
+          </button>
+
+          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#008060] bg-[#E3F1DF] border border-[#B4E3B2] px-3 py-1.5 rounded-[12px]">
+            <ShieldCheck className="h-4 w-4 text-[#008060]" />
+            <span>ISO 30414 &amp; GCG Compliant</span>
+          </div>
         </div>
       </div>
 
@@ -229,7 +242,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-[#007a5a] tracking-wider uppercase flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" />
+                <KeyRound className="h-3.5 w-3.5" />
                 Quick 1-Click Role Testing
               </span>
               <h3 className="text-xl font-extrabold text-[#0f172a] tracking-tight mt-0.5">
@@ -300,6 +313,11 @@ export default function LoginPage() {
       <div className="max-w-6xl w-full mx-auto text-center border-t border-[#e2e8f0] pt-6 text-xs text-[#94a3b8]">
         Enterprise Employee Performance &amp; Lifecycle Analytics (E-PerformIQ) &copy; 2026. Confidential Internal Enterprise Standard.
       </div>
+
+      <UserGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </div>
   );
 }

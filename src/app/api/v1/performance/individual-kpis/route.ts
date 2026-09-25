@@ -21,8 +21,9 @@ const CreateKpiSchema = z.object({
 
 const PatchKpiSchema = z.object({
   kpi_id: z.string().min(1, 'kpi_id wajib diisi'),
-  action: z.enum(['UPDATE_ACTUAL', 'APPROVE']).default('UPDATE_ACTUAL'),
+  action: z.enum(['UPDATE_ACTUAL', 'APPROVE', 'UPDATE_WEIGHT']).default('UPDATE_ACTUAL'),
   actual_value: z.number().min(0, 'actual_value tidak boleh negatif').optional(),
+  kpi_weight: z.number().min(1).max(100, 'kpi_weight harus antara 1-100').optional(),
 });
 
 // GET /api/v1/performance/individual-kpis
@@ -100,6 +101,12 @@ export async function PATCH(req: NextRequest) {
     if (body.action === 'APPROVE') {
       const approved = await kpiService.approveKpi(db, session, body.kpi_id);
       return ok(approved);
+    } else if (body.action === 'UPDATE_WEIGHT') {
+      if (body.kpi_weight === undefined) {
+        throw new Error('kpi_weight wajib diisi untuk penyesuaian bobot.');
+      }
+      const updated = await kpiService.updateKpiWeight(db, session, body.kpi_id, body.kpi_weight);
+      return ok(updated);
     } else {
       if (body.actual_value === undefined) {
         throw new Error('actual_value wajib diisi untuk pembaruan nilai.');
@@ -107,6 +114,32 @@ export async function PATCH(req: NextRequest) {
       const updated = await kpiService.updateKpiActualValue(db, session, body.kpi_id, body.actual_value);
       return ok(updated);
     }
+  } catch (err) {
+    return problem(err, '/api/v1/performance/individual-kpis');
+  }
+}
+
+// DELETE /api/v1/performance/individual-kpis
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getAuthSession(req);
+    const { searchParams } = new URL(req.url);
+    let kpiId = searchParams.get('kpi_id');
+    if (!kpiId) {
+      try {
+        const body = await req.json();
+        kpiId = body?.kpi_id;
+      } catch {
+        // query param
+      }
+    }
+
+    if (!kpiId) {
+      throw new Error('kpi_id wajib diisi untuk menghapus KPI.');
+    }
+
+    const deleted = await kpiService.removeIndividualKpi(db, session, kpiId);
+    return ok(deleted);
   } catch (err) {
     return problem(err, '/api/v1/performance/individual-kpis');
   }

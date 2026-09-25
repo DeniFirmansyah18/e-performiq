@@ -108,7 +108,8 @@ export async function runSeed(client: PGlite): Promise<void> {
 
     -- Appraisal Period
     INSERT INTO appraisal_periods (id, period_code, start_date, end_date, status) VALUES
-      ('d0000000-0000-4000-8000-000000000001','2026-Q3','2026-07-01','2026-09-30','ACTIVE')
+      ('d0000000-0000-4000-8000-000000000001','2026-Q3','2026-07-01','2026-09-30','ACTIVE'),
+      ('d0000000-0000-4000-8000-000000000002','2026-Q4','2026-10-01','2026-12-31','ACTIVE')
     ON CONFLICT (id) DO NOTHING;
 
     -- Budi's Individual KPIs (4 KPIs, weights 30, 25, 25, 20 sum=100)

@@ -1,31 +1,34 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { UserRole } from '@/types';
+import UserGuideModal from '@/components/guide/UserGuideModal';
 import {
   LineChart,
   Network,
   CheckSquare,
-  Sparkles,
+  UserCheck,
   Grid3X3,
   ClipboardCheck,
   Scale,
   Settings,
   FolderArchive,
+  BookOpen,
 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { activeRole } = useAuth();
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const corePortals: Array<{ name: string; href: string; icon: any; roles: UserRole[] }> = [
     { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD', 'SUPER_ADMIN', 'AUDITOR', 'ASSESSOR'] },
     { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD', 'ASSESSOR'] },
     { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'] },
-    { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: Sparkles, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR', 'ASSESSOR'] },
+    { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: UserCheck, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR', 'ASSESSOR'] },
   ];
 
   const modulesGovernance: Array<{ name: string; href: string; icon: any; roles: UserRole[] }> = [
@@ -105,7 +108,16 @@ export default function Sidebar() {
       </div>
 
       {/* Section 3: Bottom Menu */}
-      <div className="p-4 border-t border-[#e2e8f0] space-y-1">
+      <div className="p-4 border-t border-[#E1E3E5] space-y-1.5">
+        <button
+          type="button"
+          onClick={() => setIsGuideOpen(true)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-semibold text-[#008060] bg-[#E3F1DF] hover:bg-[#D4EBD0] border border-[#B4E3B2] transition-all cursor-pointer text-left"
+        >
+          <BookOpen className="h-4 w-4 text-[#008060] flex-shrink-0" />
+          <span>Panduan Aplikasi &amp; Acuan</span>
+        </button>
+
         {bottomNav.map((item) => {
           const Icon = item.icon;
           return (
@@ -120,6 +132,11 @@ export default function Sidebar() {
           );
         })}
       </div>
+
+      <UserGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </aside>
   );
 }

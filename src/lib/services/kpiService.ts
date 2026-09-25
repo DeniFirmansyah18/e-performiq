@@ -12,6 +12,8 @@ import {
   insertIndividualKpi,
   updateKpiActual,
   updateKpiStatus,
+  updateKpiWeight as updateKpiWeightRepo,
+  deleteIndividualKpi as deleteIndividualKpiRepo,
   CreateKpiInput,
 } from '@/lib/repositories/kpiRepository';
 import { logAction } from './auditService';
@@ -150,4 +152,74 @@ export async function approveKpi(
   });
 
   return approved;
+}
+
+export async function updateKpiWeight(
+  db: Db,
+  session: SessionPayload,
+  kpiId: string,
+  newWeight: number
+) {
+  assertCan(session, 'kpi:write');
+  if (newWeight <= 0 || newWeight > 100) {
+    throw new BusinessRuleError('Bobot KPI harus antara 1% sampai 100%.');
+  }
+
+  const kpi = await selectKpiById(db, kpiId);
+  if (!kpi) {
+    throw new NotFoundError(`KPI dengan ID '${kpiId}' tidak ditemukan.`);
+  }
+
+  const scope = await resolveVisibleEmployeeIds(db, session);
+  assertEmployeeVisible(scope, kpi.employeeId);
+
+  const otherTotal = await calculateTotalWeight(db, kpi.employeeId, kpi.periodId, kpiId);
+  if (otherTotal + newWeight > 100) {
+    throw new BusinessRuleError(
+      `Total bobot KPI melebihi 100%. Bobot KPI lain saat ini ${otherTotal}%, bobot baru ${newWeight}% menghasilkan ${otherTotal + newWeight}%.`
+    );
+  }
+
+  const updated = await updateKpiWeightRepo(db, kpiId, newWeight);
+
+  await logAction(db, {
+    userId: session.userId,
+    actionType: 'UPDATE',
+    entityName: 'individual_kpis',
+    recordId: kpiId,
+    oldData: { kpiWeight: kpi.kpiWeight },
+    newData: { kpiWeight: newWeight },
+    description: `Penyesuaian bobot KPI '${kpi.kpiTitle}' dari ${kpi.kpiWeight}% menjadi ${newWeight}%`,
+  });
+
+  return updated;
+}
+
+export async function removeIndividualKpi(
+  db: Db,
+  session: SessionPayload,
+  kpiId: string
+) {
+  assertCan(session, 'kpi:write');
+
+  const kpi = await selectKpiById(db, kpiId);
+  if (!kpi) {
+    throw new NotFoundError(`KPI dengan ID '${kpiId}' tidak ditemukan.`);
+  }
+
+  const scope = await resolveVisibleEmployeeIds(db, session);
+  assertEmployeeVisible(scope, kpi.employeeId);
+
+  const deleted = await deleteIndividualKpiRepo(db, kpiId);
+
+  await logAction(db, {
+    userId: session.userId,
+    actionType: 'DELETE',
+    entityName: 'individual_kpis',
+    recordId: kpiId,
+    oldData: kpi,
+    description: `Penghapusan KPI '${kpi.kpiTitle}' (bobot ${kpi.kpiWeight}%)`,
+  });
+
+  return deleted;
 }

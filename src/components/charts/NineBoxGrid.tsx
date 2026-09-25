@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NineBoxQuadrant } from '@/types';
-import { Users, X, ArrowUpRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Users, X, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
 interface QuadrantInfo {
   code: NineBoxQuadrant;

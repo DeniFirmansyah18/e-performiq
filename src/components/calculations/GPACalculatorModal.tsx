@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
-import { X, Calculator, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
+import { X, Calculator, CheckCircle2, RotateCcw } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;

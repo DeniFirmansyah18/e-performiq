@@ -20,6 +20,8 @@ import {
   FileCheck,
   Check,
   Calculator,
+  X,
+  Plus,
 } from 'lucide-react';
 
 export default function HROperationsPage() {
@@ -54,6 +56,89 @@ export default function HROperationsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // FPTK Modal State
+  const [isFptkModalOpen, setIsFptkModalOpen] = useState(false);
+  const [isFptkSubmitting, setIsFptkSubmitting] = useState(false);
+  const [fptkForm, setFptkForm] = useState({
+    candidateName: '',
+    appliedPositionId: 'a0000000-0000-4000-8000-000000000204',
+    hiringRequisitionId: '51000000-0000-4000-8000-000000000001',
+    psychometricScore: 88,
+    technicalTestScore: 92,
+    competencyInterviewScore: 86,
+    recruitmentCost: 6500000,
+    timeToFillDays: 21,
+    hiringStatus: 'OFFERED',
+  });
+
+  const handleCreateFptk = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsFptkSubmitting(true);
+    setActionNotice(null);
+    try {
+      const res = await fetch('/api/v1/pre-employment/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate_name: fptkForm.candidateName,
+          applied_position_id: fptkForm.appliedPositionId,
+          hiring_requisition_id: fptkForm.hiringRequisitionId,
+          psychometric_score: Number(fptkForm.psychometricScore),
+          technical_test_score: Number(fptkForm.technicalTestScore),
+          competency_interview_score: Number(fptkForm.competencyInterviewScore),
+          recruitment_cost: Number(fptkForm.recruitmentCost),
+          time_to_fill_days: Number(fptkForm.timeToFillDays),
+          hiring_status: fptkForm.hiringStatus,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setActionNotice(
+          `Kandidat '${fptkForm.candidateName}' berhasil didaftarkan! Skor Quality of Hire (QoH): ${json.data?.computedQoH || '88.8'} (Status: ${json.data?.hiringStatus || 'OFFERED'}).`
+        );
+        setIsFptkModalOpen(false);
+        setFptkForm({
+          candidateName: '',
+          appliedPositionId: 'a0000000-0000-4000-8000-000000000204',
+          hiringRequisitionId: '51000000-0000-4000-8000-000000000001',
+          psychometricScore: 88,
+          technicalTestScore: 92,
+          competencyInterviewScore: 86,
+          recruitmentCost: 6500000,
+          timeToFillDays: 21,
+          hiringStatus: 'OFFERED',
+        });
+        loadData();
+      } else {
+        setActionNotice(`Gagal: ${json.detail || 'Terjadi kesalahan'}`);
+      }
+    } catch (err: any) {
+      setActionNotice(`Error: ${err.message}`);
+    } finally {
+      setIsFptkSubmitting(false);
+    }
+  };
+
+  const handleExportIso = () => {
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      'Kode FPTK,Departemen,Posisi,Alokasi Budget IDR,Realisasi Budget IDR,Kuota Disetujui,Terisi,Status SLA\n' +
+      (mppData?.departmental_breakdown || [])
+        .map(
+          (p: any) =>
+            `"${p.plan_id}","${p.department_name}","${p.position_title}","${p.allocated_budget_idr}","${p.utilized_budget_idr}","${p.approved_quota}","${p.hired_count}","On Track"`
+        )
+        .join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'Laporan_ISO_30414_Human_Capital_2026.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setActionNotice('Laporan ISO 30414:2019 berhasil diekspor ke format CSV!');
+  };
 
   const handleVerifyHandover = async (handoverId: string) => {
     try {
@@ -168,7 +253,9 @@ export default function HROperationsPage() {
             <ChevronDown className="h-3.5 w-3.5 text-[#64748b]" />
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+          <button 
+            onClick={handleExportIso}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc] cursor-pointer">
             <Download className="h-3.5 w-3.5 text-[#64748b]" />
             <span>Ekspor ISO 30414</span>
           </button>
@@ -178,7 +265,9 @@ export default function HROperationsPage() {
             <span>Kalibrasi Nilai Semester</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors">
+          <button 
+            onClick={() => setIsFptkModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
             <UserPlus className="h-3.5 w-3.5 text-white" />
             <span>+ Rekrutmen Baru (FPTK)</span>
           </button>
@@ -642,6 +731,156 @@ export default function HROperationsPage() {
         </div>
 
       </div>
+
+      {/* Modal Input FPTK Baru */}
+      {isFptkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-[#007a5a]/10 text-[#007a5a]">
+                  <UserPlus className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Form Permintaan Tenaga Kerja (FPTK)</h3>
+                  <p className="text-xs text-slate-500">Pendaftaran & Penilaian Seleksi Kandidat (ISO 30414 QoH Engine)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsFptkModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFptk} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Kandidat *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Maya Safitri, S.Kom."
+                  value={fptkForm.candidateName}
+                  onChange={(e) => setFptkForm({ ...fptkForm, candidateName: e.target.value })}
+                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Posisi Jabatan *</label>
+                  <select
+                    value={fptkForm.appliedPositionId}
+                    onChange={(e) => setFptkForm({ ...fptkForm, appliedPositionId: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  >
+                    <option value="a0000000-0000-4000-8000-000000000204">Senior Cloud Engineer (IT Infrastructure)</option>
+                    <option value="a0000000-0000-4000-8000-000000000203">Lead Performance Specialist (HC Strategy)</option>
+                    <option value="a0000000-0000-4000-8000-000000000205">Enterprise Risk Manager (Risk & GCG)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Status Rekrutmen</label>
+                  <select
+                    value={fptkForm.hiringStatus}
+                    onChange={(e) => setFptkForm({ ...fptkForm, hiringStatus: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  >
+                    <option value="OFFERED">OFFERED (Siap Onboarding)</option>
+                    <option value="HIRED">HIRED (Kandidat Menerima)</option>
+                    <option value="INTERVIEW_PASSED">INTERVIEW PASSED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Psikometri (0-100)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={fptkForm.psychometricScore}
+                    onChange={(e) => setFptkForm({ ...fptkForm, psychometricScore: Number(e.target.value) })}
+                    className="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tes Teknis (0-100)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={fptkForm.technicalTestScore}
+                    onChange={(e) => setFptkForm({ ...fptkForm, technicalTestScore: Number(e.target.value) })}
+                    className="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Wawancara User</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={fptkForm.competencyInterviewScore}
+                    onChange={(e) => setFptkForm({ ...fptkForm, competencyInterviewScore: Number(e.target.value) })}
+                    className="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Biaya Rekrutmen (IDR)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500000"
+                    value={fptkForm.recruitmentCost}
+                    onChange={(e) => setFptkForm({ ...fptkForm, recruitmentCost: Number(e.target.value) })}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Time to Fill (Hari)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={fptkForm.timeToFillDays}
+                    onChange={(e) => setFptkForm({ ...fptkForm, timeToFillDays: Number(e.target.value) })}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800">
+                Formula Quality of Hire: <strong>(Psikometri × 30%) + (Teknis × 40%) + (Wawancara × 30%)</strong>
+                <div className="mt-0.5 font-bold">
+                  Estimasi Skor: {((fptkForm.psychometricScore * 0.3) + (fptkForm.technicalTestScore * 0.4) + (fptkForm.competencyInterviewScore * 0.3)).toFixed(1)} / 100
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsFptkModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isFptkSubmitting || !fptkForm.candidateName}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
+                >
+                  {isFptkSubmitting ? 'Memproses...' : 'Simpan & Kalkulasi QoH'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

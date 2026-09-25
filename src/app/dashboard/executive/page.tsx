@@ -94,13 +94,27 @@ export default function ExecutiveBoardroomPage() {
           </div>
 
           {/* Print Button */}
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc] cursor-pointer">
             <Printer className="h-3.5 w-3.5 text-[#64748b]" />
             <span>Cetak Risalah BOD</span>
           </button>
 
           {/* Download Button */}
-          <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors">
+          <button 
+            onClick={() => {
+              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
+              const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `Ringkasan_Eksekutif_BOD_VMAI_${new Date().toISOString().slice(0, 10)}.txt`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
             <Download className="h-3.5 w-3.5 text-white" />
             <span>Unduh Ringkasan Eksekutif</span>
           </button>

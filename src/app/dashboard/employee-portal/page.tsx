@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/context/AuthContext';
 import {
   Download,
   Send,
-  Sparkles,
+  Target,
+  Compass,
   ShieldCheck,
   Award,
   Users,
@@ -21,21 +22,57 @@ import {
   Lock,
   Edit3,
   X,
+  Trash2,
+  Sliders,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 export default function EmployeePortalPage() {
   const { currentUser } = useAuth();
   const [kpis, setKpis] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('d0000000-0000-4000-8000-000000000001');
   const [selectedKpi, setSelectedKpi] = useState<any | null>(null);
   const [newActual, setNewActual] = useState('');
+  const [weightModalKpi, setWeightModalKpi] = useState<any | null>(null);
+  const [editWeightVal, setEditWeightVal] = useState('');
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const loadKpis = useCallback(async () => {
+  // Modal states
+  const [isAddKpiOpen, setIsAddKpiOpen] = useState(false);
+  const [is360Open, setIs360Open] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [treeData, setTreeData] = useState<any | null>(null);
+
+  // New KPI Form State
+  const [kpiForm, setKpiForm] = useState({
+    title: '',
+    pillarId: 'c0000000-0000-4000-8000-000000000003',
+    periodId: 'd0000000-0000-4000-8000-000000000001',
+    target: '',
+    unit: '% On-Time',
+    weight: '10',
+  });
+
+  // 360 Feedback Form State
+  const [reviewForm, setReviewForm] = useState({
+    evaluateeId: 'b0000000-0000-4000-8000-000000000007', // Anisa Wijaya
+    evaluateeName: 'Anisa Wijaya, S.Ds. (Product Designer)',
+    integrity: 4.8,
+    collaboration: 4.5,
+    innovation: 4.2,
+    notes: 'Kolaborasi lintas tim engineering sangat komunikatif dan responsif dalam sprint perbaikan desain UI.',
+  });
+
+  const totalWeight = kpis.reduce((acc, k) => acc + (Number(k.kpi_weight) || 0), 0);
+  const remainingQuota = Math.max(0, 100 - totalWeight);
+
+  const loadKpis = useCallback(async (periodId: string = selectedPeriod) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/performance/individual-kpis');
+      const res = await fetch(`/api/v1/performance/individual-kpis?period_id=${periodId}`);
       if (res.ok) {
         const json = await res.json();
         setKpis(json.data?.items || []);
@@ -45,11 +82,214 @@ export default function EmployeePortalPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedPeriod]);
 
   useEffect(() => {
-    loadKpis();
-  }, [loadKpis]);
+    loadKpis(selectedPeriod);
+  }, [loadKpis, selectedPeriod]);
+
+  const handlePeriodChange = (periodId: string) => {
+    setSelectedPeriod(periodId);
+    setKpiForm((prev) => ({ ...prev, periodId }));
+    loadKpis(periodId);
+  };
+
+  const handleCreateKpi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    setStatusMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/individual-kpis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          period_id: kpiForm.periodId,
+          employee_id: currentUser.employeeId || 'b0000000-0000-4000-8000-000000000004',
+          strategic_pillar_id: kpiForm.pillarId,
+          kpi_title: kpiForm.title,
+          target_value: Number(kpiForm.target),
+          unit_of_measure: kpiForm.unit,
+          kpi_weight: Number(kpiForm.weight),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setStatusMsg({
+          type: 'success',
+          text: `Sasaran KPI '${kpiForm.title}' (bobot ${kpiForm.weight}%) berhasil diajukan dan tertaut ke Pilar Strategis BSC!`,
+        });
+        setIsAddKpiOpen(false);
+        setKpiForm({
+          title: '',
+          pillarId: 'c0000000-0000-4000-8000-000000000003',
+          periodId: selectedPeriod,
+          target: '',
+          unit: '% On-Time',
+          weight: '10',
+        });
+        if (kpiForm.periodId !== selectedPeriod) {
+          handlePeriodChange(kpiForm.periodId);
+        } else {
+          loadKpis(selectedPeriod);
+        }
+      } else {
+        setStatusMsg({ type: 'error', text: json.detail || 'Gagal mengajukan sasaran KPI baru.' });
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateWeight = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!weightModalKpi) return;
+    setIsUpdating(true);
+    setStatusMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/individual-kpis', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kpi_id: weightModalKpi.kpi_id,
+          action: 'UPDATE_WEIGHT',
+          kpi_weight: Number(editWeightVal),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setStatusMsg({
+          type: 'success',
+          text: `Bobot KPI '${weightModalKpi.kpi_title}' berhasil disesuaikan menjadi ${editWeightVal}%! Kuota bobot diperbarui.`,
+        });
+        setWeightModalKpi(null);
+        setEditWeightVal('');
+        loadKpis(selectedPeriod);
+      } else {
+        setStatusMsg({ type: 'error', text: json.detail || 'Gagal menyesuaikan bobot KPI.' });
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteKpi = async (kpi: any) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus KPI '${kpi.kpi_title}'? Bobot ${kpi.kpi_weight}% akan tersedia kembali sebagai kuota.`)) {
+      return;
+    }
+    setIsUpdating(true);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/v1/performance/individual-kpis?kpi_id=${kpi.kpi_id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setStatusMsg({
+          type: 'success',
+          text: `KPI '${kpi.kpi_title}' berhasil dihapus. Kuota bobot ${kpi.kpi_weight}% kini bebas untuk dialokasikan!`,
+        });
+        loadKpis(selectedPeriod);
+      } else {
+        setStatusMsg({ type: 'error', text: json.detail || 'Gagal menghapus KPI.' });
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleQuickFreeQuota = async (amount: number = 10) => {
+    if (kpis.length === 0) return;
+    const sorted = [...kpis].sort((a, b) => Number(b.kpi_weight) - Number(a.kpi_weight));
+    const target = sorted[0];
+    const currentW = Number(target.kpi_weight);
+    const newW = currentW - amount;
+    if (newW < 5) {
+      setStatusMsg({ type: 'error', text: `Tidak dapat mengurangi bobot '${target.kpi_title}' di bawah 5%. Silakan sesuaikan manual.` });
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/v1/performance/individual-kpis', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kpi_id: target.kpi_id,
+          action: 'UPDATE_WEIGHT',
+          kpi_weight: newW,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setStatusMsg({
+          type: 'success',
+          text: `Bobot '${target.kpi_title}' dikurangi dari ${currentW}% ke ${newW}%. Kuota ${amount}% sekarang siap digunakan!`,
+        });
+        loadKpis(selectedPeriod);
+      } else {
+        setStatusMsg({ type: 'error', text: json.detail || 'Gagal mengurangi bobot.' });
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSubmit360 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    setStatusMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/360-reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          period_id: 'd0000000-0000-4000-8000-000000000001',
+          evaluatee_id: reviewForm.evaluateeId,
+          relationship_type: 'PEER',
+          integrity_score: Number(reviewForm.integrity),
+          collaboration_score: Number(reviewForm.collaboration),
+          innovation_score: Number(reviewForm.innovation),
+          feedback_notes: reviewForm.notes,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setStatusMsg({
+          type: 'success',
+          text: `Feedback 360° untuk rekan kerja berhasil dikirim secara anonim & terenkripsi ke database!`,
+        });
+        setIs360Open(false);
+      } else {
+        setStatusMsg({ type: 'error', text: json.detail || 'Gagal mengirim evaluasi 360°.' });
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleOpenTree = async () => {
+    setIsTreeOpen(true);
+    if (!treeData) {
+      try {
+        const res = await fetch('/api/v1/performance/cascading-tree');
+        if (res.ok) {
+          const json = await res.json();
+          setTreeData(json.data);
+        }
+      } catch {
+        // fallback
+      }
+    }
+  };
 
   const handleUpdateActual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +452,7 @@ export default function EmployeePortalPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
-                    <Sparkles className="h-3.5 w-3.5 text-[#007a5a]" />
+                    <Target className="h-3.5 w-3.5 text-[#007a5a]" />
                     Cascaded KPI
                   </div>
                   <span className="text-xs font-bold text-[#0f172a] font-mono">46.25%</span>
@@ -304,22 +544,68 @@ export default function EmployeePortalPage() {
               <h2 className="text-base font-extrabold text-[#0f172a]">
                 Sasaran Kerja & Cascading OKR Aktif
               </h2>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333]">
-                Q3 In-Progress
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                totalWeight === 100 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#e0f2fe] text-[#0369a1]'
+              }`}>
+                Bobot Terpakai: {totalWeight}% / 100%
+              </span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+                remainingQuota > 0 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
+              }`}>
+                Sisa Kuota: {remainingQuota}%
               </span>
             </div>
             <p className="text-xs text-[#64748b] mt-0.5">
-              Setiap target individu terhubung secara hierarkis ke Balanced Scorecard (BSC) Perusahaan.
+              Setiap target individu terhubung secara hierarkis ke Balanced Scorecard (BSC) Perusahaan (PRD §8).
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Period Selector Tabs */}
+            <div className="flex items-center bg-[#f1f5f9] p-0.5 rounded-lg text-xs font-medium border border-[#e2e8f0]">
+              <button
+                type="button"
+                onClick={() => handlePeriodChange('d0000000-0000-4000-8000-000000000001')}
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                  selectedPeriod === 'd0000000-0000-4000-8000-000000000001'
+                    ? 'bg-white font-bold text-[#007a5a] shadow-xs'
+                    : 'text-[#64748b] hover:text-[#0f172a]'
+                }`}
+              >
+                2026-Q3 (Aktif)
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePeriodChange('d0000000-0000-4000-8000-000000000002')}
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                  selectedPeriod === 'd0000000-0000-4000-8000-000000000002'
+                    ? 'bg-white font-bold text-[#007a5a] shadow-xs'
+                    : 'text-[#64748b] hover:text-[#0f172a]'
+                }`}
+              >
+                2026-Q4 (Perencanaan)
+              </button>
+            </div>
+
+            <button
+              onClick={handleOpenTree}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc] transition-colors cursor-pointer"
+            >
               <GitBranch className="h-3.5 w-3.5 text-[#64748b]" />
               <span>Diagram Pohon BSC</span>
             </button>
 
-            <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors">
+            <button
+              onClick={() => {
+                setKpiForm((prev) => ({
+                  ...prev,
+                  periodId: selectedPeriod,
+                  weight: String(remainingQuota > 0 ? Math.min(10, remainingQuota) : 10),
+                }));
+                setIsAddKpiOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
               <Plus className="h-3.5 w-3.5 text-white" />
               <span>Ajukan Milestone Baru</span>
             </button>
@@ -329,7 +615,7 @@ export default function EmployeePortalPage() {
         {/* Corporate Objective Alignment Banner */}
         <div className="p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-[#334155]">
-            <Sparkles className="h-4 w-4 text-[#007a5a] flex-shrink-0" />
+            <Compass className="h-4 w-4 text-[#007a5a] flex-shrink-0" />
             <div>
               <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider block">
                 Corporate Objective Alignment (PostgreSQL Live)
@@ -362,7 +648,7 @@ export default function EmployeePortalPage() {
             <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
               <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
                 <h3 className="text-sm font-extrabold text-[#0f172a]">Input Nilai Realisasi KPI</h3>
-                <button onClick={() => setSelectedKpi(null)} className="text-[#64748b] hover:text-[#0f172a]"><X className="h-4 w-4" /></button>
+                <button onClick={() => setSelectedKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold text-[#0f172a]">{selectedKpi.kpi_title}</p>
@@ -384,9 +670,53 @@ export default function EmployeePortalPage() {
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setSelectedKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg">Batal</button>
-                  <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm">
+                  <button type="button" onClick={() => setSelectedKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer">Batal</button>
+                  <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm cursor-pointer">
                     {isUpdating ? 'Menyimpan...' : 'Simpan Realisasi'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Update Weight */}
+        {weightModalKpi && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
+              <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+                <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+                  <Sliders className="h-4 w-4 text-[#0284c7]" />
+                  <span>Sesuaikan Bobot Sasaran KPI</span>
+                </h3>
+                <button onClick={() => setWeightModalKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-[#0f172a]">{weightModalKpi.kpi_title}</p>
+                <p className="text-[11px] text-[#64748b]">Bobot saat ini: <strong className="text-[#0f172a]">{weightModalKpi.kpi_weight}%</strong> &bull; Total bobot lain: <strong>{totalWeight - Number(weightModalKpi.kpi_weight)}%</strong></p>
+                <p className="text-[11px] text-[#007a5a]">Maksimal bobot yang diizinkan untuk KPI ini: <strong>{100 - (totalWeight - Number(weightModalKpi.kpi_weight))}%</strong></p>
+              </div>
+              <form onSubmit={handleUpdateWeight} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Bobot Baru (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={100 - (totalWeight - Number(weightModalKpi.kpi_weight))}
+                    required
+                    value={editWeightVal}
+                    onChange={(e) => setEditWeightVal(e.target.value)}
+                    placeholder="Contoh: 15"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                  <span className="text-[10px] text-[#64748b] mt-1 block">
+                    Menurunkan bobot ini akan meluangkan kuota bobot bagi milestone baru.
+                  </span>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setWeightModalKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer">Batal</button>
+                  <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#0284c7] hover:bg-[#0369a1] rounded-lg shadow-sm cursor-pointer">
+                    {isUpdating ? 'Menyimpan...' : 'Simpan Perubahan Bobot'}
                   </button>
                 </div>
               </form>
@@ -408,7 +738,7 @@ export default function EmployeePortalPage() {
                       {kpi.kpi_title}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                       kpi.status === 'APPROVED' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
                     }`}>
@@ -420,10 +750,29 @@ export default function EmployeePortalPage() {
                         setSelectedKpi(kpi);
                         setNewActual(String(kpi.actual_value));
                       }}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#007a5a] hover:bg-[#e6f4ea] border border-[#cbd5e1]"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#007a5a] hover:bg-[#e6f4ea] border border-[#cbd5e1] cursor-pointer"
                     >
                       <Edit3 className="h-3 w-3" />
                       <span>Update Realisasi</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setWeightModalKpi(kpi);
+                        setEditWeightVal(String(kpi.kpi_weight));
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#0284c7] hover:bg-[#e0f2fe] border border-[#cbd5e1] cursor-pointer"
+                      title="Sesuaikan bobot KPI ini"
+                    >
+                      <Sliders className="h-3 w-3" />
+                      <span>Ubah Bobot</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteKpi(kpi)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#fef2f2] text-[#dc2626] hover:bg-rose-100 border border-[#fecaca] cursor-pointer"
+                      title="Hapus sasaran KPI ini"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>Hapus</span>
                     </button>
                   </div>
                 </div>
@@ -442,9 +791,16 @@ export default function EmployeePortalPage() {
               </div>
             ))
           ) : (
-            <p className="text-xs text-[#64748b] italic py-4 text-center">
-              {loading ? 'Memuat data KPI dari PostgreSQL...' : 'Belum ada sasaran KPI tercatat.'}
-            </p>
+            <div className="text-center py-8 p-4 rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] space-y-2">
+              <p className="text-xs font-medium text-[#64748b]">
+                {loading ? 'Memuat data KPI dari PostgreSQL...' : 'Belum ada sasaran KPI tercatat untuk periode ini.'}
+              </p>
+              {!loading && (
+                <p className="text-[11px] text-[#007a5a] font-semibold">
+                  Sisa kuota bobot 100% tersedia! Klik &ldquo;Ajukan Milestone Baru&rdquo; untuk mulai merancang sasaran kerja.
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -533,7 +889,10 @@ export default function EmployeePortalPage() {
             </div>
           </div>
 
-          <button className="w-full py-2.5 px-4 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs">
+          <button
+            onClick={() => setIs360Open(true)}
+            className="w-full py-2.5 px-4 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+          >
             <span>Isi Feedback Anonim</span>
           </button>
         </div>
@@ -577,6 +936,345 @@ export default function EmployeePortalPage() {
         </div>
 
       </div>
+
+      {/* Modal 1: Ajukan Sasaran KPI Baru */}
+      {isAddKpiOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-[#007a5a]" />
+                  <span>Ajukan Sasaran Kerja / KPI Baru</span>
+                </h3>
+                <p className="text-[11px] text-[#64748b]">Wajib terhubung ke minimal 1 Pilar Strategis BSC (PRD §8).</p>
+              </div>
+              <button onClick={() => setIsAddKpiOpen(false)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Quota Gauge */}
+            <div className="p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#334155]">Alokasi Kuota Bobot Periode</span>
+                <span className="font-mono text-xs font-bold text-[#0f172a]">
+                  {kpiForm.periodId === selectedPeriod ? totalWeight : 0}% / 100%
+                </span>
+              </div>
+              <div className="w-full bg-[#e2e8f0] h-2.5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    (kpiForm.periodId === selectedPeriod ? totalWeight : 0) >= 100 ? 'bg-[#007a5a]' : 'bg-[#0284c7]'
+                  }`}
+                  style={{ width: `${Math.min(100, kpiForm.periodId === selectedPeriod ? totalWeight : 0)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[#64748b]">
+                  Status: <strong>{(kpiForm.periodId === selectedPeriod ? totalWeight : 0) >= 100 ? 'Kuota Penuh (100%)' : 'Tersedia'}</strong>
+                </span>
+                <span className={`font-semibold ${
+                  (kpiForm.periodId === selectedPeriod ? remainingQuota : 100) > 0 ? 'text-[#137333]' : 'text-[#c5221f]'
+                }`}>
+                  Sisa Kuota: {kpiForm.periodId === selectedPeriod ? remainingQuota : 100}%
+                </span>
+              </div>
+            </div>
+
+            {/* Full Quota Assistance Banner */}
+            {kpiForm.periodId === selectedPeriod && remainingQuota === 0 && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-800">
+                  <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                  <span>Total Bobot Periode 2026-Q3 Sudah 100%</span>
+                </div>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  Sesuai standar BSC korporasi, total bobot KPI dibatasi maksimal 100%. Untuk mendaftarkan sasaran baru, pilih salah satu opsi cepat berikut:
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKpiForm((prev) => ({ ...prev, periodId: 'd0000000-0000-4000-8000-000000000002', weight: '15' }));
+                    }}
+                    className="px-2.5 py-1 rounded text-[11px] font-semibold bg-[#007a5a] text-white hover:bg-[#00684a] shadow-xs cursor-pointer"
+                  >
+                    Pilih Periode 2026-Q4 (Kuota 100% Tersedia)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFreeQuota(10)}
+                    className="px-2.5 py-1 rounded text-[11px] font-semibold bg-white text-amber-900 border border-amber-300 hover:bg-amber-100 cursor-pointer"
+                  >
+                    Kurangi 10% dari KPI Lain Otomatis
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateKpi} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Periode Evaluasi</label>
+                  <select
+                    value={kpiForm.periodId}
+                    onChange={(e) => setKpiForm({ ...kpiForm, periodId: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a] bg-white text-[#0f172a]"
+                  >
+                    <option value="d0000000-0000-4000-8000-000000000001">2026-Q3 (Fiskal Berjalan)</option>
+                    <option value="d0000000-0000-4000-8000-000000000002">2026-Q4 (Perencanaan)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Bobot Sasaran (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={kpiForm.periodId === selectedPeriod ? (remainingQuota > 0 ? remainingQuota : 100) : 100}
+                    required
+                    value={kpiForm.weight}
+                    onChange={(e) => setKpiForm({ ...kpiForm, weight: e.target.value })}
+                    placeholder="Contoh: 10"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">Judul Sasaran KPI (SMART Target)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Optimasi Waktu Respon API Microservices < 150ms"
+                  value={kpiForm.title}
+                  onChange={(e) => setKpiForm({ ...kpiForm, title: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">Pilar Strategis Balanced Scorecard (BSC)</label>
+                <select
+                  value={kpiForm.pillarId}
+                  onChange={(e) => setKpiForm({ ...kpiForm, pillarId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a] bg-white text-[#0f172a]"
+                >
+                  <option value="c0000000-0000-4000-8000-000000000001">Perspektif Finansial (Pertumbuhan & Efisiensi Anggaran)</option>
+                  <option value="c0000000-0000-4000-8000-000000000002">Perspektif Pelanggan (Kepuasan Stakeholder & CSAT)</option>
+                  <option value="c0000000-0000-4000-8000-000000000003">Perspektif Proses Bisnis Internal (Keunggulan Operasional & SLA)</option>
+                  <option value="c0000000-0000-4000-8000-000000000004">Perspektif Pembelajaran & Pertumbuhan (Kapabilitas SDM & AKHLAK)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Target Angka</label>
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    placeholder="Contoh: 100"
+                    value={kpiForm.target}
+                    onChange={(e) => setKpiForm({ ...kpiForm, target: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Satuan Pengukuran</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="% / ms / Sesi / Unit"
+                    value={kpiForm.unit}
+                    onChange={(e) => setKpiForm({ ...kpiForm, unit: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#f1f5f9]">
+                <button
+                  type="button"
+                  onClick={() => setIsAddKpiOpen(false)}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating || (kpiForm.periodId === selectedPeriod && remainingQuota === 0)}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isUpdating ? 'Memvalidasi...' : 'Ajukan KPI'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Isi Ulasan 360° Anonim */}
+      {is360Open && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-[#0284c7]" />
+                  <span>Ulasan Kinerja 360° Multi-Rater (PRD §5.2)</span>
+                </h3>
+                <p className="text-[11px] text-[#64748b]">Jaminan anonimitas terenkripsi penuh sesuai standar tata kelola GCG.</p>
+              </div>
+              <button onClick={() => setIs360Open(false)} className="text-[#64748b] hover:text-[#0f172a]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit360} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">Pilih Rekan Kerja (Evaluatee)</label>
+                <select
+                  value={reviewForm.evaluateeId}
+                  onChange={(e) => setReviewForm({ ...reviewForm, evaluateeId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#0284c7] bg-white text-[#0f172a]"
+                >
+                  <option value="b0000000-0000-4000-8000-000000000007">Anisa Wijaya, S.Ds. — Product Designer UI/UX</option>
+                  <option value="b0000000-0000-4000-8000-000000000008">Dimas Prasetyo, S.Kom. — DevOps & SRE Engineer</option>
+                  <option value="b0000000-0000-4000-8000-000000000009">Rian Hidayat, S.Kom. — Junior Backend Developer</option>
+                </select>
+              </div>
+
+              <div className="space-y-3 p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-[#334155]">1. Integritas & Etika Kerja (1.0 - 5.0):</span>
+                  <span className="font-mono font-bold text-[#007a5a] bg-white px-2 py-0.5 rounded border border-[#cbd5e1]">{reviewForm.integrity} / 5.0</span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="5.0"
+                  step="0.1"
+                  value={reviewForm.integrity}
+                  onChange={(e) => setReviewForm({ ...reviewForm, integrity: parseFloat(e.target.value) })}
+                  className="w-full accent-[#007a5a]"
+                />
+
+                <div className="flex items-center justify-between text-xs pt-2">
+                  <span className="font-semibold text-[#334155]">2. Kolaborasi Lintas Fungsi (1.0 - 5.0):</span>
+                  <span className="font-mono font-bold text-[#0284c7] bg-white px-2 py-0.5 rounded border border-[#cbd5e1]">{reviewForm.collaboration} / 5.0</span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="5.0"
+                  step="0.1"
+                  value={reviewForm.collaboration}
+                  onChange={(e) => setReviewForm({ ...reviewForm, collaboration: parseFloat(e.target.value) })}
+                  className="w-full accent-[#0284c7]"
+                />
+
+                <div className="flex items-center justify-between text-xs pt-2">
+                  <span className="font-semibold text-[#334155]">3. Inovasi & Inisiatif Solutif (1.0 - 5.0):</span>
+                  <span className="font-mono font-bold text-[#7c3aed] bg-white px-2 py-0.5 rounded border border-[#cbd5e1]">{reviewForm.innovation} / 5.0</span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="5.0"
+                  step="0.1"
+                  value={reviewForm.innovation}
+                  onChange={(e) => setReviewForm({ ...reviewForm, innovation: parseFloat(e.target.value) })}
+                  className="w-full accent-[#7c3aed]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">Ulasan Kualitatif / Feedback Konstruktif</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={reviewForm.notes}
+                  onChange={(e) => setReviewForm({ ...reviewForm, notes: e.target.value })}
+                  placeholder="Berikan masukan yang membangun untuk rekan kerja Anda..."
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#0284c7]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#f1f5f9]">
+                <button
+                  type="button"
+                  onClick={() => setIs360Open(false)}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-[#64748b] hover:bg-[#f1f5f9] rounded-lg"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-[#0284c7] hover:bg-[#0369a1] rounded-lg shadow-sm"
+                >
+                  {isUpdating ? 'Mengenkripsi...' : 'Kirim Feedback 360°'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Diagram Pohon Cascading BSC */}
+      {isTreeOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+                  <GitBranch className="h-4 w-4 text-[#007a5a]" />
+                  <span>Pohon Cascading Sasaran Strategis (Goal Cascading Tree)</span>
+                </h3>
+                <p className="text-[11px] text-[#64748b]">Level 1 (Korporasi) &rarr; Level 2 (Divisi) &rarr; Level 3 (Unit) &rarr; KPI Individu</p>
+              </div>
+              <button onClick={() => setIsTreeOpen(false)} className="text-[#64748b] hover:text-[#0f172a]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+                <span className="text-[10px] font-bold text-[#007a5a] uppercase tracking-wider block mb-1">Visi & Misi Korporasi</span>
+                <p className="font-bold text-[#0f172a]">{treeData?.level_0_vision?.description || 'Menjadi Perusahaan Teknologi Terkemuka di Asia Tenggara yang Berdampak Nyata'}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-bold text-xs text-[#334155]">Pilar Strategis Balanced Scorecard Aktif:</p>
+                {(treeData?.level_2_strategic_pillars || []).map((p: any) => (
+                  <div key={p.pillar_id} className="p-3 rounded-xl border border-[#e2e8f0] bg-white space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#0f172a]">{p.pillar_name}</span>
+                      <span className="text-[10px] font-bold text-[#007a5a] bg-[#e6f4ea] px-2 py-0.5 rounded">Bobot: {p.strategic_weight_pct}%</span>
+                    </div>
+                    <p className="text-[11px] text-[#64748b]">{p.description}</p>
+                    {(p.level_3_corporate_kpis || []).map((corp: any) => (
+                      <div key={corp.kpi_id} className="pl-3 border-l-2 border-[#007a5a] text-[11px] text-[#334155] space-y-1">
+                        <p className="font-semibold text-[#0f172a]">Target Korporat: {corp.kpi_name} (Target: {corp.target_value} {corp.unit})</p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-[#f1f5f9]">
+              <button
+                onClick={() => setIsTreeOpen(false)}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-[#0f172a] hover:bg-[#1e293b] rounded-lg"
+              >
+                Tutup Diagram
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

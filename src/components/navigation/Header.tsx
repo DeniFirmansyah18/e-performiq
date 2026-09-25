@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DUMMY_USERS } from '@/lib/dummy-data';
+import UserGuideModal from '@/components/guide/UserGuideModal';
 import {
   Layers,
   Search,
@@ -13,11 +14,13 @@ import {
   ChevronDown,
   LogOut,
   UserCheck,
+  BookOpen,
 } from 'lucide-react';
 
 export default function Header() {
   const { currentUser, activeRole, switchRole, activePeriod, setActivePeriod, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 w-full h-14 bg-[#0d131f] border-b border-[#1e293b] px-4 sm:px-6 flex items-center justify-between">
@@ -56,6 +59,16 @@ export default function Header() {
       {/* Right: Period, Notifs, Profile */}
       <div className="flex items-center gap-3">
         
+        {/* Panduan Aplikasi Button */}
+        <button
+          onClick={() => setIsGuideOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#008060] hover:bg-[#006E52] text-white transition-all text-xs font-semibold shadow-xs cursor-pointer"
+          title="Buka Buku Panduan Penggunaan & Acuan Standar"
+        >
+          <BookOpen className="h-3.5 w-3.5 text-white" />
+          <span className="hidden sm:inline">Panduan Aplikasi</span>
+        </button>
+
         {/* Period Pill */}
         <div className="flex items-center gap-1.5 rounded-lg bg-[#161f30] border border-slate-700/60 px-3 py-1.5 text-xs text-slate-200">
           <Calendar className="h-3.5 w-3.5 text-slate-400" />
@@ -158,6 +171,11 @@ export default function Header() {
         </div>
 
       </div>
+
+      <UserGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </header>
   );
 }

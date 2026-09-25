@@ -13,12 +13,221 @@ import {
   Layers,
   ArrowRight,
   Filter,
+  Calculator,
+  X,
 } from 'lucide-react';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  nip: string;
+  role: string;
+  pillar: string;
+  kpi: string;
+  kpiScore: number;
+  kpiNote: string;
+  kpiColor: string;
+  sopScore: number;
+  sopInsidents: string;
+  sopAlert?: boolean;
+  competencyScore: number;
+  coreValuesScore: number;
+  potentialScore: number;
+  rating360: string;
+  reviewsCount: string;
+  gpa: string;
+  box: string;
+  boxName: string;
+  status: string;
+  statusType: 'ready' | 'attention' | 'review';
+  isProbation?: boolean;
+  avatar: string;
+}
 
 export default function ManagerCockpitPage() {
   const [filterType, setFilterType] = useState<'all' | 'ready' | 'attention'>('all');
   const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
+
+  // Modal evaluation state
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [evalForm, setEvalForm] = useState({
+    kpiScore: 92.5,
+    sopScore: 96.0,
+    competencyScore: 85.0,
+    coreValuesScore: 90.0,
+    potentialScore: 4.2,
+  });
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
+  const [teamRoster, setTeamRoster] = useState<TeamMember[]>([
+    {
+      id: 'b0000000-0000-4000-8000-000000000004',
+      name: 'Budi Pratama',
+      nip: 'NIP: EMP-2022-0042',
+      role: 'Senior Systems Architect',
+      pillar: 'Internal Tech & Scalability',
+      kpi: '96.8%',
+      kpiScore: 96.8,
+      kpiNote: '+4.8% SLA 99.98%',
+      kpiColor: 'text-[#007a5a]',
+      sopScore: 98.0,
+      sopInsidents: '0 Insiden',
+      competencyScore: 88.0,
+      coreValuesScore: 92.0,
+      potentialScore: 4.2,
+      rating360: '4.8',
+      reviewsCount: '12 Ulasan',
+      gpa: '3.67',
+      box: 'Kuadran 1',
+      boxName: 'Future Leader / High Potential',
+      status: 'Siap Kalibrasi',
+      statusType: 'ready',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+    },
+    {
+      id: 'b0000000-0000-4000-8000-000000000007',
+      name: 'Anisa Wijaya, S.Ds.',
+      nip: 'NIP: EMP-2023-0108',
+      role: 'Product Designer (UI/UX)',
+      pillar: 'Customer Experience & Design',
+      kpi: '94.0%',
+      kpiScore: 94.0,
+      kpiNote: 'OKR Tercapai Sesuai Target',
+      kpiColor: 'text-[#007a5a]',
+      sopScore: 95.0,
+      sopInsidents: '0 Insiden',
+      competencyScore: 86.0,
+      coreValuesScore: 90.0,
+      potentialScore: 4.0,
+      rating360: '4.7',
+      reviewsCount: '14 Ulasan',
+      gpa: '3.52',
+      box: 'Kuadran 2',
+      boxName: 'Growth Star / Top Talent',
+      status: 'Siap Kalibrasi',
+      statusType: 'ready',
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
+    },
+    {
+      id: 'b0000000-0000-4000-8000-000000000008',
+      name: 'Dimas Prasetyo, S.Kom.',
+      nip: 'NIP: EMP-2021-0089',
+      role: 'DevOps & SRE Engineer',
+      pillar: 'Infrastructure SLA & Security',
+      kpi: '88.5%',
+      kpiScore: 88.5,
+      kpiNote: '-2.5% Target SLA Cloud',
+      kpiColor: 'text-[#334155]',
+      sopScore: 90.0,
+      sopInsidents: '1 Tiket SLA',
+      sopAlert: true,
+      competencyScore: 82.0,
+      coreValuesScore: 85.0,
+      potentialScore: 3.5,
+      rating360: '4.1',
+      reviewsCount: '8 Ulasan',
+      gpa: '3.41',
+      box: 'Kuadran 5',
+      boxName: 'Core Player / Steady Performer',
+      status: 'Butuh Justifikasi',
+      statusType: 'attention',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100',
+    },
+    {
+      id: 'b0000000-0000-4000-8000-000000000009',
+      name: 'Rian Hidayat, S.Kom.',
+      nip: 'NIP: EMP-2024-0230',
+      role: 'Junior Backend Developer',
+      pillar: 'API Service & Architecture',
+      kpi: '80.0%',
+      kpiScore: 80.0,
+      kpiNote: 'Evaluasi Probation Hari-90',
+      kpiColor: 'text-[#0369a1]',
+      sopScore: 87.5,
+      sopInsidents: '0 Insiden',
+      competencyScore: 78.0,
+      coreValuesScore: 84.0,
+      potentialScore: 3.2,
+      rating360: '4.2',
+      reviewsCount: '6 Ulasan',
+      gpa: '2.85',
+      box: 'Kuadran 4',
+      boxName: 'Dilemma / Inconsistent',
+      status: 'Evaluasi Probation',
+      statusType: 'review',
+      isProbation: true,
+      avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100',
+    },
+  ]);
+
+  const handleOpenEval = (member: TeamMember) => {
+    setSelectedMember(member);
+    setEvalForm({
+      kpiScore: member.kpiScore,
+      sopScore: member.sopScore,
+      competencyScore: member.competencyScore,
+      coreValuesScore: member.coreValuesScore,
+      potentialScore: member.potentialScore,
+    });
+  };
+
+  const handleSaveEvaluation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMember) return;
+
+    setIsEvaluating(true);
+    setApprovalMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/appraisals/calculate-gpa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          period_id: 'd0000000-0000-4000-8000-000000000001',
+          employee_id: selectedMember.id,
+          kpi_actual_score: Number(evalForm.kpiScore),
+          sop_compliance_score: Number(evalForm.sopScore),
+          competency_gap_score: Number(evalForm.competencyScore),
+          core_values_360_score: Number(evalForm.coreValuesScore),
+          potential_assessment_score: Number(evalForm.potentialScore),
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        const data = json.data;
+        setTeamRoster((prev) =>
+          prev.map((m) =>
+            m.id === selectedMember.id
+              ? {
+                  ...m,
+                  gpa: Number(data.composite_gpa).toFixed(2),
+                  box: `Kuadran (${data.nine_box_placement?.quadrant})`,
+                  boxName: data.nine_box_placement?.strategic_action || 'Evaluated',
+                  status: 'Terkalkulasi & Tersimpan',
+                  statusType: 'ready',
+                  kpiScore: evalForm.kpiScore,
+                  sopScore: evalForm.sopScore,
+                  competencyScore: evalForm.competencyScore,
+                  coreValuesScore: evalForm.coreValuesScore,
+                  potentialScore: evalForm.potentialScore,
+                }
+              : m
+          )
+        );
+        setApprovalMsg(
+          `Evaluasi kinerja untuk ${selectedMember.name} berhasil disimpan! GPA Komposit: ${data.composite_gpa} (Rating ${data.performance_rating} — ${data.nine_box_placement?.quadrant}).`
+        );
+        setSelectedMember(null);
+      } else {
+        setApprovalMsg(`Gagal: ${json.detail || 'Terjadi kesalahan'}`);
+      }
+    } catch (err: any) {
+      setApprovalMsg(`Error: ${err.message}`);
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
   const handleApproveAll = async () => {
     setIsApproving(true);
@@ -33,7 +242,7 @@ export default function ManagerCockpitPage() {
         }),
       });
       if (res.ok) {
-        setApprovalMsg('Persetujuan KPI tim Engineering berhasil disahkan & tersimpan ke PostgreSQL audit trail.');
+        setApprovalMsg('Persetujuan sasaran KPI seluruh tim berhasil disahkan dan tercatat di audit trail PostgreSQL.');
       } else {
         const json = await res.json();
         setApprovalMsg(json.detail || 'Gagal menyetujui KPI tim.');
@@ -44,101 +253,6 @@ export default function ManagerCockpitPage() {
       setIsApproving(false);
     }
   };
-
-  const teamRoster = [
-    {
-      name: 'Budi Pratama',
-      nip: 'NIP: ENG-8821',
-      role: 'Senior Systems Architect',
-      pillar: 'Internal Tech & Scalability',
-      kpi: '96.8%',
-      kpiNote: '+4.8% SLA 99.98%',
-      kpiColor: 'text-[#007a5a]',
-      sopInsidents: '0 Insiden',
-      rating360: '4.8',
-      reviewsCount: '12 Ulasan',
-      gpa: '3.67',
-      box: 'Kuadran 1',
-      boxName: 'Future Leader / High Potential',
-      status: 'Siap Kalibrasi',
-      statusType: 'ready',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-    },
-    {
-      name: 'Siti Rahmawati',
-      nip: 'NIP: PROD-4019',
-      role: 'Product Lead (Digital Governance)',
-      pillar: 'Customer & Adoption Matrix',
-      kpi: '98.2%',
-      kpiNote: 'OKR Tercapai Penuh',
-      kpiColor: 'text-[#007a5a]',
-      sopInsidents: '0 Insiden',
-      rating360: '4.9',
-      reviewsCount: '16 Ulasan',
-      gpa: '3.75',
-      box: 'Kuadran 2',
-      boxName: 'Growth Star / Top Talent',
-      status: 'Siap Kalibrasi',
-      statusType: 'ready',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
-    },
-    {
-      name: 'Andika Wijaya',
-      nip: 'NIP: OPS-7124',
-      role: 'Ops & Infrastructure Specialist',
-      pillar: 'Infrastructure SLA & Uptime',
-      kpi: '82.5%',
-      kpiNote: '-7.5% di bawah Target',
-      kpiColor: 'text-[#dc2626]',
-      sopInsidents: '1 Tiket SLA',
-      sopAlert: true,
-      rating360: '3.8',
-      reviewsCount: '8 Ulasan',
-      gpa: '3.20',
-      box: 'Kuadran 5',
-      boxName: 'Core Player / Steady Performer',
-      status: 'Butuh Justifikasi',
-      statusType: 'attention',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100',
-    },
-    {
-      name: 'Dian Safitri',
-      nip: 'NIP: QA-6228',
-      role: 'QA Engineering Lead',
-      pillar: 'Zero Defect Governance',
-      kpi: '94.0%',
-      kpiNote: 'Sesuai Kuota Q3',
-      kpiColor: 'text-[#007a5a]',
-      sopInsidents: '0 Insiden',
-      rating360: '4.6',
-      reviewsCount: '10 Ulasan',
-      gpa: '3.55',
-      box: 'Kuadran 3',
-      boxName: 'High Professional Expert',
-      status: 'Siap Kalibrasi',
-      statusType: 'ready',
-      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100',
-    },
-    {
-      name: 'Rizky Pratama',
-      nip: 'NIP: ENG-9903',
-      role: 'Jr. Cloud Engineer',
-      isProbation: true,
-      pillar: 'Foundational Onboarding',
-      kpi: '89.0%',
-      kpiNote: 'Milestone 60 Hari',
-      kpiColor: 'text-[#334155]',
-      sopInsidents: '0 Insiden',
-      rating360: '4.2',
-      reviewsCount: '6 Ulasan',
-      gpa: '3.40',
-      box: 'Probation',
-      boxName: 'Penilaian Tahap 2 Diperlukan',
-      status: 'Review 60-Hari',
-      statusType: 'review',
-      avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100',
-    },
-  ];
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
@@ -426,26 +540,35 @@ export default function ManagerCockpitPage() {
                       <p className="text-[10px] text-[#64748b] mt-0.5">{row.boxName}</p>
                     </td>
 
-                    {/* Column 7: Status */}
+                    {/* Column 7: Status & Aksi Evaluasi */}
                     <td className="py-3 px-3 text-right">
-                      {row.statusType === 'ready' && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded-full">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#137333]" />
-                          {row.status}
-                        </span>
-                      )}
-                      {row.statusType === 'attention' && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-0.5 rounded-full">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#c5221f]" />
-                          {row.status}
-                        </span>
-                      )}
-                      {row.statusType === 'review' && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded-full">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#0369a1]" />
-                          {row.status}
-                        </span>
-                      )}
+                      <div className="flex items-center justify-end gap-2.5">
+                        {row.statusType === 'ready' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded-full">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#137333]" />
+                            {row.status}
+                          </span>
+                        )}
+                        {row.statusType === 'attention' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-0.5 rounded-full">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#c5221f]" />
+                            {row.status}
+                          </span>
+                        )}
+                        {row.statusType === 'review' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded-full">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#0369a1]" />
+                            {row.status}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleOpenEval(row)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-[11px] font-bold shadow-xs transition-colors"
+                        >
+                          <Calculator className="h-3 w-3" />
+                          <span>Evaluasi</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -455,7 +578,7 @@ export default function ManagerCockpitPage() {
 
         {/* Pagination Footer */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#f1f5f9] text-xs text-[#64748b]">
-          <span>Menampilkan 5 dari 14 bawahan langsung dalam cakupan evaluasi People Manager</span>
+          <span>Menampilkan {teamRoster.length} bawahan langsung dalam cakupan evaluasi People Manager</span>
           <div className="flex gap-2">
             <button className="px-3 py-1 rounded-lg border border-[#cbd5e1] text-xs hover:bg-[#f8fafc]">Sebelumnya</button>
             <button className="px-3 py-1 rounded-lg border border-[#cbd5e1] text-xs hover:bg-[#f8fafc]">Selanjutnya</button>
@@ -553,14 +676,184 @@ export default function ManagerCockpitPage() {
 
             <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
               <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Lihat Matriks Bobot</span>
-              <button className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs">
-                Otorisasi KPI Tim
+              <button
+                onClick={handleApproveAll}
+                disabled={isApproving}
+                className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors"
+              >
+                {isApproving ? 'Mengotorisasi...' : 'Otorisasi KPI Tim'}
               </button>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Modal Evaluasi Kinerja & Hitung GPA Tim */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-5 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src={selectedMember.avatar}
+                  alt={selectedMember.name}
+                  className="h-10 w-10 rounded-full object-cover border border-[#e2e8f0]"
+                />
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#0f172a]">
+                    Evaluasi Kinerja: {selectedMember.name}
+                  </h3>
+                  <p className="text-[11px] text-[#64748b]">
+                    {selectedMember.nip} &bull; {selectedMember.role}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedMember(null)} className="text-[#64748b] hover:text-[#0f172a]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEvaluation} className="space-y-4">
+              <div className="space-y-3">
+                {/* 1. KPI Score */}
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-[#334155]">1. Capaian Sasaran KPI SMART (Bobot: 50%)</span>
+                    <span className="font-mono font-bold text-[#007a5a]">{evalForm.kpiScore}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={evalForm.kpiScore}
+                    onChange={(e) => setEvalForm({ ...evalForm, kpiScore: parseFloat(e.target.value) })}
+                    className="w-full accent-[#007a5a]"
+                  />
+                  <p className="text-[10px] text-[#64748b]">Kontribusi bobot: {((evalForm.kpiScore * 0.5)).toFixed(2)}%</p>
+                </div>
+
+                {/* 2. SOP Score */}
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-[#334155]">2. Kepatuhan Prosedur SOP & SLA (Bobot: 20%)</span>
+                    <span className="font-mono font-bold text-[#0284c7]">{evalForm.sopScore}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={evalForm.sopScore}
+                    onChange={(e) => setEvalForm({ ...evalForm, sopScore: parseFloat(e.target.value) })}
+                    className="w-full accent-[#0284c7]"
+                  />
+                  <p className="text-[10px] text-[#64748b]">Kontribusi bobot: {((evalForm.sopScore * 0.2)).toFixed(2)}%</p>
+                </div>
+
+                {/* 3. Competency Score */}
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-[#334155]">3. Penguasaan Kompetensi Teknis (Bobot: 15%)</span>
+                    <span className="font-mono font-bold text-[#0d9488]">{evalForm.competencyScore}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={evalForm.competencyScore}
+                    onChange={(e) => setEvalForm({ ...evalForm, competencyScore: parseFloat(e.target.value) })}
+                    className="w-full accent-[#0d9488]"
+                  />
+                  <p className="text-[10px] text-[#64748b]">Kontribusi bobot: {((evalForm.competencyScore * 0.15)).toFixed(2)}%</p>
+                </div>
+
+                {/* 4. Core Values */}
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-[#334155]">4. Nilai Luhur Budaya AKHLAK & 360° (Bobot: 15%)</span>
+                    <span className="font-mono font-bold text-[#7c3aed]">{evalForm.coreValuesScore}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={evalForm.coreValuesScore}
+                    onChange={(e) => setEvalForm({ ...evalForm, coreValuesScore: parseFloat(e.target.value) })}
+                    className="w-full accent-[#7c3aed]"
+                  />
+                  <p className="text-[10px] text-[#64748b]">Kontribusi bobot: {((evalForm.coreValuesScore * 0.15)).toFixed(2)}%</p>
+                </div>
+
+                {/* 5. Potential */}
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-[#334155]">5. Potensi Suksesi Kepemimpinan (Skala 1.0 - 5.0)</span>
+                    <span className="font-mono font-bold text-[#ea580c]">{evalForm.potentialScore} / 5.0</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="5.0"
+                    step="0.1"
+                    value={evalForm.potentialScore}
+                    onChange={(e) => setEvalForm({ ...evalForm, potentialScore: parseFloat(e.target.value) })}
+                    className="w-full accent-[#ea580c]"
+                  />
+                </div>
+              </div>
+
+              {/* Real-time Calculation Preview Card */}
+              {(() => {
+                const totalPct = Number(
+                  (evalForm.kpiScore * 0.5 + evalForm.sopScore * 0.2 + evalForm.competencyScore * 0.15 + evalForm.coreValuesScore * 0.15).toFixed(2)
+                );
+                const gpa = Number(Math.min(4.0, (totalPct / 100) * 4.0).toFixed(2));
+                const rating = totalPct >= 90 ? 'A' : totalPct >= 80 ? 'B' : totalPct >= 70 ? 'C' : 'D';
+                return (
+                  <div className="p-4 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#137333] uppercase tracking-wider block">
+                        Kalkulasi Komposit GPA Real-Time
+                      </span>
+                      <p className="text-xs text-[#0f172a] font-bold mt-0.5">
+                        Total Skor: {totalPct}% &bull; Rating Prediksi: {rating}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-[#007a5a] font-mono">
+                        {gpa}
+                      </span>
+                      <span className="text-[11px] text-[#64748b] block font-mono">/ 4.00</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#f1f5f9]">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMember(null)}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-[#64748b] hover:bg-[#f1f5f9] rounded-lg"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEvaluating}
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm flex items-center gap-1.5"
+                >
+                  <Calculator className="h-3.5 w-3.5" />
+                  <span>{isEvaluating ? 'Menghitung & Menyimpan...' : 'Hitung & Simpan Nilai ke PostgreSQL'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

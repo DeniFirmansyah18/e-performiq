@@ -141,3 +141,26 @@ export async function updateKpiStatus(
   `);
   return result.rows[0] as any;
 }
+
+export async function updateKpiWeight(db: Db, id: string, kpiWeight: number) {
+  const result = await db.execute(sql`
+    UPDATE individual_kpis
+       SET kpi_weight = ${kpiWeight}, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ${id}::uuid
+    RETURNING id, period_id as "periodId", employee_id as "employeeId",
+              kpi_title as "kpiTitle", target_value as "targetValue",
+              actual_value as "actualValue", kpi_weight as "kpiWeight",
+              achievement_percentage as "achievementPercentage", status
+  `);
+  return result.rows[0] as any;
+}
+
+export async function deleteIndividualKpi(db: Db, id: string) {
+  const result = await db.execute(sql`
+    DELETE FROM individual_kpis
+     WHERE id = ${id}::uuid
+    RETURNING id, period_id as "periodId", employee_id as "employeeId",
+              kpi_title as "kpiTitle", kpi_weight as "kpiWeight"
+  `);
+  return result.rows[0] as any;
+}
