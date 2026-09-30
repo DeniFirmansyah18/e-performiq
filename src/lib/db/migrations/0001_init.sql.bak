@@ -1,43 +1,29 @@
 -- ============================== ENUM (7) ==============================
-DO $$ BEGIN
-  CREATE TYPE bsc_perspective_enum AS ENUM ('FINANCIAL','CUSTOMER','INTERNAL_PROCESS','LEARNING_GROWTH');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-DO $$ BEGIN
-  CREATE TYPE employee_status_enum AS ENUM ('PROBATION','PERMANENT','CONTRACT','RESIGNED','RETIRED');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-DO $$ BEGIN
-  CREATE TYPE user_role_enum AS ENUM ('SUPER_ADMIN','BOD','HR_MANAGER','PEOPLE_MANAGER','EMPLOYEE','AUDITOR','ASSESSOR');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-DO $$ BEGIN
-  CREATE TYPE period_status_enum AS ENUM ('DRAFT','ACTIVE','CALIBRATION','LOCKED');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-DO $$ BEGIN
-  CREATE TYPE nine_box_quadrant_enum AS ENUM ('ENIGMA','GROWTH_STAR','FUTURE_LEADER','DILEMMA','CORE_PLAYER',
+CREATE TYPE bsc_perspective_enum AS ENUM
+  ('FINANCIAL','CUSTOMER','INTERNAL_PROCESS','LEARNING_GROWTH');
+CREATE TYPE employee_status_enum AS ENUM
+  ('PROBATION','PERMANENT','CONTRACT','RESIGNED','RETIRED');
+CREATE TYPE user_role_enum AS ENUM
+  ('SUPER_ADMIN','BOD','HR_MANAGER','PEOPLE_MANAGER','EMPLOYEE','AUDITOR','ASSESSOR');
+CREATE TYPE period_status_enum AS ENUM
+  ('DRAFT','ACTIVE','CALIBRATION','LOCKED');
+CREATE TYPE nine_box_quadrant_enum AS ENUM
+  ('ENIGMA','GROWTH_STAR','FUTURE_LEADER','DILEMMA','CORE_PLAYER',
    'HIGH_IMPACT','UNDERPERFORMER','EFFECTIVE_PRO','TRUSTED_PRO');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-DO $$ BEGIN
-  CREATE TYPE offboarding_status_enum AS ENUM ('INITIATED','CLEARANCE_IN_PROGRESS','COMPLETED','DISPUTED');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-DO $$ BEGIN
-  CREATE TYPE kpi_status_enum AS ENUM ('DRAFT','SUBMITTED','APPROVED','REJECTED');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE offboarding_status_enum AS ENUM
+  ('INITIATED','CLEARANCE_IN_PROGRESS','COMPLETED','DISPUTED');
+CREATE TYPE kpi_status_enum AS ENUM
+  ('DRAFT','SUBMITTED','APPROVED','REJECTED');
 
 -- ============================ ORGANISASI ==============================
-CREATE TABLE IF NOT EXISTS companies (
+CREATE TABLE companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_name VARCHAR(200) NOT NULL,
   legal_entity_code VARCHAR(50) UNIQUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS departments (
+CREATE TABLE departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
   department_name VARCHAR(200) NOT NULL,
@@ -45,7 +31,7 @@ CREATE TABLE IF NOT EXISTS departments (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS job_positions (
+CREATE TABLE job_positions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
   position_title VARCHAR(200) NOT NULL,
@@ -54,7 +40,7 @@ CREATE TABLE IF NOT EXISTS job_positions (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS employees (
+CREATE TABLE employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_code VARCHAR(50) UNIQUE NOT NULL,
   full_name VARCHAR(200) NOT NULL,
@@ -72,7 +58,7 @@ CREATE TABLE IF NOT EXISTS employees (
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID UNIQUE REFERENCES employees(id) ON DELETE CASCADE,
   email VARCHAR(150) UNIQUE NOT NULL,
@@ -84,7 +70,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- ================== STRATEGIS (Cascade Level 1-3) ====================
-CREATE TABLE IF NOT EXISTS strategic_pillars (
+CREATE TABLE strategic_pillars (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
   perspective bsc_perspective_enum NOT NULL,
@@ -97,7 +83,7 @@ CREATE TABLE IF NOT EXISTS strategic_pillars (
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS corporate_kpis (
+CREATE TABLE corporate_kpis (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   strategic_pillar_id UUID NOT NULL
     REFERENCES strategic_pillars(id) ON DELETE RESTRICT,
@@ -110,7 +96,7 @@ CREATE TABLE IF NOT EXISTS corporate_kpis (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS division_kpis (
+CREATE TABLE division_kpis (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   corporate_kpi_id UUID NOT NULL REFERENCES corporate_kpis(id) ON DELETE RESTRICT,
   department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
@@ -121,7 +107,7 @@ CREATE TABLE IF NOT EXISTS division_kpis (
 );
 
 -- ======================== FASE 2: KINERJA ============================
-CREATE TABLE IF NOT EXISTS appraisal_periods (
+CREATE TABLE appraisal_periods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_code VARCHAR(50) UNIQUE NOT NULL,
   start_date DATE NOT NULL,
@@ -131,7 +117,7 @@ CREATE TABLE IF NOT EXISTS appraisal_periods (
   CHECK (end_date > start_date)
 );
 
-CREATE TABLE IF NOT EXISTS individual_kpis (
+CREATE TABLE individual_kpis (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_id UUID NOT NULL REFERENCES appraisal_periods(id) ON DELETE CASCADE,
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -154,7 +140,7 @@ CREATE TABLE IF NOT EXISTS individual_kpis (
   UNIQUE (period_id, employee_id, kpi_title)
 );
 
-CREATE TABLE IF NOT EXISTS sop_compliance_logs (
+CREATE TABLE sop_compliance_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_id UUID NOT NULL REFERENCES appraisal_periods(id) ON DELETE CASCADE,
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -168,7 +154,7 @@ CREATE TABLE IF NOT EXISTS sop_compliance_logs (
   UNIQUE (period_id, employee_id)
 );
 
-CREATE TABLE IF NOT EXISTS competency_scores (
+CREATE TABLE competency_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_id UUID NOT NULL REFERENCES appraisal_periods(id) ON DELETE CASCADE,
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -181,7 +167,7 @@ CREATE TABLE IF NOT EXISTS competency_scores (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS peer_reviews_360 (
+CREATE TABLE peer_reviews_360 (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_id UUID NOT NULL REFERENCES appraisal_periods(id) ON DELETE CASCADE,
   evaluatee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -200,7 +186,7 @@ CREATE TABLE IF NOT EXISTS peer_reviews_360 (
   UNIQUE (period_id, evaluatee_id, evaluator_id)
 );
 
-CREATE TABLE IF NOT EXISTS performance_appraisals (
+CREATE TABLE performance_appraisals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_id UUID NOT NULL REFERENCES appraisal_periods(id) ON DELETE CASCADE,
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -223,7 +209,7 @@ CREATE TABLE IF NOT EXISTS performance_appraisals (
 );
 
 -- ==================== FASE 1 & 3 (Pre / Post) ========================
-CREATE TABLE IF NOT EXISTS manpower_plans (
+CREATE TABLE manpower_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
   position_id UUID NOT NULL REFERENCES job_positions(id) ON DELETE RESTRICT,
@@ -236,7 +222,7 @@ CREATE TABLE IF NOT EXISTS manpower_plans (
   UNIQUE (department_id, position_id, fiscal_year)
 );
 
-CREATE TABLE IF NOT EXISTS hiring_requisitions (
+CREATE TABLE hiring_requisitions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   manpower_plan_id UUID NOT NULL REFERENCES manpower_plans(id) ON DELETE RESTRICT,
   requisition_code VARCHAR(50) UNIQUE NOT NULL,
@@ -246,7 +232,7 @@ CREATE TABLE IF NOT EXISTS hiring_requisitions (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS recruitment_assessments (
+CREATE TABLE recruitment_assessments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   candidate_name VARCHAR(200) NOT NULL,
   applied_position_id UUID NOT NULL REFERENCES job_positions(id) ON DELETE RESTRICT,
@@ -262,7 +248,7 @@ CREATE TABLE IF NOT EXISTS recruitment_assessments (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS onboarding_milestones (
+CREATE TABLE onboarding_milestones (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   day_30_score DECIMAL(5,2) CHECK (day_30_score BETWEEN 0 AND 100),
@@ -275,7 +261,7 @@ CREATE TABLE IF NOT EXISTS onboarding_milestones (
   UNIQUE (employee_id)
 );
 
-CREATE TABLE IF NOT EXISTS offboarding_requests (
+CREATE TABLE offboarding_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   reason_for_leaving VARCHAR(100) NOT NULL,
@@ -287,7 +273,7 @@ CREATE TABLE IF NOT EXISTS offboarding_requests (
   CHECK (last_working_day >= resignation_notice_date)
 );
 
-CREATE TABLE IF NOT EXISTS knowledge_handovers (
+CREATE TABLE knowledge_handovers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   offboarding_request_id UUID NOT NULL
     REFERENCES offboarding_requests(id) ON DELETE CASCADE,
@@ -300,7 +286,7 @@ CREATE TABLE IF NOT EXISTS knowledge_handovers (
   verified_at TIMESTAMPTZ
 );
 
-CREATE TABLE IF NOT EXISTS severance_calculations (
+CREATE TABLE severance_calculations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   offboarding_request_id UUID UNIQUE NOT NULL
     REFERENCES offboarding_requests(id) ON DELETE CASCADE,
@@ -317,7 +303,7 @@ CREATE TABLE IF NOT EXISTS severance_calculations (
   paid_at TIMESTAMPTZ
 );
 
-CREATE TABLE IF NOT EXISTS lifetime_contributions (
+CREATE TABLE lifetime_contributions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   achievement_title VARCHAR(255) NOT NULL,
@@ -329,7 +315,7 @@ CREATE TABLE IF NOT EXISTS lifetime_contributions (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS vmai_scorecards (
+CREATE TABLE vmai_scorecards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   period_id UUID NOT NULL REFERENCES appraisal_periods(id) ON DELETE CASCADE,
   overall_vmai_score DECIMAL(5,2) NOT NULL CHECK (overall_vmai_score BETWEEN 0 AND 100),
@@ -347,7 +333,7 @@ CREATE TABLE IF NOT EXISTS vmai_scorecards (
 );
 
 -- ============================ TATA KELOLA ============================
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE TABLE audit_logs (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action_type VARCHAR(30) NOT NULL
@@ -373,7 +359,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_audit_logs_immutable ON audit_logs;
 CREATE TRIGGER trg_audit_logs_immutable
   BEFORE UPDATE OR DELETE ON audit_logs
   FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();
@@ -423,21 +408,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_appraisal_immutable ON performance_appraisals;
 CREATE TRIGGER trg_appraisal_immutable
   BEFORE UPDATE ON performance_appraisals
   FOR EACH ROW EXECUTE FUNCTION prevent_calibrated_appraisal_update();
 
 -- ============================== INDEX ================================
-CREATE INDEX IF NOT EXISTS idx_employees_manager ON employees(manager_id);
-CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(status);
-CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department_id);
-CREATE INDEX IF NOT EXISTS idx_individual_kpis_emp_period ON individual_kpis(employee_id, period_id);
-CREATE INDEX IF NOT EXISTS idx_individual_kpis_status ON individual_kpis(status);
-CREATE INDEX IF NOT EXISTS idx_individual_kpis_pillar ON individual_kpis(strategic_pillar_id);
-CREATE INDEX IF NOT EXISTS idx_appraisals_period_gpa ON performance_appraisals(period_id, composite_gpa);
-CREATE INDEX IF NOT EXISTS idx_appraisals_employee ON performance_appraisals(employee_id);
-CREATE INDEX IF NOT EXISTS idx_audit_entity_record ON audit_logs(entity_name, record_id);
-CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_division_kpis_corporate ON division_kpis(corporate_kpi_id);
-CREATE INDEX IF NOT EXISTS idx_peer_reviews_evaluatee ON peer_reviews_360(evaluatee_id, period_id);
+CREATE INDEX idx_employees_manager ON employees(manager_id);
+CREATE INDEX idx_employees_status ON employees(status);
+CREATE INDEX idx_employees_department ON employees(department_id);
+CREATE INDEX idx_individual_kpis_emp_period ON individual_kpis(employee_id, period_id);
+CREATE INDEX idx_individual_kpis_status ON individual_kpis(status);
+CREATE INDEX idx_individual_kpis_pillar ON individual_kpis(strategic_pillar_id);
+CREATE INDEX idx_appraisals_period_gpa ON performance_appraisals(period_id, composite_gpa);
+CREATE INDEX idx_appraisals_employee ON performance_appraisals(employee_id);
+CREATE INDEX idx_audit_entity_record ON audit_logs(entity_name, record_id);
+CREATE INDEX idx_audit_created ON audit_logs(created_at DESC);
+CREATE INDEX idx_division_kpis_corporate ON division_kpis(corporate_kpi_id);
+CREATE INDEX idx_peer_reviews_evaluatee ON peer_reviews_360(evaluatee_id, period_id);

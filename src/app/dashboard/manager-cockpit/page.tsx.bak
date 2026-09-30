@@ -16,7 +16,6 @@ import {
   Calculator,
   X,
 } from 'lucide-react';
-import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
 
 interface TeamMember {
   id: string;
@@ -689,9 +688,6 @@ export default function ManagerCockpitPage() {
 
         </div>
       </div>
-
-      {/* 5. Peninjauan Lamaran Internal (Kotak 3: Job Board & Mobilitas Internal) */}
-      <InternalApplicationReview />
 
       {/* Modal Evaluasi Kinerja & Hitung GPA Tim */}
       {selectedMember && (

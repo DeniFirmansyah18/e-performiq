@@ -4,10 +4,7 @@ import { createTestDb } from '../setup';
 import { runSeed, DEMO_PAYSLIP_PIN } from '@/lib/db/seed';
 
 // getVerifiedPayslip memakai singleton getDb(); arahkan ke DB in-memory milik tes.
-// vi.hoisted wajib dipakai: factory vi.mock dieksekusi saat import resolution,
-// sebelum body modul berjalan, sehingga const biasa akan kena TDZ ReferenceError.
-const holder = vi.hoisted(() => ({ client: null as PGlite | null }));
-
+const holder: { client: PGlite | null } = { client: null };
 vi.mock('@/lib/db/client', () => ({
   getDb: async () => {
     if (!holder.client) throw new Error('test DB belum siap');

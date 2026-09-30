@@ -1,0 +1,65 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type { PGlite } from '@electric-sql/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
+import { createTestDb } from '../setup';
+import { buildRiskProfile, calculateFlightRisk } from '@/lib/services/coreHrService';
+import type { Db } from '@/lib/db/client';
+
+const EMP = 'c0000000-0000-4000-8000-000000000004';
+
+describe('Flight Risk sourced from real attendance data', () => {
+let client: PGlite;
+let db: Db;
+
+beforeAll(async () => {
+({ client } = await createTestDb());
+db = drizzle(client) as unknown as Db;
+await client.exec(`INSERT INTO companies (id, company_name, legal_entity_code) VALUES ('c0000000-0000-4000-8000-000000000001','PT Absen','ABS') ON CONFLICT DO NOTHING; INSERT INTO departments (id, company_id, department_name) VALUES ('c0000000-0000-4000-8000-000000000002','c0000000-0000-4000-8000-000000000001','Ops') ON CONFLICT DO NOTHING; INSERT INTO job_positions (id, department_id, position_title) VALUES ('c0000000-0000-4000-8000-000000000003','c0000000-0000-4000-8000-000000000002','Ops Staff') ON CONFLICT DO NOTHING; INSERT INTO employees (id, employee_code, full_name, email, department_id, position_id, base_salary, join_date) VALUES ('${EMP}','EMP-ABS-01','Wira','wira@x.id', 'c0000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000003',9000000,'2024-01-01') ON CONFLICT DO NOTHING;`);
+});
+
+afterAll(async () => {
+await client.close();
+});
+
+it('buildRiskProfile menghitung Bradford dari baris absensi nyata, bukan input manual', async () => {
+// 4 hari hadir lalu 1 alpa = 1 spell x 1 hari -> Bradford = 1^2 x 1 = 1
+const rows: Array<[string, boolean]> = [
+['2026-03-02', true], ['2026-03-03', true],
+['2026-03-04', true], ['2026-03-05', true], ['2026-03-06', false],
+];
+for (const [d, present] of rows) {
+await client.query(
+`INSERT INTO attendance_records (employee_id, work_date, check_in, check_out, is_present) VALUES ($1,$2,'08:00','17:00',$3);`,
+[EMP, d, present]
+);
+}
+
+
+
+const profile = await buildRiskProfile(db, EMP);
+expect(profile.bradfordFactor).toBe(1);
+});
+
+it('cuti sakit tidak menaikkan Bradford Factor pada profil', async () => {
+await client.query(
+`INSERT INTO attendance_records (employee_id, work_date, check_in, check_out, is_present, is_sick_leave) VALUES ($1,'2026-03-09','08:00','17:00',false,true) ON CONFLICT DO NOTHING;`,
+[EMP]
+);
+const profile = await buildRiskProfile(db, EMP);
+expect(profile.bradfordFactor).toBe(1);
+});
+
+it('calculateFlightRisk memakai profil hasil query', () => {
+const risk = calculateFlightRisk({
+employeeId: EMP,
+bradfordFactor: 65,
+peerReviewAvg: 2.8,
+overtimeHoursWeekly: 14,
+contractDaysRemaining: 40,
+});
+expect(risk.level).toBe('HIGH');
+expect(risk.warnings).toContain(
+'Indeks Bradford absensi mengindikasikan ketidakhadiran berulang'
+);
+});
+});

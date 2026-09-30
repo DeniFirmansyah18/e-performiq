@@ -346,8 +346,9 @@ setIsUpdating(false);
 }
 };
 return (
-    <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
-      
+
+
+
   {/* 1. Employee Welcome Header Card */}
   <div className="stitch-card-white p-6">
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">

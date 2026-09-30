@@ -1,3 +1,4 @@
+=== FILE: src/lib/services/coreHrService.ts ===
 import { sql } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import type { Db } from '@/lib/db/client';
@@ -145,3 +146,4 @@ approvedAt: row.approved_at,
 createdAt: row.created_at,
 };
 }
+=== END ===
