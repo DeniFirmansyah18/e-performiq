@@ -81,13 +81,13 @@ UPDATE employees SET payslip_pin_hash = '${pinHash}' WHERE payslip_pin_hash IS N
 
 -- Users (7 roles)
 INSERT INTO users (id, employee_id, email, password_hash, role, is_active) VALUES
-  ('e0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','hendra.gunawan@eperformiq.co.id','\${hash}','BOD',TRUE),
-  ('e0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000002','siti.nurhaliza@eperformiq.co.id','\${hash}','HR_MANAGER',TRUE),
-  ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','\${hash}','PEOPLE_MANAGER',TRUE),
-  ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','\${hash}','EMPLOYEE',TRUE),
-  ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','\${hash}','AUDITOR',TRUE),
-  ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','\${hash}','SUPER_ADMIN',TRUE),
-  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','\${hash}','ASSESSOR',TRUE)
+  ('e0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','hendra.gunawan@eperformiq.co.id','${hash}','BOD',TRUE),
+  ('e0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000002','siti.nurhaliza@eperformiq.co.id','${hash}','HR_MANAGER',TRUE),
+  ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE),
+  ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','${hash}','EMPLOYEE',TRUE),
+  ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','${hash}','AUDITOR',TRUE),
+  ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE),
+  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','ASSESSOR',TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Strategic Pillars (BSC 4 Perspektif, sum = 100)
@@ -146,7 +146,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Budi's Performance Appraisal (PRD §11.3 values)
 INSERT INTO performance_appraisals (id, period_id, employee_id, kpi_composite_score, sop_compliance_score, competency_score, core_values_score, total_percentage_score, composite_gpa, performance_rating, potential_score, nine_box_quadrant, is_calibrated, calibrated_by, calibrated_at, calibration_notes) VALUES
-  ('40000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004',92.50,96.00,85.00,90.00,91.70,3.67,'A',4.20,'FUTURE_LEADER',TRUE,'e0000000-0000-4000-8000-000000000002','2026-09-18T10:00:00Z','Dikalibrasi oleh Komite Kinerja Human Capital')
+  ('40000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004',92.50,96.00,85.00,90.00,91.70,3.67,'A',4.20,'FUTURE_LEADER',TRUE,'e0000000-0000-4000-8000-000000000002','2026-09-18T10:00:00Z','Dikalibrasi oleh Komite Kinerja Human Capital')
 ON CONFLICT (id) DO NOTHING;
 
 -- Initial Audit Log
