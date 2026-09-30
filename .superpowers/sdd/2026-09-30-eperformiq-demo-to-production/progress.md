@@ -100,3 +100,19 @@ Task 6: complete (commits 8013cea..9b54717, tests: analytics-vmai 2/2 + engines 
 Task 6: Ruling: bind period as a NULL-uuid rather than casting the raw string — Postgres parses
 the ::uuid cast even under an `isUuid = FALSE` guard, so a non-UUID period caused
 "invalid input syntax for type uuid". Passing null avoids the cast. Cost if wrong: none; tests pin it.
+
+Task 7: complete (commits 9b54717..322eb0e, tests: analytics-summaries 4/4 + rbac/analytics 14/14; build OK)
+- Migration 0007_reference_data.sql: industry_benchmarks + company_vision_mission (idempotent).
+- Seed: 19 benchmark rows + 1 vision/mission row (mission pipe-separated for multi-line display).
+- New analyticsSummaryService: getBenchmarkGap/getExecutiveSummary/getLifecycleSummary (null-safe).
+- benchmark-gap route rewritten to read DB; new executive-summary + lifecycle-summary routes.
+- cascading-tree vision/mission now read from company_vision_mission.
+- rbac: added 'analytics:read' permission (SUPER_ADMIN, BOD, HR_MANAGER, AUDITOR).
+Task 7: Ruling: added a new 'analytics:read' permission rather than reusing 'kpi:read' — the plan
+called for analytics:read RBAC and reusing kpi:read would over-grant analytics to EMPLOYEE/PEOPLE_MANAGER.
+Cost if wrong: extra permission row; reversible.
+
+## RESUME POINT (session checkpoint after Task 7)
+Next: Task 8 — wire dashboard UI to APIs (5 pages + 2 charts + 3 new performance routes).
+Everything through Task 7 is committed and green. Worktree: e:\PRD Penilaian Karyawan\eperformiq-prod
+Test cmd: .\node_modules\.bin\vitest.cmd run <path>   (npx resolves a broken vitest@5)

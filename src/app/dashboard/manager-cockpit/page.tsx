@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Download,
   CheckSquare,
@@ -161,6 +161,38 @@ export default function ManagerCockpitPage() {
       avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100',
     },
   ]);
+
+  // Task 8: hydrate GPA/rating/box dari API DB (override nilai demo bila tersedia).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/performance/team-roster');
+        if (!res.ok) return;
+        const json = await res.json();
+        const members: Array<any> = json?.data?.members ?? [];
+        if (!active || members.length === 0) return;
+        setTeamRoster((prev) =>
+          prev.map((m) => {
+            const api = members.find((x) => x.employeeId === m.id);
+            if (!api) return m;
+            return {
+              ...m,
+              gpa: api.compositeGpa != null ? String(api.compositeGpa) : m.gpa,
+              boxName: api.nineBoxQuadrant
+                ? api.nineBoxQuadrant.replace(/_/g, ' ')
+                : m.boxName,
+            };
+          })
+        );
+      } catch {
+        /* biarkan nilai demo bila API tidak tersedia */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleOpenEval = (member: TeamMember) => {
     setSelectedMember(member);

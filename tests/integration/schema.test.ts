@@ -3,9 +3,9 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 
 const EXPECTED_TABLES = [
-  'appraisal_periods', 'attendance_records', 'audit_logs', 'career_path_levels', 'companies', 'competency_scores',
+  'appraisal_periods', 'attendance_records', 'audit_logs', 'career_path_levels', 'companies', 'company_vision_mission', 'competency_scores',
   'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees',
-  'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'internal_applications',
+  'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'industry_benchmarks', 'internal_applications',
   'interview_slots', 'job_positions', 'job_postings',
   'knowledge_handovers', 'kpi_evidence_attachments', 'leave_requests', 'lifetime_contributions',
   'manpower_plans', 'moodle_course_enrollments', 'offboarding_requests', 'onboarding_milestones',
@@ -25,7 +25,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 35 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi)', async () => {
+  it('membuat tepat 37 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi + 2 referensi)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'

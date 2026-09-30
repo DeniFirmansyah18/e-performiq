@@ -2,19 +2,23 @@
 
 import React from 'react';
 
-export default function GaussianCurve() {
-  // Gaussian bell curve distributions
-  // Rating D: 5% (Target <= 5%)
-  // Rating C: 20% (Target 15-20%)
-  // Rating B: 55% (Target 50-60%)
-  // Rating A: 20% (Target <= 20%)
+interface RatingBucket {
+  label: string;
+  range: string;
+  actual: number;
+  target: number;
+  color: string;
+  bg: string;
+}
 
-  const ratings = [
-    { label: 'Rating D (Unsatisfactory)', range: '< 70%', actual: 4.2, target: 5.0, color: 'text-rose-400', bg: 'bg-rose-500' },
-    { label: 'Rating C (Acceptable)', range: '70% - 79.9%', actual: 16.8, target: 20.0, color: 'text-amber-400', bg: 'bg-amber-500' },
-    { label: 'Rating B (Solid/Meets)', range: '80% - 89.9%', actual: 58.5, target: 55.0, color: 'text-blue-400', bg: 'bg-blue-500' },
-    { label: 'Rating A (Exceptional)', range: '>= 90%', actual: 20.5, target: 20.0, color: 'text-emerald-400', bg: 'bg-emerald-500' },
-  ];
+const DEFAULT_RATINGS: RatingBucket[] = [
+  { label: 'Rating D (Unsatisfactory)', range: '< 70%', actual: 4.2, target: 5.0, color: 'text-rose-400', bg: 'bg-rose-500' },
+  { label: 'Rating C (Acceptable)', range: '70% - 79.9%', actual: 16.8, target: 20.0, color: 'text-amber-400', bg: 'bg-amber-500' },
+  { label: 'Rating B (Solid/Meets)', range: '80% - 89.9%', actual: 58.5, target: 55.0, color: 'text-blue-400', bg: 'bg-blue-500' },
+  { label: 'Rating A (Exceptional)', range: '>= 90%', actual: 20.5, target: 20.0, color: 'text-emerald-400', bg: 'bg-emerald-500' },
+];
+
+export default function GaussianCurve({ ratings = DEFAULT_RATINGS }: { ratings?: RatingBucket[] } = {}) {
 
   return (
     <div className="w-full space-y-4">

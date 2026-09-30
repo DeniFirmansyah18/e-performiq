@@ -10,15 +10,15 @@ interface PerspectiveData {
   driver: string;
 }
 
-export default function RadarChartBSC() {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+const DEFAULT_DATA: PerspectiveData[] = [
+  { label: 'Finansial', key: 'financial', actual: 92.4, target: 100, driver: 'Efisiensi Anggaran & MPP Adherence' },
+  { label: 'Customer / Stakeholder', key: 'customer', actual: 87.1, target: 100, driver: 'Internal CSAT & Onboarding Index' },
+  { label: 'Proses Internal', key: 'internal', actual: 94.8, target: 100, driver: 'Zero Fatal SOP Error & SLA Speed' },
+  { label: 'Pembelajaran & Pertumbuhan', key: 'learning', actual: 83.3, target: 100, driver: '24 Jam Pelatihan & Retensi Top Talent' },
+];
 
-  const data: PerspectiveData[] = [
-    { label: 'Finansial', key: 'financial', actual: 92.4, target: 100, driver: 'Efisiensi Anggaran & MPP Adherence' },
-    { label: 'Customer / Stakeholder', key: 'customer', actual: 87.1, target: 100, driver: 'Internal CSAT & Onboarding Index' },
-    { label: 'Proses Internal', key: 'internal', actual: 94.8, target: 100, driver: 'Zero Fatal SOP Error & SLA Speed' },
-    { label: 'Pembelajaran & Pertumbuhan', key: 'learning', actual: 83.3, target: 100, driver: '24 Jam Pelatihan & Retensi Top Talent' },
-  ];
+export default function RadarChartBSC({ data = DEFAULT_DATA }: { data?: PerspectiveData[] } = {}) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const size = 320;
   const center = size / 2;
