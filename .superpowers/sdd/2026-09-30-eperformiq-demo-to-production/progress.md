@@ -71,3 +71,7 @@ depend on dev-DB state (documented repo fact); if that assumption changes, revis
   relative to today. 3/3 pass.
 Task 2: minor (deferred): flightRisk date offsets assume day(-1..-6) are weekdays; if run on a
 weekend the absent day could be filtered. Low impact (test-only); revisit if flaky.
+
+Task 3: complete (commits 838d44a..32787b5, tests: `vitest run` → 27 files / 143 tests PASS)
+- Deleted 22 .bak files (5 route, 2 dashboard pages, 6 components, 4 lib, 4 test, 1 migration).
+- Suite unchanged (27/27) — .bak files were never in the test glob.
