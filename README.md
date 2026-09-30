@@ -61,6 +61,12 @@ npm run db:reset    # hapus .pglite, migrasi ulang, seed ulang
   bukan LLM.
 - **Angka benchmark & visi-misi** adalah tabel seed (ADR 005); metrik turunan
   dihitung live dari DB.
+- **Learning & Development (model Moodle).** Katalog kursus, completion tracking,
+  competency framework + evidence, badge, dan learning plan (IDP) diadopsi native ke
+  DB (ADR 008). Training/competency dapat menyuplai komponen Competency (DUR-03) GPA
+  secara terkonfigurasi dan backward-compatible (ADR 009). Modul tersedia di portal
+  karyawan ("Learning & Development") dan panel HR Command Center ("Learning &
+  Certification"). Endpoint: `/api/v1/learning/*` (permission `learning:read/write/manage`).
 
 ## Keputusan arsitektur
-Lihat `docs/decisions/` (ADR 003–007).
+Lihat `docs/decisions/` (ADR 003–009).
