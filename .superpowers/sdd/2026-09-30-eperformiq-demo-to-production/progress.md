@@ -84,3 +84,9 @@ render name/position/avatarUrl and key on id, and the plan's own test wants >=7 
 DUMMY_USERS had 6. Expanded DemoLoginAccount to { id, email, name, role, department, position,
 avatarUrl? } and added the missing SUPER_ADMIN (admin@eperformiq.co.id) so the UI keeps working
 and the test's >=7 holds. Cost if wrong: shape differs from plan text; trivial to adjust.
+
+Task 5: complete (commits c691056..8013cea, tests: coreHrService 6/6 + seed 8/8 + flightRisk 3/3; build OK)
+- Migration 0006_contract_end_date.sql (idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS).
+- coreHrService: exported computeContractDaysRemaining(); buildRiskProfile reads employees.contract_end_date.
+- Seed: sets Rian (EMP-2024-0230, PROBATION) contract_end_date='2026-12-31' via idempotent UPDATE.
+- tests/govera-0006-schema.test.ts (new) + 3 unit cases for the helper.

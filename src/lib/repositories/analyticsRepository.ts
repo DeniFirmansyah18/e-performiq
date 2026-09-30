@@ -2,14 +2,24 @@ import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import type { StrategicPillar } from '@/types';
 
-export async function selectActivePillars(db: Db): Promise<StrategicPillar[]> {
+export async function selectActivePillars(db: Db, periodIdentifier?: string): Promise<StrategicPillar[]> {
+  const isUuid = !!periodIdentifier && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(periodIdentifier);
+  const periodUuid = isUuid ? periodIdentifier : null;
   const result = await db.execute(sql`
-    SELECT id, perspective, pillar_name as "pillarName", description,
-           strategic_weight as "strategicWeight",
-           92.4 as "achievedScore", 100 as "targetScore"
-      FROM strategic_pillars
-     WHERE is_active = TRUE
-     ORDER BY perspective ASC
+    SELECT sp.id, sp.perspective, sp.pillar_name as "pillarName", sp.description,
+           sp.strategic_weight as "strategicWeight",
+           COALESCE(
+             (SELECT CASE WHEN SUM(ik.target_value) > 0
+                          THEN (SUM(ik.actual_value) / SUM(ik.target_value)) * 100
+                          ELSE 0 END
+                FROM individual_kpis ik
+               WHERE ik.strategic_pillar_id = sp.id
+                 AND (${periodUuid}::uuid IS NULL OR ik.period_id = ${periodUuid}::uuid)),
+             0) as "achievedScore",
+           100 as "targetScore"
+      FROM strategic_pillars sp
+     WHERE sp.is_active = TRUE
+     ORDER BY sp.perspective ASC
   `);
 
   return result.rows.map((row: any) => ({
@@ -18,7 +28,7 @@ export async function selectActivePillars(db: Db): Promise<StrategicPillar[]> {
     pillarName: row.pillarName,
     description: row.description,
     strategicWeight: Number(row.strategicWeight),
-    achievedScore: Number(row.achievedScore),
+    achievedScore: Number(row.achievedScore) || 0,
     targetScore: Number(row.targetScore),
   }));
 }

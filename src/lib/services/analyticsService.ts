@@ -1,4 +1,5 @@
 import type { Db } from '@/lib/db/client';
+import { sql } from 'drizzle-orm';
 import type { SessionPayload } from '@/lib/auth/session';
 import { calculateVMAI } from '@/lib/engines/vmai-engine';
 import {
@@ -11,10 +12,29 @@ import { logAction } from './auditService';
 
 export async function getVmaiScorecardData(db: Db, periodId = '2026-Q3') {
   const pillars = await selectActivePillars(db);
-  const vmai = calculateVMAI(pillars, 1.0);
+
+  const countRes = (await db.execute(sql`
+    SELECT COUNT(*)::int AS "total"
+      FROM employees
+     WHERE status <> 'RESIGNED'
+  `)) as unknown as { rows: Array<{ total: number }> };
+  const totalEmployees = Number(countRes.rows[0]?.total ?? 0);
+
+  const periodRes = (await db.execute(sql`
+    SELECT period_code AS "periodCode"
+      FROM appraisal_periods
+     WHERE id::text = ${periodId} OR period_code = ${periodId}
+     ORDER BY start_date DESC
+     LIMIT 1
+  `)) as unknown as { rows: Array<{ periodCode: string }> };
+  const periodCode = periodRes.rows[0]?.periodCode ?? periodId;
+
+  const vmai = calculateVMAI(pillars, 1.0, { totalEmployees, periodCode });
+
   return {
     ...vmai,
-    periodCode: periodId,
+    periodCode,
+    totalEmployees,
   };
 }
 

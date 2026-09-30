@@ -2,7 +2,11 @@
 // (PRD Section 4.1 & Section 11.3)
 import { StrategicPillar, VMAIScorecard } from '@/types';
 
-export function calculateVMAI(pillars: StrategicPillar[], gcgComplianceFactor: number = 1.0): VMAIScorecard {
+export function calculateVMAI(
+  pillars: StrategicPillar[],
+  gcgComplianceFactor: number = 1.0,
+  context: { totalEmployees?: number; periodCode?: string; industryTarget?: number } = {}
+): VMAIScorecard {
   let weightedScoreSum = 0;
   let totalWeights = 0;
 
@@ -52,11 +56,11 @@ export function calculateVMAI(pillars: StrategicPillar[], gcgComplianceFactor: n
     statusDescription = 'Critical Misalignment - GCG Breach or Strategy Disconnect';
   }
 
-  const industryTarget = 85.0;
+  const industryTarget = context.industryTarget ?? 85.0;
   const variance = Number((overallVMAI - industryTarget).toFixed(2));
 
   return {
-    periodCode: '2026-Q3',
+    periodCode: context.periodCode ?? '',
     overallVMAI,
     alignmentStatus,
     statusDescription,
@@ -68,7 +72,7 @@ export function calculateVMAI(pillars: StrategicPillar[], gcgComplianceFactor: n
       variance,
       standing: overallVMAI >= 90 ? 'LEADER' : overallVMAI >= 85 ? 'ABOVE_AVERAGE' : 'MEDIAN',
     },
-    totalEmployees: 1240,
+    totalEmployees: context.totalEmployees ?? 0,
     generatedAt: new Date().toISOString(),
   };
 }
