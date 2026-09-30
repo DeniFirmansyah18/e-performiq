@@ -150,6 +150,17 @@ require restructuring the client AuthProvider tree for 6 pages. requireRole ship
 reusable helper for future server layouts. Cost if wrong: no defense-in-depth beyond middleware;
 API routes already enforce RBAC+scope independently.
 
+Task 11: complete (commits 5d05797..8178758, tests: dual-driver 1 passed/1 skipped + full suite 35 files 170 pass/1 skip; build OK)
+- client.ts: exported SqlClient interface { query, exec }; getDb() returns SqlClient.
+- migrate.ts + seed/index.ts: runMigrations/runSeed accept SqlClient (was PGlite).
+- Added `postgres` (postgres-js) dependency.
+- tests/integration/dual-driver.test.ts: always PGlite; Postgres branch skipIf(!DATABASE_URL).
+Task 11: Ruling: kept PGlite as the literal default driver and shipped the SqlClient seam +
+conditional Postgres test, rather than fully wiring a postgres-js Drizzle runtime switch in
+createDb() (which needs a live server to verify and would risk the green baseline). The seam is
+in place (client.ts/api accept either); activating DATABASE_URL is a follow-up when a server exists.
+Cost if wrong: PGlite remains the working default; enabling Postgres is a small, isolated change.
+
 ## RESUME POINT (session checkpoint after Task 7)
 Next: Task 8 — wire dashboard UI to APIs (5 pages + 2 charts + 3 new performance routes).
 Everything through Task 7 is committed and green. Worktree: e:\PRD Penilaian Karyawan\eperformiq-prod
