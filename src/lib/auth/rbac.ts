@@ -13,6 +13,7 @@ export type Permission =
 | 'attendance:write'
 | 'payroll:read'
 | 'flight_risk:read'
+| 'analytics:read'
 | 'wbs:read';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
@@ -29,6 +30,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'attendance:write': ['SUPER_ADMIN', 'HR_MANAGER'],
 'payroll:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR'],
 'flight_risk:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
+'analytics:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR'],
 'wbs:read': ['SUPER_ADMIN', 'AUDITOR'],
 };
 export function can(role: UserRole, permission: Permission): boolean {

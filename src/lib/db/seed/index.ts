@@ -297,6 +297,36 @@ INSERT INTO interview_slots (id, job_posting_id, scheduled_date, start_time, end
   ('89000000-0000-4000-8000-000000000001','87000000-0000-4000-8000-000000000001','2026-10-02','09:00','10:00',3,1,TRUE),
   ('89000000-0000-4000-8000-000000000002','87000000-0000-4000-8000-000000000001','2026-10-02','13:00','14:00',3,0,TRUE)
 ON CONFLICT (id) DO NOTHING;
+
+-- 20. Industry Benchmarks (Task 7): nilai referensi yang sebelumnya hardcoded di route
+INSERT INTO industry_benchmarks (id, metric_code, metric_name, benchmark_value, unit) VALUES
+  ('90000000-0000-4000-8000-000000000001','FIN_BEST_PRACTICE','Financial Perspective - Industry Best Practice',90.00,'score'),
+  ('90000000-0000-4000-8000-000000000002','FIN_BUMN_AVG','Financial Perspective - BUMN Average',82.00,'score'),
+  ('90000000-0000-4000-8000-000000000003','FIN_BOTTOM_Q','Financial Perspective - Bottom Quartile',70.00,'score'),
+  ('90000000-0000-4000-8000-000000000004','CUS_BEST_PRACTICE','Customer Perspective - Industry Best Practice',88.00,'score'),
+  ('90000000-0000-4000-8000-000000000005','CUS_BUMN_AVG','Customer Perspective - BUMN Average',78.50,'score'),
+  ('90000000-0000-4000-8000-000000000006','CUS_BOTTOM_Q','Customer Perspective - Bottom Quartile',65.00,'score'),
+  ('90000000-0000-4000-8000-000000000007','INT_BEST_PRACTICE','Internal Process - Industry Best Practice',92.00,'score'),
+  ('90000000-0000-4000-8000-000000000008','INT_BUMN_AVG','Internal Process - BUMN Average',80.00,'score'),
+  ('90000000-0000-4000-8000-000000000009','INT_BOTTOM_Q','Internal Process - Bottom Quartile',60.00,'score'),
+  ('90000000-0000-4000-8000-000000000010','LRN_BEST_PRACTICE','Learning & Growth - Industry Best Practice',88.00,'score'),
+  ('90000000-0000-4000-8000-000000000011','LRN_BUMN_AVG','Learning & Growth - BUMN Average',76.00,'score'),
+  ('90000000-0000-4000-8000-000000000012','LRN_BOTTOM_Q','Learning & Growth - Bottom Quartile',58.00,'score'),
+  ('90000000-0000-4000-8000-000000000013','VMAI_BEST_PRACTICE','Overall VMAI - Industry Best Practice',85.00,'percent'),
+  ('90000000-0000-4000-8000-000000000014','VMAI_BUMN_AVG','Overall VMAI - BUMN Average',78.50,'percent'),
+  ('90000000-0000-4000-8000-000000000015','VMAI_TARGET','Vision & Mission Alignment Target',85.00,'percent'),
+  ('90000000-0000-4000-8000-000000000016','TURNOVER_MAX','Regrettable Attrition Maximum',3.00,'percent'),
+  ('90000000-0000-4000-8000-000000000017','SLA_MIN','Operational SOP/SLA Minimum',98.00,'percent'),
+  ('90000000-0000-4000-8000-000000000018','QOH_MIN','Quality of Hire Minimum',85.00,'score'),
+  ('90000000-0000-4000-8000-000000000019','MPP_TARGET','Manpower Plan Fulfillment Target',95.00,'percent')
+ON CONFLICT (metric_code) DO NOTHING;
+
+-- 21. Company Vision & Mission (Task 7): sebelumnya hardcoded sebagai string di route
+INSERT INTO company_vision_mission (id, company_id, vision, mission) VALUES
+  ('91000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000001',
+   'Menjadi perusahaan kelas dunia yang menggerakkan pertumbuhan berkelanjutan melalui tata kelola unggul dan human capital berkinerja tinggi.',
+   'Membangun ekosistem penilaian kinerja terintegrasi berbasis GCG | Mengembangkan kapabilitas talenta secara berkelanjutan | Menciptakan nilai berkelanjutan bagi pemegang saham dan pemangku kepentingan.')
+ON CONFLICT (id) DO NOTHING;
 `);
 }
 

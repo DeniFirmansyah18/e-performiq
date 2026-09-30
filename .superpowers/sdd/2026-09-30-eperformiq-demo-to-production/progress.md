@@ -90,3 +90,13 @@ Task 5: complete (commits c691056..8013cea, tests: coreHrService 6/6 + seed 8/8 
 - coreHrService: exported computeContractDaysRemaining(); buildRiskProfile reads employees.contract_end_date.
 - Seed: sets Rian (EMP-2024-0230, PROBATION) contract_end_date='2026-12-31' via idempotent UPDATE.
 - tests/govera-0006-schema.test.ts (new) + 3 unit cases for the helper.
+
+Task 6: complete (commits 8013cea..9b54717, tests: analytics-vmai 2/2 + engines 19/19; build OK)
+- selectActivePillars(db, periodIdentifier?): achievedScore now = SUM(actual)/SUM(target)*100 from
+  individual_kpis (0 when none), replacing the hardcoded 92.4/100.
+- vmai-engine: calculateVMAI(pillars, gcg?, { totalEmployees?, periodCode?, industryTarget? }) —
+  removed hardcoded 1240 / '2026-Q3' (now neutral defaults, overridden by caller).
+- analyticsService.getVmaiScorecardData: COUNT(employees, non-RESIGNED) + appraisal_periods code.
+Task 6: Ruling: bind period as a NULL-uuid rather than casting the raw string — Postgres parses
+the ::uuid cast even under an `isUuid = FALSE` guard, so a non-UUID period caused
+"invalid input syntax for type uuid". Passing null avoids the cast. Cost if wrong: none; tests pin it.

@@ -3,23 +3,20 @@ import { db } from '@/lib/db/client';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
 import { ok, problem } from '@/lib/api/response';
-import { getBenchmarkGap } from '@/lib/services/analyticsSummaryService';
+import { getLifecycleSummary } from '@/lib/services/analyticsSummaryService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// GET /api/v1/analytics/benchmark-gap
-// PRD §11.2 — Data komparasi radar chart kinerja vs benchmark industri (dari DB).
+// GET /api/v1/analytics/lifecycle-summary
 export async function GET(req: NextRequest) {
   try {
     const session = await getAuthSession(req);
     assertCan(session, 'analytics:read');
-    const { searchParams } = new URL(req.url);
-    const periodCode = searchParams.get('period_code') ?? undefined;
 
-    const data = await getBenchmarkGap(db, periodCode);
+    const data = await getLifecycleSummary(db);
     return ok(data);
   } catch (err) {
-    return problem(err, '/api/v1/analytics/benchmark-gap');
+    return problem(err, '/api/v1/analytics/lifecycle-summary');
   }
 }

@@ -93,17 +93,22 @@ export async function getNineBoxDistributionData(db: Db, periodId?: string) {
 export async function getCascadingTree(db: Db, perspectiveFilter?: string) {
   const { pillars, corpKpis, divKpis, indKpis } = await selectCascadingData(db, perspectiveFilter);
 
+  const vmRes = (await db.execute(sql`
+    SELECT vision, mission FROM company_vision_mission ORDER BY updated_at DESC LIMIT 1
+  `)) as unknown as { rows: Array<{ vision: string; mission: string }> };
+  const vision = vmRes.rows[0]?.vision ?? 'Visi perusahaan belum ditetapkan.';
+  const missionText = vmRes.rows[0]?.mission ?? '';
+  const missions = missionText
+    ? missionText.split(/\s*\|\s*|\n+/).map((m) => m.trim()).filter(Boolean)
+    : [];
+
   return {
     level_0_vision: {
       label: 'Visi Perusahaan',
-      description: 'Menjadi Perusahaan Teknologi Terkemuka di Asia Tenggara yang Berdampak Nyata Berlandaskan GCG',
+      description: vision,
       type: 'VISION',
     },
-    level_1_mission: [
-      'Menyediakan solusi teknologi inovatif yang mendorong efisiensi & produktivitas nasional',
-      'Membangun ekosistem SDM unggul berkomitmen tinggi berlandaskan GCG & integritas',
-      'Mengoptimalkan nilai bagi seluruh pemangku kepentingan secara berkelanjutan',
-    ],
+    level_1_mission: missions,
     level_2_strategic_pillars: pillars.map((pillar) => {
       const relatedCorp = corpKpis.filter((c) => c.strategicPillarId === pillar.id);
       return {
