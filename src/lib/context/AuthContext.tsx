@@ -31,10 +31,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User>(DEMO_LOGIN_ACCOUNTS[0] as unknown as User);
-  const [activeRole, setActiveRole] = useState<UserRole>('BOD');
+  const [activeRole, setActiveRole] = useState<UserRole>('EMPLOYEE');
   const [activePeriod, setActivePeriod] = useState<string>('2026-Q3');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Sync session on mount from API
   useEffect(() => {
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(false);
       }
     }
-    checkSession();
+    checkSession().finally(() => setIsLoading(false));
   }, []);
 
   const loginWithCredentials = async (email: string, pass: string): Promise<boolean> => {

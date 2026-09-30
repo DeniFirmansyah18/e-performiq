@@ -127,6 +127,18 @@ decorative trend-chart SVG shape stays illustrative (no historical VMAI endpoint
 with its current-point label bound to live data. Cost if wrong: some secondary display fields remain
 demo-scaffold; a future task could fully data-model them.
 
+Task 9: complete (commits d9d5fea..ad0cd03, tests: chatbot-service 3/3 + unit 3/3; build OK)
+- Migration 0008_policy_knowledge_base.sql + 6 seeded Q&A rows.
+- Engine: queryPolicyChatbotEngine(db, question, employeeId) -> {answer, source: POLICY|DATA|FALLBACK, confidence}.
+- Route: requires auth, employeeId from session (not body); returns ok(reply).
+- Drawer updated to read json.data.source (was sourceRef).
+- Old unit test rewritten to mock db.execute (source/confidence); integration test added.
+- schema.test.ts EXPECTED_TABLES updated (37 -> 38).
+Task 9: Ruling: DATA branch implements "saldo cuti" only (leave_requests count) as the concrete
+scoped data answer; plan listed leave/expense/severance as candidates. Keeping one real DATA path
+avoids guessing at exact wording/tables for the others while proving the scoped-DATA mechanism.
+Cost if wrong: fewer DATA intents than plan suggested; extensible without schema change.
+
 ## RESUME POINT (session checkpoint after Task 7)
 Next: Task 8 — wire dashboard UI to APIs (5 pages + 2 charts + 3 new performance routes).
 Everything through Task 7 is committed and green. Worktree: e:\PRD Penilaian Karyawan\eperformiq-prod
