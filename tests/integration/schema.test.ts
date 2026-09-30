@@ -3,12 +3,12 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 
 const EXPECTED_TABLES = [
-  'appraisal_periods', 'attendance_records', 'audit_logs', 'career_path_levels', 'companies', 'company_vision_mission', 'competency_scores',
+  'appraisal_periods', 'attendance_records', 'audit_logs', 'badge_awards', 'badge_criteria', 'badges', 'career_path_levels', 'companies', 'company_vision_mission', 'competencies', 'competency_evidence', 'competency_frameworks', 'competency_scores', 'course_competencies',
   'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees',
   'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'industry_benchmarks', 'internal_applications',
   'interview_slots', 'job_positions', 'job_postings',
-  'knowledge_handovers', 'kpi_evidence_attachments', 'leave_requests', 'lifetime_contributions',
-  'manpower_plans', 'moodle_course_enrollments', 'offboarding_requests', 'onboarding_milestones',
+  'knowledge_handovers', 'kpi_evidence_attachments', 'learning_plan_items', 'learning_plans', 'leave_requests', 'lifetime_contributions',
+  'manpower_plans', 'moodle_course_enrollments', 'moodle_courses', 'offboarding_requests', 'onboarding_milestones',
   'peer_reviews_360', 'performance_appraisals', 'policy_knowledge_base', 'recruitment_assessments',
   'severance_calculations', 'sop_compliance_logs', 'strategic_pillars',
   'users', 'vmai_scorecards',
@@ -25,7 +25,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 38 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi + 3 referensi/KB)', async () => {
+  it('membuat tepat 48 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi + 3 referensi/KB + 10 LMS Moodle)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -36,13 +36,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 7 enum', async () => {
+  it('membuat 16 enum (7 awal + 9 LMS Moodle)', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(7);
+    expect(Number(res.rows[0].count)).toBe(16);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {
