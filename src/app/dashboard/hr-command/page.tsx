@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
+import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 
 export default function HROperationsPage() {
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
@@ -403,6 +404,9 @@ export default function HROperationsPage() {
         <CostOfWorkforceCard />
         <FlightRiskHeatmap />
       </div>
+
+      {/* Learning & Certification (integrasi model Moodle) */}
+      <LearningCertificationPanel />
 
       {/* 3. Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

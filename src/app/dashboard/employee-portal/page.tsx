@@ -38,6 +38,7 @@ import ReimbursementModal from '@/components/employee/ReimbursementModal';
 import HelpdeskTicketModal from '@/components/employee/HelpdeskTicketModal';
 import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal';
 import JobBoardModal from '@/components/employee/JobBoardModal';
+import LearningModule from '@/components/employee/LearningModule';
 
 export default function EmployeePortalPage() {
 const { currentUser } = useAuth();
@@ -1377,6 +1378,9 @@ return (
       </div>
     </div>
   )}
+
+  {/* Learning & Development (integrasi model Moodle) */}
+  <LearningModule />
 
   {/* Govera360 Modals */}
   <TimesheetModal
