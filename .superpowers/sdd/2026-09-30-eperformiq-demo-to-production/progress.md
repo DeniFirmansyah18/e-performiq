@@ -139,6 +139,17 @@ scoped data answer; plan listed leave/expense/severance as candidates. Keeping o
 avoids guessing at exact wording/tables for the others while proving the scoped-DATA mechanism.
 Cost if wrong: fewer DATA intents than plan suggested; extensible without schema change.
 
+Task 10: complete (commits ad0cd03..5d05797, tests: requireRole 2/2 + middleware 4/4 + full suite 34 files/169 PASS; build OK, Middleware bundle present)
+- requireRole(role, allowed) server helper (src/lib/auth/requireRole.ts).
+- middleware.ts: real verifySession JWT check + per-segment role redirect (DASHBOARD_ROLES map);
+  clears bad cookie; /login redirects by role.
+- AuthContext: removed demo defaults (activeRole 'BOD'->'EMPLOYEE', isAuthenticated true->false, isLoading false->true).
+Task 10: Ruling: enforcement point is the edge middleware (real JWT verify + role gating),
+not per-segment server layouts — converting dashboard/layout.tsx to a server component would
+require restructuring the client AuthProvider tree for 6 pages. requireRole ships as a tested
+reusable helper for future server layouts. Cost if wrong: no defense-in-depth beyond middleware;
+API routes already enforce RBAC+scope independently.
+
 ## RESUME POINT (session checkpoint after Task 7)
 Next: Task 8 — wire dashboard UI to APIs (5 pages + 2 charts + 3 new performance routes).
 Everything through Task 7 is committed and green. Worktree: e:\PRD Penilaian Karyawan\eperformiq-prod

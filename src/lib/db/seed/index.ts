@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import type { SqlClient } from '@/lib/db/client';
 import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/types';
 
@@ -18,7 +19,7 @@ export const SEED_USER_EMAILS: ReadonlyArray<{ email: string; role: UserRole }> 
 ];
 
 /** Idempoten: seluruh INSERT memakai ON CONFLICT DO NOTHING (spec §10). */
-export async function runSeed(client: PGlite): Promise<void> {
+export async function runSeed(client: SqlClient): Promise<void> {
 const hash = await hashPassword(DEMO_PASSWORD);
 const pinHash = await hashPassword(DEMO_PAYSLIP_PIN);
 

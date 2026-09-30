@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
+import type { SqlClient } from './client';
 
 const MIGRATIONS_DIR = join(process.cwd(), 'src/lib/db/migrations');
 
 /** Menjalankan seluruh file .sql secara alfabetis dengan tracking table __migrations. Idempoten. */
-export async function runMigrations(client: PGlite): Promise<void> {
+export async function runMigrations(client: SqlClient): Promise<void> {
   await client.exec(`
     CREATE TABLE IF NOT EXISTS __migrations (
       id SERIAL PRIMARY KEY,
