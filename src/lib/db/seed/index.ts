@@ -76,6 +76,10 @@ INSERT INTO employees (id, employee_code, full_name, email, phone_number,
   ('b0000000-0000-4000-8000-000000000011','ASR-2020-0011','Dr. Aris Wicaksono, M.Psi.','aris.assessor@eperformiq.co.id','+62 811-0007-0007','a0000000-0000-4000-8000-000000000105','a0000000-0000-4000-8000-000000000207','b0000000-0000-4000-8000-000000000001','PERMANENT',75000000,'2020-05-01')
 ON CONFLICT (id) DO NOTHING;
 
+-- Task 5: kolom akhir kontrak PKWT untuk karyawan PROBATION/CONTRACT (idempoten)
+UPDATE employees SET contract_end_date = '2026-12-31'
+ WHERE employee_code = 'EMP-2024-0230' AND contract_end_date IS NULL;
+
 -- Task 10: backfill hash PIN slip gaji untuk seluruh karyawan (idempoten; aman untuk DB lama)
 UPDATE employees SET payslip_pin_hash = '${pinHash}' WHERE payslip_pin_hash IS NULL;
 

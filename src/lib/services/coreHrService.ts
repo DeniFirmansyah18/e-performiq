@@ -29,13 +29,25 @@ function toISODate(d: Date): string {
 return d.toISOString().slice(0, 10);
 }
 
+/** Sisa hari sampai kontrak berakhir; 0 bila tidak ada tanggal kontrak atau sudah lewat. */
+export function computeContractDaysRemaining(
+contractEndDate: string | null | undefined,
+now: Date = new Date()
+): number {
+if (!contractEndDate) return 0;
+const end = Date.parse(`${contractEndDate.slice(0, 10)}T00:00:00Z`);
+if (Number.isNaN(end)) return 0;
+const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+return Math.max(0, Math.round((end - start) / 86400000));
+}
+
 /**
 
 Menyusun profil risiko satu karyawan dari database:
 bradfordFactor: dihitung dari attendance_records 90 hari terakhir
 peerReviewAvg: rata-rata average_core_value_score dari peer_reviews_360
 overtimeHoursWeekly: rata-rata lembur mingguan dari attendance_records
-contractDaysRemaining: 0 (TODO: belum ada kolom akhir kontrak di employees)
+contractDaysRemaining: sisa hari kontrak PKWT dari employees.contract_end_date (0 bila NULL)
 */
 export async function buildRiskProfile(
 db: Db,
@@ -53,13 +65,14 @@ const overtime = (await db.execute(sql`SELECT COALESCE(SUM(total_overtime_hours)
 
 const totalOvertime = Number(overtime.rows[0]?.totalOvertime ?? 0);
 
+const contract = (await db.execute(sql`SELECT contract_end_date::text AS "contractEndDate" FROM employees WHERE id = ${employeeId}::uuid`)) as unknown as { rows: Array<{ contractEndDate: string | null }> };
+
 return {
 employeeId,
 bradfordFactor,
 peerReviewAvg: Number(peer.rows[0]?.avgScore ?? 4.2),
 overtimeHoursWeekly: Math.round(totalOvertime / (BRADFORD_LOOKBACK_DAYS / 7)),
-// TODO: isi dari data kontrak PKWT saat kolomnya tersedia.
-contractDaysRemaining: 0,
+contractDaysRemaining: computeContractDaysRemaining(contract.rows[0]?.contractEndDate ?? null),
 };
 }
 

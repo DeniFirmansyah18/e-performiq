@@ -75,3 +75,12 @@ weekend the absent day could be filtered. Low impact (test-only); revisit if fla
 Task 3: complete (commits 838d44a..32787b5, tests: `vitest run` → 27 files / 143 tests PASS)
 - Deleted 22 .bak files (5 route, 2 dashboard pages, 6 components, 4 lib, 4 test, 1 migration).
 - Suite unchanged (27/27) — .bak files were never in the test glob.
+
+Task 4: complete (commits 32787b5..c691056, tests: `vitest run tests/integration/seed.test.ts` → 8/8; `npm run build` OK)
+- Rewrote dummy-data/index.ts: kept only the user list as DEMO_LOGIN_ACCOUNTS, deleted 15 DUMMY_* exports.
+- Updated 3 consumers (login/page.tsx, Header.tsx, AuthContext.tsx): DUMMY_USERS -> DEMO_LOGIN_ACCOUNTS.
+Task 4: Ruling: plan specified DEMO_LOGIN_ACCOUNTS as { email, role, label }, but the consumers
+render name/position/avatarUrl and key on id, and the plan's own test wants >=7 accounts while
+DUMMY_USERS had 6. Expanded DemoLoginAccount to { id, email, name, role, department, position,
+avatarUrl? } and added the missing SUPER_ADMIN (admin@eperformiq.co.id) so the UI keeps working
+and the test's >=7 holds. Cost if wrong: shape differs from plan text; trivial to adjust.
