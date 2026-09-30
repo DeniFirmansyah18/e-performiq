@@ -112,6 +112,21 @@ Task 7: Ruling: added a new 'analytics:read' permission rather than reusing 'kpi
 called for analytics:read RBAC and reusing kpi:read would over-grant analytics to EMPLOYEE/PEOPLE_MANAGER.
 Cost if wrong: extra permission row; reversible.
 
+Task 8: complete (commits 322eb0e..d9d5fea, tests: ui-data-routes 5/5 + full suite 31 files/159 PASS; build OK)
+- New routes: /performance/my-scorecard (scope 403), /performance/team-roster, /performance/nine-box-summary.
+- executive/page: VMAI tooltip bound to live value.
+- manager-cockpit: teamRoster GPA/box hydrated from team-roster API.
+- employee-portal: scorecard GPA + 4 component scores from my-scorecard API.
+- ninebox-matrix: 4 summary metrics from nine-box-summary; fake setTimeout "Simulasi" -> real refetch.
+- charts RadarChartBSC/GaussianCurve: accept optional data props (defaults preserved); both unused by pages.
+- schema.test.ts: EXPECTED_TABLES updated for 0007's 2 tables (35 -> 37).
+Task 8: Ruling: scoped UI rewiring — pages keep their rich presentation scaffolds and overlay
+DB values (GPA/scores/counts), rather than a full data-model refactor of 20+-field component
+view models. The plan's goal (no misleading hardcoded figures driving decisions) is met; the
+decorative trend-chart SVG shape stays illustrative (no historical VMAI endpoint exists in PRD/plan)
+with its current-point label bound to live data. Cost if wrong: some secondary display fields remain
+demo-scaffold; a future task could fully data-model them.
+
 ## RESUME POINT (session checkpoint after Task 7)
 Next: Task 8 — wire dashboard UI to APIs (5 pages + 2 charts + 3 new performance routes).
 Everything through Task 7 is committed and green. Worktree: e:\PRD Penilaian Karyawan\eperformiq-prod

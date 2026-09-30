@@ -9,7 +9,7 @@ const EXPECTED_TABLES = [
   'interview_slots', 'job_positions', 'job_postings',
   'knowledge_handovers', 'kpi_evidence_attachments', 'leave_requests', 'lifetime_contributions',
   'manpower_plans', 'moodle_course_enrollments', 'offboarding_requests', 'onboarding_milestones',
-  'peer_reviews_360', 'performance_appraisals', 'recruitment_assessments',
+  'peer_reviews_360', 'performance_appraisals', 'policy_knowledge_base', 'recruitment_assessments',
   'severance_calculations', 'sop_compliance_logs', 'strategic_pillars',
   'users', 'vmai_scorecards',
 ].sort();
@@ -25,7 +25,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 37 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi + 2 referensi)', async () => {
+  it('membuat tepat 38 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi + 3 referensi/KB)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'

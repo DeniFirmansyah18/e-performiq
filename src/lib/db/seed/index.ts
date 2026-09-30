@@ -327,6 +327,16 @@ INSERT INTO company_vision_mission (id, company_id, vision, mission) VALUES
    'Menjadi perusahaan kelas dunia yang menggerakkan pertumbuhan berkelanjutan melalui tata kelola unggul dan human capital berkinerja tinggi.',
    'Membangun ekosistem penilaian kinerja terintegrasi berbasis GCG | Mengembangkan kapabilitas talenta secara berkelanjutan | Menciptakan nilai berkelanjutan bagi pemegang saham dan pemangku kepentingan.')
 ON CONFLICT (id) DO NOTHING;
+
+-- 22. Policy Knowledge Base (Task 9): basis pengetahuan chatbot governance
+INSERT INTO policy_knowledge_base (id, topic, question, answer, keywords, category) VALUES
+  ('92000000-0000-4000-8000-000000000001','Cuti','Bagaimana prosedur pengajuan cuti tahunan?','Karyawan berhak atas cuti tahunan 12 hari kerja setelah 12 bulan masa kerja terus-menerus. Pengajuan cuti dilakukan melalui portal Kotak 4 minimal 3 hari sebelum tanggal pelaksanaan dan disetujui atasan langsung.','cuti,izin,tahunan,leave,prosedur pengajuan cuti','HR'),
+  ('92000000-0000-4000-8000-000000000002','Reimbursement','Bagaimana cara mengajukan klaim penggantian biaya?','Klaim reimbursement medis dan kacamata diajukan mandiri melalui menu Kotak 5 dengan melampirkan foto kwitansi asli. Batas waktu klaim 30 hari kalender sejak tanggal transaksi.','klaim,reimburse,penggantian,kacamata,biaya medis','Finance'),
+  ('92000000-0000-4000-8000-000000000003','Pesangon','Bagaimana perhitungan uang pesangon?','Perhitungan uang pesangon mengacu pada formula baku PP No. 35/2021 Pasal 40-59 (Uang Pesangon + Uang Penghargaan Masa Kerja + Uang Penggantian Hak) dan dikalkulasikan otomatis oleh sistem.','pesangon,phk,pensiun,dplk,pp 35/2021','Legal'),
+  ('92000000-0000-4000-8000-000000000004','Payslip','Bagaimana cara membuka slip gaji saya?','Slip gaji dapat dilihat melalui menu Pay Slip di portal karyawan dengan memasukkan PIN pribadi Anda. PIN bersifat rahasia dan disimpan dalam bentuk hash.','slip,gaji,payslip,pin,payroll','HR'),
+  ('92000000-0000-4000-8000-000000000005','Timesheet','Bagaimana cara mengisi timesheet harian?','Timesheet harian diisi melalui modal Timesheet di portal karyawan: catat jam reguler, jam lembur, dan ringkasan pekerjaan, lalu ajukan untuk persetujuan atasan.','timesheet,absensi,jam kerja,lembur,harian','Operations'),
+  ('92000000-0000-4000-8000-000000000006','KPI Evidence','Bagaimana melampirkan bukti pencapaian KPI?','Bukti pencapaian KPI diunggah melalui modal KPI Evidence dengan memilih KPI terkait dan melampirkan tautan/berkas bukti. Bukti diverifikasi saat kalibrasi kinerja.','bukti,kpi,evidence,pencapaian,lampiran','Performance')
+ON CONFLICT (id) DO NOTHING;
 `);
 }
 
