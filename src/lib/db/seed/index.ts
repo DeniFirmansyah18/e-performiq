@@ -338,6 +338,81 @@ INSERT INTO policy_knowledge_base (id, topic, question, answer, keywords, catego
   ('92000000-0000-4000-8000-000000000005','Timesheet','Bagaimana cara mengisi timesheet harian?','Timesheet harian diisi melalui modal Timesheet di portal karyawan: catat jam reguler, jam lembur, dan ringkasan pekerjaan, lalu ajukan untuk persetujuan atasan.','timesheet,absensi,jam kerja,lembur,harian','Operations'),
   ('92000000-0000-4000-8000-000000000006','KPI Evidence','Bagaimana melampirkan bukti pencapaian KPI?','Bukti pencapaian KPI diunggah melalui modal KPI Evidence dengan memilih KPI terkait dan melampirkan tautan/berkas bukti. Bukti diverifikasi saat kalibrasi kinerja.','bukti,kpi,evidence,pencapaian,lampiran','Performance')
 ON CONFLICT (id) DO NOTHING;
+
+-- 23. LMS: Competency Frameworks & Competencies (Task 2)
+INSERT INTO competency_frameworks (id, code, name, description) VALUES
+  ('a1000000-0000-4000-8000-000000000001','FW-AKHLAK','Nilai Luhur AKHLAK','Kerangka kompetensi budaya perusahaan (Amanah, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif).'),
+  ('a1000000-0000-4000-8000-000000000002','FW-CLOUD','Cloud & Engineering','Kerangka kompetensi teknis rekayasa perangkat lunak dan arsitektur cloud.')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO competencies (id, framework_id, parent_id, name, taxonomy_level, description) VALUES
+  ('a2000000-0000-4000-8000-000000000001','a1000000-0000-4000-8000-000000000001',NULL,'Amanah','Value','Memegang teguh kepercayaan dan integritas.'),
+  ('a2000000-0000-4000-8000-000000000002','a1000000-0000-4000-8000-000000000001',NULL,'Kompeten','Value','Terus belajar dan meningkatkan kapabilitas.'),
+  ('a2000000-0000-4000-8000-000000000003','a1000000-0000-4000-8000-000000000001',NULL,'Kolaboratif','Value','Sinergi lintas fungsi untuk hasil terbaik.'),
+  ('a2000000-0000-4000-8000-000000000004','a1000000-0000-4000-8000-000000000002',NULL,'Cloud Native Architecture','Skill','Desain arsitektur microservices & cloud.'),
+  ('a2000000-0000-4000-8000-000000000005','a1000000-0000-4000-8000-000000000002',NULL,'PostgreSQL','Skill','Perancangan skema, indeks, dan tuning query.'),
+  ('a2000000-0000-4000-8000-000000000006','a1000000-0000-4000-8000-000000000002',NULL,'System Design','Skill','Desain sistem terdistribusi yang andal.'),
+  ('a2000000-0000-4000-8000-000000000007','a1000000-0000-4000-8000-000000000002',NULL,'Leadership','Skill','Kepemimpinan teknis & mentoring tim.'),
+  ('a2000000-0000-4000-8000-000000000008','a1000000-0000-4000-8000-000000000002',NULL,'Security Foundations','Skill','Dasar keamanan aplikasi & data.')
+ON CONFLICT (id) DO NOTHING;
+
+-- 24. LMS: Course Catalog (Task 2)
+INSERT INTO moodle_courses (course_code, title, category, description, target_phase, is_mandatory, default_hours, level_min) VALUES
+  ('ONB-101','Onboarding 101: Pengenalan Perusahaan','Onboarding','Orientasi budaya, tata kelola GCG, dan sistem kerja.','PRE',TRUE,8,1),
+  ('AKHLAK-CULTURE','AKHLAK Culture Essentials','Culture','Penerapan nilai AKHLAK dalam kerja sehari-hari.','PRE',TRUE,6,1),
+  ('CLOUD-ARCH','Enterprise Cloud Architecture','Engineering','Desain arsitektur cloud microservices skala enterprise.','DURING',FALSE,16,3),
+  ('PG-ADV','Advanced PostgreSQL','Engineering','Performa, indeks lanjutan, dan query tuning.','DURING',FALSE,12,3),
+  ('LEAD-ESS','Leadership Essentials','Leadership','Kepemimpinan, coaching, dan komunikasi strategis.','DURING',FALSE,10,4),
+  ('LEGACY-ALUMNI','Alumni Legacy & Knowledge Transfer','Post-Employment','Serah terima pengetahuan dan jejak warisan alumni.','POST',FALSE,4,1)
+ON CONFLICT (course_code) DO NOTHING;
+
+-- 25. LMS: Course <-> Competency linkage (by course_code & competency name)
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'COMPLETE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'AKHLAK-CULTURE' AND k.name = 'Amanah'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'EVIDENCE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'CLOUD-ARCH' AND k.name = 'Cloud Native Architecture'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'EVIDENCE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'PG-ADV' AND k.name = 'PostgreSQL'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'EVIDENCE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'LEAD-ESS' AND k.name = 'Leadership'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+
+-- 26. LMS: Badges + criteria (Task 2)
+INSERT INTO badges (id, code, name, description, badge_type) VALUES
+  ('a3000000-0000-4000-8000-000000000001','BADGE-ONBOARD','Onboarding Ready','Menyelesaikan seluruh kursus orientasi wajib.','PHASE'),
+  ('a3000000-0000-4000-8000-000000000002','BADGE-CLOUD-CERT','Cloud Architecture Certified','Sertifikasi penyelesaian Enterprise Cloud Architecture.','COURSE')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO badge_criteria (badge_id, criteria_type, course_id, competency_id, min_level)
+SELECT 'a3000000-0000-4000-8000-000000000001', 'COURSE'::badge_criteria_type_enum, c.id, NULL, NULL
+  FROM moodle_courses c WHERE c.course_code = 'ONB-101';
+INSERT INTO badge_criteria (badge_id, criteria_type, course_id, competency_id, min_level)
+SELECT 'a3000000-0000-4000-8000-000000000002', 'COURSE'::badge_criteria_type_enum, c.id, NULL, NULL
+  FROM moodle_courses c WHERE c.course_code = 'CLOUD-ARCH';
+
+-- 27. LMS: Learning plan + items (Task 2) untuk Budi
+INSERT INTO learning_plans (id, employee_id, title, status, period_id) VALUES
+  ('a4000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004','IDP Budi - Jalur Principal Engineer','ACTIVE','d0000000-0000-4000-8000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO learning_plan_items (id, plan_id, competency_id, course_id, target_level, status)
+SELECT 'a5000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001', k.id, c.id, 5, 'IN_PROGRESS'::plan_item_status_enum
+  FROM competencies k, moodle_courses c WHERE k.name='Cloud Native Architecture' AND c.course_code='CLOUD-ARCH'
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO learning_plan_items (id, plan_id, competency_id, course_id, target_level, status)
+SELECT 'a5000000-0000-4000-8000-000000000002','a4000000-0000-4000-8000-000000000001', k.id, c.id, 5, 'TODO'::plan_item_status_enum
+  FROM competencies k, moodle_courses c WHERE k.name='Leadership' AND c.course_code='LEAD-ESS'
+ON CONFLICT (id) DO NOTHING;
 `);
 }
 
