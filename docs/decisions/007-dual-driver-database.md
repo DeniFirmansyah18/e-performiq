@@ -25,7 +25,9 @@ services, or routes.
   branch is `skipIf(!DATABASE_URL)`.
 
 ## Cost / follow-up
-`createDb()` still instantiates PGlite unconditionally; wiring the postgres-js
-Drizzle runtime when `DATABASE_URL` is present requires a live server to verify
-and is a small, isolated follow-up. Until then PGlite is the working default and
-the seam (types, migration/seed signature, tests) is in place.
+**DONE (2026-10-01):** `createDb()` kini memilih driver dari `DATABASE_URL` — bila ada,
+memakai `postgres-js` (`drizzle-orm/postgres-js`, `prepare:false`, `max:1` untuk serverless);
+bila tidak, PGlite. `getDb()` mengembalikan adapter `SqlClient` untuk kedua driver.
+Ditambah guard runtime serverless (Vercel/Lambda) yang memberi pesan jelas bila
+`DATABASE_URL` kosong. Skrip `db:migrate:pg` / `db:seed:pg` menjalankan migrasi+seed ke
+PostgreSQL server. Lihat juga langkah deploy di README.
