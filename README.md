@@ -39,6 +39,18 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `PGLITE_DATA_DIR` | Lokasi file `.pglite` (default `./.pglite`). |
 | `DATABASE_URL` | Jika diset, targetkan driver PostgreSQL server (lihat ADR 007). |
 | `PORT` | Port dev/prod (default 3000). |
+| `GEMINI_API_KEY` | Kunci API Google Gemini untuk fitur AI. **Opsional** — tanpa ini AI berjalan mode fallback (ADR 012). |
+| `GEMINI_MODEL` | Model Gemini (default `gemini-2.0-flash`). |
+
+> Salin `.env.example` menjadi `.env.local` untuk memulai.
+
+## Fitur AI (Gemini, opsional)
+- **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI (Gemini)"
+  yang menganalisis data nyata fitur tersebut (endpoint `POST /api/v1/ai/analyze`).
+- **Agen Chat AI** — tombol **"Tanya AI"** di Header membuka drawer chat
+  (`POST /api/v1/ai/chat`).
+- **Tanpa `GEMINI_API_KEY`**, kedua fitur menampilkan pesan ramah `configured:false`
+  dengan HTTP 200 (bukan error). Lihat ADR 012.
 
 ## Perintah
 ```bash
@@ -77,6 +89,10 @@ npm run db:reset    # hapus .pglite, migrasi ulang, seed ulang
 - **Profil Saya (self-service).** Menu di portal karyawan untuk mengubah field terbatas
   (telepon, alamat, tanggal lahir, kontak darurat, foto, bio); field sensitif (NIP, jabatan,
   gaji) read-only. Perubahan tercatat di `audit_logs`.
+- **UI Kartu & navigasi top-bar (ADR 013).** Sidebar dihilangkan; navigasi peran pindah ke
+  dropdown `NavMenu` di Header. Tiap dashboard menampilkan **kartu fitur** yang diklik untuk
+  membuka panel berisi konten (plus blok Analisis AI). Primitif: `FeatureGrid`, `FeatureCard`,
+  `ExpandablePanel`, `AiAnalyzePanel`.
 
 ## Catatan pengujian
 Test route handler mengimpor route yang memakai singleton `getDb()` (PGlite dev, single-process).
