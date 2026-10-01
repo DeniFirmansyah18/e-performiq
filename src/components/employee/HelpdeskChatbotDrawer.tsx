@@ -43,7 +43,7 @@ export default function HelpdeskChatbotDrawer({ isOpen, onClose }: HelpdeskChatb
           {
             sender: 'bot',
             text: json.data.answer,
-            source: json.data.sourceRef,
+            source: json.data.source,
           },
         ]);
       } else {

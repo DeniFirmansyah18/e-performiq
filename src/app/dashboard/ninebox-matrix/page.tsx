@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Building2,
@@ -327,6 +327,23 @@ export default function NineBoxMatrixPage() {
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [aiSuccessMsg, setAiSuccessMsg] = useState(false);
+  const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number> } | null>(null);
+
+  // Task 8: jumlah per kuadran dari DB (bukan konstanta 1,240/42/180/12).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/performance/nine-box-summary');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (active) setSummary(json?.data ?? null);
+      } catch {
+        /* biarkan nilai demo bila API tidak tersedia */
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   // Assessor Calibration State
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
@@ -345,13 +362,22 @@ export default function NineBoxMatrixPage() {
 
   const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
 
-  const handleRunAi = () => {
+  const handleRunAi = async () => {
     setIsAiRunning(true);
-    setTimeout(() => {
-      setIsAiRunning(false);
+    try {
+      // Task 8: segarkan distribusi 9-Box dari DB (bukan simulasi setTimeout).
+      const res = await fetch('/api/v1/performance/nine-box-summary');
+      if (res.ok) {
+        const json = await res.json();
+        setSummary(json?.data ?? null);
+      }
       setAiSuccessMsg(true);
       setTimeout(() => setAiSuccessMsg(false), 4000);
-    }, 1200);
+    } catch {
+      /* no-op */
+    } finally {
+      setIsAiRunning(false);
+    }
   };
 
   const handleSaveCalibration = async (e: React.FormEvent) => {
@@ -488,7 +514,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#0f172a]">1,240</span>
+            <span className="text-2xl font-black text-[#0f172a]">{(summary?.total ?? 1240).toLocaleString('id-ID')}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#e6f4ea] text-[#137333]">
               100% Sensus
             </span>
@@ -505,7 +531,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#007a5a]">42</span>
+            <span className="text-2xl font-black text-[#007a5a]">{summary?.byQuadrant?.FUTURE_LEADER ?? 42}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#166534]">
               3.4% Populasi
             </span>
@@ -522,7 +548,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#0f172a]">180</span>
+            <span className="text-2xl font-black text-[#0f172a]">{summary?.byQuadrant?.CORE_PLAYER ?? 180}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569]">
               14.5% Populasi
             </span>
@@ -539,7 +565,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#dc2626]">12</span>
+            <span className="text-2xl font-black text-[#dc2626]">{summary?.byQuadrant?.UNDERPERFORMER ?? 12}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626]">
               1.0% Mandat PIP
             </span>

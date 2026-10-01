@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from '@/types';
-import { DUMMY_USERS } from '@/lib/dummy-data';
+import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 
 interface AuthContextType {
   currentUser: User;
@@ -30,11 +30,11 @@ const ROLE_EMAILS: Record<UserRole, string> = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User>(DUMMY_USERS[0]);
-  const [activeRole, setActiveRole] = useState<UserRole>('BOD');
+  const [currentUser, setCurrentUser] = useState<User>(DEMO_LOGIN_ACCOUNTS[0] as unknown as User);
+  const [activeRole, setActiveRole] = useState<UserRole>('EMPLOYEE');
   const [activePeriod, setActivePeriod] = useState<string>('2026-Q3');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Sync session on mount from API
   useEffect(() => {
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(false);
       }
     }
-    checkSession();
+    checkSession().finally(() => setIsLoading(false));
   }, []);
 
   const loginWithCredentials = async (email: string, pass: string): Promise<boolean> => {

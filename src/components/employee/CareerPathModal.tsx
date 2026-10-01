@@ -20,6 +20,34 @@ export default function CareerPathModal({ isOpen, onClose }: CareerPathModalProp
 const [levels, setLevels] = useState<CareerLevel[]>([]);
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState('');
+const [enrollMsg, setEnrollMsg] = useState<string | null>(null);
+const [enrolling, setEnrolling] = useState(false);
+
+const handleEnroll = async () => {
+try {
+setEnrolling(true);
+setEnrollMsg(null);
+// Cari kursus CLOUD-ARCH dari katalog, lalu daftar via API native (bukan alert stub).
+const catRes = await fetch('/api/v1/learning/courses?phase=DURING');
+const cat = catRes.ok ? await catRes.json() : null;
+const course = (cat?.data?.courses ?? []).find((c: any) => c.courseCode === 'CLOUD-ARCH')
+  ?? (cat?.data?.courses ?? [])[0];
+if (!course) {
+setEnrollMsg('Katalog kursus belum tersedia.');
+return;
+}
+const res = await fetch('/api/v1/learning/enrollments', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ courseId: course.id }),
+});
+setEnrollMsg(res.ok ? `Berhasil mendaftar: ${course.title}.` : 'Gagal mendaftar kursus.');
+} catch {
+setEnrollMsg('Gagal mendaftar kursus.');
+} finally {
+setEnrolling(false);
+}
+};
 
 useEffect(() => {
 if (!isOpen) return;
@@ -150,13 +178,15 @@ return (
         <div className="flex items-center justify-between pt-1">
           <span className="text-xs font-semibold text-slate-700">Course #101: Enterprise Cloud Architecture</span>
           <button
-            onClick={() => alert('Berhasil mendaftar ke modul Moodle Course #101 via LTI SSO.')}
-            className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700"
+            onClick={handleEnroll}
+            disabled={enrolling}
+            className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-60"
           >
-            Daftar Mandiri
+            {enrolling ? 'Mendaftar…' : 'Daftar Mandiri'}
             <ExternalLink className="h-3 w-3" />
           </button>
         </div>
+        {enrollMsg && <p className="text-[11px] font-semibold text-emerald-700 pt-1">{enrollMsg}</p>}
       </div>
     </div>
   </div>

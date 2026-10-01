@@ -38,10 +38,12 @@ import ReimbursementModal from '@/components/employee/ReimbursementModal';
 import HelpdeskTicketModal from '@/components/employee/HelpdeskTicketModal';
 import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal';
 import JobBoardModal from '@/components/employee/JobBoardModal';
+import LearningModule from '@/components/employee/LearningModule';
 
 export default function EmployeePortalPage() {
 const { currentUser } = useAuth();
 const [kpis, setKpis] = useState<any[]>([]);
+const [scorecard, setScorecard] = useState<any | null>(null);
 const [loading, setLoading] = useState(true);
 const [selectedPeriod, setSelectedPeriod] = useState('d0000000-0000-4000-8000-000000000001');
 const [selectedKpi, setSelectedKpi] = useState<any | null>(null);
@@ -108,6 +110,22 @@ setLoading(false);
 useEffect(() => {
 loadKpis(selectedPeriod);
 }, [loadKpis, selectedPeriod]);
+
+// Task 8: muat scorecard GPA nyata milik karyawan dari DB.
+useEffect(() => {
+let active = true;
+(async () => {
+try {
+const res = await fetch('/api/v1/performance/my-scorecard');
+if (!res.ok) return;
+const json = await res.json();
+if (active) setScorecard(json?.data ?? null);
+} catch {
+/* biarkan nilai demo bila API tidak tersedia */
+}
+})();
+return () => { active = false; };
+}, []);
 
 const handlePeriodChange = (periodId: string) => {
 setSelectedPeriod(periodId);
@@ -509,7 +527,7 @@ return (
           </span>
           <div className="flex items-baseline gap-1 mt-1.5">
             <span className="text-4xl font-black text-[#0f172a] font-sans">
-              3.67
+              {scorecard?.compositeGpa != null ? Number(scorecard.compositeGpa).toFixed(2) : '3.67'}
             </span>
             <span className="text-base font-bold text-[#64748b]">/ 4.00</span>
           </div>
@@ -540,11 +558,11 @@ return (
                 <Target className="h-3.5 w-3.5 text-[#007a5a]" />
                 Cascaded KPI
               </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">46.25%</span>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.kpiCompositeScore != null ? Number((scorecard.kpiCompositeScore * 0.5).toFixed(2)) : '46.25'}%</span>
             </div>
             <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 50%</span>
             <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>92.5%</strong></span>
+              <span>Skor Aktual: <strong>{scorecard?.kpiCompositeScore != null ? Number(scorecard.kpiCompositeScore).toFixed(1) : '92.5'}%</strong></span>
               <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">Sangat Optimal</span>
             </div>
           </div>
@@ -561,11 +579,11 @@ return (
                 <ShieldCheck className="h-3.5 w-3.5 text-[#0284c7]" />
                 SOP Compliance
               </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">19.20%</span>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.sopComplianceScore != null ? Number((scorecard.sopComplianceScore * 0.2).toFixed(2)) : '19.20'}%</span>
             </div>
             <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 20%</span>
             <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>96.0%</strong></span>
+              <span>Skor Aktual: <strong>{scorecard?.sopComplianceScore != null ? Number(scorecard.sopComplianceScore).toFixed(1) : '96.0'}%</strong></span>
               <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">0 Fatal Error</span>
             </div>
           </div>
@@ -582,11 +600,11 @@ return (
                 <Award className="h-3.5 w-3.5 text-[#007a5a]" />
                 Competency Mastery
               </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">12.75%</span>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.competencyScore != null ? Number((scorecard.competencyScore * 0.15).toFixed(2)) : '12.75'}%</span>
             </div>
             <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 15%</span>
             <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>85.0%</strong></span>
+              <span>Skor Aktual: <strong>{scorecard?.competencyScore != null ? Number(scorecard.competencyScore).toFixed(1) : '85.0'}%</strong></span>
               <span className="text-[10px] font-bold text-[#0369a1] bg-[#e0f2fe] px-1 rounded">Index Gap: 0.12</span>
             </div>
           </div>
@@ -603,11 +621,11 @@ return (
                 <Users className="h-3.5 w-3.5 text-[#007a5a]" />
                 Core Values & 360°
               </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">13.50%</span>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.coreValuesScore != null ? Number((scorecard.coreValuesScore * 0.15).toFixed(2)) : '13.50'}%</span>
             </div>
             <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 15%</span>
             <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>90.0%</strong></span>
+              <span>Skor Aktual: <strong>{scorecard?.coreValuesScore != null ? Number(scorecard.coreValuesScore).toFixed(1) : '90.0'}%</strong></span>
               <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">Rating: 4.5 / 5.0</span>
             </div>
           </div>
@@ -1360,6 +1378,9 @@ return (
       </div>
     </div>
   )}
+
+  {/* Learning & Development (integrasi model Moodle) */}
+  <LearningModule />
 
   {/* Govera360 Modals */}
   <TimesheetModal

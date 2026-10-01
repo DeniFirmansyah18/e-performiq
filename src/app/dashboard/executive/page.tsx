@@ -351,7 +351,7 @@ export default function ExecutiveBoardroomPage() {
                   <span className="h-2 w-2 rounded-full bg-[#10b981]" />
                   Realisasi VMAI
                 </span>
-                <span className="font-bold text-white">89.4%</span>
+                <span className="font-bold text-white">{vmai}%</span>
               </div>
 
               <div className="flex items-center justify-between">

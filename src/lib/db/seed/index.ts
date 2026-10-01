@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import type { SqlClient } from '@/lib/db/client';
 import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/types';
 
@@ -18,7 +19,7 @@ export const SEED_USER_EMAILS: ReadonlyArray<{ email: string; role: UserRole }> 
 ];
 
 /** Idempoten: seluruh INSERT memakai ON CONFLICT DO NOTHING (spec §10). */
-export async function runSeed(client: PGlite): Promise<void> {
+export async function runSeed(client: SqlClient): Promise<void> {
 const hash = await hashPassword(DEMO_PASSWORD);
 const pinHash = await hashPassword(DEMO_PAYSLIP_PIN);
 
@@ -76,18 +77,22 @@ INSERT INTO employees (id, employee_code, full_name, email, phone_number,
   ('b0000000-0000-4000-8000-000000000011','ASR-2020-0011','Dr. Aris Wicaksono, M.Psi.','aris.assessor@eperformiq.co.id','+62 811-0007-0007','a0000000-0000-4000-8000-000000000105','a0000000-0000-4000-8000-000000000207','b0000000-0000-4000-8000-000000000001','PERMANENT',75000000,'2020-05-01')
 ON CONFLICT (id) DO NOTHING;
 
+-- Task 5: kolom akhir kontrak PKWT untuk karyawan PROBATION/CONTRACT (idempoten)
+UPDATE employees SET contract_end_date = '2026-12-31'
+ WHERE employee_code = 'EMP-2024-0230' AND contract_end_date IS NULL;
+
 -- Task 10: backfill hash PIN slip gaji untuk seluruh karyawan (idempoten; aman untuk DB lama)
 UPDATE employees SET payslip_pin_hash = '${pinHash}' WHERE payslip_pin_hash IS NULL;
 
 -- Users (7 roles)
 INSERT INTO users (id, employee_id, email, password_hash, role, is_active) VALUES
-  ('e0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','hendra.gunawan@eperformiq.co.id','\${hash}','BOD',TRUE),
-  ('e0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000002','siti.nurhaliza@eperformiq.co.id','\${hash}','HR_MANAGER',TRUE),
-  ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','\${hash}','PEOPLE_MANAGER',TRUE),
-  ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','\${hash}','EMPLOYEE',TRUE),
-  ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','\${hash}','AUDITOR',TRUE),
-  ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','\${hash}','SUPER_ADMIN',TRUE),
-  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','\${hash}','ASSESSOR',TRUE)
+  ('e0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','hendra.gunawan@eperformiq.co.id','${hash}','BOD',TRUE),
+  ('e0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000002','siti.nurhaliza@eperformiq.co.id','${hash}','HR_MANAGER',TRUE),
+  ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE),
+  ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','${hash}','EMPLOYEE',TRUE),
+  ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','${hash}','AUDITOR',TRUE),
+  ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE),
+  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','ASSESSOR',TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Strategic Pillars (BSC 4 Perspektif, sum = 100)
@@ -146,7 +151,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Budi's Performance Appraisal (PRD §11.3 values)
 INSERT INTO performance_appraisals (id, period_id, employee_id, kpi_composite_score, sop_compliance_score, competency_score, core_values_score, total_percentage_score, composite_gpa, performance_rating, potential_score, nine_box_quadrant, is_calibrated, calibrated_by, calibrated_at, calibration_notes) VALUES
-  ('40000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004',92.50,96.00,85.00,90.00,91.70,3.67,'A',4.20,'FUTURE_LEADER',TRUE,'e0000000-0000-4000-8000-000000000002','2026-09-18T10:00:00Z','Dikalibrasi oleh Komite Kinerja Human Capital')
+  ('40000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004',92.50,96.00,85.00,90.00,91.70,3.67,'A',4.20,'FUTURE_LEADER',TRUE,'e0000000-0000-4000-8000-000000000002','2026-09-18T10:00:00Z','Dikalibrasi oleh Komite Kinerja Human Capital')
 ON CONFLICT (id) DO NOTHING;
 
 -- Initial Audit Log
@@ -292,6 +297,121 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO interview_slots (id, job_posting_id, scheduled_date, start_time, end_time, capacity, booked_count, is_available) VALUES
   ('89000000-0000-4000-8000-000000000001','87000000-0000-4000-8000-000000000001','2026-10-02','09:00','10:00',3,1,TRUE),
   ('89000000-0000-4000-8000-000000000002','87000000-0000-4000-8000-000000000001','2026-10-02','13:00','14:00',3,0,TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- 20. Industry Benchmarks (Task 7): nilai referensi yang sebelumnya hardcoded di route
+INSERT INTO industry_benchmarks (id, metric_code, metric_name, benchmark_value, unit) VALUES
+  ('90000000-0000-4000-8000-000000000001','FIN_BEST_PRACTICE','Financial Perspective - Industry Best Practice',90.00,'score'),
+  ('90000000-0000-4000-8000-000000000002','FIN_BUMN_AVG','Financial Perspective - BUMN Average',82.00,'score'),
+  ('90000000-0000-4000-8000-000000000003','FIN_BOTTOM_Q','Financial Perspective - Bottom Quartile',70.00,'score'),
+  ('90000000-0000-4000-8000-000000000004','CUS_BEST_PRACTICE','Customer Perspective - Industry Best Practice',88.00,'score'),
+  ('90000000-0000-4000-8000-000000000005','CUS_BUMN_AVG','Customer Perspective - BUMN Average',78.50,'score'),
+  ('90000000-0000-4000-8000-000000000006','CUS_BOTTOM_Q','Customer Perspective - Bottom Quartile',65.00,'score'),
+  ('90000000-0000-4000-8000-000000000007','INT_BEST_PRACTICE','Internal Process - Industry Best Practice',92.00,'score'),
+  ('90000000-0000-4000-8000-000000000008','INT_BUMN_AVG','Internal Process - BUMN Average',80.00,'score'),
+  ('90000000-0000-4000-8000-000000000009','INT_BOTTOM_Q','Internal Process - Bottom Quartile',60.00,'score'),
+  ('90000000-0000-4000-8000-000000000010','LRN_BEST_PRACTICE','Learning & Growth - Industry Best Practice',88.00,'score'),
+  ('90000000-0000-4000-8000-000000000011','LRN_BUMN_AVG','Learning & Growth - BUMN Average',76.00,'score'),
+  ('90000000-0000-4000-8000-000000000012','LRN_BOTTOM_Q','Learning & Growth - Bottom Quartile',58.00,'score'),
+  ('90000000-0000-4000-8000-000000000013','VMAI_BEST_PRACTICE','Overall VMAI - Industry Best Practice',85.00,'percent'),
+  ('90000000-0000-4000-8000-000000000014','VMAI_BUMN_AVG','Overall VMAI - BUMN Average',78.50,'percent'),
+  ('90000000-0000-4000-8000-000000000015','VMAI_TARGET','Vision & Mission Alignment Target',85.00,'percent'),
+  ('90000000-0000-4000-8000-000000000016','TURNOVER_MAX','Regrettable Attrition Maximum',3.00,'percent'),
+  ('90000000-0000-4000-8000-000000000017','SLA_MIN','Operational SOP/SLA Minimum',98.00,'percent'),
+  ('90000000-0000-4000-8000-000000000018','QOH_MIN','Quality of Hire Minimum',85.00,'score'),
+  ('90000000-0000-4000-8000-000000000019','MPP_TARGET','Manpower Plan Fulfillment Target',95.00,'percent')
+ON CONFLICT (metric_code) DO NOTHING;
+
+-- 21. Company Vision & Mission (Task 7): sebelumnya hardcoded sebagai string di route
+INSERT INTO company_vision_mission (id, company_id, vision, mission) VALUES
+  ('91000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000001',
+   'Menjadi perusahaan kelas dunia yang menggerakkan pertumbuhan berkelanjutan melalui tata kelola unggul dan human capital berkinerja tinggi.',
+   'Membangun ekosistem penilaian kinerja terintegrasi berbasis GCG | Mengembangkan kapabilitas talenta secara berkelanjutan | Menciptakan nilai berkelanjutan bagi pemegang saham dan pemangku kepentingan.')
+ON CONFLICT (id) DO NOTHING;
+
+-- 22. Policy Knowledge Base (Task 9): basis pengetahuan chatbot governance
+INSERT INTO policy_knowledge_base (id, topic, question, answer, keywords, category) VALUES
+  ('92000000-0000-4000-8000-000000000001','Cuti','Bagaimana prosedur pengajuan cuti tahunan?','Karyawan berhak atas cuti tahunan 12 hari kerja setelah 12 bulan masa kerja terus-menerus. Pengajuan cuti dilakukan melalui portal Kotak 4 minimal 3 hari sebelum tanggal pelaksanaan dan disetujui atasan langsung.','cuti,izin,tahunan,leave,prosedur pengajuan cuti','HR'),
+  ('92000000-0000-4000-8000-000000000002','Reimbursement','Bagaimana cara mengajukan klaim penggantian biaya?','Klaim reimbursement medis dan kacamata diajukan mandiri melalui menu Kotak 5 dengan melampirkan foto kwitansi asli. Batas waktu klaim 30 hari kalender sejak tanggal transaksi.','klaim,reimburse,penggantian,kacamata,biaya medis','Finance'),
+  ('92000000-0000-4000-8000-000000000003','Pesangon','Bagaimana perhitungan uang pesangon?','Perhitungan uang pesangon mengacu pada formula baku PP No. 35/2021 Pasal 40-59 (Uang Pesangon + Uang Penghargaan Masa Kerja + Uang Penggantian Hak) dan dikalkulasikan otomatis oleh sistem.','pesangon,phk,pensiun,dplk,pp 35/2021','Legal'),
+  ('92000000-0000-4000-8000-000000000004','Payslip','Bagaimana cara membuka slip gaji saya?','Slip gaji dapat dilihat melalui menu Pay Slip di portal karyawan dengan memasukkan PIN pribadi Anda. PIN bersifat rahasia dan disimpan dalam bentuk hash.','slip,gaji,payslip,pin,payroll','HR'),
+  ('92000000-0000-4000-8000-000000000005','Timesheet','Bagaimana cara mengisi timesheet harian?','Timesheet harian diisi melalui modal Timesheet di portal karyawan: catat jam reguler, jam lembur, dan ringkasan pekerjaan, lalu ajukan untuk persetujuan atasan.','timesheet,absensi,jam kerja,lembur,harian','Operations'),
+  ('92000000-0000-4000-8000-000000000006','KPI Evidence','Bagaimana melampirkan bukti pencapaian KPI?','Bukti pencapaian KPI diunggah melalui modal KPI Evidence dengan memilih KPI terkait dan melampirkan tautan/berkas bukti. Bukti diverifikasi saat kalibrasi kinerja.','bukti,kpi,evidence,pencapaian,lampiran','Performance')
+ON CONFLICT (id) DO NOTHING;
+
+-- 23. LMS: Competency Frameworks & Competencies (Task 2)
+INSERT INTO competency_frameworks (id, code, name, description) VALUES
+  ('a1000000-0000-4000-8000-000000000001','FW-AKHLAK','Nilai Luhur AKHLAK','Kerangka kompetensi budaya perusahaan (Amanah, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif).'),
+  ('a1000000-0000-4000-8000-000000000002','FW-CLOUD','Cloud & Engineering','Kerangka kompetensi teknis rekayasa perangkat lunak dan arsitektur cloud.')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO competencies (id, framework_id, parent_id, name, taxonomy_level, description) VALUES
+  ('a2000000-0000-4000-8000-000000000001','a1000000-0000-4000-8000-000000000001',NULL,'Amanah','Value','Memegang teguh kepercayaan dan integritas.'),
+  ('a2000000-0000-4000-8000-000000000002','a1000000-0000-4000-8000-000000000001',NULL,'Kompeten','Value','Terus belajar dan meningkatkan kapabilitas.'),
+  ('a2000000-0000-4000-8000-000000000003','a1000000-0000-4000-8000-000000000001',NULL,'Kolaboratif','Value','Sinergi lintas fungsi untuk hasil terbaik.'),
+  ('a2000000-0000-4000-8000-000000000004','a1000000-0000-4000-8000-000000000002',NULL,'Cloud Native Architecture','Skill','Desain arsitektur microservices & cloud.'),
+  ('a2000000-0000-4000-8000-000000000005','a1000000-0000-4000-8000-000000000002',NULL,'PostgreSQL','Skill','Perancangan skema, indeks, dan tuning query.'),
+  ('a2000000-0000-4000-8000-000000000006','a1000000-0000-4000-8000-000000000002',NULL,'System Design','Skill','Desain sistem terdistribusi yang andal.'),
+  ('a2000000-0000-4000-8000-000000000007','a1000000-0000-4000-8000-000000000002',NULL,'Leadership','Skill','Kepemimpinan teknis & mentoring tim.'),
+  ('a2000000-0000-4000-8000-000000000008','a1000000-0000-4000-8000-000000000002',NULL,'Security Foundations','Skill','Dasar keamanan aplikasi & data.')
+ON CONFLICT (id) DO NOTHING;
+
+-- 24. LMS: Course Catalog (Task 2)
+INSERT INTO moodle_courses (course_code, title, category, description, target_phase, is_mandatory, default_hours, level_min) VALUES
+  ('ONB-101','Onboarding 101: Pengenalan Perusahaan','Onboarding','Orientasi budaya, tata kelola GCG, dan sistem kerja.','PRE',TRUE,8,1),
+  ('AKHLAK-CULTURE','AKHLAK Culture Essentials','Culture','Penerapan nilai AKHLAK dalam kerja sehari-hari.','PRE',TRUE,6,1),
+  ('CLOUD-ARCH','Enterprise Cloud Architecture','Engineering','Desain arsitektur cloud microservices skala enterprise.','DURING',FALSE,16,3),
+  ('PG-ADV','Advanced PostgreSQL','Engineering','Performa, indeks lanjutan, dan query tuning.','DURING',FALSE,12,3),
+  ('LEAD-ESS','Leadership Essentials','Leadership','Kepemimpinan, coaching, dan komunikasi strategis.','DURING',FALSE,10,4),
+  ('LEGACY-ALUMNI','Alumni Legacy & Knowledge Transfer','Post-Employment','Serah terima pengetahuan dan jejak warisan alumni.','POST',FALSE,4,1)
+ON CONFLICT (course_code) DO NOTHING;
+
+-- 25. LMS: Course <-> Competency linkage (by course_code & competency name)
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'COMPLETE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'AKHLAK-CULTURE' AND k.name = 'Amanah'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'EVIDENCE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'CLOUD-ARCH' AND k.name = 'Cloud Native Architecture'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'EVIDENCE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'PG-ADV' AND k.name = 'PostgreSQL'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+INSERT INTO course_competencies (course_id, competency_id, outcome)
+SELECT c.id, k.id, 'EVIDENCE'::competency_outcome_enum
+  FROM moodle_courses c, competencies k
+ WHERE c.course_code = 'LEAD-ESS' AND k.name = 'Leadership'
+ON CONFLICT (course_id, competency_id) DO NOTHING;
+
+-- 26. LMS: Badges + criteria (Task 2)
+INSERT INTO badges (id, code, name, description, badge_type) VALUES
+  ('a3000000-0000-4000-8000-000000000001','BADGE-ONBOARD','Onboarding Ready','Menyelesaikan seluruh kursus orientasi wajib.','PHASE'),
+  ('a3000000-0000-4000-8000-000000000002','BADGE-CLOUD-CERT','Cloud Architecture Certified','Sertifikasi penyelesaian Enterprise Cloud Architecture.','COURSE')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO badge_criteria (badge_id, criteria_type, course_id, competency_id, min_level)
+SELECT 'a3000000-0000-4000-8000-000000000001', 'COURSE'::badge_criteria_type_enum, c.id, NULL, NULL
+  FROM moodle_courses c WHERE c.course_code = 'ONB-101';
+INSERT INTO badge_criteria (badge_id, criteria_type, course_id, competency_id, min_level)
+SELECT 'a3000000-0000-4000-8000-000000000002', 'COURSE'::badge_criteria_type_enum, c.id, NULL, NULL
+  FROM moodle_courses c WHERE c.course_code = 'CLOUD-ARCH';
+
+-- 27. LMS: Learning plan + items (Task 2) untuk Budi
+INSERT INTO learning_plans (id, employee_id, title, status, period_id) VALUES
+  ('a4000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004','IDP Budi - Jalur Principal Engineer','ACTIVE','d0000000-0000-4000-8000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO learning_plan_items (id, plan_id, competency_id, course_id, target_level, status)
+SELECT 'a5000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001', k.id, c.id, 5, 'IN_PROGRESS'::plan_item_status_enum
+  FROM competencies k, moodle_courses c WHERE k.name='Cloud Native Architecture' AND c.course_code='CLOUD-ARCH'
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO learning_plan_items (id, plan_id, competency_id, course_id, target_level, status)
+SELECT 'a5000000-0000-4000-8000-000000000002','a4000000-0000-4000-8000-000000000001', k.id, c.id, 5, 'TODO'::plan_item_status_enum
+  FROM competencies k, moodle_courses c WHERE k.name='Leadership' AND c.course_code='LEAD-ESS'
 ON CONFLICT (id) DO NOTHING;
 `);
 }

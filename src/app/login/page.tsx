@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
-import { DUMMY_USERS } from '@/lib/dummy-data';
+import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 import { UserRole } from '@/types';
 import UserGuideModal from '@/components/guide/UserGuideModal';
 import {
@@ -105,7 +105,7 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (success) {
-      const user = DUMMY_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      const user = DEMO_LOGIN_ACCOUNTS.find((u) => u.email.toLowerCase() === email.toLowerCase());
       const role = user?.role || 'BOD';
       if (role === 'BOD') router.push('/dashboard/executive');
       else if (role === 'HR_MANAGER') router.push('/dashboard/hr-command');
@@ -255,7 +255,7 @@ export default function LoginPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {DUMMY_USERS.map((user) => {
+            {DEMO_LOGIN_ACCOUNTS.map((user) => {
               const meta = roleMeta[user.role];
               return (
                 <button

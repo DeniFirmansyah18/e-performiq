@@ -23,9 +23,14 @@ await client.close();
 
 it('buildRiskProfile menghitung Bradford dari baris absensi nyata, bukan input manual', async () => {
 // 4 hari hadir lalu 1 alpa = 1 spell x 1 hari -> Bradford = 1^2 x 1 = 1
+const day = (offsetFromToday: number): string => {
+const d = new Date();
+d.setUTCDate(d.getUTCDate() - offsetFromToday);
+return d.toISOString().slice(0, 10);
+};
 const rows: Array<[string, boolean]> = [
-['2026-03-02', true], ['2026-03-03', true],
-['2026-03-04', true], ['2026-03-05', true], ['2026-03-06', false],
+[day(5), true], [day(4), true],
+[day(3), true], [day(2), true], [day(1), false],
 ];
 for (const [d, present] of rows) {
 await client.query(
@@ -41,9 +46,14 @@ expect(profile.bradfordFactor).toBe(1);
 });
 
 it('cuti sakit tidak menaikkan Bradford Factor pada profil', async () => {
+const sickDay = ((): string => {
+const d = new Date();
+d.setUTCDate(d.getUTCDate() - 6);
+return d.toISOString().slice(0, 10);
+})();
 await client.query(
-`INSERT INTO attendance_records (employee_id, work_date, check_in, check_out, is_present, is_sick_leave) VALUES ($1,'2026-03-09','08:00','17:00',false,true) ON CONFLICT DO NOTHING;`,
-[EMP]
+`INSERT INTO attendance_records (employee_id, work_date, check_in, check_out, is_present, is_sick_leave) VALUES ($1,$2,'08:00','17:00',false,true) ON CONFLICT DO NOTHING;`,
+[EMP, sickDay]
 );
 const profile = await buildRiskProfile(db, EMP);
 expect(profile.bradfordFactor).toBe(1);

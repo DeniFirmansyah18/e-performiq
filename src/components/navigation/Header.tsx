@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
-import { DUMMY_USERS } from '@/lib/dummy-data';
+import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 import UserGuideModal from '@/components/guide/UserGuideModal';
 import {
   Layers,
@@ -130,7 +130,7 @@ export default function Header() {
                 <p className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                   Beralih Role (Demo Switcher):
                 </p>
-                {DUMMY_USERS.map((u) => (
+                {DEMO_LOGIN_ACCOUNTS.map((u) => (
                   <button
                     key={u.id}
                     onClick={() => {
