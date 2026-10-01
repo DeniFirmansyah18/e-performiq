@@ -29,6 +29,7 @@ AlertTriangle,
 Clock,
 Bot,
 Briefcase,
+UserCheck,
 } from 'lucide-react';
 import TimesheetModal from '@/components/employee/TimesheetModal';
 import PaySlipModal from '@/components/employee/PaySlipModal';
@@ -39,6 +40,7 @@ import HelpdeskTicketModal from '@/components/employee/HelpdeskTicketModal';
 import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal';
 import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
+import MyProfileModal from '@/components/employee/MyProfileModal';
 
 export default function EmployeePortalPage() {
 const { currentUser } = useAuth();
@@ -68,6 +70,7 @@ const [isReimbursementOpen, setIsReimbursementOpen] = useState(false);
 const [isTicketOpen, setIsTicketOpen] = useState(false);
 const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
 const [isJobBoardOpen, setIsJobBoardOpen] = useState(false);
+const [isProfileOpen, setIsProfileOpen] = useState(false);
 
 // New KPI Form State
 const [kpiForm, setKpiForm] = useState({
@@ -438,6 +441,14 @@ return (
         >
           <Compass className="h-3.5 w-3.5 text-blue-700" />
           <span>Peta Karir &amp; Moodle</span>
+        </button>
+
+        <button
+          onClick={() => setIsProfileOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50/80 text-xs font-semibold text-emerald-800 shadow-xs hover:bg-emerald-100 transition-colors"
+        >
+          <UserCheck className="h-3.5 w-3.5 text-emerald-700" />
+          <span>Profil Saya</span>
         </button>
 
         <button
@@ -1381,6 +1392,8 @@ return (
 
   {/* Learning & Development (integrasi model Moodle) */}
   <LearningModule />
+
+  <MyProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
   {/* Govera360 Modals */}
   <TimesheetModal
