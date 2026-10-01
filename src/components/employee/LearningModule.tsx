@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import LessonViewerModal from '@/components/employee/LessonViewerModal';
 
 interface CourseRow {
   courseId: number;
@@ -11,6 +12,7 @@ interface CourseRow {
 }
 interface BadgeRow { code: string; name: string; earned: boolean }
 interface CatalogItem { id: number; courseCode: string; title: string; targetPhase: string; isMandatory: boolean; defaultHours: number }
+interface CertificateRow { certificateNo: string; verificationCode: string; courseTitle: string; issuedAt: string }
 
 /**
  * Modul Learning & Development (integrasi model Moodle).
@@ -22,14 +24,17 @@ export default function LearningModule() {
   const [badges, setBadges] = useState<BadgeRow[]>([]);
   const [trainingHours, setTrainingHours] = useState(0);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [certificates, setCertificates] = useState<CertificateRow[]>([]);
+  const [viewer, setViewer] = useState<{ courseId: number; title: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [ml, cat] = await Promise.all([
+      const [ml, cat, crt] = await Promise.all([
         fetch('/api/v1/learning/my-learning').then((r) => (r.ok ? r.json() : null)),
         fetch('/api/v1/learning/courses').then((r) => (r.ok ? r.json() : null)),
+        fetch('/api/v1/learning/certificates').then((r) => (r.ok ? r.json() : null)),
       ]);
       if (ml?.data) {
         setCourses(ml.data.courses ?? []);
@@ -37,6 +42,7 @@ export default function LearningModule() {
         setTrainingHours(Number(ml.data.trainingHours ?? 0));
       }
       if (cat?.data) setCatalog(cat.data.courses ?? []);
+      if (crt?.data) setCertificates(crt.data.certificates ?? []);
     } catch {
       /* biarkan kosong */
     } finally {
@@ -129,7 +135,38 @@ export default function LearningModule() {
                     <div className="h-full bg-[#007a5a]" style={{ width: `${c.completionPct}%` }} />
                   </div>
                   <span className="text-[11px] font-bold text-[#0f172a] font-mono w-9 text-right">{c.completionPct}%</span>
+                  <button
+                    onClick={() => setViewer({ courseId: c.courseId, title: c.title })}
+                    className="text-[11px] font-bold px-2 py-1 rounded-lg border border-[#007a5a] text-[#007a5a] hover:bg-[#e6f4ea]"
+                  >
+                    Buka
+                  </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Certificates */}
+      <div>
+        <h3 className="text-xs font-bold text-[#334155] mb-2">Sertifikat Saya</h3>
+        {certificates.length === 0 ? (
+          <p className="text-xs text-[#64748b]">Belum ada sertifikat. Selesaikan kursus wajib untuk mendapatkannya.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {certificates.map((c) => (
+              <div key={c.certificateNo} className="p-3 rounded-lg border border-[#b7e1cd] bg-[#f2fbf5] flex flex-col gap-1">
+                <p className="text-xs font-bold text-[#0f172a]">{c.courseTitle}</p>
+                <span className="text-[10px] font-mono text-[#137333]">{c.certificateNo}</span>
+                <a
+                  href={`/api/v1/certificates/verify/${c.verificationCode}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] font-semibold text-[#0284c7] underline w-fit"
+                >
+                  Verifikasi sertifikat
+                </a>
               </div>
             ))}
           </div>
@@ -164,6 +201,15 @@ export default function LearningModule() {
           })}
         </div>
       </div>
+
+      {viewer && (
+        <LessonViewerModal
+          courseId={viewer.courseId}
+          courseTitle={viewer.title}
+          onClose={() => setViewer(null)}
+          onChanged={load}
+        />
+      )}
     </div>
   );
 }
