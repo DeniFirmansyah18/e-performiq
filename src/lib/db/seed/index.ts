@@ -413,6 +413,55 @@ INSERT INTO learning_plan_items (id, plan_id, competency_id, course_id, target_l
 SELECT 'a5000000-0000-4000-8000-000000000002','a4000000-0000-4000-8000-000000000001', k.id, c.id, 5, 'TODO'::plan_item_status_enum
   FROM competencies k, moodle_courses c WHERE k.name='Leadership' AND c.course_code='LEAD-ESS'
 ON CONFLICT (id) DO NOTHING;
+
+-- 28. Course Modules / Materials (Task 2) — termasuk QUIZ untuk kursus onboarding wajib
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000001', c.id, 'Selamat Datang di E-PerformIQ', 1, 'TEXT', NULL,
+  'Pengenalan budaya perusahaan, tata kelola GCG, dan sistem kerja E-PerformIQ.', NULL
+  FROM moodle_courses c WHERE c.course_code='ONB-101' ON CONFLICT (id) DO NOTHING;
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000002', c.id, 'Video: Tur Kantor & Budaya Kerja', 2, 'VIDEO',
+  'https://example.com/videos/onboarding-tour.mp4', NULL, NULL
+  FROM moodle_courses c WHERE c.course_code='ONB-101' ON CONFLICT (id) DO NOTHING;
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000003', c.id, 'Kuis Orientasi', 3, 'QUIZ', NULL, NULL,
+  '[{"q":1,"a":1},{"q":2,"a":0},{"q":3,"a":2}]'::jsonb
+  FROM moodle_courses c WHERE c.course_code='ONB-101' ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000004', c.id, 'Panduan Nilai AKHLAK', 1, 'TEXT', NULL,
+  'Amanah, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif — penerapan sehari-hari.', NULL
+  FROM moodle_courses c WHERE c.course_code='AKHLAK-CULTURE' ON CONFLICT (id) DO NOTHING;
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000005', c.id, 'PDF: Kebijakan Budaya Kerja', 2, 'PDF',
+  'https://example.com/docs/akhlaK-policy.pdf', NULL, NULL
+  FROM moodle_courses c WHERE c.course_code='AKHLAK-CULTURE' ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000006', c.id, 'Arsitektur Cloud Microservices', 1, 'VIDEO',
+  'https://example.com/videos/cloud-arch.mp4', NULL, NULL
+  FROM moodle_courses c WHERE c.course_code='CLOUD-ARCH' ON CONFLICT (id) DO NOTHING;
+INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
+SELECT 'b1000000-0000-4000-8000-000000000007', c.id, 'Rangkuman & Studi Kasus', 2, 'TEXT', NULL,
+  'Best practice desain arsitektur cloud skala enterprise.', NULL
+  FROM moodle_courses c WHERE c.course_code='CLOUD-ARCH' ON CONFLICT (id) DO NOTHING;
+
+-- 29. Public Job Posting (Task 2): tandai lowongan contoh agar publik
+UPDATE job_postings SET is_public = TRUE WHERE id = '87000000-0000-4000-8000-000000000001';
+
+-- 30. Candidate + Application contoh (Task 2)
+INSERT INTO candidates (id, full_name, email, phone, address, birth_date, education, resume_url) VALUES
+  ('b2000000-0000-4000-8000-000000000001','Andi Saputra','andi.saputra@example.com','+62 812-1111-2222','Jl. Merdeka No. 1, Jakarta','1996-05-20','S1 Teknik Informatika','https://files.eperformiq.co.id/cv/andi-saputra.pdf')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO job_applications (id, application_no, candidate_id, job_posting_id, cover_letter, status) VALUES
+  ('b3000000-0000-4000-8000-000000000001','APP-20261001-ANDI01','b2000000-0000-4000-8000-000000000001','87000000-0000-4000-8000-000000000001','Saya tertarik dan yakin dapat berkontribusi.','SUBMITTED')
+ON CONFLICT (id) DO NOTHING;
+
+-- 31. Certificate contoh (Task 2) untuk Budi pada course CLOUD-ARCH
+INSERT INTO certificates (id, certificate_no, verification_code, employee_id, course_id)
+SELECT 'b4000000-0000-4000-8000-000000000001','CERT-EMP20220042-CLOUDARCH-20260901','ABC123XY', 'b0000000-0000-4000-8000-000000000004', c.id
+  FROM moodle_courses c WHERE c.course_code='CLOUD-ARCH'
+ON CONFLICT (id) DO NOTHING;
 `);
 }
 
