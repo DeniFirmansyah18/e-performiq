@@ -56,6 +56,18 @@ describe('aiService', () => {
     expect(String(fetchSpy.mock.calls[0][0])).toContain('api.groq.com');
   });
 
+  it('Groq: fallback ke reasoning_content bila content kosong', async () => {
+    process.env.AI_PROVIDER = 'groq';
+    process.env.GROQ_API_KEY = 'gsk-test';
+    vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: true, json: async () => ({ choices: [{ message: { content: '', reasoning_content: 'jawaban dari reasoning' } }] }),
+    } as any);
+    const { generateContent } = await import('@/lib/services/aiService');
+    const r = await generateContent('halo');
+    expect(r.provider).toBe('groq');
+    expect(r.text).toBe('jawaban dari reasoning');
+  });
+
   it('fallback ke Groq saat Gemini kena rate limit (429)', async () => {
     process.env.GEMINI_API_KEY = 'k';
     process.env.GROQ_API_KEY = 'g';

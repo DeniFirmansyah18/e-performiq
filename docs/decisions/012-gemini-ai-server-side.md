@@ -18,7 +18,7 @@ dengan PGlite (lokal) / PostgreSQL server (produksi).
    - Pilih via `AI_PROVIDER` (`gemini` | `groq`); bila kosong -> dipilih otomatis dari
      provider yang punya kunci (Gemini diprioritaskan).
    - Kunci: `GEMINI_API_KEY` / `GROQ_API_KEY`. Model: `GEMINI_MODEL`
-     (default `gemini-flash-latest`) / `GROQ_MODEL` (default `llama-3.3-70b-versatile`).
+     (default `gemini-flash-latest`) / `GROQ_MODEL` (default `openai/gpt-oss-120b`).
    - `gemini-flash-latest` dipilih agar tidak "mati" saat Google menghentikan versi
      lama (mis. `gemini-2.0-flash` yang sudah retired).
 3. **Fallback otomatis:** bila provider utama gagal dengan error sementara
@@ -43,3 +43,4 @@ dengan PGlite (lokal) / PostgreSQL server (produksi).
 - **SDK pihak ketiga**: menambah dependensi & berat untuk kebutuhan sederhana.
 - **Panggilan dari klien**: membocorkan kunci API.
 - **Satu provider saja**: rentan saat provider kena rate limit/overload (tier gratis).
+

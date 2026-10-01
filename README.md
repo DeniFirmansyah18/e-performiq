@@ -43,7 +43,7 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `GEMINI_API_KEY` | Kunci API Google Gemini. **Opsional** — lihat ADR 012. |
 | `GEMINI_MODEL` | Model Gemini (default `gemini-flash-latest`). |
 | `GROQ_API_KEY` | Kunci API Groq (alternatif cepat & gratis). **Opsional.** |
-| `GROQ_MODEL` | Model Groq (default `llama-3.3-70b-versatile`). |
+| `GROQ_MODEL` | Model Groq (default `openai/gpt-oss-120b`). Daftar aktif: console.groq.com/docs/models. |
 
 > Salin `.env.example` menjadi `.env.local` untuk memulai.
 

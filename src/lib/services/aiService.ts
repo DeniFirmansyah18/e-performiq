@@ -88,8 +88,10 @@ async function callGroq(
   prompt: string,
   opts: { maxOutputTokens?: number; temperature?: number }
 ): Promise<ProviderResult> {
-  // Groq memakai API bergaya OpenAI. Model default: Llama 3.3 70B (penalaran terbaik di Groq).
-  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  // Groq memakai API bergaya OpenAI. Model default: openai/gpt-oss-120b
+  // (model chat aktif di Groq; nama model Groq sering berganti — cek
+  // https://console.groq.com/docs/models bila terjadi error 404/model_not_found).
+  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
   const url = 'https://api.groq.com/openai/v1/chat/completions';
   try {
     const res = await fetch(url, {
@@ -103,6 +105,10 @@ async function callGroq(
         messages: [{ role: 'user', content: prompt }],
         max_tokens: opts.maxOutputTokens ?? 600,
         temperature: opts.temperature ?? 0.4,
+        // Model reasoning (gpt-oss, qwen3) bisa menaruh proses berpikir di
+        // `reasoning_content`. Minta Groq mengirim reasoning terpisah agar
+        // `content` tetap berisi jawaban akhir yang bersih.
+        reasoning_format: 'parsed',
       }),
     });
     if (!res.ok) {
@@ -116,7 +122,15 @@ async function callGroq(
       };
     }
     const json: any = await res.json();
-    const text: string = json?.choices?.[0]?.message?.content ?? '';
+    const msg = json?.choices?.[0]?.message ?? {};
+    // Prioritaskan `content` (jawaban akhir). Bila kosong (mis. model reasoning
+    // menaruh segalanya di field reasoning), pakai `reasoning`/`reasoning_content`
+    // sebagai cadangan. Groq gpt-oss memakai `reasoning`; sebagian model lain
+    // memakai `reasoning_content`.
+    const text: string =
+      String(msg.content ?? '').trim() ||
+      String(msg.reasoning ?? '').trim() ||
+      String(msg.reasoning_content ?? '').trim();
     return { ok: true, text: text || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
