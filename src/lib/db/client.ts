@@ -89,19 +89,38 @@ function createDb() {
  */
 export type AppDb = ReturnType<typeof drizzlePglite>;
 
-export const db: AppDb =
-  globalForDb.__eperformiqDb ?? (globalForDb.__eperformiqDb = createDb() as unknown as AppDb);
+/**
+ * Normalisasi hasil `.execute()` agar SELALU berbentuk `{ rows: T[] }`
+ * untuk kedua driver. `drizzle-orm/pglite` mengembalikan `{ rows }`,
+ * sedangkan `drizzle-orm/postgres-js` mengembalikan array polos — perbedaan
+ * ini dulu membuat `result.rows[0]` undefined di produksi (PostgreSQL).
+ */
+function withNormalizedExecute<T extends object>(instance: T): T {
+  const original = (instance as any).execute.bind(instance);
+  (instance as any).execute = async (query: any) => {
+    const result = await original(query);
+    if (Array.isArray(result)) return { rows: result };
+    if (result && Array.isArray((result as any).rows)) return result;
+    if (result && typeof result === 'object') return { rows: [result] };
+    return { rows: [] };
+  };
+  return instance;
+}
+
+const rawDb = globalForDb.__eperformiqDb ?? (globalForDb.__eperformiqDb = createDb() as unknown as AppDb);
+
+export const db: AppDb = withNormalizedExecute(rawDb) as unknown as AppDb;
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForDb.__eperformiqDb = db;
+  globalForDb.__eperformiqDb = rawDb;
 }
 
 /** Mengembalikan SqlClient ({ query, exec }) untuk driver yang aktif. */
 export async function getDb(): Promise<SqlClient> {
   if (globalForDb.__eperformiqSql) return globalForDb.__eperformiqSql;
   // Fallback: PGlite menyimpan client di internal session.
-  const pgliteClient = (db as any).session?.client;
-  return (pgliteClient ?? db) as unknown as SqlClient;
+  const pgliteClient = (rawDb as any).session?.client;
+  return (pgliteClient ?? rawDb) as unknown as SqlClient;
 }
 
 /** True bila aplikasi memakai PostgreSQL server (DATABASE_URL), bukan PGlite. */
