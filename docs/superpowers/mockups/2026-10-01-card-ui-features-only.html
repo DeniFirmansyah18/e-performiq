@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>E-PerformIQ - Mockup: fitur jadi kartu (top bar + sidebar dipertahankan)</title>
+<style>
+  :root{
+    --bg:#f8fafc; --surface:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --brand:#007a5a; --brand-ink:#0b5c45; --accent:#c2681a;
+    --header:#0d131f; --header-line:#1e293b; --header-soft:#161f30;
+    --radius:12px; --radius-sm:8px;
+    --shadow-lift:0 10px 22px -14px rgba(15,23,42,.30);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header.top{position:sticky;top:0;z-index:40;height:56px;background:var(--header);border-bottom:1px solid var(--header-line);
+    display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
+  .brand .name{color:#fff;font-weight:700;font-size:13px}
+  .brand .ver{background:var(--header-soft);border:1px solid rgba(100,116,139,.4);border-radius:6px;padding:2px 8px;font-size:10px;color:#cbd5e1}
+  .search{flex:1;max-width:420px;margin:0 22px;position:relative;display:none}
+  .search input{width:100%;height:36px;border-radius:8px;background:var(--header-soft);border:1px solid rgba(100,116,139,.4);color:#fff;font-size:12px;padding:0 44px 0 32px}
+  .search .kbd{position:absolute;right:8px;top:7px;font-size:10px;color:#94a3b8;background:#1e293b;border:1px solid rgba(100,116,139,.4);border-radius:5px;padding:2px 6px}
+  .hright{display:flex;align-items:center;gap:12px;color:#cbd5e1;font-size:12px}
+  .hbtn{border:1px solid rgba(100,116,139,.4);background:var(--header-soft);border-radius:8px;padding:6px 10px;color:#e2e8f0;font-size:11px;cursor:pointer}
+  .shell{display:flex;min-height:calc(100vh - 56px)}
+  aside.side{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;justify-content:space-between}
+  .sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;padding:0 10px;margin:14px 0 6px}
+  .nav{display:flex;flex-direction:column;gap:3px}
+  .nav a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:12px;color:#475569;text-decoration:none}
+  .nav a.active{background:#e6f4ea;color:#0b5c45;font-weight:700}
+  .nav a:hover{background:#f1f5f9}
+  main{flex:1;padding:22px 26px 60px}
+  .lede h1{margin:0 0 4px;font-size:18px;letter-spacing:-.02em}
+  .lede p{margin:0 0 18px;color:var(--muted);font-size:12.5px}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .card{grid-column:span 4;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;cursor:pointer;text-align:left;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+  .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift);border-color:#cbd5e1}
+  .card.wide{grid-column:span 8}
+  .card .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#eef6f2;font-size:17px}
+  .ic.warm{background:#f8efe5}
+  .card h3{margin:12px 0 3px;font-size:14px;letter-spacing:-.01em}
+  .card p{margin:0;font-size:12px;color:var(--muted);line-height:1.45}
+  .metric{font-size:21px;font-weight:800;letter-spacing:-.02em}
+  .trend{font-size:11px;font-weight:700}
+  .up{color:var(--brand-ink)} .down{color:#b4442f}
+  .tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eef6f2;color:var(--brand-ink)}
+  .tag.lock{background:#f1f5f9;color:var(--muted)}
+  .panel{grid-column:span 12;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;display:none}
+  .panel.open{display:block}
+  .panel .phead{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+  .panel .phead h2{margin:0;font-size:15px}
+  .close{background:none;border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+  .two{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .kpi{border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px}
+  .kpi span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  .kpi b{display:block;font-size:18px;margin-top:5px}
+  .ai{border:1px solid #d9e7e0;background:#f4faf7;border-radius:var(--radius-sm);padding:14px}
+  .ai h4{margin:0 0 8px;font-size:12px;color:var(--brand-ink)}
+  .ai p{margin:0 0 8px;font-size:12px;color:#243b33;line-height:1.55}
+  .ai .btn{background:var(--brand);color:#fff;border:0;border-radius:var(--radius-sm);padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer}
+  .ai .btn.ghost{background:#fff;color:var(--brand-ink);border:1px solid #cfe0d8}
+  .hint{font-size:11px;color:var(--muted);margin-top:12px}
+  @media (min-width:900px){ .search{display:block} }
+  @media (max-width:880px){ .card,.card.wide{grid-column:span 12} .two{grid-template-columns:1fr} .kpis{grid-template-columns:1fr 1fr} aside.side{display:none} }
+</style>
+</head>
+<body>
+
+<!-- Top bar: DIPERTAHANKAN -->
+<header class="top">
+  <div class="brand">
+    <span class="logo">E</span>
+    <span class="name">E-PerformIQ</span>
+    <span class="ver">Enterprise v1.0</span>
+  </div>
+  <div class="search">
+    <input placeholder="Search governance metrics, employee KPI, code..." />
+    <span class="kbd">Ctrl K</span>
+  </div>
+  <div class="hright">
+    <button class="hbtn">Panduan Aplikasi</button>
+    <span>2026-Q3</span>
+    <span>Notifikasi</span>
+    <span>Ir. Hendra Gunawan</span>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- Sidebar: DIPERTAHANKAN -->
+  <aside class="side">
+    <div>
+      <p class="sec">Core Portals</p>
+      <nav class="nav">
+        <a href="#" class="active">Executive Boardroom</a>
+        <a href="#">HR Ops Command Center</a>
+        <a href="#">Manager Evaluation Cockpit</a>
+        <a href="#">Employee Growth Portal</a>
+      </nav>
+      <p class="sec">Modules &amp; Governance</p>
+      <nav class="nav">
+        <a href="#">9-Box Talent Matrix</a>
+        <a href="#">Offboarding &amp; Clearance</a>
+        <a href="#">GCG Audit &amp; Compliance</a>
+      </nav>
+    </div>
+    <nav class="nav">
+      <a href="#">Settings &amp; Preferences</a>
+      <a href="#">GCG Policy Archive</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="lede">
+      <h1>Ruang Kerja Anda</h1>
+      <p>Hanya isi fitur yang diubah menjadi kartu. Top bar &amp; sidebar tetap. Klik kartu untuk membuka isi fiturnya.</p>
+    </div>
+
+    <div class="grid">
+      <button class="card wide" onclick="open('executive')">
+        <div class="row">
+          <div class="ic">&#128200;</div>
+          <div style="text-align:right">
+            <div class="metric">69.6%</div>
+            <div class="trend down">&#9660; 15.4% vs tolok ukur</div>
+          </div>
+        </div>
+        <h3>Executive Boardroom</h3>
+        <p>VMAI, 4 perspektif Balanced Scorecard, dan heatmap pencapaian visi korporat.</p>
+      </button>
+
+      <button class="card" onclick="open('hr')">
+        <div class="row"><div class="ic">&#129517;</div><span class="tag">4 modul</span></div>
+        <h3>HR Ops Command Center</h3>
+        <p>Pipeline rekrutmen, probation, offboarding &amp; clearance, learning.</p>
+      </button>
+
+      <button class="card" onclick="open('manager')">
+        <div class="row"><div class="ic warm">&#9989;</div><span class="tag">Tim langsung</span></div>
+        <h3>Manager Cockpit</h3>
+        <p>Setujui KPI, evaluasi GPA tim, pantau SOP adherence.</p>
+      </button>
+
+      <button class="card" onclick="open('employee')">
+        <div class="row"><div class="ic">&#127793;</div><span class="tag">Self-service</span></div>
+        <h3>Employee Growth Portal</h3>
+        <p>Scorecard GPA, Learning &amp; Development, sertifikat, profil.</p>
+      </button>
+
+      <button class="card" onclick="open('ninebox')">
+        <div class="row"><div class="ic">&#128290;</div><span class="tag">Talent</span></div>
+        <h3>9-Box Talent Matrix</h3>
+        <p>Distribusi talenta &amp; perencanaan suksesi.</p>
+      </button>
+
+      <button class="card" onclick="open('audit')">
+        <div class="row"><div class="ic warm">&#9878;</div><span class="tag lock">Read-only</span></div>
+        <h3>GCG Audit &amp; Compliance</h3>
+        <p>Jejak audit anti-manipulasi &amp; prinsip TARIF.</p>
+      </button>
+
+      <button class="card" onclick="open('careers')">
+        <div class="row"><div class="ic">&#128227;</div><span class="tag">Publik</span></div>
+        <h3>Portal Karier</h3>
+        <p>Lowongan publik &amp; lamaran kandidat eksternal.</p>
+      </button>
+
+      <section class="panel" id="panel">
+        <div class="phead">
+          <h2 id="panel-title">Executive Boardroom</h2>
+          <button class="close" onclick="closePanel()">Tutup</button>
+        </div>
+        <div class="two">
+          <div>
+            <div class="kpis">
+              <div class="kpi"><span>VMAI Korporasi</span><b>69.6%</b></div>
+              <div class="kpi"><span>Finansial</span><b>92.4</b></div>
+              <div class="kpi"><span>Proses Internal</span><b>94.8</b></div>
+            </div>
+            <p class="hint">Seluruh konten fitur lama (tabel/chart/form) dirender di sini saat kartu dibuka - top bar &amp; sidebar tidak berubah.</p>
+          </div>
+          <aside class="ai">
+            <h4>Analisis AI (Gemini)</h4>
+            <div id="ai-body">
+              <p>Ringkasan otomatis: VMAI 69.6% di bawah ambang 85%. Learning &amp; Growth terendah (83.3).</p>
+              <p><b>Rekomendasi:</b> prioritaskan pelatihan mandatori &amp; retensi talenta Top 20%.</p>
+            </div>
+            <button class="btn" onclick="runAI()">Analisis ulang</button>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  function open(id){
+    var titles={executive:'Executive Boardroom',hr:'HR Ops Command Center',manager:'Manager Evaluation Cockpit',
+      employee:'Employee Growth Portal',ninebox:'9-Box Talent Matrix',audit:'GCG Audit & Compliance',careers:'Portal Karier'};
+    document.getElementById('panel-title').textContent=titles[id]||'Fitur';
+    var p=document.getElementById('panel'); p.classList.add('open');
+    p.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  function closePanel(){ document.getElementById('panel').classList.remove('open'); }
+  function runAI(){
+    var b=document.getElementById('ai-body');
+    b.innerHTML='Memuat analisis...';
+    setTimeout(function(){ b.innerHTML='<p>Ringkasan otomatis: VMAI 69.6% di bawah ambang 85%.</p><p><b>Rekomendasi:</b> prioritaskan pelatihan mandatori &amp; retensi talenta.</p>'; },900);
+  }
+</script>
+</body>
+</html>
