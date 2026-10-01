@@ -1,12 +1,14 @@
-// AI service (server-side only) — provider-agnostic: Gemini & Groq.
-// Pilih provider via AI_PROVIDER ('gemini' | 'groq'); bila kosong, dipilih
-// otomatis dari provider yang punya kunci. Bila provider utama gagal/kena rate
-// limit, otomatis dicoba provider lain yang terkonfigurasi (fallback).
+// AI service (server-side only) — provider-agnostic: Gemini, Groq & OpenRouter.
+// Pilih provider via AI_PROVIDER ('gemini' | 'groq' | 'openrouter'); bila kosong,
+// dipilih otomatis dari provider yang punya kunci. Bila provider utama gagal/kena
+// rate limit, otomatis dicoba provider lain yang terkonfigurasi (fallback).
 // Tanpa kunci sama sekali -> configured:false + pesan ramah (bukan crash/500).
 import type { Db } from '@/lib/db/client';
 import { buildFeatureContext } from '@/lib/services/aiContext';
 
-export type AiProvider = 'gemini' | 'groq';
+export type AiProvider = 'gemini' | 'groq' | 'openrouter';
+
+const PROVIDER_ORDER: AiProvider[] = ['gemini', 'groq', 'openrouter'];
 
 export function geminiConfigured(): boolean {
   return !!process.env.GEMINI_API_KEY;
@@ -16,18 +18,26 @@ export function groqConfigured(): boolean {
   return !!process.env.GROQ_API_KEY;
 }
 
-/** Provider aktif (default: gemini bila ada kunci, else groq). */
+export function openrouterConfigured(): boolean {
+  return !!process.env.OPENROUTER_API_KEY;
+}
+
+function isConfigured(provider: AiProvider): boolean {
+  if (provider === 'gemini') return geminiConfigured();
+  if (provider === 'groq') return groqConfigured();
+  return openrouterConfigured();
+}
+
+/** Provider aktif (default: sesuai urutan prioritas yang punya kunci). */
 export function activeProvider(): AiProvider {
   const explicit = (process.env.AI_PROVIDER || '').toLowerCase();
-  if (explicit === 'groq') return 'groq';
-  if (explicit === 'gemini') return 'gemini';
-  if (geminiConfigured()) return 'gemini';
-  if (groqConfigured()) return 'groq';
+  if (explicit === 'gemini' || explicit === 'groq' || explicit === 'openrouter') return explicit;
+  for (const p of PROVIDER_ORDER) if (isConfigured(p)) return p;
   return 'gemini';
 }
 
 export function isAiConfigured(): boolean {
-  return geminiConfigured() || groqConfigured();
+  return PROVIDER_ORDER.some(isConfigured);
 }
 
 export interface GenerateResult {
@@ -137,12 +147,62 @@ async function callGroq(
   }
 }
 
+async function callOpenRouter(
+  prompt: string,
+  opts: { maxOutputTokens?: number; temperature?: number }
+): Promise<ProviderResult> {
+  // OpenRouter juga memakai API bergaya OpenAI. Model default: qwen/qwen3.8-27b:free.
+  // Daftar model: https://openrouter.ai/models?max_price=0
+  const model = process.env.OPENROUTER_MODEL || 'qwen/qwen3.8-27b:free';
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        // Header opsional yang direkomendasikan OpenRouter (atribusi app).
+        'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://e-performiq.vercel.app',
+        'X-Title': 'E-PerformIQ',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: opts.maxOutputTokens ?? 600,
+        temperature: opts.temperature ?? 0.4,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      const retryable = res.status === 429 || res.status >= 500;
+      return {
+        ok: false,
+        error: `OpenRouter error ${res.status}`,
+        retryable,
+        text: `Maaf, analisis AI gagal (status ${res.status}). ${String(detail).slice(0, 200)}`,
+      };
+    }
+    const json: any = await res.json();
+    const msg = json?.choices?.[0]?.message ?? {};
+    // Sama seperti Groq: prioritaskan `content`, fallback ke field reasoning.
+    const text: string =
+      String(msg.content ?? '').trim() ||
+      String(msg.reasoning ?? '').trim() ||
+      String(msg.reasoning_content ?? '').trim();
+    return { ok: true, text: text || 'Tidak ada keluaran dari model.' };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
+  }
+}
+
 async function callProvider(
   provider: AiProvider,
   prompt: string,
   opts: { maxOutputTokens?: number; temperature?: number }
 ): Promise<ProviderResult> {
-  return provider === 'groq' ? callGroq(prompt, opts) : callGemini(prompt, opts);
+  if (provider === 'groq') return callGroq(prompt, opts);
+  if (provider === 'openrouter') return callOpenRouter(prompt, opts);
+  return callGemini(prompt, opts);
 }
 
 export async function generateContent(
@@ -153,7 +213,7 @@ export async function generateContent(
     return {
       configured: false,
       text:
-        'AI belum dikonfigurasi. Set GEMINI_API_KEY (atau GROQ_API_KEY dengan AI_PROVIDER=groq) ' +
+        'AI belum dikonfigurasi. Set GEMINI_API_KEY, GROQ_API_KEY, atau OPENROUTER_API_KEY ' +
         'pada environment server untuk mengaktifkan analisis AI.',
     };
   }
@@ -164,13 +224,15 @@ export async function generateContent(
     return { configured: true, text: first.text as string, provider: primary };
   }
 
-  // Fallback: coba provider lain bila error bersifat sementara (rate limit/server).
-  const alternate: AiProvider = primary === 'gemini' ? 'groq' : 'gemini';
-  const alternateAvailable = alternate === 'groq' ? groqConfigured() : geminiConfigured();
-  if (first.retryable && alternateAvailable) {
-    const second = await callProvider(alternate, prompt, opts);
-    if (second.ok) {
-      return { configured: true, text: second.text as string, provider: alternate };
+  // Fallback berantai: coba provider lain yang terkonfigurasi bila error
+  // bersifat sementara (rate limit / server sibuk / network).
+  if (first.retryable) {
+    const others = PROVIDER_ORDER.filter((p) => p !== primary && isConfigured(p));
+    for (const p of others) {
+      const r = await callProvider(p, prompt, opts);
+      if (r.ok) {
+        return { configured: true, text: r.text as string, provider: p };
+      }
     }
   }
 

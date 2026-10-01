@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('aiService', () => {
   const OLD = process.env;
-  beforeEach(() => { vi.resetModules(); process.env = { ...OLD }; delete process.env.AI_PROVIDER; delete process.env.GEMINI_API_KEY; delete process.env.GROQ_API_KEY; });
+  beforeEach(() => { vi.resetModules(); process.env = { ...OLD }; delete process.env.AI_PROVIDER; delete process.env.GEMINI_API_KEY; delete process.env.GROQ_API_KEY; delete process.env.OPENROUTER_API_KEY; });
   afterEach(() => { process.env = OLD; vi.restoreAllMocks(); });
 
   it('isAiConfigured false tanpa kunci apa pun', async () => {
@@ -85,6 +85,35 @@ describe('aiService', () => {
     process.env.GROQ_API_KEY = 'g';
     const { activeProvider } = await import('@/lib/services/aiService');
     expect(activeProvider()).toBe('groq');
+  });
+
+  it('memakai OpenRouter bila AI_PROVIDER=openrouter (qwen3.8 free)', async () => {
+    process.env.AI_PROVIDER = 'openrouter';
+    process.env.OPENROUTER_API_KEY = 'or-test';
+    process.env.OPENROUTER_MODEL = 'qwen/qwen3.8-27b:free';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: true, json: async () => ({ choices: [{ message: { content: 'jawaban openrouter' } }] }),
+    } as any);
+    const { generateContent } = await import('@/lib/services/aiService');
+    const r = await generateContent('halo');
+    expect(r.provider).toBe('openrouter');
+    expect(r.text).toBe('jawaban openrouter');
+    expect(String(fetchSpy.mock.calls[0][0])).toContain('openrouter.ai');
+  });
+
+  it('fallback berantai: Gemini 429 -> Groq gagal -> OpenRouter berhasil', async () => {
+    process.env.GEMINI_API_KEY = 'g';
+    process.env.GROQ_API_KEY = 'q';
+    process.env.OPENROUTER_API_KEY = 'o';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch' as any)
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => 'limited' } as any)
+      .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'busy' } as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ choices: [{ message: { content: 'dari openrouter' } }] }) } as any);
+    const { generateContent } = await import('@/lib/services/aiService');
+    const r = await generateContent('halo');
+    expect(r.provider).toBe('openrouter');
+    expect(r.text).toBe('dari openrouter');
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 });
 

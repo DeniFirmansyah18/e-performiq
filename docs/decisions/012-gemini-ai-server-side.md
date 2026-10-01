@@ -1,4 +1,4 @@
-﻿# ADR 012 - Integrasi AI Server-Side (provider-agnostic: Gemini & Groq)
+﻿# ADR 012 - Integrasi AI Server-Side (provider-agnostic: Gemini, Groq & OpenRouter)
 
 Status: Diterima
 Tanggal: 2026-10-01 (diperbarui 2026-10-02: multi-provider)
@@ -14,16 +14,19 @@ dengan PGlite (lokal) / PostgreSQL server (produksi).
 
 1. Semua panggilan AI dilakukan **server-side** melalui `src/lib/services/aiService.ts`
    menggunakan `fetch` REST (tanpa SDK), sehingga tidak menambah dependensi.
-2. **Provider-agnostic:** mendukung **Google Gemini** dan **Groq** (API bergaya OpenAI).
-   - Pilih via `AI_PROVIDER` (`gemini` | `groq`); bila kosong -> dipilih otomatis dari
-     provider yang punya kunci (Gemini diprioritaskan).
-   - Kunci: `GEMINI_API_KEY` / `GROQ_API_KEY`. Model: `GEMINI_MODEL`
-     (default `gemini-flash-latest`) / `GROQ_MODEL` (default `openai/gpt-oss-120b`).
+2. **Provider-agnostic:** mendukung **Google Gemini**, **Groq**, dan **OpenRouter** (dua terakhir API bergaya OpenAI).
+   - Pilih via `AI_PROVIDER` (`gemini` | `groq` | `openrouter`); bila kosong -> dipilih
+     otomatis dari provider yang punya kunci (prioritas: gemini > groq > openrouter).
+   - Kunci: `GEMINI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY`.
+     Model: `GEMINI_MODEL` (default `gemini-flash-latest`) /
+     `GROQ_MODEL` (default `openai/gpt-oss-120b`) /
+     `OPENROUTER_MODEL` (default `qwen/qwen3.8-27b:free`).
    - `gemini-flash-latest` dipilih agar tidak "mati" saat Google menghentikan versi
-     lama (mis. `gemini-2.0-flash` yang sudah retired).
-3. **Fallback otomatis:** bila provider utama gagal dengan error sementara
+     lama (mis. `gemini-2.0-flash` yang sudah retired). Model Groq/OpenRouter bisa
+     berganti - cukup ubah env tanpa ubah kode.
+3. **Fallback berantai:** bila provider utama gagal dengan error sementara
    (rate limit `429` / server `5xx` / network), otomatis dicoba provider lain yang
-   terkonfigurasi - meningkatkan keandalan di tier gratis.
+   terkonfigurasi secara berurutan - meningkatkan keandalan di tier gratis.
 4. **Graceful fallback**: tanpa kunci, layanan mengembalikan
    `{ configured: false, text: 'AI belum dikonfigurasi...' }` dengan HTTP **200**
    (bukan 500). Error HTTP dikembalikan sebagai pesan ramah + field `error`.
