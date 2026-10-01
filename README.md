@@ -39,17 +39,23 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `PGLITE_DATA_DIR` | Lokasi file `.pglite` (default `./.pglite`). |
 | `DATABASE_URL` | Jika diset, aplikasi memakai **PostgreSQL server** (driver `postgres-js`); jika tidak, jatuh ke PGlite. **Wajib di Vercel/serverless.** Lihat ADR 007. |
 | `PORT` | Port dev/prod (default 3000). |
-| `GEMINI_API_KEY` | Kunci API Google Gemini untuk fitur AI. **Opsional** — tanpa ini AI berjalan mode fallback (ADR 012). |
+| `AI_PROVIDER` | Provider AI aktif: `gemini` \| `groq`. Bila kosong, dipilih otomatis dari kunci yang tersedia. **Opsional.** |
+| `GEMINI_API_KEY` | Kunci API Google Gemini. **Opsional** — lihat ADR 012. |
 | `GEMINI_MODEL` | Model Gemini (default `gemini-flash-latest`). |
+| `GROQ_API_KEY` | Kunci API Groq (alternatif cepat & gratis). **Opsional.** |
+| `GROQ_MODEL` | Model Groq (default `llama-3.3-70b-versatile`). |
 
 > Salin `.env.example` menjadi `.env.local` untuk memulai.
 
-## Fitur AI (Gemini, opsional)
-- **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI (Gemini)"
+## Fitur AI (provider-agnostic: Gemini & Groq, opsional)
+- **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI"
   yang menganalisis data nyata fitur tersebut (endpoint `POST /api/v1/ai/analyze`).
 - **Agen Chat AI** — tombol **"Tanya AI"** di Header membuka drawer chat
   (`POST /api/v1/ai/chat`).
-- **Tanpa `GEMINI_API_KEY`**, kedua fitur menampilkan pesan ramah `configured:false`
+- **Dua provider gratis:** Google **Gemini** dan **Groq**. Pilih via `AI_PROVIDER`
+  (atau biarkan kosong → otomatis). Bila provider utama **gagal/kena rate limit**
+  (429/5xx), otomatis dicoba provider lain yang terkonfigurasi (**fallback**).
+- **Tanpa kunci apa pun**, kedua fitur menampilkan pesan ramah `configured:false`
   dengan HTTP 200 (bukan error). Lihat ADR 012.
 
 ## Perintah
