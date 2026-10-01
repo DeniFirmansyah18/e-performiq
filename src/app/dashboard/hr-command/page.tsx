@@ -26,6 +26,7 @@ import {
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
+import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
 
 export default function HROperationsPage() {
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
@@ -407,6 +408,9 @@ export default function HROperationsPage() {
 
       {/* Learning & Certification (integrasi model Moodle) */}
       <LearningCertificationPanel />
+
+      {/* Rekrutmen Kandidat (portal karier publik) */}
+      <RecruitmentPanel />
 
       {/* 3. Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
