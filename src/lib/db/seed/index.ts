@@ -467,15 +467,29 @@ ON CONFLICT (id) DO NOTHING;
 
 // Dijalankan langsung via npm run db:seed
 if (process.argv[1]?.includes('seed')) {
+const run = async () => {
+if (process.env.DATABASE_URL) {
+const postgres = (await import('postgres')).default;
+const client = postgres(process.env.DATABASE_URL, { max: 1, prepare: false });
+const sql: SqlClient = {
+query: async <T = any>(s: string, params: any[] = []) => {
+const rows = await client.unsafe<T[]>(s, params);
+return { rows: rows as unknown as T[] };
+},
+exec: (s: string) => client.unsafe(s),
+};
+await runSeed(sql);
+console.log('Seed (PostgreSQL server) selesai.');
+await client.end();
+} else {
 const client = new PGlite(process.env.PGLITE_DATA_DIR ?? '.pglite');
-runSeed(client)
-.then(async () => {
+await runSeed(client);
 console.log('Seed selesai.');
 await client.close();
-})
-.catch(async (err) => {
+}
+};
+run().catch((err) => {
 console.error('Seed gagal:', err);
-await client.close();
 process.exit(1);
 });
 }

@@ -37,7 +37,7 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | --- | --- |
 | `JWT_SECRET` | Rahasia penandatanganan sesi. **Wajib di produksi.** |
 | `PGLITE_DATA_DIR` | Lokasi file `.pglite` (default `./.pglite`). |
-| `DATABASE_URL` | Jika diset, targetkan driver PostgreSQL server (lihat ADR 007). |
+| `DATABASE_URL` | Jika diset, aplikasi memakai **PostgreSQL server** (driver `postgres-js`); jika tidak, jatuh ke PGlite. **Wajib di Vercel/serverless.** Lihat ADR 007. |
 | `PORT` | Port dev/prod (default 3000). |
 | `GEMINI_API_KEY` | Kunci API Google Gemini untuk fitur AI. **Opsional** — tanpa ini AI berjalan mode fallback (ADR 012). |
 | `GEMINI_MODEL` | Model Gemini (default `gemini-2.0-flash`). |
@@ -58,9 +58,11 @@ npm run dev         # server pengembangan
 npm run build       # build produksi + type-check
 npm run start       # jalankan hasil build
 npm run test        # seluruh test (vitest run)
-npm run db:migrate  # terapkan migrasi tertunda
+npm run db:migrate  # terapkan migrasi tertunda (PGlite lokal, atau Postgres bila DATABASE_URL ada)
 npm run db:seed     # seed data (idempoten)
-npm run db:reset    # hapus .pglite, migrasi ulang, seed ulang
+npm run db:reset    # hapus .pglite, migrasi ulang, seed ulang (lokal)
+npm run db:migrate:pg # migrasi ke PostgreSQL server (butuh DATABASE_URL)
+npm run db:seed:pg    # seed ke PostgreSQL server (butuh DATABASE_URL)
 ```
 
 ## Catatan arsitektur
@@ -101,4 +103,59 @@ yang sama secara bersamaan (menyebabkan abort). Jalankan `npm run db:reset` sebe
 skema berubah.
 
 ## Keputusan arsitektur
-Lihat `docs/decisions/` (ADR 003–011).
+Lihat `docs/decisions/` (ADR 003–013).
+
+## Deploy ke Vercel
+
+> ⚠️ **Penting:** Vercel berjalan di **serverless** dengan filesystem **read-only** —
+> PGlite (default lokal) **tidak bisa** dipakai di sana. Untuk produksi Anda **wajib**
+> menyediakan PostgreSQL server (mis. **Neon** atau **Vercel Postgres**) dan mengeset
+> `DATABASE_URL`. Tanpa itu, halaman yang butuh DB akan menampilkan error yang jelas
+> (lihat guard di `src/lib/db/client.ts`).
+
+### 1. Siapkan database PostgreSQL (Neon / Vercel Postgres)
+1. Buat project di [neon.tech](https://neon.tech) atau tab **Storage → Postgres** pada dashboard Vercel.
+2. Salin **connection string** (format `postgres://...?...sslmode=require`). Driver
+   memakai `prepare:false` sehingga kompatibel dengan connection pooler (pgbouncer/Supavisor).
+
+### 2. Jalankan migrasi & seed ke database tersebut (dari mesin lokal)
+```bash
+# Windows PowerShell
+$env:DATABASE_URL="postgres://<user>:<pass>@<host>/<db>?sslmode=require"
+npm run db:migrate:pg
+npm run db:seed:pg
+```
+> Migrasi idempoten (tracking `__migrations`) dan seed idempoten (`ON CONFLICT DO NOTHING`),
+> jadi aman diulang.
+
+### 3. Import repo ke Vercel (via Dashboard)
+1. Buka [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → pilih
+   `DeniFirmansyah18/e-performiq`.
+2. Framework terdeteksi otomatis **Next.js** (konfigurasi dari `vercel.json`).
+3. **Environment Variables** (Production & Preview):
+
+   | Variabel | Nilai |
+   | --- | --- |
+   | `JWT_SECRET` | string acak ≥32 karakter (wajib) |
+   | `DATABASE_URL` | connection string dari langkah 1 (wajib) |
+   | `GEMINI_API_KEY` | kunci Gemini (opsional) |
+   | `GEMINI_MODEL` | `gemini-2.0-flash` (opsional) |
+
+   > Jangan set `PGLITE_DATA_DIR` di Vercel.
+
+4. Klik **Deploy**.
+
+### 4. Verifikasi pasca-deploy
+- Buka `https://<project>.vercel.app/login` → login demo (mis. `budi.pratama@eperformiq.co.id` / `enterprise2026`).
+- Pastikan dashboard memuat data (bukan error DB).
+
+### Mode CLI (opsional, jika memakai Vercel CLI)
+```bash
+npm i -g vercel
+vercel login                 # login pakai akun Anda
+vercel link                  # tautkan folder ke project Vercel
+vercel env add JWT_SECRET production
+vercel env add DATABASE_URL production
+vercel --prod                # deploy ke production
+```
+

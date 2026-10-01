@@ -45,15 +45,29 @@ export async function runMigrations(client: SqlClient): Promise<void> {
 
 // Dijalankan langsung lewat `npm run db:migrate`
 if (process.argv[1]?.includes('migrate')) {
-  const client = new PGlite(process.env.PGLITE_DATA_DIR ?? '.pglite');
-  runMigrations(client)
-    .then(async () => {
+  const run = async () => {
+    if (process.env.DATABASE_URL) {
+      const postgres = (await import('postgres')).default;
+      const client = postgres(process.env.DATABASE_URL, { max: 1, prepare: false });
+      const sql: SqlClient = {
+        query: async <T = any>(s: string, params: any[] = []) => {
+          const rows = await client.unsafe<T[]>(s, params);
+          return { rows: rows as unknown as T[] };
+        },
+        exec: (s: string) => client.unsafe(s),
+      };
+      await runMigrations(sql);
+      console.log('Migrasi (PostgreSQL server) selesai.');
+      await client.end();
+    } else {
+      const client = new PGlite(process.env.PGLITE_DATA_DIR ?? '.pglite');
+      await runMigrations(client);
       console.log('Migrasi selesai.');
       await client.close();
-    })
-    .catch(async (err) => {
-      console.error('Migrasi gagal:', err);
-      await client.close();
-      process.exit(1);
-    });
+    }
+  };
+  run().catch((err) => {
+    console.error('Migrasi gagal:', err);
+    process.exit(1);
+  });
 }
