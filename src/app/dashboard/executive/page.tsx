@@ -19,11 +19,20 @@ import {
   ArrowRight,
   Grid3X3,
   Lock,
+  LineChart,
+  PieChart,
 } from 'lucide-react';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import FeatureCard from '@/components/ui/FeatureCard';
+import ExpandablePanel from '@/components/ui/ExpandablePanel';
+import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+
+type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession';
 
 export default function ExecutiveBoardroomPage() {
   const [resolution, setResolution] = useState<'Bulanan' | 'Kuartalan' | 'Semester'>('Bulanan');
   const [scorecard, setScorecard] = useState<any>(null);
+  const [openFeature, setOpenFeature] = useState<ExecFeature | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -121,7 +130,44 @@ export default function ExecutiveBoardroomPage() {
         </div>
       </div>
 
-      {/* 2. Five Metric Cards Row */}
+      {/* 2. Feature Card Grid (click to open) */}
+      <FeatureGrid>
+        <FeatureCard
+          icon={ShieldCheck}
+          title="VMAI Indeks Korporasi"
+          metric={`${vmai}%`}
+          tag="Terverifikasi"
+          description={`Vision & Mission Alignment Index. Tolok ukur industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%).`}
+          onOpen={() => setOpenFeature('vmai')}
+        />
+        <FeatureCard
+          icon={PieChart}
+          title="Perspektif BSC"
+          metric={`${financialScore}%`}
+          tag="4 Pilar"
+          description="Skor empat perspektif Balanced Scorecard: Finansial, Pelanggan, Proses Internal, dan Pembelajaran & Pertumbuhan."
+          onOpen={() => setOpenFeature('perspectives')}
+        />
+        <FeatureCard
+          icon={LineChart}
+          title="Tren Strategis VMAI"
+          metric="6 Bulan"
+          tag="Analitik"
+          description="Analisis tren komparasi terhadap ambang batas GCG dan benchmark industri Tier-1 BUMN."
+          onOpen={() => setOpenFeature('trend')}
+        />
+        <FeatureCard
+          icon={UserCheck}
+          title="Suksesi & Risiko Talenta"
+          metric="3 Posisi Kritis"
+          tag="TARIF"
+          description="Pipeline kepemimpinan, kesiapan cadangan talenta, faktor tata kelola, dan mandat Dewan Komisaris."
+          onOpen={() => setOpenFeature('succession')}
+        />
+      </FeatureGrid>
+
+      {/* Panel: VMAI */}
+      <ExpandablePanel open={openFeature === 'vmai'} title="VMAI Indeks Korporasi" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         
         {/* Card 1: VMAI Indeks Korporasi */}
@@ -230,8 +276,34 @@ export default function ExecutiveBoardroomPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="executive" />
+      </ExpandablePanel>
 
-      {/* 3. Big Chart Card: Tren Komparasi VMAI */}
+      {/* Panel: Perspektif BSC (ringkasan empat pilar) */}
+      <ExpandablePanel open={openFeature === 'perspectives'} title="Perspektif Balanced Scorecard" onClose={() => setOpenFeature(null)}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="stitch-metric-card">
+            <span className="text-xs font-semibold text-[#64748b]">Finansial</span>
+            <p className="text-2xl font-black text-[#0f172a] mt-1">{financialScore}%</p>
+          </div>
+          <div className="stitch-metric-card">
+            <span className="text-xs font-semibold text-[#64748b]">Pelanggan</span>
+            <p className="text-2xl font-black text-[#0f172a] mt-1">{customerScore}%</p>
+          </div>
+          <div className="stitch-metric-card">
+            <span className="text-xs font-semibold text-[#64748b]">Proses Internal</span>
+            <p className="text-2xl font-black text-[#0f172a] mt-1">{internalScore}%</p>
+          </div>
+          <div className="stitch-metric-card">
+            <span className="text-xs font-semibold text-[#64748b]">Pembelajaran & Pertumbuhan</span>
+            <p className="text-2xl font-black text-[#0f172a] mt-1">{learningScore}%</p>
+          </div>
+        </div>
+        <AiAnalyzePanel feature="executive" />
+      </ExpandablePanel>
+
+      {/* Panel: Tren Komparasi VMAI */}
+      <ExpandablePanel open={openFeature === 'trend'} title="Tren Komparasi VMAI" onClose={() => setOpenFeature(null)}>
       <div className="stitch-card-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
           <div>
@@ -388,8 +460,11 @@ export default function ExecutiveBoardroomPage() {
           </div>
         </div>
       </div>
+        <AiAnalyzePanel feature="executive" />
+      </ExpandablePanel>
 
-      {/* 4. Three Bottom Action Cards */}
+      {/* Panel: Suksesi, Tata Kelola & Risiko Talenta */}
+      <ExpandablePanel open={openFeature === 'succession'} title="Suksesi, Tata Kelola & Risiko Talenta" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* Card 1: Peringatan Kesenjangan (Pembelajaran & SDM) */}
@@ -565,6 +640,8 @@ export default function ExecutiveBoardroomPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="executive" />
+      </ExpandablePanel>
 
       {/* 5. Formal Legal Footer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-[#e2e8f0] text-[11px] text-[#64748b]">

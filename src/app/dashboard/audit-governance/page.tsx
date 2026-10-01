@@ -21,12 +21,21 @@ import {
   Database,
   SlidersHorizontal,
   ChevronDown,
+  ListChecks,
+  FileSearch,
 } from 'lucide-react';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import FeatureCard from '@/components/ui/FeatureCard';
+import ExpandablePanel from '@/components/ui/ExpandablePanel';
+import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+
+type AuditFeature = 'tarif' | 'compliance' | 'log';
 
 export default function AuditGovernancePage() {
   const { currentUser } = useAuth();
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [openFeature, setOpenFeature] = useState<AuditFeature | null>(null);
 
   const [filterAction, setFilterAction] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -184,7 +193,36 @@ export default function AuditGovernancePage() {
         </div>
       </div>
 
-      {/* 2. Four Governance Metric Cards Row */}
+      {/* 2. Feature Card Grid (click to open) */}
+      <FeatureGrid>
+        <FeatureCard
+          icon={Scale}
+          title="Prinsip TARIF"
+          metric="100.0%"
+          tag="KNKG"
+          description="Kepatuhan 5 prinsip Tata Kelola: Transparansi, Akuntabilitas, Responsibilitas, Independensi, dan Fairness."
+          onOpen={() => setOpenFeature('tarif')}
+        />
+        <FeatureCard
+          icon={ShieldCheck}
+          title="Metrik Kepatuhan"
+          metric={`${auditLogs.length}`}
+          tag="Immutable"
+          description="Indeks kepatuhan TARIF, total audit log trail, pengesahan & kalibrasi, serta integritas anti-tamper."
+          onOpen={() => setOpenFeature('compliance')}
+        />
+        <FeatureCard
+          icon={Database}
+          title="Immutable Audit Log"
+          metric={`${auditLogs.length} Entri`}
+          tag="PRD §6.2"
+          description="Audit trail terenkripsi permanen untuk perubahan KPI, kalibrasi nilai, dan pencairan kompensasi."
+          onOpen={() => setOpenFeature('log')}
+        />
+      </FeatureGrid>
+
+      {/* Panel: Metrik Kepatuhan */}
+      <ExpandablePanel open={openFeature === 'compliance'} title="Metrik Kepatuhan & Tata Kelola" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Metric 1 */}
@@ -298,8 +336,11 @@ export default function AuditGovernancePage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="audit" />
+      </ExpandablePanel>
 
-      {/* 3. GCG TARIF Principles Matrix */}
+      {/* Panel: Prinsip TARIF */}
+      <ExpandablePanel open={openFeature === 'tarif'} title="Kepatuhan 5 Prinsip TARIF" onClose={() => setOpenFeature(null)}>
       <div className="stitch-card-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#f1f5f9] pb-4">
           <div>
@@ -355,8 +396,11 @@ export default function AuditGovernancePage() {
           ))}
         </div>
       </div>
+        <AiAnalyzePanel feature="audit" />
+      </ExpandablePanel>
 
-      {/* 4. Immutable Audit Trail Table */}
+      {/* Panel: Immutable Audit Log */}
+      <ExpandablePanel open={openFeature === 'log'} title="Immutable Audit Log Trail" onClose={() => setOpenFeature(null)}>
       <div className="stitch-card-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
           <div>
@@ -537,6 +581,8 @@ export default function AuditGovernancePage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="audit" />
+      </ExpandablePanel>
 
     </div>
   );

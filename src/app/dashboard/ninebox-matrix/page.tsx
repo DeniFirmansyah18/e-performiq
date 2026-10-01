@@ -26,7 +26,15 @@ import {
   Scale,
   X,
   Calculator,
+  Grid3X3,
+  ListOrdered,
 } from 'lucide-react';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import FeatureCard from '@/components/ui/FeatureCard';
+import ExpandablePanel from '@/components/ui/ExpandablePanel';
+import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+
+type NineboxFeature = 'distribusi' | 'inspection' | 'simulasi';
 
 interface CandidateProfile {
   id: string;
@@ -322,6 +330,7 @@ const QUADRANTS: QuadrantData[] = [
 ];
 
 export default function NineBoxMatrixPage() {
+  const [openFeature, setOpenFeature] = useState<NineboxFeature | null>(null);
   const [selectedBox, setSelectedBox] = useState<number>(9);
   const [activeDirectorate, setActiveDirectorate] = useState('Semua Direktorat (Holding)');
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
@@ -502,7 +511,36 @@ export default function NineBoxMatrixPage() {
         </div>
       )}
 
-      {/* 2. Four Summary Metrics */}
+      {/* 2. Feature Card Grid (click to open) */}
+      <FeatureGrid>
+        <FeatureCard
+          icon={Users}
+          title="Distribusi Kinerja"
+          metric={`${(summary?.total ?? 1240).toLocaleString('id-ID')}`}
+          tag="100% Sensus"
+          description="Sebaran populasi talenta pada kuadran potensi-kinerja: Future Leaders, Core Backbone, dan Underperformer."
+          onOpen={() => setOpenFeature('distribusi')}
+        />
+        <FeatureCard
+          icon={Grid3X3}
+          title="Matriks 9-Box & Inspeksi"
+          metric="3 × 3"
+          tag="Talenta"
+          description="Matriks visual 9 kuadran dengan panel inspeksi kandidat, analisis kesenjangan kompetensi, dan IDP."
+          onOpen={() => setOpenFeature('inspection')}
+        />
+        <FeatureCard
+          icon={ListOrdered}
+          title="Simulasi Suksesi"
+          metric="Bench Strength"
+          tag="Suksesi"
+          description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Automated Succession Matcher."
+          onOpen={() => setOpenFeature('simulasi')}
+        />
+      </FeatureGrid>
+
+      {/* Panel: Distribusi */}
+      <ExpandablePanel open={openFeature === 'distribusi'} title="Distribusi Kinerja Talenta" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         
         {/* Metric 1: Total Dinilai */}
@@ -574,8 +612,11 @@ export default function NineBoxMatrixPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="ninebox" />
+      </ExpandablePanel>
 
-      {/* 3. Middle Section: Two Columns (9-Box Grid & Inspection Panel) */}
+      {/* Panel: Matriks 9-Box & Inspeksi */}
+      <ExpandablePanel open={openFeature === 'inspection'} title="Matriks 9-Box & Panel Inspeksi" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Column: 9-Box Matrix Grid (7 cols) */}
@@ -875,8 +916,11 @@ export default function NineBoxMatrixPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="ninebox" />
+      </ExpandablePanel>
 
-      {/* 4. Bottom Table: Succession Bench Strength Summary */}
+      {/* Panel: Simulasi Suksesi (Bench Strength Table) */}
+      <ExpandablePanel open={openFeature === 'simulasi'} title="Succession Bench Strength Summary" onClose={() => setOpenFeature(null)}>
       <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-xs space-y-4">
         
         {/* Table Title & Target note */}
@@ -1026,6 +1070,8 @@ export default function NineBoxMatrixPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="ninebox" />
+      </ExpandablePanel>
 
       {/* Modal Moderasi & Kalibrasi Komite Penilai (Assessor) */}
       {isCalibrateModalOpen && (

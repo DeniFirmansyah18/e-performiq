@@ -22,14 +22,24 @@ import {
   Calculator,
   X,
   Plus,
+  Users,
+  GraduationCap,
+  TrendingDown,
 } from 'lucide-react';
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import FeatureCard from '@/components/ui/FeatureCard';
+import ExpandablePanel from '@/components/ui/ExpandablePanel';
+import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+
+type HrFeature = 'mpp' | 'pipeline' | 'learning' | 'cost';
 
 export default function HROperationsPage() {
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
+  const [openFeature, setOpenFeature] = useState<HrFeature | null>(null);
   const [mppData, setMppData] = useState<any>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,7 +288,44 @@ export default function HROperationsPage() {
         </div>
       </div>
 
-      {/* 2. Four Lifecycle Cards */}
+      {/* 2. Feature Card Grid (click to open) */}
+      <FeatureGrid>
+        <FeatureCard
+          icon={UserPlus}
+          title="MPP & Rekrutmen"
+          metric="96.4%"
+          tag="Pre-Employment"
+          description="Manpower Planning (MPP), Quality of Hire, SLA rekrutmen, dan portal karier kandidat publik."
+          onOpen={() => setOpenFeature('mpp')}
+        />
+        <FeatureCard
+          icon={Activity}
+          title="Lifecycle Pipeline"
+          metric="24 Active"
+          tag="Milestone"
+          description="Pemantauan SLA transisi karyawan: Pre-Employment, During (GPA & 360), dan Post (Clearance)."
+          onOpen={() => setOpenFeature('pipeline')}
+        />
+        <FeatureCard
+          icon={GraduationCap}
+          title="Learning & Certification"
+          metric="Moodle"
+          tag="LMS"
+          description="Materi pembelajaran, pelacakan progres, dan sertifikasi otomatis setelah pelatihan mandatori."
+          onOpen={() => setOpenFeature('learning')}
+        />
+        <FeatureCard
+          icon={TrendingDown}
+          title="Cost & Risk"
+          metric="Flight Risk"
+          tag="Govera360"
+          description="Cost of Workforce, Flight Risk Heatmap, kalibrasi kurva Gaussian, dan clearance offboarding."
+          onOpen={() => setOpenFeature('cost')}
+        />
+      </FeatureGrid>
+
+      {/* Panel: MPP & Rekrutmen */}
+      <ExpandablePanel open={openFeature === 'mpp'} title="MPP & Rekrutmen" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Card 1: Pre-Employment */}
@@ -400,19 +447,28 @@ export default function HROperationsPage() {
 
       </div>
 
-      {/* Govera360 Strategic Analytics Row (Cost of Workforce & Flight Risk) */}
+      {/* Rekrutmen Kandidat (portal karier publik) */}
+      <RecruitmentPanel />
+        <AiAnalyzePanel feature="hr" />
+      </ExpandablePanel>
+
+      {/* Panel: Cost & Risk (Govera360 Analytics) */}
+      <ExpandablePanel open={openFeature === 'cost'} title="Cost of Workforce & Flight Risk" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CostOfWorkforceCard />
         <FlightRiskHeatmap />
       </div>
+        <AiAnalyzePanel feature="hr" />
+      </ExpandablePanel>
 
-      {/* Learning & Certification (integrasi model Moodle) */}
+      {/* Panel: Learning & Certification */}
+      <ExpandablePanel open={openFeature === 'learning'} title="Learning & Certification" onClose={() => setOpenFeature(null)}>
       <LearningCertificationPanel />
+        <AiAnalyzePanel feature="learning" />
+      </ExpandablePanel>
 
-      {/* Rekrutmen Kandidat (portal karier publik) */}
-      <RecruitmentPanel />
-
-      {/* 3. Main Two-Column Layout */}
+      {/* Panel: Lifecycle Pipeline */}
+      <ExpandablePanel open={openFeature === 'pipeline'} title="Lifecycle Milestone & Pipeline" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Column (60%): Lifecycle Milestone Pipeline Table */}
@@ -747,6 +803,8 @@ export default function HROperationsPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="hr" />
+      </ExpandablePanel>
 
       {/* Modal Input FPTK Baru */}
       {isFptkModalOpen && (

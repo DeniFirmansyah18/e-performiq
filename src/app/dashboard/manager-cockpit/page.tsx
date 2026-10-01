@@ -15,8 +15,17 @@ import {
   Filter,
   Calculator,
   X,
+  Users,
+  Star as StarIcon,
+  ClipboardCheck,
 } from 'lucide-react';
 import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import FeatureCard from '@/components/ui/FeatureCard';
+import ExpandablePanel from '@/components/ui/ExpandablePanel';
+import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+
+type ManagerFeature = 'roster' | 'approval' | 'evaluasi';
 
 interface TeamMember {
   id: string;
@@ -46,6 +55,7 @@ interface TeamMember {
 }
 
 export default function ManagerCockpitPage() {
+  const [openFeature, setOpenFeature] = useState<ManagerFeature | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'ready' | 'attention'>('all');
   const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
@@ -340,7 +350,36 @@ export default function ManagerCockpitPage() {
         </div>
       )}
 
-      {/* 2. Four Metric Cards Row */}
+      {/* 2. Feature Card Grid (click to open) */}
+      <FeatureGrid>
+        <FeatureCard
+          icon={Users}
+          title="Roster Tim"
+          metric={`${teamRoster.length} Anggota`}
+          tag="People Manager"
+          description="Metrik ringkasan tim: rata-rata skor, kesiapan evaluasi, dan status approval dalam cakupan langsung."
+          onOpen={() => setOpenFeature('roster')}
+        />
+        <FeatureCard
+          icon={ClipboardCheck}
+          title="Approval KPI"
+          metric="Tabel Evaluasi"
+          tag="KPI & GPA"
+          description="Tabel penilaian anggota tim dan goal cascading: KPI, SOP, 360 Review, GPA, dan posisi 9-Box."
+          onOpen={() => setOpenFeature('approval')}
+        />
+        <FeatureCard
+          icon={Calculator}
+          title="Evaluasi GPA"
+          metric="Action Drawer"
+          tag="Otorisasi"
+          description="Tindakan otorisasi manajerial, penghitungan GPA tim, dan peninjauan lamaran internal."
+          onOpen={() => setOpenFeature('evaluasi')}
+        />
+      </FeatureGrid>
+
+      {/* Panel: Roster Tim */}
+      <ExpandablePanel open={openFeature === 'roster'} title="Roster Tim" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Metric 1 */}
@@ -434,8 +473,11 @@ export default function ManagerCockpitPage() {
         </div>
 
       </div>
+        <AiAnalyzePanel feature="manager" />
+      </ExpandablePanel>
 
-      {/* 3. Team Member Assessment & Goal Cascading Table */}
+      {/* Panel: Approval KPI (Team Table) */}
+      <ExpandablePanel open={openFeature === 'approval'} title="Penilaian Tim & Goal Cascading" onClose={() => setOpenFeature(null)}>
       <div className="stitch-card-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
           <div>
@@ -618,8 +660,11 @@ export default function ManagerCockpitPage() {
           </div>
         </div>
       </div>
+        <AiAnalyzePanel feature="manager" />
+      </ExpandablePanel>
 
-      {/* 4. Tindakan Otorisasi & Tugas Segera (Action Drawer) */}
+      {/* Panel: Evaluasi GPA & Otorisasi */}
+      <ExpandablePanel open={openFeature === 'evaluasi'} title="Tindakan Otorisasi & Evaluasi GPA" onClose={() => setOpenFeature(null)}>
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -724,6 +769,8 @@ export default function ManagerCockpitPage() {
 
       {/* 5. Peninjauan Lamaran Internal (Kotak 3: Job Board & Mobilitas Internal) */}
       <InternalApplicationReview />
+        <AiAnalyzePanel feature="manager" />
+      </ExpandablePanel>
 
       {/* Modal Evaluasi Kinerja & Hitung GPA Tim */}
       {selectedMember && (

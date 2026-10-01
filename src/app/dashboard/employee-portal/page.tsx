@@ -30,6 +30,7 @@ Clock,
 Bot,
 Briefcase,
 UserCheck,
+Trophy,
 } from 'lucide-react';
 import TimesheetModal from '@/components/employee/TimesheetModal';
 import PaySlipModal from '@/components/employee/PaySlipModal';
@@ -41,9 +42,16 @@ import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal
 import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
 import MyProfileModal from '@/components/employee/MyProfileModal';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import FeatureCard from '@/components/ui/FeatureCard';
+import ExpandablePanel from '@/components/ui/ExpandablePanel';
+import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+
+type EmployeeFeature = 'scorecard' | 'okr' | 'development';
 
 export default function EmployeePortalPage() {
 const { currentUser } = useAuth();
+const [openFeature, setOpenFeature] = useState<EmployeeFeature | null>(null);
 const [kpis, setKpis] = useState<any[]>([]);
 const [scorecard, setScorecard] = useState<any | null>(null);
 const [loading, setLoading] = useState(true);
@@ -505,7 +513,36 @@ return (
     </div>
   </div>
 
-  {/* 2. Composite Performance Scorecard */}
+  {/* 2. Feature Card Grid (click to open) */}
+  <FeatureGrid>
+    <FeatureCard
+      icon={Compass}
+      title="Scorecard GPA"
+      metric="4-Pilar"
+      tag="Model GCG"
+      description="Composite Performance Scorecard: KPI, SOP, Kompetensi, dan Core Values dengan formula bobot transparan."
+      onOpen={() => setOpenFeature('scorecard')}
+    />
+    <FeatureCard
+      icon={Target}
+      title="Sasaran Kerja & OKR"
+      metric={`${totalWeight}%`}
+      tag="Cascading BSC"
+      description="Sasaran kerja aktif yang terhubung hierarkis ke Balanced Scorecard perusahaan, lengkap dengan input realisasi."
+      onOpen={() => setOpenFeature('okr')}
+    />
+    <FeatureCard
+      icon={GraduationCap}
+      title="Pengembangan & Pembelajaran"
+      metric="Moodle"
+      tag="IDP"
+      description="Individual Development Plan, pelatihan, peer review 360°, talent legacy, dan modul pembelajaran Moodle."
+      onOpen={() => setOpenFeature('development')}
+    />
+  </FeatureGrid>
+
+  {/* Panel: Scorecard GPA */}
+  <ExpandablePanel open={openFeature === 'scorecard'} title="Composite Performance Scorecard" onClose={() => setOpenFeature(null)}>
   <div className="stitch-card-white p-6 space-y-4">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f1f5f9] pb-3">
       <div className="flex items-center gap-3">
@@ -649,8 +686,11 @@ return (
 
     </div>
   </div>
+    <AiAnalyzePanel feature="employee" />
+  </ExpandablePanel>
 
-  {/* 3. Sasaran Kerja & Cascading OKR Aktif */}
+  {/* Panel: Sasaran Kerja & Cascading OKR */}
+  <ExpandablePanel open={openFeature === 'okr'} title="Sasaran Kerja & Cascading OKR Aktif" onClose={() => setOpenFeature(null)}>
   <div className="stitch-card-white p-6 space-y-4">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
       <div>
@@ -918,8 +958,11 @@ return (
       )}
     </div>
   </div>
+    <AiAnalyzePanel feature="employee" />
+  </ExpandablePanel>
 
-  {/* 4. Three Bottom Cards */}
+  {/* Panel: Pengembangan Diri */}
+  <ExpandablePanel open={openFeature === 'development'} title="Pengembangan Diri & Pembelajaran" onClose={() => setOpenFeature(null)}>
   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
     
     {/* Card 1: Individual Development Plan & Training */}
@@ -1050,6 +1093,13 @@ return (
     </div>
 
   </div>
+
+  {/* Learning & Development (integrasi model Moodle) */}
+  <div className="mt-5">
+    <LearningModule />
+  </div>
+    <AiAnalyzePanel feature="employee" />
+  </ExpandablePanel>
 
   {/* Modal 1: Ajukan Sasaran KPI Baru */}
   {isAddKpiOpen && (
@@ -1390,8 +1440,7 @@ return (
     </div>
   )}
 
-  {/* Learning & Development (integrasi model Moodle) */}
-  <LearningModule />
+  {/* Learning & Development telah dipindahkan ke Panel Pengembangan Diri */}
 
   <MyProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
