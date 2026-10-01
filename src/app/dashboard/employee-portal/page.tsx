@@ -44,6 +44,7 @@ import LearningModule from '@/components/employee/LearningModule';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -425,89 +426,96 @@ return (
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <button
+      {/* Action Buttons (kartu) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <ActionCard
+          icon={Clock}
+          tone="emerald"
+          title="Isi Timesheet Harian"
+          tag="Timesheet"
+          description="Catat jam kerja harian dan aktivitas Anda untuk periode berjalan."
           onClick={() => setIsTimesheetOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50/80 text-xs font-semibold text-emerald-800 shadow-xs hover:bg-emerald-100 transition-colors"
-        >
-          <Clock className="h-3.5 w-3.5 text-emerald-700" />
-          <span>Isi Timesheet Harian</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={Lock}
+          tone="slate"
+          title="Slip Gaji PIN"
+          tag="Payroll"
+          description="Akses slip gaji terenkripsi dengan verifikasi PIN pribadi Anda."
           onClick={() => setIsPayslipOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-        >
-          <Lock className="h-3.5 w-3.5 text-slate-600" />
-          <span>Slip Gaji PIN</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={Compass}
+          tone="blue"
+          title="Peta Karir & Moodle"
+          tag="Karir"
+          description="Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda."
           onClick={() => setIsCareerOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50/80 text-xs font-semibold text-blue-800 shadow-xs hover:bg-blue-100 transition-colors"
-        >
-          <Compass className="h-3.5 w-3.5 text-blue-700" />
-          <span>Peta Karir &amp; Moodle</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={UserCheck}
+          tone="emerald"
+          title="Profil Saya"
+          tag="Self-Service"
+          description="Perbarui data profil, kontak, dan informasi pribadi Anda."
           onClick={() => setIsProfileOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50/80 text-xs font-semibold text-emerald-800 shadow-xs hover:bg-emerald-100 transition-colors"
-        >
-          <UserCheck className="h-3.5 w-3.5 text-emerald-700" />
-          <span>Profil Saya</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={Bot}
+          tone="amber"
+          title="Tanya Chatbot HR"
+          tag="Bantuan"
+          description="Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan."
           onClick={() => setIsChatbotOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-300 bg-amber-50/80 text-xs font-semibold text-amber-900 shadow-xs hover:bg-amber-100 transition-colors"
-        >
-          <Bot className="h-3.5 w-3.5 text-amber-800" />
-          <span>Tanya Chatbot HR</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={FileText}
+          tone="teal"
+          title="Reimbursement"
+          tag="Klaim"
+          description="Ajukan penggantian biaya operasional dan pantau status klaim."
           onClick={() => setIsReimbursementOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-300 bg-teal-50/80 text-xs font-semibold text-teal-800 shadow-xs hover:bg-teal-100 transition-colors"
-        >
-          <FileText className="h-3.5 w-3.5 text-teal-700" />
-          <span>Reimbursement</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={MessageSquare}
+          tone="rose"
+          title="Tiket Bantuan"
+          tag="Helpdesk"
+          description="Laporkan kendala atau ajukan permintaan dukungan internal."
           onClick={() => setIsTicketOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-300 bg-rose-50/80 text-xs font-semibold text-rose-800 shadow-xs hover:bg-rose-100 transition-colors"
-        >
-          <MessageSquare className="h-3.5 w-3.5 text-rose-700" />
-          <span>Tiket Bantuan</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={Bookmark}
+          tone="indigo"
+          title="Unggah Bukti"
+          tag="Evidence"
+          description="Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI."
           onClick={() => setIsEvidenceOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-indigo-300 bg-indigo-50/80 text-xs font-semibold text-indigo-800 shadow-xs hover:bg-indigo-100 transition-colors"
-        >
-          <Bookmark className="h-3.5 w-3.5 text-indigo-700" />
-          <span>Unggah Bukti</span>
-        </button>
-
-        <button
+        />
+        <ActionCard
+          icon={Briefcase}
+          tone="violet"
+          title="Bursa Kerja Internal"
+          tag="Mobilitas"
+          description="Jelajahi peluang rotasi dan posisi internal yang tersedia."
           onClick={() => setIsJobBoardOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-violet-300 bg-violet-50/80 text-xs font-semibold text-violet-800 shadow-xs hover:bg-violet-100 transition-colors"
-        >
-          <Briefcase className="h-3.5 w-3.5 text-violet-700" />
-          <span>Bursa Kerja Internal</span>
-        </button>
-
-        <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]">
-          <Download className="h-3.5 w-3.5 text-[#64748b]" />
-          <span>Unduh Portofolio KPI</span>
-        </button>
-
-        <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors">
-          <Send className="h-3.5 w-3.5 text-white" />
-          <span>Ajukan Finalisasi Q3</span>
-        </button>
+        />
+        <ActionCard
+          icon={Download}
+          tone="slate"
+          title="Unduh Portofolio KPI"
+          tag="Dokumen"
+          description="Unduh rekapitulasi portofolio KPI Anda dalam satu berkas."
+          onClick={() => window.print()}
+        />
+        <ActionCard
+          icon={Send}
+          tone="emerald"
+          title="Ajukan Finalisasi Q3"
+          tag="Self-Appraisal"
+          description="Kirim pengajuan finalisasi penilaian kinerja periode Q3 kepada atasan."
+          onClick={() => setIsProfileOpen(true)}
+        />
       </div>
 
     </div>
