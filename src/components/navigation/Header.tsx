@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 import UserGuideModal from '@/components/guide/UserGuideModal';
+import NavMenu from '@/components/navigation/NavMenu';
 import {
   Layers,
   Search,
@@ -41,6 +42,9 @@ export default function Header() {
         </Link>
       </div>
 
+      {/* Center-Left: Primary Navigation (role-aware dropdowns) */}
+      <NavMenu />
+
       {/* Center: Search Bar */}
       <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
         <div className="relative w-full">
@@ -59,6 +63,16 @@ export default function Header() {
       {/* Right: Period, Notifs, Profile */}
       <div className="flex items-center gap-3">
         
+        {/* Panduan Aplikasi Button */}
+        <button
+          onClick={() => setIsGuideOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#008060] hover:bg-[#006E52] text-white transition-all text-xs font-semibold shadow-xs cursor-pointer"
+          title="Buka Buku Panduan Penggunaan & Acuan Standar"
+        >
+          <BookOpen className="h-3.5 w-3.5 text-white" />
+          <span className="hidden sm:inline">Panduan Aplikasi</span>
+        </button>
+
         {/* Panduan Aplikasi Button */}
         <button
           onClick={() => setIsGuideOpen(true)}

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
 import { analyzeFeature } from '@/lib/services/aiService';
-import { getDb } from '@/lib/db/client';
+import { db } from '@/lib/db/client';
 import { ok, fail, problem } from '@/lib/api/response';
 
 const Body = z.object({
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     assertCan(session, 'ai:read');
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return fail('invalid_body', 'Field "feature" wajib diisi', 400);
-    const data = await analyzeFeature(getDb(), parsed.data.feature, session.role);
+    const data = await analyzeFeature(db, parsed.data.feature, session.role);
     return ok(data);
   } catch (err) {
     return problem(err, '/api/v1/ai/analyze');
