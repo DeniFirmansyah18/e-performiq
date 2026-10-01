@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -220,6 +221,49 @@ export default function AuditGovernancePage() {
           onOpen={() => setOpenFeature('log')}
         />
       </FeatureGrid>
+
+      {/* Aksi Cepat (kartu) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Audit</h2>
+          <span className="text-[11px] text-[#64748b]">Log, cetak & ekspor</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ActionCard
+            icon={RefreshCw}
+            tone="blue"
+            title="Segarkan Log"
+            tag="Audit Trail"
+            description="Tarik ulang catatan audit trail terbaru dari basis data."
+            onClick={fetchLogs}
+            disabled={loading}
+          />
+          <ActionCard
+            icon={Printer}
+            tone="slate"
+            title="Cetak Risalah SPI"
+            tag="Dokumen"
+            description="Cetak risalah pengawasan Satuan Pengawas Internal."
+            onClick={() => window.print()}
+          />
+          <ActionCard
+            icon={Download}
+            tone="emerald"
+            title="Ekspor Laporan GCG"
+            tag="Laporan"
+            description="Ekspor laporan kepatuhan GCG untuk keperluan audit eksternal."
+            onClick={() => window.print()}
+          />
+          <ActionCard
+            icon={Database}
+            tone="violet"
+            title="Audit Log Trail"
+            tag="PRD §6.2"
+            description="Buka audit trail terenkripsi permanen anti-manipulasi."
+            onClick={() => setOpenFeature('log')}
+          />
+        </div>
+      </div>
 
       {/* Panel: Metrik Kepatuhan */}
       <ExpandablePanel open={openFeature === 'compliance'} title="Metrik Kepatuhan & Tata Kelola" onClose={() => setOpenFeature(null)}>

@@ -22,6 +22,7 @@ import {
 import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -377,6 +378,49 @@ export default function ManagerCockpitPage() {
           onOpen={() => setOpenFeature('evaluasi')}
         />
       </FeatureGrid>
+
+      {/* Aksi Cepat (kartu) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Manajerial</h2>
+          <span className="text-[11px] text-[#64748b]">Approval, evaluasi & ekspor</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ActionCard
+            icon={CheckSquare}
+            tone="emerald"
+            title={isApproving ? 'Menyetujui...' : 'Approve Semua Nilai Tim'}
+            tag="Approval"
+            description="Setujui seluruh nilai evaluasi anggota tim sekaligus."
+            onClick={handleApproveAll}
+            disabled={isApproving}
+          />
+          <ActionCard
+            icon={StarIcon}
+            tone="amber"
+            title="Evaluasi GPA Tim"
+            tag="GPA"
+            description="Hitung dan tinjau GPA komposit anggota tim Anda."
+            onClick={() => setOpenFeature('evaluasi')}
+          />
+          <ActionCard
+            icon={ClipboardCheck}
+            tone="blue"
+            title="Roster & Penugasan"
+            tag="Tim"
+            description="Tinjau roster tim dan status penugasan berjalan."
+            onClick={() => setOpenFeature('roster')}
+          />
+          <ActionCard
+            icon={Download}
+            tone="slate"
+            title="Ekspor Rekapitulasi"
+            tag="Dokumen"
+            description="Unduh rekapitulasi penilaian kinerja anggota tim."
+            onClick={() => window.print()}
+          />
+        </div>
+      </div>
 
       {/* Panel: Roster Tim */}
       <ExpandablePanel open={openFeature === 'roster'} title="Roster Tim" onClose={() => setOpenFeature(null)}>

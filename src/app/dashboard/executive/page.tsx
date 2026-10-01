@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -165,6 +166,58 @@ export default function ExecutiveBoardroomPage() {
           onOpen={() => setOpenFeature('succession')}
         />
       </FeatureGrid>
+
+      {/* 3. Aksi Cepat (kartu) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Eksekutif</h2>
+          <span className="text-[11px] text-[#64748b]">Risalah, tata kelola & suksesi</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ActionCard
+            icon={Printer}
+            tone="slate"
+            title="Cetak Risalah BOD"
+            tag="Dokumen"
+            description="Cetak risalah rapat Dewan Direksi periode berjalan."
+            onClick={() => window.print()}
+          />
+          <ActionCard
+            icon={Download}
+            tone="emerald"
+            title="Unduh Ringkasan Eksekutif"
+            tag="Laporan"
+            description="Ekspor ringkasan VMAI & Balanced Scorecard dalam satu berkas."
+            onClick={() => {
+              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
+              const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `Ringkasan_Eksekutif_BOD_VMAI_${new Date().toISOString().slice(0, 10)}.txt`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          />
+          <ActionCard
+            icon={Grid3X3}
+            tone="blue"
+            title="9-Box Executive View"
+            tag="Talent"
+            description="Tinjau matriks talenta 9-Box untuk pengambilan keputusan suksesi."
+            onClick={() => setOpenFeature('succession')}
+          />
+          <ActionCard
+            icon={ShieldCheck}
+            tone="emerald"
+            title="Tata Kelola & Kepatuhan"
+            tag="GCG"
+            description="Pantau faktor GCG, integritas audit, dan kepatuhan prinsip TARIF."
+            onClick={() => setOpenFeature('vmai')}
+          />
+        </div>
+      </div>
 
       {/* Panel: VMAI */}
       <ExpandablePanel open={openFeature === 'vmai'} title="VMAI Indeks Korporasi" onClose={() => setOpenFeature(null)}>

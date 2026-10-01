@@ -32,6 +32,7 @@ import LearningCertificationPanel from '@/components/governance/LearningCertific
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -323,6 +324,48 @@ export default function HROperationsPage() {
           onOpen={() => setOpenFeature('cost')}
         />
       </FeatureGrid>
+
+      {/* Aksi Cepat (kartu) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat HR</h2>
+          <span className="text-[11px] text-[#64748b]">Rekrutmen, kalibrasi & ekspor</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ActionCard
+            icon={UserPlus}
+            tone="emerald"
+            title="Rekrutmen Baru (FPTK)"
+            tag="Pre-Employment"
+            description="Buat Formulir Permintaan Tenaga Kerja baru untuk posisi yang dibutuhkan."
+            onClick={() => setIsFptkModalOpen(true)}
+          />
+          <ActionCard
+            icon={Download}
+            tone="blue"
+            title="Ekspor ISO 30414"
+            tag="Laporan"
+            description="Ekspor metrik human capital sesuai standar ISO 30414."
+            onClick={handleExportIso}
+          />
+          <ActionCard
+            icon={Scale}
+            tone="slate"
+            title="Kalibrasi Nilai Semester"
+            tag="Kalibrasi"
+            description="Moderasi distribusi nilai kinerja sesuai kurva Gaussian korporat."
+            onClick={() => { setOpenFeature('pipeline'); setPipelineTab('during'); }}
+          />
+          <ActionCard
+            icon={Activity}
+            tone="violet"
+            title="Lifecycle Pipeline"
+            tag="Milestone"
+            description="Pantau SLA transisi karyawan Pre/During/Post employment."
+            onClick={() => setOpenFeature('pipeline')}
+          />
+        </div>
+      </div>
 
       {/* Panel: MPP & Rekrutmen */}
       <ExpandablePanel open={openFeature === 'mpp'} title="MPP & Rekrutmen" onClose={() => setOpenFeature(null)}>

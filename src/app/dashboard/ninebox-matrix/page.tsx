@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -538,6 +539,48 @@ export default function NineBoxMatrixPage() {
           onOpen={() => setOpenFeature('simulasi')}
         />
       </FeatureGrid>
+
+      {/* Aksi Cepat (kartu) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Talenta</h2>
+          <span className="text-[11px] text-[#64748b]">Kalibrasi, simulasi & ekspor</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ActionCard
+            icon={Scale}
+            tone="blue"
+            title="Moderasi & Kalibrasi"
+            tag="Assessor"
+            description="Moderasi nilai potensi-kinerja oleh komite penilai independen."
+            onClick={() => setIsCalibrateModalOpen(true)}
+          />
+          <ActionCard
+            icon={Plus}
+            tone="emerald"
+            title="Simulasi Talent Pool"
+            tag="Suksesi"
+            description="Jalankan simulasi pencocokan talent pool untuk posisi kritis."
+            onClick={handleRunAi}
+          />
+          <ActionCard
+            icon={Grid3X3}
+            tone="violet"
+            title="Matriks 9-Box"
+            tag="Talenta"
+            description="Buka matriks 9-Box dan panel inspeksi kandidat."
+            onClick={() => setOpenFeature('inspection')}
+          />
+          <ActionCard
+            icon={Download}
+            tone="slate"
+            title="Download Matriks PDF"
+            tag="Dokumen"
+            description="Unduh laporan matriks 9-Box & talent readiness periode ini."
+            onClick={() => alert('Mengunduh Laporan Matriks 9-Box & Talent Readiness 2026-Q3 (PDF Resmi Direksi)...')}
+          />
+        </div>
+      </div>
 
       {/* Panel: Distribusi */}
       <ExpandablePanel open={openFeature === 'distribusi'} title="Distribusi Kinerja Talenta" onClose={() => setOpenFeature(null)}>

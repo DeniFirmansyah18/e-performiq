@@ -426,98 +426,6 @@ return (
         </div>
       </div>
 
-      {/* Action Buttons (kartu) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <ActionCard
-          icon={Clock}
-          tone="emerald"
-          title="Isi Timesheet Harian"
-          tag="Timesheet"
-          description="Catat jam kerja harian dan aktivitas Anda untuk periode berjalan."
-          onClick={() => setIsTimesheetOpen(true)}
-        />
-        <ActionCard
-          icon={Lock}
-          tone="slate"
-          title="Slip Gaji PIN"
-          tag="Payroll"
-          description="Akses slip gaji terenkripsi dengan verifikasi PIN pribadi Anda."
-          onClick={() => setIsPayslipOpen(true)}
-        />
-        <ActionCard
-          icon={Compass}
-          tone="blue"
-          title="Peta Karir & Moodle"
-          tag="Karir"
-          description="Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda."
-          onClick={() => setIsCareerOpen(true)}
-        />
-        <ActionCard
-          icon={UserCheck}
-          tone="emerald"
-          title="Profil Saya"
-          tag="Self-Service"
-          description="Perbarui data profil, kontak, dan informasi pribadi Anda."
-          onClick={() => setIsProfileOpen(true)}
-        />
-        <ActionCard
-          icon={Bot}
-          tone="amber"
-          title="Tanya Chatbot HR"
-          tag="Bantuan"
-          description="Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan."
-          onClick={() => setIsChatbotOpen(true)}
-        />
-        <ActionCard
-          icon={FileText}
-          tone="teal"
-          title="Reimbursement"
-          tag="Klaim"
-          description="Ajukan penggantian biaya operasional dan pantau status klaim."
-          onClick={() => setIsReimbursementOpen(true)}
-        />
-        <ActionCard
-          icon={MessageSquare}
-          tone="rose"
-          title="Tiket Bantuan"
-          tag="Helpdesk"
-          description="Laporkan kendala atau ajukan permintaan dukungan internal."
-          onClick={() => setIsTicketOpen(true)}
-        />
-        <ActionCard
-          icon={Bookmark}
-          tone="indigo"
-          title="Unggah Bukti"
-          tag="Evidence"
-          description="Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI."
-          onClick={() => setIsEvidenceOpen(true)}
-        />
-        <ActionCard
-          icon={Briefcase}
-          tone="violet"
-          title="Bursa Kerja Internal"
-          tag="Mobilitas"
-          description="Jelajahi peluang rotasi dan posisi internal yang tersedia."
-          onClick={() => setIsJobBoardOpen(true)}
-        />
-        <ActionCard
-          icon={Download}
-          tone="slate"
-          title="Unduh Portofolio KPI"
-          tag="Dokumen"
-          description="Unduh rekapitulasi portofolio KPI Anda dalam satu berkas."
-          onClick={() => window.print()}
-        />
-        <ActionCard
-          icon={Send}
-          tone="emerald"
-          title="Ajukan Finalisasi Q3"
-          tag="Self-Appraisal"
-          description="Kirim pengajuan finalisasi penilaian kinerja periode Q3 kepada atasan."
-          onClick={() => setIsProfileOpen(true)}
-        />
-      </div>
-
     </div>
   </div>
 
@@ -548,6 +456,104 @@ return (
       onOpen={() => setOpenFeature('development')}
     />
   </FeatureGrid>
+
+  {/* 3. Aksi Cepat (kartu) */}
+  <div className="space-y-3">
+    <div className="flex items-center gap-2">
+      <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat</h2>
+      <span className="text-[11px] text-[#64748b]">Layanan self-service karyawan</span>
+    </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <ActionCard
+        icon={Clock}
+        tone="emerald"
+        title="Isi Timesheet Harian"
+        tag="Timesheet"
+        description="Catat jam kerja harian dan aktivitas Anda untuk periode berjalan."
+        onClick={() => setIsTimesheetOpen(true)}
+      />
+      <ActionCard
+        icon={Lock}
+        tone="slate"
+        title="Slip Gaji PIN"
+        tag="Payroll"
+        description="Akses slip gaji terenkripsi dengan verifikasi PIN pribadi Anda."
+        onClick={() => setIsPayslipOpen(true)}
+      />
+      <ActionCard
+        icon={Compass}
+        tone="blue"
+        title="Peta Karir & Moodle"
+        tag="Karir"
+        description="Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda."
+        onClick={() => setIsCareerOpen(true)}
+      />
+      <ActionCard
+        icon={UserCheck}
+        tone="emerald"
+        title="Profil Saya"
+        tag="Self-Service"
+        description="Perbarui data profil, kontak, dan informasi pribadi Anda."
+        onClick={() => setIsProfileOpen(true)}
+      />
+      <ActionCard
+        icon={Bot}
+        tone="amber"
+        title="Tanya Chatbot HR"
+        tag="Bantuan"
+        description="Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan."
+        onClick={() => setIsChatbotOpen(true)}
+      />
+      <ActionCard
+        icon={FileText}
+        tone="teal"
+        title="Reimbursement"
+        tag="Klaim"
+        description="Ajukan penggantian biaya operasional dan pantau status klaim."
+        onClick={() => setIsReimbursementOpen(true)}
+      />
+      <ActionCard
+        icon={MessageSquare}
+        tone="rose"
+        title="Tiket Bantuan"
+        tag="Helpdesk"
+        description="Laporkan kendala atau ajukan permintaan dukungan internal."
+        onClick={() => setIsTicketOpen(true)}
+      />
+      <ActionCard
+        icon={Bookmark}
+        tone="indigo"
+        title="Unggah Bukti"
+        tag="Evidence"
+        description="Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI."
+        onClick={() => setIsEvidenceOpen(true)}
+      />
+      <ActionCard
+        icon={Briefcase}
+        tone="violet"
+        title="Bursa Kerja Internal"
+        tag="Mobilitas"
+        description="Jelajahi peluang rotasi dan posisi internal yang tersedia."
+        onClick={() => setIsJobBoardOpen(true)}
+      />
+      <ActionCard
+        icon={Download}
+        tone="slate"
+        title="Unduh Portofolio KPI"
+        tag="Dokumen"
+        description="Unduh rekapitulasi portofolio KPI Anda dalam satu berkas."
+        onClick={() => window.print()}
+      />
+      <ActionCard
+        icon={Send}
+        tone="emerald"
+        title="Ajukan Finalisasi Q3"
+        tag="Self-Appraisal"
+        description="Kirim pengajuan finalisasi penilaian kinerja periode Q3 kepada atasan."
+        onClick={() => setIsProfileOpen(true)}
+      />
+    </div>
+  </div>
 
   {/* Panel: Scorecard GPA */}
   <ExpandablePanel open={openFeature === 'scorecard'} title="Composite Performance Scorecard" onClose={() => setOpenFeature(null)}>
