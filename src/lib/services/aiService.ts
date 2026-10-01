@@ -23,7 +23,9 @@ export async function generateContent(
       text: 'AI belum dikonfigurasi. Set GEMINI_API_KEY untuk mengaktifkan analisis AI.',
     };
   }
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  // `gemini-flash-latest` otomatis menunjuk ke model Flash terbaru, sehingga
+  // tidak "mati" ketika Google menghentikan versi lama (mis. gemini-2.0-flash).
+  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   try {
     const res = await fetch(url, {

@@ -40,7 +40,7 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `DATABASE_URL` | Jika diset, aplikasi memakai **PostgreSQL server** (driver `postgres-js`); jika tidak, jatuh ke PGlite. **Wajib di Vercel/serverless.** Lihat ADR 007. |
 | `PORT` | Port dev/prod (default 3000). |
 | `GEMINI_API_KEY` | Kunci API Google Gemini untuk fitur AI. **Opsional** — tanpa ini AI berjalan mode fallback (ADR 012). |
-| `GEMINI_MODEL` | Model Gemini (default `gemini-2.0-flash`). |
+| `GEMINI_MODEL` | Model Gemini (default `gemini-flash-latest`). |
 
 > Salin `.env.example` menjadi `.env.local` untuk memulai.
 

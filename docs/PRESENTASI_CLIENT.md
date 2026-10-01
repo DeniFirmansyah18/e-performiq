@@ -1,8 +1,8 @@
-# E-PerformIQ — Dokumentasi Produk & Panduan Presentasi Client
+﻿# E-PerformIQ â€” Dokumentasi Produk & Panduan Presentasi Client
 
-> **Dokumen ini** berisi: (1) penjelasan aplikasi, (2) langkah demi langkah memulai & mempresentasikan demo, dan (3) acuan resmi/metodologi yang dipakai — siap dipakai menghadapi client.
+> **Dokumen ini** berisi: (1) penjelasan aplikasi, (2) langkah demi langkah memulai & mempresentasikan demo, dan (3) acuan resmi/metodologi yang dipakai â€” siap dipakai menghadapi client.
 >
-> Versi dokumen: 1.0 · Tanggal: 1 Oktober 2026 · Produk: **E-PerformIQ — Enterprise Employee Performance & Lifecycle Analytics**
+> Versi dokumen: 1.0 Â· Tanggal: 1 Oktober 2026 Â· Produk: **E-PerformIQ â€” Enterprise Employee Performance & Lifecycle Analytics**
 
 ---
 
@@ -22,20 +22,20 @@
 
 ## 1. Ringkasan Eksekutif
 
-**E-PerformIQ** adalah platform manajemen kinerja karyawan **end-to-end** yang mengintegrasikan seluruh siklus hidup karyawan — **Pre-Employment → During Employment → Post-Employment** — dalam satu sistem terpadu berbasis tata kelola perusahaan yang baik (GCG).
+**E-PerformIQ** adalah platform manajemen kinerja karyawan **end-to-end** yang mengintegrasikan seluruh siklus hidup karyawan â€” **Pre-Employment â†’ During Employment â†’ Post-Employment** â€” dalam satu sistem terpadu berbasis tata kelola perusahaan yang baik (GCG).
 
 **Nilai jual utama (elevator pitch 30 detik):**
 
-> "E-PerformIQ mengubah manajemen kinerja dari sekadar penilaian tahunan menjadi **mesin keselarasan strategis**. Setiap KPI karyawan tertaut langsung ke Visi-Misi melalui **VMAI (Vision & Mission Alignment Index)**, dihitung dengan formula komposit **GPA 50/20/15/15** yang transparan, dan seluruhnya terekam dalam **audit log immutable** yang siap diaudit. Dari rekrutmen, penilaian, hingga offboarding pesangon PP 35/2021 — semuanya dalam satu platform."
+> "E-PerformIQ mengubah manajemen kinerja dari sekadar penilaian tahunan menjadi **mesin keselarasan strategis**. Setiap KPI karyawan tertaut langsung ke Visi-Misi melalui **VMAI (Vision & Mission Alignment Index)**, dihitung dengan formula komposit **GPA 50/20/15/15** yang transparan, dan seluruhnya terekam dalam **audit log immutable** yang siap diaudit. Dari rekrutmen, penilaian, hingga offboarding pesangon PP 35/2021 â€” semuanya dalam satu platform."
 
 **Sorotan produk:**
-- 📊 **7 peran** dengan dashboard khusus (Executive, HR, Manager, Employee, Auditor, Assessor, Super Admin).
-- 🎯 **Composite GPA** — satu skor kinerja tunggal dari 4 komponen terukur.
-- 🧭 **VMAI** — indeks keselarasan strategis perusahaan dengan benchmark industri.
-- 🧩 **9-Box Talent Matrix** + pipeline suksesi otomatis.
-- 🎓 **LMS native** (materi kursus, sertifikasi otomatis).
-- 🤖 **AI Gemini** untuk analisis per-fitur & agen chat (opsional).
-- 🔒 **RBAC + audit immutable** — siap GCG/ISO 30414.
+- ðŸ“Š **7 peran** dengan dashboard khusus (Executive, HR, Manager, Employee, Auditor, Assessor, Super Admin).
+- ðŸŽ¯ **Composite GPA** â€” satu skor kinerja tunggal dari 4 komponen terukur.
+- ðŸ§­ **VMAI** â€” indeks keselarasan strategis perusahaan dengan benchmark industri.
+- ðŸ§© **9-Box Talent Matrix** + pipeline suksesi otomatis.
+- ðŸŽ“ **LMS native** (materi kursus, sertifikasi otomatis).
+- ðŸ¤– **AI Gemini** untuk analisis per-fitur & agen chat (opsional).
+- ðŸ”’ **RBAC + audit immutable** â€” siap GCG/ISO 30414.
 
 ---
 
@@ -67,10 +67,10 @@ Aplikasi memiliki **7 peran** dengan akses terpisah (RBAC):
 | **SUPER_ADMIN** | Semua modul | Konfigurasi sistem & manajemen hak akses |
 
 **Modul lintas-peran:**
-- **9-Box Talent Matrix** — segmentasi Kinerja × Potensi (McKinsey/GE).
-- **Offboarding & Clearance** — checklist serah terima (hard gate) + kalkulator pesangon PP 35/2021.
-- **Public Careers Portal** — pelamar eksternal kirim lamaran tanpa login; verifikasi sertifikat publik.
-- **AI Assistant** — "Analisis AI (Gemini)" per fitur + drawer chat "Tanya AI" (opsional, fallback ramah tanpa API key).
+- **9-Box Talent Matrix** â€” segmentasi Kinerja Ã— Potensi (McKinsey/GE).
+- **Offboarding & Clearance** â€” checklist serah terima (hard gate) + kalkulator pesangon PP 35/2021.
+- **Public Careers Portal** â€” pelamar eksternal kirim lamaran tanpa login; verifikasi sertifikat publik.
+- **AI Assistant** â€” "Analisis AI (Gemini)" per fitur + drawer chat "Tanya AI" (opsional, fallback ramah tanpa API key).
 
 ---
 
@@ -83,17 +83,17 @@ $$\text{GPA} = (50\% \times S_{\text{KPI}}) + (20\% \times S_{\text{SOP}}) + (15
 |----------|:-----:|-----------------|
 | **Cascaded Individual KPI** | **50%** | Realisasi vs target SMART per pilar BSC |
 | **SOP & SLA Compliance** | **20%** | Error rate, temuan non-compliance, ketepatan SLA |
-| **Competency Mastery** | **15%** | Skill gap analysis (kamus kompetensi Level 1–5) |
-| **Core Values & 360° Feedback** | **15%** | Perilaku kerja (Atasan + Rekan + Bawahan) |
+| **Competency Mastery** | **15%** | Skill gap analysis (kamus kompetensi Level 1â€“5) |
+| **Core Values & 360Â° Feedback** | **15%** | Perilaku kerja (Atasan + Rekan + Bawahan) |
 
-### 4.2 VMAI — Vision & Mission Alignment Index
+### 4.2 VMAI â€” Vision & Mission Alignment Index
 $$VMAI = \sum_{j=1}^{M} W_{P_j} \times \left( \frac{\sum_{i=1}^{N_j} (\text{Achieved KPI}_{i} \times W_{i})}{\sum_{i=1}^{N_j} (\text{Target KPI}_{i} \times W_{i})} \times \text{GCG Compliance Factor}_{j} \right)$$
 
 **Ambang status VMAI:**
-- **≥ 95%** → *Exceptional Strategic Alignment* (jalur cepat visi)
-- **85% – 94.9%** → *Healthy & Aligned* (best practice industri)
-- **70% – 84.9%** → *Sub-Standard / Gap Identified* (perlu koreksi)
-- **< 70%** → *Critical Misalignment* (tidak selaras / pelanggaran GCG)
+- **â‰¥ 95%** â†’ *Exceptional Strategic Alignment* (jalur cepat visi)
+- **85% â€“ 94.9%** â†’ *Healthy & Aligned* (best practice industri)
+- **70% â€“ 84.9%** â†’ *Sub-Standard / Gap Identified* (perlu koreksi)
+- **< 70%** â†’ *Critical Misalignment* (tidak selaras / pelanggaran GCG)
 
 ### 4.3 Employee Lifecycle KPI (Ringkas)
 - **Pre-Employment:** MPP Alignment Ratio (20%), Quality of Hire, Time-to-Fill SLA (15%), Onboarding 30-60-90 (15%), Probation Success Rate (15%).
@@ -108,7 +108,7 @@ $$VMAI = \sum_{j=1}^{M} W_{P_j} \times \left( \frac{\sum_{i=1}^{N_j} (\text{Achi
 | Lapisan | Teknologi |
 |---------|-----------|
 | Frontend & Backend | **Next.js 14** (App Router) + React 18 + TypeScript |
-| Database | **PostgreSQL** via Drizzle ORM — PGlite (lokal) / **Neon Postgres** (produksi) |
+| Database | **PostgreSQL** via Drizzle ORM â€” PGlite (lokal) / **Neon Postgres** (produksi) |
 | Auth | JWT (`jose`), RBAC + row-level scope |
 | AI | Google **Gemini** (REST, server-side, opsional) |
 | UI | Tailwind CSS, kartu fitur interaktif |
@@ -116,16 +116,16 @@ $$VMAI = \sum_{j=1}^{M} W_{P_j} \times \left( \frac{\sum_{i=1}^{N_j} (\text{Achi
 | Testing | Vitest (60 file, 255 tes) |
 
 ### 5.2 Keamanan & Tata Kelola (GCG Compliance)
-1. **RBAC** — 7 peran dengan izin granular (`assertCan`) + pembatasan data per-scope (`scope.ts`).
-2. **Enkripsi** — AES-256 at-rest, TLS 1.3 in-transit (produksi).
-3. **Immutability** — nilai yang sudah dikalibrasi tidak dapat diubah; tercatat di audit log (trigger PostgreSQL anti-tamper, `audit_logs` append-only).
-4. **Scope Enforcement** — manager hanya melihat bawahan langsung; auditor read-only.
+1. **RBAC** â€” 7 peran dengan izin granular (`assertCan`) + pembatasan data per-scope (`scope.ts`).
+2. **Enkripsi** â€” AES-256 at-rest, TLS 1.3 in-transit (produksi).
+3. **Immutability** â€” nilai yang sudah dikalibrasi tidak dapat diubah; tercatat di audit log (trigger PostgreSQL anti-tamper, `audit_logs` append-only).
+4. **Scope Enforcement** â€” manager hanya melihat bawahan langsung; auditor read-only.
 
 ---
 
 ## 6. Panduan Step-by-Step Memulai Aplikasi
 
-### Opsi A — Jalankan Lokal (untuk demo/verifikasi cepat)
+### Opsi A â€” Jalankan Lokal (untuk demo/verifikasi cepat)
 
 **Prasyarat:** Node.js 18+.
 
@@ -144,14 +144,14 @@ npm run dev
 # buka http://localhost:3000
 ```
 
-> **Catatan:** Mode lokal memakai **PGlite** (PostgreSQL in-process) — tanpa setup server.
+> **Catatan:** Mode lokal memakai **PGlite** (PostgreSQL in-process) â€” tanpa setup server.
 
-### Opsi B — Deploy Produksi (Vercel + Neon Postgres)
+### Opsi B â€” Deploy Produksi (Vercel + Neon Postgres)
 
 **Prasyarat:** akun Vercel + database Neon (atau Vercel Postgres).
 
 ```bash
-# 1. Set connection string Neon (dari Neon Console → Connection Details)
+# 1. Set connection string Neon (dari Neon Console â†’ Connection Details)
 $env:DATABASE_URL="postgresql://<user>:<pass>@<host>/<db>?sslmode=require"
 
 # 2. Migrasi skema + seed data ke Neon
@@ -159,18 +159,18 @@ npm run db:migrate:pg
 npm run db:seed:pg
 ```
 
-**Di Vercel → Project → Settings → Environment Variables:**
+**Di Vercel â†’ Project â†’ Settings â†’ Environment Variables:**
 
 | Variabel | Wajib | Nilai |
 |----------|:-----:|-------|
-| `JWT_SECRET` | ✅ | string acak ≥32 karakter |
-| `DATABASE_URL` | ✅ | connection string Neon/Pooled |
+| `JWT_SECRET` | âœ… | string acak â‰¥32 karakter |
+| `DATABASE_URL` | âœ… | connection string Neon/Pooled |
 | `GEMINI_API_KEY` | opsional | kunci Gemini untuk fitur AI |
-| `GEMINI_MODEL` | opsional | `gemini-2.0-flash` |
+| `GEMINI_MODEL` | opsional | `gemini-flash-latest` |
 
 Lalu **Redeploy**. Buka `https://<project>.vercel.app`.
 
-> ⚠️ Vercel serverless tidak bisa menjalankan PGlite (filesystem read-only) — `DATABASE_URL` **wajib** di produksi.
+> âš ï¸ Vercel serverless tidak bisa menjalankan PGlite (filesystem read-only) â€” `DATABASE_URL` **wajib** di produksi.
 
 ### Akun Demo (password seragam: `enterprise2026`)
 | Peran | Email |
@@ -189,7 +189,7 @@ Lalu **Redeploy**. Buka `https://<project>.vercel.app`.
 
 ## 7. Skenario Presentasi ke Client (Demo Script)
 
-> **Total estimasi: 20–25 menit.** Siapkan browser **tidak fullscreen** agar mudah berpindah tab/login.
+> **Total estimasi: 20â€“25 menit.** Siapkan browser **tidak fullscreen** agar mudah berpindah tab/login.
 
 ### Persiapan 5 Menit Sebelum Mulai
 1. Pastikan server berjalan (`npm run dev`) dan DB ter-seed.
@@ -199,46 +199,46 @@ Lalu **Redeploy**. Buka `https://<project>.vercel.app`.
 
 ### Urutan Demo
 
-**① Pembukaan (2 menit)**
-- Tampilkan **halaman Login** → tunjukkan arsitektur **7 peran** + quick-login.
+**â‘  Pembukaan (2 menit)**
+- Tampilkan **halaman Login** â†’ tunjukkan arsitektur **7 peran** + quick-login.
 - Narasi: "Satu platform, tiap jabatan punya ruang kerja sendiri dengan hak akses berbeda."
 
-**② Peran BOD — Executive Boardroom (4 menit)**
+**â‘¡ Peran BOD â€” Executive Boardroom (4 menit)**
 - Login sebagai **BOD**.
-- Tunjukkan **kartu fitur** (VMAI, Perspektif BSC, Tren Strategis, Suksesi) — klik satu kartu untuk membuka panel detail.
-- Buka **Analisis AI (Gemini)** → tunjukkan insight otomatis (atau fallback ramah jika tanpa API key).
+- Tunjukkan **kartu fitur** (VMAI, Perspektif BSC, Tren Strategis, Suksesi) â€” klik satu kartu untuk membuka panel detail.
+- Buka **Analisis AI (Gemini)** â†’ tunjukkan insight otomatis (atau fallback ramah jika tanpa API key).
 - Tekankan: **VMAI** + benchmark industri + faktor GCG.
 
-**③ Peran HR — HR Command Center (4 menit)**
+**â‘¢ Peran HR â€” HR Command Center (4 menit)**
 - Login sebagai **HR_MANAGER**.
 - Tunjukkan kartu: **MPP & Rekrutmen, Lifecycle Pipeline, Learning & Certification, Cost & Risk**.
 - Demo **lifecycle pipeline** (Pre/During/Post) dan **kalibrasi kurva Gaussian**.
 - Tunjukkan **offboarding & clearance** + kalkulator pesangon PP 35/2021.
 
-**④ Peran Manager — Evaluation Cockpit (3 menit)**
+**â‘£ Peran Manager â€” Evaluation Cockpit (3 menit)**
 - Login sebagai **PEOPLE_MANAGER**.
 - Tunjukkan **Roster Tim**, **Approval KPI**, **Evaluasi GPA**, dan tombol **Approve Semua Nilai Tim**.
 - Tekankan alur **approval berjenjang** + audit.
 
-**⑤ Peran Karyawan — Employee Growth Portal (3 menit)**
+**â‘¤ Peran Karyawan â€” Employee Growth Portal (3 menit)**
 - Login sebagai **EMPLOYEE**.
 - Tunjukkan **Aksi Cepat** (kartu): Timesheet, Slip Gaji PIN, Peta Karir & Moodle, Profil Saya, dll.
 - Buka **Scorecard GPA** (formula 50/20/15/15), **Sasaran Kerja & OKR**, dan **Kursus/Sertifikat**.
 
-**⑥ Talent & Governance (4 menit)**
-- Login sebagai **ASSESSOR** → **9-Box Talent Matrix** + moderasi & simulasi suksesi.
-- Login sebagai **AUDITOR** → **Immutable Audit Trail** + prinsip **TARIF** (Transparansi, Akuntabilitas, Responsibilitas, Independensi, Fairness).
+**â‘¥ Talent & Governance (4 menit)**
+- Login sebagai **ASSESSOR** â†’ **9-Box Talent Matrix** + moderasi & simulasi suksesi.
+- Login sebagai **AUDITOR** â†’ **Immutable Audit Trail** + prinsip **TARIF** (Transparansi, Akuntabilitas, Responsibilitas, Independensi, Fairness).
 
-**⑦ Public Careers & AI Chat (3 menit)**
-- Buka `/careers` (tanpa login) → kirim lamaran kandidat, cek status, verifikasi sertifikat publik.
-- Buka tombol **"Tanya AI"** di header → ajukan pertanyaan data SDM.
+**â‘¦ Public Careers & AI Chat (3 menit)**
+- Buka `/careers` (tanpa login) â†’ kirim lamaran kandidat, cek status, verifikasi sertifikat publik.
+- Buka tombol **"Tanya AI"** di header â†’ ajukan pertanyaan data SDM.
 
-**⑧ Penutup (2 menit)**
+**â‘§ Penutup (2 menit)**
 - Rangkum: **keselarasan strategi (VMAI) + transparansi (GPA) + kepatuhan (audit immutable)**.
 - Ajukan langkah berikut (pilot, data, timeline).
 
 ### Tips Presentasi
-- Selalu **klik kartu** untuk menunjukkan pola interaksi (kartu → panel), bukan menggulir panjang.
+- Selalu **klik kartu** untuk menunjukkan pola interaksi (kartu â†’ panel), bukan menggulir panjang.
 - Jangan tampilkan error/console. Kalau ada fitur opsional (AI tanpa key), jelaskan sebagai "mode fallback desain".
 - Siapkan **rencana B** (screenshot/PDF) jika jaringan/server bermasalah.
 
@@ -248,15 +248,15 @@ Lalu **Redeploy**. Buka `https://<project>.vercel.app`.
 
 | Pertanyaan | Jawaban Singkat |
 |------------|-----------------|
-| "Apakah penilaiannya objektif?" | Ya — **GPA** dengan bobot eksplisit 50/20/15/15 + 360° multi-rater + audit trail. |
+| "Apakah penilaiannya objektif?" | Ya â€” **GPA** dengan bobot eksplisit 50/20/15/15 + 360Â° multi-rater + audit trail. |
 | "Bagaimana membuktikan selaras strategi?" | **VMAI** menagregasi kontribusi tiap KPI ke pilar visi-misi, dengan ambang status resmi. |
 | "Apakah compliant regulasi?" | Mengacu **PP 35/2021** (pesangon/PKWT) + **ISO 30414:2019** + prinsip **GCG (TARIF)**. |
 | "Bisa diaudit?" | **Audit log immutable** (anti-tamper) + RBAC auditor read-only. |
-| "Bisa skala besar?" | Driver **PostgreSQL server** (Neon) — lepas dari batas PGlite; hosting serverless. |
-| "AI-nya pakai apa?" | **Google Gemini**, dipanggil server-side (kunci aman); **opsional** — tanpa kunci tetap berfungsi dengan pesan ramah. |
-| "Apakah bisa dikustomisasi?" | Ya — bobot KPI, pilar strategis, kamus kompetensi, dan threshold dapat dikonfigurasi. |
+| "Bisa skala besar?" | Driver **PostgreSQL server** (Neon) â€” lepas dari batas PGlite; hosting serverless. |
+| "AI-nya pakai apa?" | **Google Gemini**, dipanggil server-side (kunci aman); **opsional** â€” tanpa kunci tetap berfungsi dengan pesan ramah. |
+| "Apakah bisa dikustomisasi?" | Ya â€” bobot KPI, pilar strategis, kamus kompetensi, dan threshold dapat dikonfigurasi. |
 | "Bagaimana keamanan data?" | JWT + RBAC + scope + enkripsi; auditor read-only terpisah. |
-| "Integrasi ke sistem HR lama?" | API REST terstruktur (RFC 7807 error) — siap diintegrasikan (SSO/payroll). |
+| "Integrasi ke sistem HR lama?" | API REST terstruktur (RFC 7807 error) â€” siap diintegrasikan (SSO/payroll). |
 
 ---
 
@@ -265,27 +265,27 @@ Lalu **Redeploy**. Buka `https://<project>.vercel.app`.
 Aplikasi dibangun mengacu pada standar tata kelola & pengukuran SDM internasional/nasional berikut:
 
 **A. Kerangka Kinerja & Manajemen**
-1. **Balanced Scorecard (Kaplan & Norton)** — 4 perspektif: Finansial, Pelanggan, Proses Bisnis Internal, Pembelajaran & Pertumbuhan.
-2. **OKR (Objectives & Key Results)** — cascading sasaran dari korporasi ke individu.
-3. **KPKU / Malcolm Baldrige Criteria** — standardisasi pengukuran efektivitas kepemimpinan & manajemen tenaga kerja.
+1. **Balanced Scorecard (Kaplan & Norton)** â€” 4 perspektif: Finansial, Pelanggan, Proses Bisnis Internal, Pembelajaran & Pertumbuhan.
+2. **OKR (Objectives & Key Results)** â€” cascading sasaran dari korporasi ke individu.
+3. **KPKU / Malcolm Baldrige Criteria** â€” standardisasi pengukuran efektivitas kepemimpinan & manajemen tenaga kerja.
 
 **B. Standar SDM Internasional**
-4. **ISO 30414:2019** — *Human Resource Management — Guidelines for Human Capital Reporting* (metrik produktivitas, turnover, biaya, suksesi, kepatuhan).
-5. **9-Box Talent Matrix (McKinsey / General Electric)** — segmentasi Kinerja (*Performance*) × Potensi (*Potential*).
+4. **ISO 30414:2019** â€” *Human Resource Management â€” Guidelines for Human Capital Reporting* (metrik produktivitas, turnover, biaya, suksesi, kepatuhan).
+5. **9-Box Talent Matrix (McKinsey / General Electric)** â€” segmentasi Kinerja (*Performance*) Ã— Potensi (*Potential*).
 
 **C. Tata Kelola & Regulasi Nasional**
-6. **Prinsip GCG (TARIF)** — Transparansi, Akuntabilitas, Responsibilitas, Independensi, Fairness (pedoman **KNKG**).
+6. **Prinsip GCG (TARIF)** â€” Transparansi, Akuntabilitas, Responsibilitas, Independensi, Fairness (pedoman **KNKG**).
 7. **UU Ketenagakerjaan No. 13/2003** & **UU Cipta Kerja No. 6/2023**.
-8. **PP No. 35/2021** — PKWT, Alih Daya, Waktu Kerja, dan **Pemutusan Hubungan Kerja (pesangon)**.
-9. **Regulasi DPLK / BPJS Ketenagakerjaan** — hak pensiun & jaminan sosial.
+8. **PP No. 35/2021** â€” PKWT, Alih Daya, Waktu Kerja, dan **Pemutusan Hubungan Kerja (pesangon)**.
+9. **Regulasi DPLK / BPJS Ketenagakerjaan** â€” hak pensiun & jaminan sosial.
 
 **D. Standar Teknis/Interoperabilitas**
-10. **REST API + RFC 7807** (*Problem Details for HTTP APIs*) — format error standar.
-11. **ISO 9001:2015** — acuan manajemen mutu proses.
+10. **REST API + RFC 7807** (*Problem Details for HTTP APIs*) â€” format error standar.
+11. **ISO 9001:2015** â€” acuan manajemen mutu proses.
 
 **Rujukan internal proyek:**
-- `PRD_Sistem_Penilaian_Karyawan (PT).md` — Product Requirements Document lengkap.
-- `docs/decisions/` — Architecture Decision Records (ADR 003–013) — jejak keputusan teknis.
+- `PRD_Sistem_Penilaian_Karyawan (PT).md` â€” Product Requirements Document lengkap.
+- `docs/decisions/` â€” Architecture Decision Records (ADR 003â€“013) â€” jejak keputusan teknis.
 
 ---
 
@@ -320,9 +320,9 @@ Aplikasi dibangun mengacu pada standar tata kelola & pengukuran SDM internasiona
 | Profile | `/api/v1/profile/*` |
 
 ### Halaman Publik (tanpa login)
-- `/careers` — portal karir & kirim lamaran.
-- `/careers/status` — cek status lamaran.
-- `/certificates/verify/:code` — verifikasi sertifikat.
+- `/careers` â€” portal karir & kirim lamaran.
+- `/careers/status` â€” cek status lamaran.
+- `/certificates/verify/:code` â€” verifikasi sertifikat.
 
 ---
 

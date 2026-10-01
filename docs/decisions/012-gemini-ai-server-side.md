@@ -1,4 +1,4 @@
-# ADR 012 — Integrasi AI Gemini Server-Side
+﻿# ADR 012 â€” Integrasi AI Gemini Server-Side
 
 Status: Diterima
 Tanggal: 2026-10-01
@@ -16,14 +16,14 @@ dengan PGlite (single-process, tanpa layanan eksternal).
    menggunakan `fetch` REST ke `generativelanguage.googleapis.com` (tanpa SDK),
    sehingga tidak menambah dependensi dan tetap ringan.
 2. Kunci dibaca dari `process.env.GEMINI_API_KEY`; model dari `GEMINI_MODEL`
-   (default `gemini-2.0-flash`).
-3. **Graceful fallback**: tanpa kunci, layanan mengembalikan `{ configured: false, text: 'AI belum dikonfigurasi…' }`
-   dengan HTTP **200** — bukan 500. Error HTTP dari Gemini juga dikembalikan
+   (default `gemini-flash-latest`).
+3. **Graceful fallback**: tanpa kunci, layanan mengembalikan `{ configured: false, text: 'AI belum dikonfigurasiâ€¦' }`
+   dengan HTTP **200** â€” bukan 500. Error HTTP dari Gemini juga dikembalikan
    sebagai pesan ramah + field `error`, tidak melempar exception ke pengguna.
 4. Konteks data nyata dibangun oleh `src/lib/services/aiContext.ts` (ringkasan agregat
    per fitur, tidak pernah melempar).
 5. Ekspos melalui `/api/v1/ai/{status,analyze,chat}` dengan RBAC `ai:read`
-   (semua peran) dan `getAuthSession` → 401 bila tak terautentikasi.
+   (semua peran) dan `getAuthSession` â†’ 401 bila tak terautentikasi.
 
 ## Konsekuensi
 
