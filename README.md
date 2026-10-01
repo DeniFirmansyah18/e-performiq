@@ -67,6 +67,22 @@ npm run db:reset    # hapus .pglite, migrasi ulang, seed ulang
   secara terkonfigurasi dan backward-compatible (ADR 009). Modul tersedia di portal
   karyawan ("Learning & Development") dan panel HR Command Center ("Learning &
   Certification"). Endpoint: `/api/v1/learning/*` (permission `learning:read/write/manage`).
+- **Materi kursus & sertifikasi (ADR 011).** Kursus memiliki modul/lesson (TEXT/VIDEO/PDF/QUIZ)
+  dengan progres per-modul; menyelesaikan seluruh modul menandai kursus selesai. Kursus wajib
+  onboarding otomatis menerbitkan **sertifikat** bernomor & terverifikasi publik. Lihat lesson
+  viewer di portal karyawan.
+- **Portal Karier publik (ADR 010).** `/careers` (tanpa login): calon karyawan melihat lowongan
+  publik, mengirim lamaran (data diri + tautan CV), dan memantau status via nomor lamaran. HR
+  mengelola pelamar di panel "Rekrutmen Kandidat".
+- **Profil Saya (self-service).** Menu di portal karyawan untuk mengubah field terbatas
+  (telepon, alamat, tanggal lahir, kontak darurat, foto, bio); field sensitif (NIP, jabatan,
+  gaji) read-only. Perubahan tercatat di `audit_logs`.
+
+## Catatan pengujian
+Test route handler mengimpor route yang memakai singleton `getDb()` (PGlite dev, single-process).
+`vitest.config.ts` menetapkan `fileParallelism: false` agar file test tidak membuka file PGlite
+yang sama secara bersamaan (menyebabkan abort). Jalankan `npm run db:reset` sebelum suite bila
+skema berubah.
 
 ## Keputusan arsitektur
-Lihat `docs/decisions/` (ADR 003–009).
+Lihat `docs/decisions/` (ADR 003–011).
