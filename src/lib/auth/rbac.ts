@@ -17,6 +17,10 @@ export type Permission =
 | 'learning:read'
 | 'learning:write'
 | 'learning:manage'
+| 'recruitment:read'
+| 'recruitment:manage'
+| 'profile:read'
+| 'profile:write'
 | 'wbs:read';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
@@ -37,6 +41,10 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'learning:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
 'learning:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'learning:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'recruitment:read': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR'],
+'recruitment:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'profile:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
+'profile:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
 'wbs:read': ['SUPER_ADMIN', 'AUDITOR'],
 };
 export function can(role: UserRole, permission: Permission): boolean {
