@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 import UserGuideModal from '@/components/guide/UserGuideModal';
 import NavMenu from '@/components/navigation/NavMenu';
+import AiChatDrawer from '@/components/navigation/AiChatDrawer';
 import {
   Layers,
   Search,
@@ -16,12 +17,14 @@ import {
   LogOut,
   UserCheck,
   BookOpen,
+  Sparkles,
 } from 'lucide-react';
 
 export default function Header() {
   const { currentUser, activeRole, switchRole, activePeriod, setActivePeriod, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 w-full h-14 bg-[#0d131f] border-b border-[#1e293b] px-4 sm:px-6 flex items-center justify-between">
@@ -62,15 +65,15 @@ export default function Header() {
 
       {/* Right: Period, Notifs, Profile */}
       <div className="flex items-center gap-3">
-        
-        {/* Panduan Aplikasi Button */}
+
+        {/* Tanya AI Button */}
         <button
-          onClick={() => setIsGuideOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#008060] hover:bg-[#006E52] text-white transition-all text-xs font-semibold shadow-xs cursor-pointer"
-          title="Buka Buku Panduan Penggunaan & Acuan Standar"
+          onClick={() => setIsAiOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-gradient-to-r from-[#007a5a] to-[#0ea5a4] hover:opacity-90 text-white transition-all text-xs font-semibold shadow-xs cursor-pointer"
+          title="Tanya Asisten AI"
         >
-          <BookOpen className="h-3.5 w-3.5 text-white" />
-          <span className="hidden sm:inline">Panduan Aplikasi</span>
+          <Sparkles className="h-3.5 w-3.5 text-white" />
+          <span className="hidden sm:inline">Tanya AI</span>
         </button>
 
         {/* Panduan Aplikasi Button */}
@@ -190,6 +193,8 @@ export default function Header() {
         isOpen={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
       />
+
+      <AiChatDrawer open={isAiOpen} onClose={() => setIsAiOpen(false)} />
     </header>
   );
 }
