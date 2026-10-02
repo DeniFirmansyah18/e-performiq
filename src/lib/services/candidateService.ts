@@ -46,6 +46,70 @@ export async function listPublicPostings(db: Db): Promise<PublicPosting[]> {
   return res.rows ?? [];
 }
 
+/** Lowongan untuk portal kandidat: kualifikasi + kuota (MPP − terisi) + status real-time. */
+export interface CandidatePosting {
+  id: string;
+  postingTitle: string;
+  description: string;
+  requiredSkills: unknown;
+  department: string;
+  position: string;
+  status: string;            // OPEN | FILLED | CLOSED | DRAFT
+  quota: number;             // approved_quota
+  hired: number;             // jumlah diterima (hired_count + lamaran ACCEPTED/HIRED)
+  remaining: number;         // kuota − terisi (>=0)
+  availability: 'AVAILABLE' | 'FILLED' | 'CLOSED';
+  postedAt: string | null;
+}
+
+export async function listCandidatePostings(db: Db, opts: { search?: string; department?: string } = {}): Promise<CandidatePosting[]> {
+  const res = (await db.execute(sql`
+    SELECT jp.id, jp.posting_title AS "postingTitle", jp.description,
+           jp.required_skills AS "requiredSkills",
+           jp.status, jp.posted_at AS "postedAt",
+           d.department_name AS "department", p.position_title AS "position",
+           COALESCE(mp.approved_quota, 0) AS "quota",
+           COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired"
+      FROM job_postings jp
+      JOIN departments d ON d.id = jp.department_id
+      JOIN job_positions p ON p.id = jp.position_id
+      LEFT JOIN manpower_plans mp ON mp.id = jp.manpower_plan_id
+      LEFT JOIN (
+        SELECT job_posting_id, COUNT(*) FILTER (WHERE status IN ('HIRED','OFFERED')) AS accepted
+          FROM job_applications GROUP BY job_posting_id
+      ) hired ON hired.job_posting_id = jp.id
+     WHERE jp.is_public = TRUE
+       AND (${opts.department ?? null}::text IS NULL OR d.department_name = ${opts.department ?? null})
+       AND (${opts.search ?? null}::text IS NULL
+            OR jp.posting_title ILIKE '%' || ${opts.search ?? null} || '%'
+            OR d.department_name ILIKE '%' || ${opts.search ?? null} || '%')
+     ORDER BY (jp.status = 'OPEN') DESC, jp.posted_at DESC
+  `)) as unknown as { rows: any[] };
+
+  return (res.rows ?? []).map((r) => {
+    const quota = Number(r.quota) || 0;
+    const hired = Number(r.hired) || 0;
+    const remaining = Math.max(0, quota - hired);
+    let availability: CandidatePosting['availability'] = 'AVAILABLE';
+    if (r.status === 'CLOSED') availability = 'CLOSED';
+    else if (r.status === 'FILLED' || (quota > 0 && remaining <= 0)) availability = 'FILLED';
+    return {
+      id: r.id,
+      postingTitle: r.postingTitle,
+      description: r.description,
+      requiredSkills: r.requiredSkills,
+      department: r.department,
+      position: r.position,
+      status: r.status,
+      quota,
+      hired,
+      remaining,
+      availability,
+      postedAt: r.postedAt ?? null,
+    };
+  });
+}
+
 /** Menerima lamaran kandidat eksternal (publik): buat kandidat + lamaran. */
 export async function submitApplication(db: Db, input: ApplicationInput) {
   const cand = (await db.execute(sql`
