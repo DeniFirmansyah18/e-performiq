@@ -115,5 +115,32 @@ describe('aiService', () => {
     expect(r.text).toBe('dari openrouter');
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
+
+  it('mengirim system message + menurunkan temperature (konsistensi bahasa)', async () => {
+    process.env.AI_PROVIDER = 'groq';
+    process.env.GROQ_API_KEY = 'g';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: true, json: async () => ({ choices: [{ message: { content: 'ok' } }] }),
+    } as any);
+    const { generateContent } = await import('@/lib/services/aiService');
+    await generateContent('halo');
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as any).body));
+    expect(body.messages[0].role).toBe('system');
+    expect(String(body.messages[0].content)).toContain('Bahasa Indonesia');
+    expect(body.temperature).toBeLessThanOrEqual(0.3);
+  });
+
+  it('membersihkan blok thinking dari keluaran', async () => {
+    process.env.AI_PROVIDER = 'groq';
+    process.env.GROQ_API_KEY = 'g';
+    vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: ' thinkingbla bla <｜end▁of▁thinking｜>**Ringkasan:** Kondisi baik.' } }] }),
+    } as any);
+    const { generateContent } = await import('@/lib/services/aiService');
+    const r = await generateContent('halo');
+    expect(r.text).not.toContain('think');
+    expect(r.text).toContain('**Ringkasan:**');
+  });
 });
 

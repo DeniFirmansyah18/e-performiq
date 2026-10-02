@@ -55,8 +55,58 @@ interface ProviderResult {
   retryable?: boolean;
 }
 
+/**
+ * System prompt bersama untuk SEMUA provider. Ditegaskan berbahasa Indonesia,
+ * ringkas, tanpa proses berpikir, dan tanpa mengarang data. Ini kunci agar output
+ * tetap konsisten (khususnya pada model reasoning seperti qwen3 / gpt-oss).
+ */
+const SYSTEM_PROMPT =
+  'Anda adalah analis SDM korporat untuk aplikasi E-PerformIQ. ' +
+  'ATURAN WAJIB: (1) Jawab HANYA dalam Bahasa Indonesia baku dan profesional. ' +
+  '(2) Jangan pernah menampilkan proses berpikir, analisis internal, terjemahan, ' +
+  'atau tag seperti  thinking. Langsung berikan hasil akhir. ' +
+  '(3) Ringkas, terstruktur, dan hanya berdasarkan data yang diberikan; ' +
+  'jangan mengarang angka atau fakta di luar data. ' +
+  '(4) Jangan menyapa, jangan bertanya balik, jangan menjelaskan aturan ini.';
+
+/**
+ * Membersihkan keluaran model dari artefak "thinking" yang kadang bocor ke
+ * content. Menangani variasi:  thinking...<｜end▁of▁thinking｜>, penanda Qwen
+ * (…<｜end▁of▁thinking｜>), blok "Thinking Process", dan label pembuka.
+ */
+function sanitizeOutput(raw: string): string {
+  let text = String(raw ?? '').trim();
+  if (!text) return '';
+
+  // 1) Bila ada penanda akhir "thinking" (Qwen memakai penanda khusus Unicode),
+  //    ambil teks SETELAH penanda terakhir - sisanya = jawaban akhir.
+  const marker = '\uFF5Cend\u2581of\u2581thinking\uFF5C';
+  if (text.includes(marker)) {
+    const parts = text.split(marker);
+    text = parts[parts.length - 1].trim();
+  }
+
+  // 2) Buang blok <think(?:ing)?>...</think(?:ing)?> yang lengkap.
+  text = text.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '').trim();
+
+  // 3) Bila masih ada pembuka tanpa penutup, buang hingga baris kosong pertama.
+  text = text.replace(/<think(?:ing)?>[\s\S]*?(?:\n\s*\n|$)/gi, '').trim();
+
+  // 4) Buang sisa tag berpikir yatim.
+  text = text.replace(/<\/?think(?:ing)?>/gi, '').trim();
+
+  // 5) Buang blok reasoning bergaya markdown (heading "Thinking Process", dll.).
+  text = text.replace(/^#{0,6}\s*(Thinking Process|Proses Berpikir|Reasoning)\s*:?[\s\S]*?(?=\n\n|\n#|$)/i, '').trim();
+
+  // 6) Buang label pembuka yang tidak diinginkan.
+  text = text.replace(/^(Jawaban|Output|Hasil|Response|Assistant|Asisten)\s*:\s*/i, '').trim();
+
+  return text;
+}
+
 async function callGemini(
   prompt: string,
+  system: string,
   opts: { maxOutputTokens?: number; temperature?: number }
 ): Promise<ProviderResult> {
   // `gemini-flash-latest` otomatis menunjuk ke model Flash terbaru, sehingga
@@ -68,10 +118,12 @@ async function callGemini(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           maxOutputTokens: opts.maxOutputTokens ?? 600,
-          temperature: opts.temperature ?? 0.4,
+          temperature: opts.temperature ?? 0.3,
+          topP: 0.9,
         },
       }),
     });
@@ -88,7 +140,7 @@ async function callGemini(
     const json: any = await res.json();
     const text: string =
       json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '';
-    return { ok: true, text: text || 'Tidak ada keluaran dari model.' };
+    return { ok: true, text: sanitizeOutput(text) || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
   }
@@ -96,6 +148,7 @@ async function callGemini(
 
 async function callGroq(
   prompt: string,
+  system: string,
   opts: { maxOutputTokens?: number; temperature?: number }
 ): Promise<ProviderResult> {
   // Groq memakai API bergaya OpenAI. Model default: openai/gpt-oss-120b
@@ -112,13 +165,16 @@ async function callGroq(
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
         max_tokens: opts.maxOutputTokens ?? 600,
-        temperature: opts.temperature ?? 0.4,
-        // Model reasoning (gpt-oss, qwen3) bisa menaruh proses berpikir di
-        // `reasoning_content`. Minta Groq mengirim reasoning terpisah agar
-        // `content` tetap berisi jawaban akhir yang bersih.
+        temperature: opts.temperature ?? 0.3,
+        top_p: 0.9,
+        // Pisahkan proses berpikir ke field terpisah agar `content` bersih.
         reasoning_format: 'parsed',
+        reasoning_effort: 'low',
       }),
     });
     if (!res.ok) {
@@ -133,15 +189,12 @@ async function callGroq(
     }
     const json: any = await res.json();
     const msg = json?.choices?.[0]?.message ?? {};
-    // Prioritaskan `content` (jawaban akhir). Bila kosong (mis. model reasoning
-    // menaruh segalanya di field reasoning), pakai `reasoning`/`reasoning_content`
-    // sebagai cadangan. Groq gpt-oss memakai `reasoning`; sebagian model lain
-    // memakai `reasoning_content`.
+    // Prioritaskan `content` (jawaban akhir). Fallback ke field reasoning bila perlu.
     const text: string =
       String(msg.content ?? '').trim() ||
       String(msg.reasoning ?? '').trim() ||
       String(msg.reasoning_content ?? '').trim();
-    return { ok: true, text: text || 'Tidak ada keluaran dari model.' };
+    return { ok: true, text: sanitizeOutput(text) || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
   }
@@ -149,6 +202,7 @@ async function callGroq(
 
 async function callOpenRouter(
   prompt: string,
+  system: string,
   opts: { maxOutputTokens?: number; temperature?: number }
 ): Promise<ProviderResult> {
   // OpenRouter juga memakai API bergaya OpenAI. Model default: qwen/qwen3.8-27b:free.
@@ -167,9 +221,15 @@ async function callOpenRouter(
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
         max_tokens: opts.maxOutputTokens ?? 600,
-        temperature: opts.temperature ?? 0.4,
+        temperature: opts.temperature ?? 0.3,
+        top_p: 0.9,
+        // Minta OpenRouter memisahkan reasoning agar `content` bersih & ringkas.
+        reasoning: { exclude: true },
       }),
     });
     if (!res.ok) {
@@ -184,12 +244,12 @@ async function callOpenRouter(
     }
     const json: any = await res.json();
     const msg = json?.choices?.[0]?.message ?? {};
-    // Sama seperti Groq: prioritaskan `content`, fallback ke field reasoning.
+    // Prioritaskan `content`; fallback ke field reasoning bila content kosong.
     const text: string =
       String(msg.content ?? '').trim() ||
       String(msg.reasoning ?? '').trim() ||
       String(msg.reasoning_content ?? '').trim();
-    return { ok: true, text: text || 'Tidak ada keluaran dari model.' };
+    return { ok: true, text: sanitizeOutput(text) || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
   }
@@ -198,16 +258,17 @@ async function callOpenRouter(
 async function callProvider(
   provider: AiProvider,
   prompt: string,
+  system: string,
   opts: { maxOutputTokens?: number; temperature?: number }
 ): Promise<ProviderResult> {
-  if (provider === 'groq') return callGroq(prompt, opts);
-  if (provider === 'openrouter') return callOpenRouter(prompt, opts);
-  return callGemini(prompt, opts);
+  if (provider === 'groq') return callGroq(prompt, system, opts);
+  if (provider === 'openrouter') return callOpenRouter(prompt, system, opts);
+  return callGemini(prompt, system, opts);
 }
 
 export async function generateContent(
   prompt: string,
-  opts: { maxOutputTokens?: number; temperature?: number } = {}
+  opts: { maxOutputTokens?: number; temperature?: number; system?: string } = {}
 ): Promise<GenerateResult> {
   if (!isAiConfigured()) {
     return {
@@ -218,8 +279,9 @@ export async function generateContent(
     };
   }
 
+  const system = opts.system ?? SYSTEM_PROMPT;
   const primary = activeProvider();
-  const first = await callProvider(primary, prompt, opts);
+  const first = await callProvider(primary, prompt, system, opts);
   if (first.ok) {
     return { configured: true, text: first.text as string, provider: primary };
   }
@@ -229,7 +291,7 @@ export async function generateContent(
   if (first.retryable) {
     const others = PROVIDER_ORDER.filter((p) => p !== primary && isConfigured(p));
     for (const p of others) {
-      const r = await callProvider(p, prompt, opts);
+      const r = await callProvider(p, prompt, system, opts);
       if (r.ok) {
         return { configured: true, text: r.text as string, provider: p };
       }
@@ -261,12 +323,16 @@ export async function analyzeFeature(
 ): Promise<{ insight: string; configured: boolean }> {
   const context = await buildFeatureContext(db, feature);
   const prompt =
-    `Anda analis SDM korporat untuk aplikasi E-PerformIQ. Peran pengguna: ${ROLE_HINT[role] ?? role}.\n` +
-    `Fitur: ${feature}. Ringkasan data (JSON):\n${JSON.stringify(context)}\n\n` +
-    `Berikan: (1) Ringkasan singkat 2 kalimat tentang kondisi saat ini, ` +
-    `(2) Tiga temuan penting, (3) Dua rekomendasi tindakan. ` +
-    `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Bahasa Indonesia, ringkas.`;
-  const res = await generateContent(prompt, { maxOutputTokens: 500, temperature: 0.4 });
+    `Peran pengguna: ${ROLE_HINT[role] ?? role}.\n` +
+    `Fitur yang dianalisis: ${feature}.\n` +
+    `Ringkasan data (JSON):\n${JSON.stringify(context)}\n\n` +
+    `Tulis analisis dalam BAHASA INDONESIA dengan struktur tepat berikut, ` +
+    `tanpa menambahkan bagian lain:\n` +
+    `**Ringkasan:** (2 kalimat tentang kondisi saat ini)\n` +
+    `**Temuan Penting:**\n- (temuan 1)\n- (temuan 2)\n- (temuan 3)\n` +
+    `**Rekomendasi Tindakan:**\n1. (rekomendasi 1)\n2. (rekomendasi 2)\n` +
+    `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
+  const res = await generateContent(prompt, { maxOutputTokens: 600, temperature: 0.25 });
   return { insight: res.text, configured: res.configured };
 }
 
@@ -279,10 +345,10 @@ export async function chat(
   const context = await buildFeatureContext(db, 'executive');
   const history = messages.map((m) => `${m.role === 'user' ? 'Pengguna' : 'Asisten'}: ${m.content}`).join('\n');
   const prompt =
-    `Anda agen AI untuk aplikasi E-PerformIQ (manajemen kinerja & lifecycle karyawan). ` +
     `Peran pengguna: ${ROLE_HINT[role] ?? role}. Konteks data aplikasi (JSON): ${JSON.stringify(context)}.\n` +
     `Percakapan:\n${history}\nAsisten:` +
-    `\nJawab singkat, akurat, dan hanya berdasarkan konteks aplikasi. Bahasa Indonesia.`;
-  const res = await generateContent(prompt, { maxOutputTokens: 500, temperature: 0.5 });
+    `\nJawab SINGKAT (maksimal 4 kalimat) dalam Bahasa Indonesia, akurat, dan hanya berdasarkan konteks aplikasi. ` +
+    `Jangan tampilkan proses berpikir; langsung berikan jawaban akhir.`;
+  const res = await generateContent(prompt, { maxOutputTokens: 500, temperature: 0.3 });
   return { reply: res.text, configured: res.configured };
 }

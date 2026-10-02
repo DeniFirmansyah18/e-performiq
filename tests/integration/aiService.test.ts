@@ -15,6 +15,9 @@ describe('ai context + analyze + chat', () => {
     await runSeed(client);
     db = drizzle(client) as unknown as Db;
     delete process.env.GEMINI_API_KEY;
+    delete process.env.GROQ_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.AI_PROVIDER;
   });
   afterAll(async () => { await client.close(); process.env = OLD; vi.restoreAllMocks(); });
 

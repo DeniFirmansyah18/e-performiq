@@ -24,6 +24,9 @@ describe('AI routes', () => {
   let client: PGlite;
   beforeAll(async () => {
     delete process.env.GEMINI_API_KEY;
+    delete process.env.GROQ_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.AI_PROVIDER;
     ({ client } = await createTestDb());
     await runSeed(client);
   });
