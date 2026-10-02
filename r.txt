@@ -1,0 +1,14 @@
+﻿.\node_modules\.bin\vitest.cmd : [33mThe CJS build of Vite's Node API is 
+deprecated. See 
+https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for 
+more details.[39m
+At line:1 char:55
++ ... ryawan PT"; .\node_modules\.bin\vitest.cmd run tests/api/candidate-au ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33mThe CJS bu...e details.[39m 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mE:/PRD Penilaian Karyawan/Penilaian Karyawan PT[39m
+
