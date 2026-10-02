@@ -19,6 +19,8 @@ const EXPECTED_TABLES = [
   'assessment_templates', 'assessment_questions', 'assessment_attempts', 'assessment_responses', 'candidate_assessment_scores',
   // 0013 onboarding LMS
   'position_courses', 'onboarding_programs',
+  // 0014 attendance logs (WS-9)
+  'attendance_logs',
 ].sort();
 
 describe('skema database', () => {
@@ -32,7 +34,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 68 tabel di schema public (baseline + rekrutmen 0011 + asesmen 0012 + onboarding 0013)', async () => {
+  it('membuat tepat 69 tabel di schema public (baseline + 0011 + 0012 + 0013 + 0014)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
