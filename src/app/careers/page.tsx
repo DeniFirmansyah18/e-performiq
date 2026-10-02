@@ -235,6 +235,10 @@ export default function CareersPage() {
             <button onClick={checkStatus} className="px-3 py-1.5 text-xs font-bold text-white bg-[#0f172a] rounded-lg">Cek</button>
           </div>
           {statusResult && <p className="text-[11px] font-semibold text-[#334155] mt-2">{statusResult}</p>}
+          <a href={`/careers/status${statusQuery ? `?no=${encodeURIComponent(statusQuery)}` : ''}`}
+            className="inline-block mt-2 text-[11px] font-bold text-[#007a5a] underline">
+            Lihat progres tahapan lengkap →
+          </a>
         </section>
       </main>
     </div>

@@ -296,5 +296,20 @@ export async function runAts(db: Db, input: RunAtsInput): Promise<AtsResult> {
   });
   await syncCandidateProfile(db, input.candidateId, parsed);
 
+  // Timeline: tandai tahap ATS_REVIEW selesai (beserta skornya) bila ada lamaran.
+  if (input.applicationId) {
+    try {
+      const { upsertStage } = await import('@/lib/services/timelineService');
+      await upsertStage(db, {
+        applicationId: input.applicationId,
+        stage: 'ATS_REVIEW',
+        status: 'PASSED',
+        note: `Skor ATS: ${result.score.toFixed(0)}/100`,
+      });
+    } catch {
+      /* timeline opsional */
+    }
+  }
+
   return result;
 }

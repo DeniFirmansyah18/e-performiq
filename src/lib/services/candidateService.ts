@@ -130,9 +130,21 @@ export async function submitApplication(db: Db, input: ApplicationInput) {
     ON CONFLICT (application_no) DO UPDATE SET cover_letter = EXCLUDED.cover_letter
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };
+  const applicationId = app.rows[0]?.id ?? null;
+
+  // Timeline: tandai tahap APPLIED (idempoten) agar progres kandidat tercatat.
+  if (applicationId) {
+    try {
+      const { upsertStage } = await import('@/lib/services/timelineService');
+      await upsertStage(db, { applicationId, stage: 'APPLIED', status: 'PASSED' });
+    } catch {
+      /* timeline opsional; jangan gagalkan pengiriman lamaran */
+    }
+  }
+
   return {
     applicationNo: appNo,
-    applicationId: app.rows[0]?.id ?? null,
+    applicationId,
     candidateId,
     status: 'SUBMITTED' as const,
   };
