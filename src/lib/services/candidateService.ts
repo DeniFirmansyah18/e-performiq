@@ -20,6 +20,8 @@ export interface ApplicationInput {
   resumeUrl?: string;
   coverLetter?: string;
   jobPostingId: string;
+  /** Akun kandidat yang login (bila ada) — dihubungkan ke baris `candidates`. */
+  accountId?: string | null;
 }
 
 function applicationNo(email: string, postingId: string): string {
@@ -113,20 +115,27 @@ export async function listCandidatePostings(db: Db, opts: { search?: string; dep
 /** Menerima lamaran kandidat eksternal (publik): buat kandidat + lamaran. */
 export async function submitApplication(db: Db, input: ApplicationInput) {
   const cand = (await db.execute(sql`
-    INSERT INTO candidates (full_name, email, phone, address, birth_date, education, resume_url)
+    INSERT INTO candidates (full_name, email, phone, address, birth_date, education, resume_url, account_id, source)
     VALUES (${input.fullName}, ${input.email}, ${input.phone ?? null}, ${input.address ?? null},
-            ${input.birthDate ?? null}::date, ${input.education ?? null}, ${input.resumeUrl ?? null})
+            ${input.birthDate ?? null}::date, ${input.education ?? null}, ${input.resumeUrl ?? null},
+            ${input.accountId ?? null}::uuid, 'PUBLIC_PORTAL')
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };
   const candidateId = cand.rows[0].id;
   const appNo = applicationNo(input.email, input.jobPostingId);
 
-  await db.execute(sql`
+  const app = (await db.execute(sql`
     INSERT INTO job_applications (application_no, candidate_id, job_posting_id, cover_letter, status)
     VALUES (${appNo}, ${candidateId}::uuid, ${input.jobPostingId}::uuid, ${input.coverLetter ?? null}, 'SUBMITTED')
-    ON CONFLICT (application_no) DO NOTHING
-  `);
-  return { applicationNo: appNo, status: 'SUBMITTED' as const };
+    ON CONFLICT (application_no) DO UPDATE SET cover_letter = EXCLUDED.cover_letter
+    RETURNING id
+  `)) as unknown as { rows: Array<{ id: string }> };
+  return {
+    applicationNo: appNo,
+    applicationId: app.rows[0]?.id ?? null,
+    candidateId,
+    status: 'SUBMITTED' as const,
+  };
 }
 
 /** Status lamaran berdasarkan nomor (publik). */
