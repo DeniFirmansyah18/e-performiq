@@ -30,6 +30,7 @@ import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
+import PayrollPanel from '@/components/governance/PayrollPanel';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
@@ -492,6 +493,10 @@ export default function HROperationsPage() {
 
       {/* Rekrutmen Kandidat (portal karier publik) */}
       <RecruitmentPanel />
+      {/* Payroll (komponen lengkap + AI advisory) */}
+      <div className="mt-5">
+        <PayrollPanel />
+      </div>
         <AiAnalyzePanel feature="hr" />
       </ExpandablePanel>
 

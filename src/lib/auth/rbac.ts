@@ -13,6 +13,7 @@ export type Permission =
 | 'attendance:write'
 | 'attendance:approve'
 | 'payroll:read'
+| 'payroll:manage'
 | 'flight_risk:read'
 | 'analytics:read'
 | 'learning:read'
@@ -39,6 +40,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'attendance:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'attendance:approve': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'payroll:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR'],
+'payroll:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'flight_risk:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'analytics:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR'],
 'learning:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
