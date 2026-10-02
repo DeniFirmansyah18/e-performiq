@@ -41,6 +41,7 @@ import HelpdeskTicketModal from '@/components/employee/HelpdeskTicketModal';
 import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal';
 import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
+import OnboardingPanel from '@/components/employee/OnboardingPanel';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
@@ -1109,6 +1110,9 @@ return (
   </div>
 
   {/* Learning & Development (integrasi model Moodle) */}
+  <div className="mt-5">
+    <OnboardingPanel />
+  </div>
   <div className="mt-5">
     <LearningModule />
   </div>

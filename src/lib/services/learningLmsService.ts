@@ -65,7 +65,7 @@ export async function recordProgress(db: Db, employeeId: string, courseId: numbe
   return { courseId, completionPct: pct, completionState: state };
 }
 
-/** Menandai kursus selesai dan memicu observer (evidence + badge). */
+/** Menandai kursus selesai dan memicu observer (evidence + badge) + onboarding. */
 export async function completeCourse(db: Db, employeeId: string, courseId: number) {
   await db.execute(sql`
     UPDATE moodle_course_enrollments
@@ -74,5 +74,14 @@ export async function completeCourse(db: Db, employeeId: string, courseId: numbe
      WHERE employee_id = ${employeeId}::uuid AND moodle_course_id = ${courseId}
   `);
   const observer = await onCourseCompleted(db, employeeId, courseId);
-  return { courseId, completionState: 'COMPLETE' as CompletionState, ...observer };
+  // Bila karyawan punya program onboarding, cek kelengkapan & terbitkan e-sertifikat.
+  let onboarding: { status: string; issuedCertificates: number[] } | null = null;
+  try {
+    const { onCourseCompletedForOnboarding } = await import('@/lib/services/onboardingService');
+    const r = await onCourseCompletedForOnboarding(db, employeeId);
+    if (r) onboarding = { status: r.status, issuedCertificates: r.issuedCertificates };
+  } catch {
+    /* onboarding opsional */
+  }
+  return { courseId, completionState: 'COMPLETE' as CompletionState, ...observer, onboarding };
 }

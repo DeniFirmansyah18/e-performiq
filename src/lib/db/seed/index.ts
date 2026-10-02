@@ -466,6 +466,7 @@ ON CONFLICT (id) DO NOTHING;
 `);
 
   await seedAssessmentBank(client);
+  await seedPositionCourses(client);
 }
 
 /** Escape string untuk literal SQL (seed hanya memakai data terkontrol). */
@@ -500,6 +501,49 @@ function buildQuestionInsert(templateId: string, item: SeedQuestion): string {
     VALUES (${q(item.id)}, ${q(templateId)}, ${item.order}, ${q(item.type)}::question_type_enum,
             ${q(item.prompt)}, ${options}, ${correct}, ${scale}, ${item.reverse ? 'TRUE' : 'FALSE'}, ${source}, ${ref})
     ON CONFLICT (id) DO NOTHING;`;
+}
+
+/**
+ * Seed kurikulum onboarding per-posisi (WS-8). Kursus dipetakan via course_code
+ * (id kursus adalah SERIAL, jadi tidak boleh di-hardcode).
+ *
+ * Setiap posisi mendapat kursus inti onboarding + kursus teknis relevan.
+ */
+async function seedPositionCourses(client: SqlClient): Promise<void> {
+  // [{position_id, course_code, is_mandatory, order_index}]
+  const mappings: Array<[string, string, boolean, number]> = [
+    // Onboarding wajib untuk semua posisi.
+    ['a0000000-0000-4000-8000-000000000201', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000201', 'AKHLAK-CULTURE', true, 2],
+    ['a0000000-0000-4000-8000-000000000202', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000202', 'AKHLAK-CULTURE', true, 2],
+    ['a0000000-0000-4000-8000-000000000202', 'LEAD-ESS', false, 3],
+    ['a0000000-0000-4000-8000-000000000203', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000203', 'AKHLAK-CULTURE', true, 2],
+    ['a0000000-0000-4000-8000-000000000203', 'CLOUD-ARCH', false, 3],
+    // Senior Software Engineer — teknis engineering.
+    ['a0000000-0000-4000-8000-000000000204', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000204', 'AKHLAK-CULTURE', true, 2],
+    ['a0000000-0000-4000-8000-000000000204', 'CLOUD-ARCH', true, 3],
+    ['a0000000-0000-4000-8000-000000000204', 'PG-ADV', true, 4],
+    ['a0000000-0000-4000-8000-000000000205', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000205', 'AKHLAK-CULTURE', true, 2],
+    // HR System Administrator.
+    ['a0000000-0000-4000-8000-000000000206', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000206', 'AKHLAK-CULTURE', true, 2],
+    ['a0000000-0000-4000-8000-000000000206', 'LEAD-ESS', false, 3],
+    ['a0000000-0000-4000-8000-000000000207', 'ONB-101', true, 1],
+    ['a0000000-0000-4000-8000-000000000207', 'AKHLAK-CULTURE', true, 2],
+    ['a0000000-0000-4000-8000-000000000207', 'LEAD-ESS', true, 3],
+  ];
+  for (const [positionId, courseCode, mandatory, order] of mappings) {
+    await client.exec(
+      `INSERT INTO position_courses (position_id, course_id, is_mandatory, order_index)
+       SELECT ${q(positionId)}::uuid, c.id, ${mandatory ? 'TRUE' : 'FALSE'}, ${order}
+         FROM moodle_courses c WHERE c.course_code = ${q(courseCode)}
+       ON CONFLICT (position_id, course_id) DO NOTHING;`,
+    );
+  }
 }
 
 // Dijalankan langsung via npm run db:seed
