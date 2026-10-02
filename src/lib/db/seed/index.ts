@@ -2,6 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import type { SqlClient } from '@/lib/db/client';
 import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/types';
+import { ASSESSMENT_TEMPLATES, type SeedQuestion } from './assessment-seed';
 
 export const DEMO_PASSWORD = 'enterprise2026';
 /** PIN slip gaji demo untuk seluruh karyawan seed (disimpan sebagai hash bcrypt). */
@@ -463,6 +464,42 @@ SELECT 'b4000000-0000-4000-8000-000000000001','CERT-EMP20220042-CLOUDARCH-202609
   FROM moodle_courses c WHERE c.course_code='CLOUD-ARCH'
 ON CONFLICT (id) DO NOTHING;
 `);
+
+  await seedAssessmentBank(client);
+}
+
+/** Escape string untuk literal SQL (seed hanya memakai data terkontrol). */
+function q(v: string | null | undefined): string {
+  if (v === null || v === undefined) return 'NULL';
+  return `'${String(v).replace(/'/g, "''")}'`;
+}
+
+/** Seed bank soal asesmen (WS-6). Idempoten via id tetap + ON CONFLICT DO NOTHING. */
+async function seedAssessmentBank(client: SqlClient): Promise<void> {
+  for (const t of ASSESSMENT_TEMPLATES) {
+    await client.exec(
+      `INSERT INTO assessment_templates (id, code, title, type, weight, description, is_active)
+       VALUES (${q(t.id)}, ${q(t.code)}, ${q(t.title)}, ${q(t.type)}::assessment_type_enum,
+               ${t.weight}, ${q(t.description)}, TRUE)
+       ON CONFLICT (id) DO NOTHING;`,
+    );
+    for (const item of t.questions) {
+      await client.exec(buildQuestionInsert(t.id, item));
+    }
+  }
+}
+
+function buildQuestionInsert(templateId: string, item: SeedQuestion): string {
+  const options = item.options ? `${q(JSON.stringify(item.options))}::jsonb` : 'NULL';
+  const correct = item.correctKey ? q(item.correctKey) : 'NULL';
+  const scale = item.scale ? q(item.scale) : 'NULL';
+  const source = item.source ? q(item.source) : 'NULL';
+  const ref = item.sourceRef ? q(item.sourceRef) : 'NULL';
+  return `INSERT INTO assessment_questions
+    (id, template_id, order_index, type, prompt, options, correct_key, scale, reverse_scored, source, source_ref)
+    VALUES (${q(item.id)}, ${q(templateId)}, ${item.order}, ${q(item.type)}::question_type_enum,
+            ${q(item.prompt)}, ${options}, ${correct}, ${scale}, ${item.reverse ? 'TRUE' : 'FALSE'}, ${source}, ${ref})
+    ON CONFLICT (id) DO NOTHING;`;
 }
 
 // Dijalankan langsung via npm run db:seed

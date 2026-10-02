@@ -175,12 +175,21 @@ export async function listCandidates(db: Db) {
   return res.rows ?? [];
 }
 
-/** Ubah status lamaran (HR). */
+/** Ubah status lamaran (HR) + sinkronkan timeline. */
 export async function updateApplicationStatus(db: Db, applicationId: string, status: string) {
   const res = (await db.execute(sql`
     UPDATE job_applications SET status = ${status}::application_status_enum
      WHERE id = ${applicationId}::uuid
      RETURNING id, application_no AS "applicationNo", status
   `)) as unknown as { rows: any[] };
-  return res.rows[0] ?? null;
+  const row = res.rows[0] ?? null;
+  if (row) {
+    try {
+      const { syncApplicationTimeline } = await import('@/lib/services/timelineService');
+      await syncApplicationTimeline(db, applicationId);
+    } catch {
+      /* timeline opsional */
+    }
+  }
+  return row;
 }

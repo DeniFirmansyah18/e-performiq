@@ -70,6 +70,10 @@ export default function CandidatePortalPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-300 hidden sm:inline">{account.name}</span>
+          <Link href="/careers/portal/assessments"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#006347] text-xs font-semibold text-white transition-colors">
+            Asesmen
+          </Link>
           <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors">
             <LogOut className="h-3.5 w-3.5" /> Keluar
           </button>
