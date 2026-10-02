@@ -8,6 +8,15 @@ export interface PublicPosting {
   requiredSkills: unknown;
   department: string;
   position: string;
+  minEducation: string | null;
+  minExperienceYears: number | null;
+  workLocation: string | null;
+  employmentType: string | null;
+  quota: number;
+  hired: number;
+  remaining: number;
+  availability: 'AVAILABLE' | 'FILLED' | 'CLOSED';
+  postedAt: string | null;
 }
 
 export interface ApplicationInput {
@@ -33,19 +42,50 @@ function applicationNo(email: string, postingId: string): string {
   return `APP-${date}-${short}`;
 }
 
-/** Lowongan publik (tampil tanpa login). */
+/** Lowongan publik (tampil tanpa login) — lengkap dengan kualifikasi & kuota. */
 export async function listPublicPostings(db: Db): Promise<PublicPosting[]> {
   const res = (await db.execute(sql`
     SELECT jp.id, jp.posting_title AS "postingTitle", jp.description,
-           jp.required_skills AS "requiredSkills",
-           d.department_name AS "department", p.position_title AS "position"
+           jp.required_skills AS "requiredSkills", jp.status, jp.posted_at AS "postedAt",
+           jp.min_education AS "minEducation", jp.min_experience_years::float8 AS "minExperienceYears",
+           jp.work_location AS "workLocation", jp.employment_type AS "employmentType",
+           d.department_name AS "department", p.position_title AS "position",
+           COALESCE(mp.approved_quota, 0) AS "quota",
+           COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired"
       FROM job_postings jp
       JOIN departments d ON d.id = jp.department_id
       JOIN job_positions p ON p.id = jp.position_id
-     WHERE jp.is_public = TRUE AND jp.status = 'OPEN'
-     ORDER BY jp.posted_at DESC
-  `)) as unknown as { rows: PublicPosting[] };
-  return res.rows ?? [];
+      LEFT JOIN manpower_plans mp ON mp.id = jp.manpower_plan_id
+      LEFT JOIN (
+        SELECT job_posting_id, COUNT(*) FILTER (WHERE status IN ('HIRED','OFFERED')) AS accepted
+          FROM job_applications GROUP BY job_posting_id
+      ) hired ON hired.job_posting_id = jp.id
+     WHERE jp.is_public = TRUE
+     ORDER BY (jp.status = 'OPEN') DESC, jp.posted_at DESC
+  `)) as unknown as { rows: any[] };
+
+  return (res.rows ?? []).map((r) => {
+    const quota = Number(r.quota) || 0;
+    const hired = Number(r.hired) || 0;
+    const remaining = Math.max(0, quota - hired);
+    let availability: PublicPosting['availability'] = 'AVAILABLE';
+    if (r.status === 'CLOSED') availability = 'CLOSED';
+    else if (r.status === 'FILLED' || (quota > 0 && remaining <= 0)) availability = 'FILLED';
+    return {
+      id: r.id,
+      postingTitle: r.postingTitle,
+      description: r.description,
+      requiredSkills: r.requiredSkills,
+      department: r.department,
+      position: r.position,
+      minEducation: r.minEducation ?? null,
+      minExperienceYears: r.minExperienceYears != null ? Number(r.minExperienceYears) : null,
+      workLocation: r.workLocation ?? null,
+      employmentType: r.employmentType ?? null,
+      quota, hired, remaining, availability,
+      postedAt: r.postedAt ?? null,
+    };
+  });
 }
 
 /** Lowongan untuk portal kandidat: kualifikasi + kuota (MPP − terisi) + status real-time. */

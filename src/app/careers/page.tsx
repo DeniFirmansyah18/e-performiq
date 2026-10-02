@@ -2,7 +2,12 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-interface Posting { id: string; postingTitle: string; description: string; department: string; position: string }
+interface Posting {
+  id: string; postingTitle: string; description: string; department: string; position: string;
+  requiredSkills?: unknown; minEducation?: string | null; minExperienceYears?: number | null;
+  workLocation?: string | null; employmentType?: string | null;
+  quota?: number; hired?: number; remaining?: number; availability?: 'AVAILABLE' | 'FILLED' | 'CLOSED';
+}
 interface UploadResult {
   fileName: string;
   extracted: boolean;
@@ -11,6 +16,12 @@ interface UploadResult {
   note?: string;
 }
 interface AtsResult { score: number; matched: string[]; missing: string[] }
+
+function skillsList(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((s) => (typeof s === 'string' ? s : (s as any)?.name ?? '')).filter(Boolean);
+  if (typeof v === 'string') { try { return skillsList(JSON.parse(v)); } catch { return []; } }
+  return [];
+}
 
 /** Portal Karier publik (tanpa login). Memakai /api/v1/careers/*. */
 export default function CareersPage() {
@@ -33,6 +44,15 @@ export default function CareersPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (j?.data) { setPostings(j.data.postings ?? []); setSelectedPosting(j.data.postings?.[0]?.id ?? ''); } })
       .catch(() => {});
+  }, []);
+
+  // Deep-link: /careers?posting=<id> → pilih & gulir ke form lamaran.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('posting');
+    if (id) {
+      setSelectedPosting(id);
+      setTimeout(() => document.getElementById('form-lamaran')?.scrollIntoView({ behavior: 'smooth' }), 300);
+    }
   }, []);
 
   const handleFile = async (file: File) => {
@@ -113,18 +133,65 @@ export default function CareersPage() {
             <p className="text-xs text-[#64748b]">Belum ada lowongan publik saat ini.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {postings.map((p) => (
-                <div key={p.id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-1">
-                  <p className="text-xs font-bold">{p.postingTitle}</p>
-                  <p className="text-[11px] text-[#64748b]">{p.department} · {p.position}</p>
-                  <p className="text-[11px] text-[#334155]">{p.description}</p>
-                </div>
-              ))}
+              {postings.map((p) => {
+                const avail = p.availability ?? 'AVAILABLE';
+                const skillArr = skillsList(p.requiredSkills);
+                const quota = p.quota ?? 0;
+                const remaining = p.remaining ?? quota;
+                return (
+                  <div key={p.id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-2 flex flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-bold">{p.postingTitle}</p>
+                        <p className="text-[11px] text-[#64748b]">{p.department} · {p.position}</p>
+                      </div>
+                      {avail === 'AVAILABLE' ? (
+                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Tersedia</span>
+                      ) : avail === 'FILLED' ? (
+                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Kuota Terisi</span>
+                      ) : (
+                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">Ditutup</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#334155] line-clamp-3">{p.description}</p>
+
+                    {skillArr.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {skillArr.map((s) => (
+                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{s}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#64748b]">
+                      {p.minEducation && <span>Pendidikan: <strong className="text-[#334155]">{p.minEducation}</strong></span>}
+                      {p.minExperienceYears != null && <span>Pengalaman: <strong className="text-[#334155]">{p.minExperienceYears} thn</strong></span>}
+                      {p.workLocation && <span>Lokasi: <strong className="text-[#334155]">{p.workLocation}</strong></span>}
+                      {p.employmentType && <span>{p.employmentType}</span>}
+                    </div>
+
+                    {quota > 0 && (
+                      <p className="text-[10px] text-[#64748b]">
+                        Kuota: <strong className="text-[#0f172a]">{p.hired ?? 0}/{quota}</strong> terisi · Sisa <strong className="text-[#007a5a]">{remaining}</strong>
+                      </p>
+                    )}
+
+                    <div className="pt-1 mt-auto">
+                      <button
+                        disabled={avail !== 'AVAILABLE'}
+                        onClick={() => { setSelectedPosting(p.id); document.getElementById('form-lamaran')?.scrollIntoView({ behavior: 'smooth' }); }}
+                        className="w-full px-3 py-2 text-[11px] font-bold text-white bg-[#007a5a] rounded-lg hover:bg-[#006347] disabled:opacity-40 disabled:cursor-not-allowed">
+                        {avail === 'AVAILABLE' ? 'Lamar Posisi Ini' : 'Tidak Tersedia'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
 
-        <section className="p-4 rounded-xl border border-[#e2e8f0] bg-white">
+        <section id="form-lamaran" className="p-4 rounded-xl border border-[#e2e8f0] bg-white">
           <h2 className="text-sm font-extrabold mb-3">Ajukan Lamaran</h2>
           {submitted ? (
             <div className="space-y-3">

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, Sparkles, CheckCircle2, XCircle, Users } from 'lucide-react';
+import JobPostingManager from '@/components/governance/JobPostingManager';
 
 interface CandidateRow {
   id: string; applicationNo: string; status: string; appliedAt: string;
@@ -177,6 +178,9 @@ export default function RecruitmentPanel() {
           </div>
         </div>
       )}
+
+      {/* Kelola lowongan (WS-12) */}
+      <JobPostingManager />
     </div>
   );
 }
