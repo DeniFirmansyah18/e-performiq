@@ -89,17 +89,24 @@
 ## Status
 - [x] 0.1 Matriks fitur × role
 - [x] 0.2 Inventarisasi residu demo
-- [ ] 0.3 Verifikasi integrasi (uji e2e) — perlu task
+- [x] 0.3 Verifikasi integrasi (uji e2e) — 8 tes hijau
 - [x] 0.4 Otorisasi & scope (sudah kuat)
 - [x] 0.5 Gap list
+
+**WS-0 SELESAI.** Semua gap G1–G6 tertutup.
 
 ## Progres perbaikan
 - [x] **G1** — `currentUser` tidak lagi di-init dari akun demo (init `null`); hanya diisi dari `/auth/me`.
 - [x] **G2** — Header menyembunyikan kartu profil bila belum login (`currentUser === null`).
 - [x] **G6** — `switchRole` tetap ada sebagai **demo switcher** (berlabel "Demo Switcher" di Header).
-- [ ] **G3** — test integrasi KPI→approval→GPA→VMAI (task lanjutan).
-- [ ] **G4** — test integrasi absensi/timesheet→payroll (task lanjutan).
-- [ ] **G5** — test integrasi LMS→sertifikat (task lanjutan).
+- [x] **G3** — test integrasi KPI→GPA→VMAI — `tests/integration/production-integration.test.ts` (8 tes hijau).
+- [x] **G4** — test integrasi absensi/timesheet→payroll — idem.
+- [x] **G5** — test integrasi LMS→sertifikat — idem.
+
+**Bukti WS-0.3:** `tests/integration/production-integration.test.ts` (8/8 hijau) memverifikasi dari data seed nyata:
+KPI tertaut pilar · GPA konsisten formula · VMAI teragregasi dari pilar · absensi & timesheet nyata ·
+slip gaji (PIN + BPJS + PPh21 deterministik) · LMS→sertifikat terbit & terverifikasi publik · profil self-service + audit.
+
 
 **Catatan:** `DEMO_LOGIN_ACCOUNTS` dipertahankan **hanya** untuk quick-login di halaman `/login` (berlabel "Akun Demo") — ini sah untuk presentasi, bukan data bisnis. `AuthContext` tidak lagi memakainya.
 
