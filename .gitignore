@@ -6,3 +6,10 @@
 *.tsbuildinfo
 
 .superpowers/
+
+# temp output
+*.tmp
+r.txt
+t.txt
+b.txt
+tsc.txt
