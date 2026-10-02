@@ -112,6 +112,7 @@ export default function Header() {
         </button>
 
         {/* User Profile Card with Role Switcher Dropdown */}
+        {currentUser && (
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -186,6 +187,7 @@ export default function Header() {
             </div>
           )}
         </div>
+        )}
 
       </div>
 

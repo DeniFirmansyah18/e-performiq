@@ -2,10 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from '@/types';
-import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 
 interface AuthContextType {
-  currentUser: User;
+  currentUser: User | null;
   activeRole: UserRole;
   activePeriod: string;
   setActivePeriod: (period: string) => void;
@@ -30,7 +29,9 @@ const ROLE_EMAILS: Record<UserRole, string> = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User>(DEMO_LOGIN_ACCOUNTS[0] as unknown as User);
+  // currentUser = null sampai sesi nyata (/auth/me) terkonfirmasi.
+  // TIDAK di-init dari akun demo — aplikasi produksi, bukan demo.
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeRole, setActiveRole] = useState<UserRole>('EMPLOYEE');
   const [activePeriod, setActivePeriod] = useState<string>('2026-Q3');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -59,12 +60,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setActiveRole(u.role);
             setIsAuthenticated(true);
           } else {
+            setCurrentUser(null);
             setIsAuthenticated(false);
           }
         } else {
+          setCurrentUser(null);
           setIsAuthenticated(false);
         }
       } catch {
+        setCurrentUser(null);
         setIsAuthenticated(false);
       }
     }
@@ -125,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+    setCurrentUser(null);
     setIsAuthenticated(false);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('eperformiq_active_role');

@@ -13,7 +13,8 @@ Konvensi proyek: `ok/fail/problem` (`src/lib/api/response.ts`), `getAuthSession`
 
 | WS | Judul | Bergantung pada | Estimasi relatif |
 |----|-------|-----------------|------------------|
-| **WS-1** | Skema & migrasi rekrutmen + akun kandidat | — | kecil |
+| **WS-0** | **Audit & Hardening Integrasi Produksi** | — | sedang |
+| **WS-1** | Skema & migrasi rekrutmen + akun kandidat | WS-0 | kecil |
 | **WS-2** | Login kandidat terpisah + RBAC `CANDIDATE` | WS-1 | sedang |
 | **WS-3** | Daftar lowongan kandidat (kuota + status) | WS-2 | kecil |
 | **WS-4** | Lamaran + upload resume + **ATS parsing + skor** | WS-3 | besar |
@@ -26,6 +27,23 @@ Konvensi proyek: `ok/fail/problem` (`src/lib/api/response.ts`), `getAuthSession`
 | **WS-11** | Dashboard HR/Manager & pasca-kerja (agregasi) | WS-8..10 | sedang |
 
 **Prinsip rilis:** setelah tiap WS selesai & tes hijau → commit + push (Vercel auto-deploy). Bisa berhenti di WS mana pun dan tetap aplikasi utuh.
+
+---
+
+## WS-0 — Audit & Hardening Integrasi Produksi
+
+**Spec/laporan:** `docs/superpowers/specs/WS-0-audit-hardening.md`
+**Tujuan:** pastikan aplikasi **bukan demo** — fitur baca/tulis data nyata & terintegrasi lintas peran.
+
+**Task:**
+1. **Matriks fitur × role** — inventarisasi (✅ selesai).
+2. **Bersihkan residu demo** — `AuthContext` (init `currentUser=null`), `Header` (guard null). ✅
+3. **Verifikasi integrasi e2e** — tambah test: KPI→approval→GPA→VMAI; absensi→payroll; LMS→sertifikat. ⏳
+4. **Otorisasi & scope** — sudah kuat (middleware JWT nyata, `assertCan`, scope) ✅
+5. **Gap list** ✅
+
+**Test:** `tests/integration/production-integration.test.ts` (baru, G3–G5).
+**Commit:** `chore(audit): WS-0 production integration audit + demo residue cleanup`.
 
 ---
 

@@ -155,7 +155,7 @@ method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
 period_id: kpiForm.periodId,
-employee_id: currentUser.employeeId || 'b0000000-0000-4000-8000-000000000004',
+employee_id: currentUser?.employeeId || '',
 strategic_pillar_id: kpiForm.pillarId,
 kpi_title: kpiForm.title,
 target_value: Number(kpiForm.target),
