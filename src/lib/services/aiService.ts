@@ -121,9 +121,15 @@ async function callGemini(
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          maxOutputTokens: opts.maxOutputTokens ?? 600,
+          maxOutputTokens: opts.maxOutputTokens ?? 2048,
           temperature: opts.temperature ?? 0.3,
           topP: 0.9,
+          // Opsional: batasi "thinking" (khusus model Gemini 3.x) agar token
+          // lebih banyak dialokasikan untuk jawaban akhir. Diaktifkan hanya bila
+          // GEMINI_THINKING_BUDGET di-set (mis. "0" mematikan thinking).
+          ...(process.env.GEMINI_THINKING_BUDGET
+            ? { thinkingConfig: { thinkingBudget: Number(process.env.GEMINI_THINKING_BUDGET) } }
+            : {}),
         },
       }),
     });
@@ -138,8 +144,13 @@ async function callGemini(
       };
     }
     const json: any = await res.json();
+    const cand = json?.candidates?.[0];
     const text: string =
-      json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '';
+      cand?.content?.parts?.map((p: any) => p.text).join('') ?? '';
+    // Bila terpotong karena batas token, lanjutkan/ tandai agar tidak tampak cacat.
+    if (cand?.finishReason === 'MAX_TOKENS') {
+      console.warn('[aiService] Gemini finishReason=MAX_TOKENS (output terpotong). Naikkan maxOutputTokens.');
+    }
     return { ok: true, text: sanitizeOutput(text) || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
@@ -169,7 +180,7 @@ async function callGroq(
           { role: 'system', content: system },
           { role: 'user', content: prompt },
         ],
-        max_tokens: opts.maxOutputTokens ?? 600,
+        max_tokens: opts.maxOutputTokens ?? 2048,
         temperature: opts.temperature ?? 0.3,
         top_p: 0.9,
         // Pisahkan proses berpikir ke field terpisah agar `content` bersih.
@@ -194,6 +205,9 @@ async function callGroq(
       String(msg.content ?? '').trim() ||
       String(msg.reasoning ?? '').trim() ||
       String(msg.reasoning_content ?? '').trim();
+    if (json?.choices?.[0]?.finish_reason === 'length') {
+      console.warn('[aiService] Groq finish_reason=length (output terpotong). Naikkan maxOutputTokens.');
+    }
     return { ok: true, text: sanitizeOutput(text) || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
@@ -225,7 +239,7 @@ async function callOpenRouter(
           { role: 'system', content: system },
           { role: 'user', content: prompt },
         ],
-        max_tokens: opts.maxOutputTokens ?? 600,
+        max_tokens: opts.maxOutputTokens ?? 2048,
         temperature: opts.temperature ?? 0.3,
         top_p: 0.9,
         // Minta OpenRouter memisahkan reasoning agar `content` bersih & ringkas.
@@ -249,6 +263,9 @@ async function callOpenRouter(
       String(msg.content ?? '').trim() ||
       String(msg.reasoning ?? '').trim() ||
       String(msg.reasoning_content ?? '').trim();
+    if (json?.choices?.[0]?.finish_reason === 'length') {
+      console.warn('[aiService] OpenRouter finish_reason=length (output terpotong). Naikkan maxOutputTokens.');
+    }
     return { ok: true, text: sanitizeOutput(text) || 'Tidak ada keluaran dari model.' };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? 'network', retryable: true, text: 'Maaf, gagal menghubungi layanan AI.' };
@@ -332,7 +349,7 @@ export async function analyzeFeature(
     `**Temuan Penting:**\n- (temuan 1)\n- (temuan 2)\n- (temuan 3)\n` +
     `**Rekomendasi Tindakan:**\n1. (rekomendasi 1)\n2. (rekomendasi 2)\n` +
     `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
-  const res = await generateContent(prompt, { maxOutputTokens: 600, temperature: 0.25 });
+  const res = await generateContent(prompt, { maxOutputTokens: 2048, temperature: 0.25 });
   return { insight: res.text, configured: res.configured };
 }
 
@@ -349,6 +366,6 @@ export async function chat(
     `Percakapan:\n${history}\nAsisten:` +
     `\nJawab SINGKAT (maksimal 4 kalimat) dalam Bahasa Indonesia, akurat, dan hanya berdasarkan konteks aplikasi. ` +
     `Jangan tampilkan proses berpikir; langsung berikan jawaban akhir.`;
-  const res = await generateContent(prompt, { maxOutputTokens: 500, temperature: 0.3 });
+  const res = await generateContent(prompt, { maxOutputTokens: 1024, temperature: 0.3 });
   return { reply: res.text, configured: res.configured };
 }
