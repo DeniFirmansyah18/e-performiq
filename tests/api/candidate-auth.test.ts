@@ -50,8 +50,11 @@ describe('WS-2 auth kandidat terpisah', () => {
     expect(bad.status).toBe(401);
   });
 
-  it('GET me tanpa sesi -> 401; dengan cookie kandidat -> 200', async () => {
-    expect((await me(req('/x'))).status).toBe(401);
+  it('GET me tanpa sesi -> 200 { account: null } (whoami); dengan cookie kandidat -> 200', async () => {
+    // Pola whoami: anonim tidak memicu 401 (menghindari noise konsol di halaman publik).
+    const anon = await me(req('/x'));
+    expect(anon.status).toBe(200);
+    expect((await anon.json()).data.account).toBeNull();
 
     const loginRes = await login(req('/x', { email: 'kandidat.satu@example.com', password: 'rahasia123' }));
     const token = (await loginRes.json()).data.access_token;

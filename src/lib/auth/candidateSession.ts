@@ -90,3 +90,16 @@ export async function getCandidateSession(req?: Request | NextRequest): Promise<
 
   throw new AuthError('Sesi kandidat tidak valid atau telah berakhir. Silakan login kembali.');
 }
+
+/**
+ * Varian non-throwing: mengembalikan payload sesi kandidat, atau `null` bila
+ * tidak ada sesi valid. Dipakai endpoint "whoami" agar pengunjung anonim tidak
+ * memicu 401 (menghindari noise konsol di halaman seperti /careers).
+ */
+export async function getCandidateSessionOrNull(req?: Request | NextRequest): Promise<CandidateSessionPayload | null> {
+  try {
+    return await getCandidateSession(req);
+  } catch {
+    return null;
+  }
+}

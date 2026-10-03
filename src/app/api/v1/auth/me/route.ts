@@ -2,15 +2,24 @@ import { NextRequest } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
+import { AuthError } from '@/lib/auth/errors';
 import { ok, problem } from '@/lib/api/response';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// GET /api/v1/auth/me
+// GET /api/v1/auth/me — "whoami".
+// Pola whoami: pengunjung anonim (tanpa sesi) mengembalikan 200 { user: null }
+// alih-alih 401, agar halaman publik (mis. /careers) tidak memicu error konsol.
 export async function GET(req: NextRequest) {
   try {
-    const session = await getAuthSession(req);
+    let session;
+    try {
+      session = await getAuthSession(req);
+    } catch (e) {
+      if (e instanceof AuthError) return ok({ user: null });
+      throw e;
+    }
 
     const result = await db.execute(sql`
       SELECT u.id, u.employee_id as "employeeId", u.email, u.role,
