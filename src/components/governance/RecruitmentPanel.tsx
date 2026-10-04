@@ -45,6 +45,10 @@ export default function RecruitmentPanel() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [decisionBusy, setDecisionBusy] = useState(false);
 
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/v1/recruitment/candidates');
@@ -81,6 +85,18 @@ export default function RecruitmentPanel() {
       else setMsg(j?.detail || 'Gagal memuat review.');
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const openProfile = async (id: string) => {
+    setProfileId(id); setProfile(null); setProfileLoading(true);
+    try {
+      const res = await fetch(`/api/v1/recruitment/candidates/${id}/detail`);
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) setProfile(j.data);
+      else setMsg(j?.detail || 'Gagal memuat detail pelamar.');
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -143,10 +159,16 @@ export default function RecruitmentPanel() {
                     </select>
                   </td>
                   <td className="py-2 text-right">
-                    <button onClick={() => openReview(r.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0f172a] text-white text-[11px] font-semibold hover:bg-[#1e293b]">
-                      <Sparkles className="h-3 w-3" /> Review
-                    </button>
+                    <div className="flex gap-1.5 justify-end">
+                      <button onClick={() => openProfile(r.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-[#334155] text-[11px] font-semibold hover:bg-slate-200">
+                        Detail
+                      </button>
+                      <button onClick={() => openReview(r.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0f172a] text-white text-[11px] font-semibold hover:bg-[#1e293b]">
+                        <Sparkles className="h-3 w-3" /> Review
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -181,6 +203,24 @@ export default function RecruitmentPanel() {
 
       {/* Kelola lowongan (WS-12) */}
       <JobPostingManager />
+
+      {profileId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-[#0f172a] text-white px-5 py-3.5 flex items-center justify-between">
+              <span className="text-sm font-bold">Detail Pelamar</span>
+              <button onClick={() => { setProfileId(null); setProfile(null); }} className="p-1 rounded-lg hover:bg-white/10 text-lg leading-none">&times;</button>
+            </div>
+            <div className="p-5 space-y-4">
+              {profileLoading || !profile ? (
+                <p className="text-xs text-[#64748b]">Memuat…</p>
+              ) : (
+                <CandidateProfile profile={profile} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -269,5 +309,77 @@ function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill
         </>
       )}
     </div>
+  );
+}
+
+const GENDER_LABEL: Record<string, string> = { LAKI_LAKI: 'Laki-laki', PEREMPUAN: 'Perempuan' };
+const MONTH_SHORT = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function CandidateProfile({ profile }: { profile: any }) {
+  return (
+    <>
+      <div>
+        <p className="text-base font-extrabold text-[#0f172a]">{profile.fullName}</p>
+        <p className="text-[11px] text-[#64748b]">{profile.email} · {profile.phone || '—'}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#334155] mt-1">
+          {profile.gender && <span>Jenis Kelamin: <strong>{GENDER_LABEL[profile.gender] ?? profile.gender}</strong></span>}
+          {profile.birthDate && <span>Tgl Lahir: <strong>{String(profile.birthDate).slice(0, 10)}</strong></span>}
+          {profile.nik && <span>NIK: <strong>{profile.nik}</strong></span>}
+          <span>Melamar: <strong>{profile.postingTitle}</strong></span>
+        </div>
+        {profile.address && <p className="text-[11px] text-[#64748b] mt-1">Alamat: {profile.address}</p>}
+      </div>
+
+      {profile.skills?.length > 0 && (
+        <div>
+          <p className="text-[11px] font-bold text-[#334155] mb-1">Keahlian</p>
+          <div className="flex flex-wrap gap-1">
+            {profile.skills.map((s: string) => <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{s}</span>)}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="text-[11px] font-bold text-[#334155] mb-1">Riwayat Pendidikan</p>
+        {profile.educations?.length ? profile.educations.map((e: any) => (
+          <div key={e.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0">
+            <strong>{e.level || e.degree || '—'}</strong> {e.major ? `· ${e.major}` : ''} — {e.institution || '—'}
+            <span className="text-[10px] text-[#64748b]"> ({e.startYear || '?'}–{e.endYear || '?'}{e.gpa ? `, IPK ${e.gpa}` : ''})</span>
+          </div>
+        )) : <p className="text-[11px] text-[#94a3b8]">Tidak ada data.</p>}
+      </div>
+
+      <div>
+        <p className="text-[11px] font-bold text-[#334155] mb-1">Riwayat Pekerjaan</p>
+        {profile.experiences?.length ? profile.experiences.map((x: any) => (
+          <div key={x.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0">
+            <strong>{x.roleTitle || '—'}</strong>{x.company ? ` · ${x.company}` : ''}
+            {x.experienceType && <span className="text-[10px] text-[#64748b]"> [{x.experienceType}]</span>}
+            <span className="text-[10px] text-[#64748b]"> {x.startMonth ? MONTH_SHORT[x.startMonth] : ''} {x.startYear || ''}–{x.isCurrent ? 'Sekarang' : `${x.endMonth ? MONTH_SHORT[x.endMonth] : ''} ${x.endYear || ''}`}</span>
+            {x.location && <span className="text-[10px] text-[#64748b]"> · {x.location}</span>}
+          </div>
+        )) : <p className="text-[11px] text-[#94a3b8]">Tidak punya pengalaman.</p>}
+      </div>
+
+      <div>
+        <p className="text-[11px] font-bold text-[#334155] mb-1">Sertifikasi / Penghargaan</p>
+        {profile.certifications?.length ? profile.certifications.map((c: any) => (
+          <div key={c.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0 flex items-center justify-between">
+            <span><strong>{c.name}</strong>{c.issuer ? ` · ${c.issuer}` : ''}<span className="text-[10px] text-[#64748b]"> {c.issuedDate ? `(${String(c.issuedDate).slice(0, 10)})` : ''}</span></span>
+            {c.proofUrl && <a href={c.proofUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[#0284c7] underline">Bukti</a>}
+          </div>
+        )) : <p className="text-[11px] text-[#94a3b8]">Tidak ada data.</p>}
+      </div>
+
+      <div>
+        <p className="text-[11px] font-bold text-[#334155] mb-1">Berkas Lamaran</p>
+        {profile.documents?.length ? profile.documents.map((d: any) => (
+          <div key={d.id} className="text-[11px] text-[#334155] py-1 flex items-center justify-between">
+            <span>{d.docType} — {d.fileName || 'dokumen'}</span>
+            {d.fileUrl && <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[#0284c7] underline">Lihat</a>}
+          </div>
+        )) : <p className="text-[11px] text-[#94a3b8]">Tidak ada berkas.</p>}
+      </div>
+    </>
   );
 }

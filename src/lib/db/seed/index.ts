@@ -3,6 +3,7 @@ import type { SqlClient } from '@/lib/db/client';
 import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/types';
 import { ASSESSMENT_TEMPLATES, type SeedQuestion } from './assessment-seed';
+import { SEED_MAJORS, SEED_INSTITUTIONS } from './education-seed';
 
 export const DEMO_PASSWORD = 'enterprise2026';
 /** PIN slip gaji demo untuk seluruh karyawan seed (disimpan sebagai hash bcrypt). */
@@ -467,6 +468,7 @@ ON CONFLICT (id) DO NOTHING;
 
   await seedAssessmentBank(client);
   await seedPositionCourses(client);
+  await seedEducationReference(client);
 }
 
 /** Escape string untuk literal SQL (seed hanya memakai data terkontrol). */
@@ -542,6 +544,23 @@ async function seedPositionCourses(client: SqlClient): Promise<void> {
        SELECT ${q(positionId)}::uuid, c.id, ${mandatory ? 'TRUE' : 'FALSE'}, ${order}
          FROM moodle_courses c WHERE c.course_code = ${q(courseCode)}
        ON CONFLICT (position_id, course_id) DO NOTHING;`,
+    );
+  }
+}
+
+/** Seed referensi pendidikan (WS-13): jurusan + contoh institusi. Idempoten. */
+async function seedEducationReference(client: SqlClient): Promise<void> {
+  for (const m of SEED_MAJORS) {
+    await client.exec(
+      `INSERT INTO education_majors (name, group_name) VALUES (${q(m.name)}, ${q(m.groupName)})
+       ON CONFLICT (name) DO NOTHING;`,
+    );
+  }
+  for (const inst of SEED_INSTITUTIONS) {
+    await client.exec(
+      `INSERT INTO education_institutions (name, level, code, city, province)
+       VALUES (${q(inst.name)}, ${q(inst.level)}, ${q(inst.code ?? null)}, ${q(inst.city ?? null)}, ${q(inst.province ?? null)})
+       ON CONFLICT (name, level) DO NOTHING;`,
     );
   }
 }

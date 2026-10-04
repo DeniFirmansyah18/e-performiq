@@ -23,6 +23,9 @@ const EXPECTED_TABLES = [
   'attendance_logs',
   // 0015 payroll (WS-10)
   'salary_components', 'payroll_runs', 'payroll_items',
+  // 0017 full application (WS-13)
+  'candidate_certifications', 'candidate_documents', 'candidate_notifications', 'email_outbox',
+  'education_institutions', 'education_majors',
 ].sort();
 
 describe('skema database', () => {
@@ -36,7 +39,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 72 tabel di schema public (baseline + 0011..0015)', async () => {
+  it('membuat tepat 78 tabel di schema public (baseline + 0011..0017)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -47,13 +50,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 26 enum (baseline 18 + rekrutmen 3 + asesmen 3 + onboarding 1 + payroll 1)', async () => {
+  it('membuat 28 enum (baseline 18 + rekrutmen 3 + asesmen 3 + onboarding 1 + payroll 1 + lamaran 2)', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(26);
+    expect(Number(res.rows[0].count)).toBe(28);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {

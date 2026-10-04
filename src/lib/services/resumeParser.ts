@@ -19,6 +19,7 @@ export interface ParsedContact {
 }
 
 export interface ParsedEducation {
+  level?: string;
   institution?: string;
   degree?: string;
   major?: string;
@@ -38,6 +39,7 @@ export interface ParsedExperience {
 export interface ParsedResume {
   fullName?: string;
   contact: ParsedContact;
+  gender?: string;
   summary?: string;
   skills: string[];
   educations: ParsedEducation[];
@@ -162,9 +164,10 @@ export function extractEducations(section: string): ParsedEducation[] {
     if (!degree && !years.length && !institution && !gpaMatch) continue;
     const majorMatch = line.match(/\b(?:jurusan|program studi|prodi|major)\b[^\n,;]*/i);
     out.push({
+      level: degree,
       institution: institution ? line.split(/[-–|]/)[0].trim() : undefined,
       degree,
-      major: majorMatch ? majorMatch[0].trim() : undefined,
+      major: majorMatch ? majorMatch[0].replace(/^(jurusan|program studi|prodi|major)\s*:?\s*/i, '').trim() : undefined,
       startYear: years.length >= 2 ? years[0] : undefined,
       endYear: years.length >= 1 ? years[years.length - 1] : undefined,
       gpa: gpaMatch ? Number(gpaMatch[1].replace(',', '.')) : undefined,
@@ -241,6 +244,14 @@ export function parseResumeHeuristic(rawText: string): ParsedResume {
   const educations = extractEducations(sections.education ?? '');
   const experiences = extractExperiences(sections.experience ?? text);
 
+  // Gender: cari "jenis kelamin: ...", "gender:", atau kata kunci tunggal.
+  let gender: string | undefined;
+  const gm = text.match(/\b(?:jenis kelamin|gender|sex)\b\s*:?\s*(laki[- ]?laki|pria|male|perempuan|wanita|female|female)\b/i);
+  if (gm) {
+    const v = gm[1].toLowerCase();
+    gender = /laki|pria|male/i.test(v) ? 'LAKI_LAKI' : 'PEREMPUAN';
+  }
+
   let summary: string | undefined;
   const summaryMatch = text.match(
     /(?:ringkasan|tentang saya|profil|summary|about me|professional summary)\s*:?\s*\n([\s\S]{40,600}?)(?:\n\s*\n)/i,
@@ -254,6 +265,7 @@ export function parseResumeHeuristic(rawText: string): ParsedResume {
   return {
     fullName,
     contact: { email, phone, linkedinUrl, portfolioUrl },
+    gender,
     summary,
     skills,
     educations,

@@ -1,19 +1,13 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import ApplicationForm from '@/components/careers/ApplicationForm';
 
 interface Posting {
   id: string; postingTitle: string; description: string; department: string; position: string;
   requiredSkills?: unknown; minEducation?: string | null; minExperienceYears?: number | null;
   workLocation?: string | null; employmentType?: string | null;
   quota?: number; hired?: number; remaining?: number; availability?: 'AVAILABLE' | 'FILLED' | 'CLOSED';
-}
-interface UploadResult {
-  fileName: string;
-  extracted: boolean;
-  rawText: string;
-  detectedSkills: string[];
-  note?: string;
 }
 interface AtsResult { score: number; matched: string[]; missing: string[] }
 
@@ -26,18 +20,12 @@ function skillsList(v: unknown): string[] {
 /** Portal Karier publik (tanpa login). Memakai /api/v1/careers/*. */
 export default function CareersPage() {
   const [postings, setPostings] = useState<Posting[]>([]);
-  const [form, setForm] = useState({ fullName: '', email: '', phone: '', address: '', birthDate: '', education: '', resumeUrl: '', coverLetter: '', website: '' });
   const [selectedPosting, setSelectedPosting] = useState<string>('');
-  const [upload, setUpload] = useState<UploadResult | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [ats, setAts] = useState<AtsResult | null>(null);
   const [statusQuery, setStatusQuery] = useState('');
   const [statusResult, setStatusResult] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/v1/careers/postings')
@@ -55,47 +43,6 @@ export default function CareersPage() {
     }
   }, []);
 
-  const handleFile = async (file: File) => {
-    setUploadError(null);
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/v1/careers/upload', { method: 'POST', body: fd });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setUploadError(j?.detail || 'Gagal mengunggah berkas.'); return; }
-      setUpload(j.data as UploadResult);
-      const parsed = (j.data as any)?.parsed ?? {};
-      setForm((f) => ({
-        ...f,
-        fullName: f.fullName || parsed.fullName || f.fullName,
-        phone: f.phone || parsed.contact?.phone || f.phone,
-        resumeUrl: f.resumeUrl || parsed.contact?.linkedinUrl || f.resumeUrl,
-      }));
-    } catch {
-      setUploadError('Terjadi kesalahan saat mengunggah.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMsg(null);
-    const res = await fetch('/api/v1/careers/apply', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        jobPostingId: selectedPosting,
-        resumeText: upload?.extracted ? upload.rawText : undefined,
-        resumeFileName: upload?.fileName,
-      }),
-    });
-    const j = await res.json().catch(() => ({}));
-    if (res.ok) { setSubmitted(j.data.applicationNo); setAts(j.data.ats ?? null); setMsg(null); }
-    else setMsg(j?.detail || 'Gagal mengirim lamaran.');
-  };
-
   const checkStatus = async () => {
     setStatusResult(null);
     const res = await fetch(`/api/v1/careers/status/${statusQuery}`);
@@ -103,19 +50,7 @@ export default function CareersPage() {
     setStatusResult(res.ok ? `Status: ${j.data.status} (${j.data.postingTitle})` : 'Nomor lamaran tidak ditemukan.');
   };
 
-  const reset = () => {
-    setSubmitted(null); setAts(null); setUpload(null);
-    if (fileRef.current) fileRef.current.value = '';
-    setForm({ fullName: '', email: '', phone: '', address: '', birthDate: '', education: '', resumeUrl: '', coverLetter: '', website: '' });
-  };
-
-  const field = (key: keyof typeof form, label: string, type = 'text') => (
-    <label className="block text-xs">
-      <span className="font-semibold text-[#334155]">{label}</span>
-      <input type={type} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-        className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs" />
-    </label>
-  );
+  const reset = () => { setSubmitted(null); setAts(null); };
 
   const scoreColor = (s: number) => (s >= 75 ? 'text-emerald-600' : s >= 50 ? 'text-amber-600' : 'text-rose-600');
 
@@ -234,63 +169,12 @@ export default function CareersPage() {
               <button onClick={reset} className="text-[11px] font-bold text-[#007a5a] underline">Kirim lamaran lain</button>
             </div>
           ) : (
-            <form onSubmit={submit} className="space-y-3">
-              <label className="block text-xs">
-                <span className="font-semibold text-[#334155]">Posisi yang dilamar</span>
-                <select value={selectedPosting} onChange={(e) => setSelectedPosting(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs">
-                  {postings.map((p) => <option key={p.id} value={p.id}>{p.postingTitle}</option>)}
-                </select>
-              </label>
-
-              {/* Unggah CV untuk analisis ATS otomatis */}
-              <div className="p-3 rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] space-y-2">
-                <p className="text-xs font-semibold text-[#334155]">Unggah CV (PDF/DOCX/TXT) — dianalisis otomatis (ATS)</p>
-                <input ref={fileRef} type="file" accept=".pdf,.docx,.doc,.txt,.md,.rtf"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                  className="block w-full text-[11px] text-[#334155] file:mr-2 file:rounded-lg file:border-0 file:bg-[#007a5a] file:px-3 file:py-1.5 file:text-[11px] file:font-bold file:text-white" />
-                {uploading && <p className="text-[11px] text-[#64748b]">Menganalisis berkas…</p>}
-                {uploadError && <p className="text-[11px] font-semibold text-rose-600">{uploadError}</p>}
-                {upload && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-[#334155]">
-                      <span className="font-semibold">{upload.fileName}</span> — {upload.extracted ? 'teks berhasil diekstrak' : 'teks tidak terbaca'}
-                    </p>
-                    {upload.detectedSkills.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {upload.detectedSkills.slice(0, 20).map((s) => (
-                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{s}</span>
-                        ))}
-                      </div>
-                    )}
-                    {upload.note && <p className="text-[10px] text-[#64748b]">{upload.note}</p>}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {field('fullName', 'Nama Lengkap')}
-                {field('email', 'Email', 'email')}
-                {field('phone', 'Telepon')}
-                {field('birthDate', 'Tanggal Lahir', 'date')}
-                {field('education', 'Pendidikan')}
-                {field('resumeUrl', 'Tautan CV / LinkedIn (URL)')}
-              </div>
-              {field('address', 'Alamat')}
-              <label className="block text-xs">
-                <span className="font-semibold text-[#334155]">Surat Lamaran</span>
-                <textarea value={form.coverLetter} onChange={(e) => setForm({ ...form, coverLetter: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs h-20" />
-              </label>
-              {/* Honeypot: disembunyikan dari manusia; bot mengisinya */}
-              <input type="text" tabIndex={-1} autoComplete="off" value={form.website}
-                onChange={(e) => setForm({ ...form, website: e.target.value })}
-                className="hidden" aria-hidden="true" />
-              {msg && <p className="text-[11px] font-semibold text-rose-600">{msg}</p>}
-              <button type="submit" className="px-4 py-2 text-xs font-bold text-white bg-[#007a5a] rounded-lg hover:bg-[#006347]">
-                Kirim Lamaran
-              </button>
-            </form>
+            <ApplicationForm
+              postings={postings.map((p) => ({ id: p.id, postingTitle: p.postingTitle }))}
+              selectedPosting={selectedPosting}
+              onSelectPosting={setSelectedPosting}
+              onSubmitted={(no, atsRes) => { setSubmitted(no); setAts(atsRes); }}
+            />
           )}
         </section>
 

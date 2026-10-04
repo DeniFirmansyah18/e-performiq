@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Layers, LogOut, Briefcase, Search, Users, CheckCircle2, XCircle,
 } from 'lucide-react';
+import CandidateNotifications from '@/components/careers/CandidateNotifications';
 
 interface Posting {
   id: string;
@@ -70,6 +71,7 @@ export default function CandidatePortalPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-300 hidden sm:inline">{account.name}</span>
+          <CandidateNotifications />
           <Link href="/careers/portal/assessments"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#006347] text-xs font-semibold text-white transition-colors">
             Asesmen

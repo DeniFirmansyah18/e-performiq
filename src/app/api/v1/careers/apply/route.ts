@@ -4,24 +4,72 @@ import { db } from '@/lib/db/client';
 import { ok, fail, problem } from '@/lib/api/response';
 import { submitApplication } from '@/lib/services/candidateService';
 import { runAts } from '@/lib/services/atsService';
-import { getCandidateSession } from '@/lib/auth/candidateSession';
+import { getCandidateSessionOrNull } from '@/lib/auth/candidateSession';
+import { notifyApplicationSubmitted } from '@/lib/services/notificationService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Honeypot `website` harus kosong (bot mengisinya). Field lain divalidasi ketat.
+const EducationSchema = z.object({
+  level: z.string().max(10).nullable().optional(),
+  institution: z.string().max(200).nullable().optional(),
+  institutionCode: z.string().max(30).nullable().optional(),
+  degree: z.string().max(120).nullable().optional(),
+  major: z.string().max(120).nullable().optional(),
+  startYear: z.number().int().min(1950).max(2100).nullable().optional(),
+  endYear: z.number().int().min(1950).max(2100).nullable().optional(),
+  graduationStatus: z.string().max(20).nullable().optional(),
+  gpa: z.number().min(0).max(4).nullable().optional(),
+});
+
+const ExperienceSchema = z.object({
+  experienceType: z.enum(['MAGANG', 'KERJA']).nullable().optional(),
+  roleTitle: z.string().max(150).nullable().optional(),
+  company: z.string().max(200).nullable().optional(),
+  location: z.string().max(200).nullable().optional(),
+  startMonth: z.number().int().min(1).max(12).nullable().optional(),
+  startYear: z.number().int().min(1950).max(2100).nullable().optional(),
+  endMonth: z.number().int().min(1).max(12).nullable().optional(),
+  endYear: z.number().int().min(1950).max(2100).nullable().optional(),
+  isCurrent: z.boolean().nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+});
+
+const CertificationSchema = z.object({
+  kind: z.enum(['CERTIFICATION', 'AWARD']).nullable().optional(),
+  name: z.string().min(1).max(255),
+  issuer: z.string().max(255).nullable().optional(),
+  issuedDate: z.string().max(30).nullable().optional(),
+  expiryDate: z.string().max(30).nullable().optional(),
+  credentialId: z.string().max(120).nullable().optional(),
+  proofUrl: z.string().max(2_000_000).nullable().optional(),
+});
+
+const DocumentSchema = z.object({
+  docType: z.enum(['CV', 'COVER_LETTER', 'CERTIFICATE', 'OTHER']),
+  fileName: z.string().max(255).nullable().optional(),
+  mimeType: z.string().max(120).nullable().optional(),
+  fileUrl: z.string().max(2_000_000),
+});
+
 const ApplySchema = z.object({
   fullName: z.string().min(2).max(200),
   email: z.string().email().max(150),
   phone: z.string().max(30).optional(),
   address: z.string().max(500).optional(),
   birthDate: z.string().max(30).optional(),
+  gender: z.enum(['LAKI_LAKI', 'PEREMPUAN']).optional(),
+  nik: z.string().max(20).optional(),
   education: z.string().max(200).optional(),
   resumeUrl: z.string().max(500).optional(),
-  // Teks hasil ekstraksi berkas (dari /api/v1/careers/upload) untuk analisis ATS.
   resumeText: z.string().max(40000).optional(),
   resumeFileName: z.string().max(255).optional(),
   coverLetter: z.string().max(4000).optional(),
+  educations: z.array(EducationSchema).max(10).optional(),
+  experiences: z.array(ExperienceSchema).max(15).optional(),
+  noExperience: z.boolean().optional(),
+  certifications: z.array(CertificationSchema).max(15).optional(),
+  documents: z.array(DocumentSchema).max(10).optional(),
   jobPostingId: z.string().uuid(),
   website: z.string().optional(),
 });
@@ -38,17 +86,19 @@ export async function POST(req: NextRequest) {
       return fail('BAD_REQUEST', 'Permintaan ditolak.', 400);
     }
 
-    // Hubungkan ke akun kandidat bila pengguna sedang login (cookie kandidat).
-    const session = await getCandidateSession(req).catch(() => null);
+    const session = await getCandidateSessionOrNull(req);
 
     const result = await submitApplication(db, {
       fullName: parsed.data.fullName, email: parsed.data.email, phone: parsed.data.phone,
-      address: parsed.data.address, birthDate: parsed.data.birthDate, education: parsed.data.education,
+      address: parsed.data.address, birthDate: parsed.data.birthDate, gender: parsed.data.gender,
+      nik: parsed.data.nik, education: parsed.data.education,
       resumeUrl: parsed.data.resumeUrl, coverLetter: parsed.data.coverLetter, jobPostingId: parsed.data.jobPostingId,
       accountId: session?.accountId ?? null,
+      educations: parsed.data.educations, experiences: parsed.data.experiences,
+      noExperience: parsed.data.noExperience, certifications: parsed.data.certifications,
+      documents: parsed.data.documents,
     });
 
-    // ATS: analisis resume bila ada teks. Tidak memblokir pengiriman lamaran.
     let ats: { score: number; matched: string[]; missing: string[] } | null = null;
     if (result.candidateId && parsed.data.resumeText && parsed.data.resumeText.trim().length >= 20) {
       try {
@@ -65,6 +115,17 @@ export async function POST(req: NextRequest) {
         console.warn('[careers/apply] ATS gagal (diabaikan):', (err as Error)?.message);
       }
     }
+
+    try {
+      await notifyApplicationSubmitted(db, {
+        candidateId: result.candidateId,
+        accountId: session?.accountId ?? null,
+        applicationId: result.applicationId,
+        email: parsed.data.email,
+        name: parsed.data.fullName,
+        applicationNo: result.applicationNo,
+      });
+    } catch { /* notifikasi opsional */ }
 
     return ok({ ...result, ats }, 'Lamaran berhasil dikirim.');
   } catch (err) {

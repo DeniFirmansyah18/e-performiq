@@ -115,7 +115,16 @@ export interface UpsertStageInput {
  * (application_id, stage): baris yang ada hanya di-update bila status berubah.
  */
 export async function upsertStage(db: Db, input: UpsertStageInput): Promise<void> {
+  let changed = false;
   try {
+    // Deteksi perubahan status agar notifikasi tidak dikirim berulang.
+    const prev = (await db.execute(sql`
+      SELECT status::text AS status FROM application_timeline
+       WHERE application_id = ${input.applicationId}::uuid AND stage = ${input.stage}::timeline_stage_enum
+    `)) as unknown as { rows: Array<{ status: string }> };
+    const prevStatus = prev.rows?.[0]?.status ?? null;
+    changed = prevStatus !== input.status;
+
     await db.execute(sql`
       INSERT INTO application_timeline (application_id, stage, status, note, actor_user_id)
       VALUES (${input.applicationId}::uuid, ${input.stage}::timeline_stage_enum,
@@ -127,6 +136,14 @@ export async function upsertStage(db: Db, input: UpsertStageInput): Promise<void
     `);
   } catch (err) {
     console.warn('[timelineService] upsertStage gagal:', (err as Error)?.message);
+  }
+
+  // Notifikasi in-app + email saat tahap berubah (best-effort; tidak memblokir).
+  if (changed && input.status !== 'PENDING') {
+    try {
+      const { notifyStageChange } = await import('@/lib/services/notificationService');
+      await notifyStageChange(db, { applicationId: input.applicationId, stage: input.stage, status: input.status, note: input.note });
+    } catch { /* notifikasi opsional */ }
   }
 }
 
