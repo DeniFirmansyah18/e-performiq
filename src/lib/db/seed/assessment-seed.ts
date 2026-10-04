@@ -20,6 +20,9 @@ export interface SeedQuestion {
   reverse?: boolean;
   source?: string;
   sourceRef?: string;
+  irtA?: number;
+  irtB?: number;
+  irtC?: number;
 }
 
 export interface SeedTemplate {
@@ -79,6 +82,10 @@ const PSYCHOMETRIC_QUESTIONS: SeedQuestion[] = IPIP_ITEMS.map((it, i) => ({
   reverse: it.reverse ?? false,
   source: 'IPIP',
   sourceRef: 'IPIP-NEO-120 (subset)',
+  // WS-3: parameter IRT heuristik deterministik (a 0.8..1.5, b -1..1, c 0).
+  irtA: Math.round((0.8 + ((i * 37) % 8) * 0.1) * 1000) / 1000,
+  irtB: Math.round((((i * 53) % 21) / 10 - 1) * 1000) / 1000,
+  irtC: 0,
 }));
 
 const TECHNICAL_QUESTIONS: SeedQuestion[] = [

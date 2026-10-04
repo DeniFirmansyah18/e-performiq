@@ -193,5 +193,55 @@ describe('WS-6 mesin asesmen', () => {
       const r = await recomputeWeightedForApplication(db, app.applicationId!);
       expect(r.weighted).toBeNull();
     });
+
+    it('WS-3 IRT: pola kuat > pola lemah; fallback CTT bila tanpa parameter', async () => {
+      const { scorePsychometricIrt } = await import('@/lib/services/assessmentService');
+      const psy = await getTemplateForType(db, 'PSYCHOMETRIC');
+      const questions = await getQuestions(db, psy!.id, { includeAnswers: true });
+      // Item seeded punya parameter irt_a/irt_b (WS-3).
+      expect(questions.some((q) => q.irt_a != null && q.irt_b != null)).toBe(true);
+
+      const strong = questions.map((q) =>
+        q.reverse_scored
+          ? { questionId: q.id, answerKey: '1' } // reverse: '1' → skor tinggi → biner 1
+          : { questionId: q.id, answerKey: '5' }, // normal: '5' → biner 1
+      );
+      const weak = questions.map((q) =>
+        q.reverse_scored
+          ? { questionId: q.id, answerKey: '5' } // reverse: '5' → skor rendah → biner 0
+          : { questionId: q.id, answerKey: '1' }, // normal: '1' → biner 0
+      );
+      const hi = scorePsychometricIrt(questions, strong);
+      const lo = scorePsychometricIrt(questions, weak);
+      expect(hi).not.toBeNull();
+      expect(lo).not.toBeNull();
+      expect(hi!.score).toBeGreaterThan(lo!.score);
+      expect(hi!.score).toBeGreaterThanOrEqual(0);
+      expect(hi!.score).toBeLessThanOrEqual(100);
+      expect(Number.isFinite(hi!.theta)).toBe(true);
+
+      // Fallback: tanpa parameter → null (pemanggil memakai CTT).
+      const noParams = questions.map((q) => ({ ...q, irt_a: null, irt_b: null, irt_c: null }));
+      expect(scorePsychometricIrt(noParams, strong)).toBeNull();
+
+      // End-to-end: submit pola kuat → attempt SCORED + agregat 30/40/30 tetap valid.
+      const app = await submitApplication(db, {
+        fullName: 'Peserta IRT Kuat', email: 'peserta.irt.kuat@example.com', jobPostingId: postingId,
+      });
+      await startAttempt(db, { applicationId: app.applicationId!, candidateId: app.candidateId, templateId: psy!.id });
+      const res = await submitAttempt(db, { applicationId: app.applicationId!, templateId: psy!.id, responses: strong });
+      expect(res.score).toBe(hi!.score);
+      const tech = await getTemplateForType(db, 'TECHNICAL');
+      await startAttempt(db, { applicationId: app.applicationId!, candidateId: app.candidateId, templateId: tech!.id });
+      const techKeys = await getQuestions(db, tech!.id, { includeAnswers: true });
+      await submitAttempt(db, {
+        applicationId: app.applicationId!, templateId: tech!.id,
+        responses: techKeys.map((q) => ({ questionId: q.id, answerKey: q.correct_key! })),
+      });
+      await setInterviewScore(db, app.applicationId!, 80);
+      const scores = await getAssessmentScores(db, app.applicationId!);
+      const expected = Math.round(((scores.psychometric * 30 + 100 * 40 + 80 * 30) / 100) * 100) / 100;
+      expect(scores.weighted).toBeCloseTo(expected, 1);
+    });
   });
 });

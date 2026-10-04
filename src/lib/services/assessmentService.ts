@@ -3,9 +3,10 @@
  *
  * Menangani:
  *  - Membuat/me-reset attempt kandidat atas sebuah template (`startAttempt`).
- *  - Menyimpan jawaban per-item & menghitung skor CTT (`submitAttempt`):
- *      • PSIKOMETRI (Likert): skor = rata-rata item (dengan reverse) → 0..100.
- *      • TEKNIS (MCQ): rasio benar → 0..100.
+ *  - Menyimpan jawaban per-item & menghitung skor:
+ *      • PSIKOMETRI (Likert, WS-3): IRT EAP θ → 0..100 bila item punya
+ *        parameter (`irt_a`/`irt_b`); fallback CTT bila tidak ada.
+ *      • TEKNIS (MCQ): rasio benar → 0..100 (CTT).
  *      • INTERVIEW (Open): skor diisi HR (`setInterviewScore`).
  *  - Menghitung agregat berbobot 30/40/30 → `candidate_assessment_scores`.
  *
@@ -13,6 +14,7 @@
  */
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { scoreIrt, type IrtItem } from '@/lib/engines/irt-engine';
 
 export type AssessmentType = 'PSYCHOMETRIC' | 'TECHNICAL' | 'INTERVIEW';
 export type AssessmentStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'SUBMITTED' | 'SCORED';
@@ -32,6 +34,9 @@ export interface QuestionRow {
   correct_key: string | null;
   scale: string | null;
   reverse_scored: boolean;
+  irt_a?: number | null;
+  irt_b?: number | null;
+  irt_c?: number | null;
 }
 
 export interface TemplateRow {
@@ -75,7 +80,8 @@ export async function getQuestions(
   opts: { includeAnswers?: boolean } = {},
 ): Promise<QuestionRow[]> {
   const res = (await db.execute(sql`
-    SELECT id, order_index, type, prompt, options, correct_key, scale, reverse_scored
+    SELECT id, order_index, type, prompt, options, correct_key, scale, reverse_scored,
+           irt_a::float8 AS irt_a, irt_b::float8 AS irt_b, irt_c::float8 AS irt_c
       FROM assessment_questions WHERE template_id = ${templateId}::uuid ORDER BY order_index
   `)) as unknown as { rows: QuestionRow[] };
   const rows = res.rows ?? [];
@@ -141,6 +147,53 @@ export function scoreCtt(
   const raw = counted > 0 ? sumNorm / counted : 0;
   const score = Math.round(Math.max(0, Math.min(1, raw)) * 100 * 100) / 100;
   return { score, raw: Math.round(raw * 1000) / 1000, correct, total };
+}
+
+/**
+ * Binarisasi satu jawaban Likert → 0/1 (aplikasikan `reverse_scored` dulu,
+ * lalu ≥ titik netral → 1). Netral = titik tengah rentang skor opsi
+ * (mis. 3 untuk skala 1..5). Kembalikan null bila jawaban tak valid.
+ */
+function binarizeLikertAnswer(q: QuestionRow, answerKey: string | null | undefined): 0 | 1 | null {
+  const opts = q.options ?? [];
+  if (!opts.length || answerKey == null) return null;
+  const chosen = opts.find((o) => o.key === answerKey);
+  if (!chosen) return null;
+  const scores = opts.map((o) => o.score ?? 0);
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  let s = chosen.score ?? 0;
+  if (q.reverse_scored) s = min + max - s;
+  const neutral = (min + max) / 2;
+  return s >= neutral ? 1 : 0;
+}
+
+/**
+ * Skoring IRT untuk komponen PSIKOMETRI (WS-3).
+ * Mengembalikan null bila tak ada item berparameter (fallback ke CTT).
+ */
+export function scorePsychometricIrt(
+  questions: QuestionRow[],
+  responses: ResponseInput[],
+): { score: number; theta: number; correct: number; total: number } | null {
+  const rMap = new Map(responses.map((r) => [r.questionId, r.answerKey]));
+  const binaries: Array<0 | 1> = [];
+  const items: IrtItem[] = [];
+  for (const q of questions) {
+    if (q.type !== 'LIKERT') continue;
+    if (q.irt_a == null || q.irt_b == null) continue;
+    const a = Number(q.irt_a);
+    const b = Number(q.irt_b);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    const bin = binarizeLikertAnswer(q, rMap.get(q.id));
+    if (bin == null) continue;
+    binaries.push(bin);
+    items.push({ a, b, c: q.irt_c == null ? 0 : Number(q.irt_c) });
+  }
+  if (items.length === 0) return null;
+  const { theta, score0to100 } = scoreIrt(binaries, items);
+  const correct = binaries.filter((v) => v === 1).length;
+  return { score: score0to100, theta: Math.round(theta * 1000) / 1000, correct, total: binaries.length };
 }
 
 // ---------------------------------------------------------------------------
@@ -233,8 +286,16 @@ export async function submitAttempt(db: Db, input: SubmitAttemptInput): Promise<
     `);
   }
 
-  const result = scoreCtt(questions, input.responses);
+  const ctt = scoreCtt(questions, input.responses);
   const isInterview = questions.every((q) => q.type === 'OPEN');
+  const isPsychometric = !isInterview && questions.some((q) => q.type === 'LIKERT');
+
+  // WS-3: psikometri memakai IRT (θ → 0..100) bila item berparameter; fallback CTT.
+  let result = { score: ctt.score, correct: ctt.correct, total: ctt.total, raw: ctt.raw };
+  if (isPsychometric) {
+    const irt = scorePsychometricIrt(questions, input.responses);
+    if (irt) result = { score: irt.score, correct: irt.correct, total: irt.total, raw: irt.theta };
+  }
 
   await db.execute(sql`
     UPDATE assessment_attempts

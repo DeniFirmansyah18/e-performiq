@@ -488,6 +488,16 @@ async function seedAssessmentBank(client: SqlClient): Promise<void> {
     );
     for (const item of t.questions) {
       await client.exec(buildQuestionInsert(t.id, item));
+      // WS-3: backfill parameter IRT untuk DB lama (insert di-skip via DO NOTHING).
+      if (item.irtA != null || item.irtB != null || item.irtC != null) {
+        await client.exec(
+          `UPDATE assessment_questions SET
+             irt_a = COALESCE(irt_a, ${item.irtA != null ? item.irtA : 'NULL'}),
+             irt_b = COALESCE(irt_b, ${item.irtB != null ? item.irtB : 'NULL'}),
+             irt_c = COALESCE(irt_c, ${item.irtC != null ? item.irtC : 'NULL'})
+           WHERE id = ${q(item.id)}::uuid;`,
+        );
+      }
     }
   }
 }
@@ -498,10 +508,14 @@ function buildQuestionInsert(templateId: string, item: SeedQuestion): string {
   const scale = item.scale ? q(item.scale) : 'NULL';
   const source = item.source ? q(item.source) : 'NULL';
   const ref = item.sourceRef ? q(item.sourceRef) : 'NULL';
+  const irtA = item.irtA != null ? String(item.irtA) : 'NULL';
+  const irtB = item.irtB != null ? String(item.irtB) : 'NULL';
+  const irtC = item.irtC != null ? String(item.irtC) : 'NULL';
   return `INSERT INTO assessment_questions
-    (id, template_id, order_index, type, prompt, options, correct_key, scale, reverse_scored, source, source_ref)
+    (id, template_id, order_index, type, prompt, options, correct_key, scale, reverse_scored, irt_a, irt_b, irt_c, source, source_ref)
     VALUES (${q(item.id)}, ${q(templateId)}, ${item.order}, ${q(item.type)}::question_type_enum,
-            ${q(item.prompt)}, ${options}, ${correct}, ${scale}, ${item.reverse ? 'TRUE' : 'FALSE'}, ${source}, ${ref})
+            ${q(item.prompt)}, ${options}, ${correct}, ${scale}, ${item.reverse ? 'TRUE' : 'FALSE'},
+            ${irtA}, ${irtB}, ${irtC}, ${source}, ${ref})
     ON CONFLICT (id) DO NOTHING;`;
 }
 
