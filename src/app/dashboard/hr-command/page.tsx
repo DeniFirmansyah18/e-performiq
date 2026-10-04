@@ -45,15 +45,17 @@ export default function HROperationsPage() {
   const [openFeature, setOpenFeature] = useState<HrFeature | null>(null);
   const [mppData, setMppData] = useState<any>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
+  const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [resMpp, resOff] = await Promise.all([
+      const [resMpp, resOff, resCand] = await Promise.all([
         fetch('/api/v1/pre-employment/mpp-summary'),
         fetch('/api/v1/offboarding/initiate'),
+        fetch('/api/v1/recruitment/candidates'),
       ]);
       if (resMpp.ok) {
         const json = await resMpp.json();
@@ -62,6 +64,10 @@ export default function HROperationsPage() {
       if (resOff.ok) {
         const json = await resOff.json();
         setOffboardings(json.data || []);
+      }
+      if (resCand.ok) {
+        const json = await resCand.json();
+        setCandidates(json.data?.candidates || []);
       }
     } catch {
       // fallback
@@ -207,39 +213,6 @@ export default function HROperationsPage() {
       setActionNotice(`Error: ${err.message}`);
     }
   };
-
-  const candidates = [
-    {
-      name: 'Annisa Rahmawati, S.Kom.',
-      code: 'FPTK-2026-ENG-001',
-      dept: 'Core Architecture & DevOps',
-      stage: 'Offer Accepted',
-      stageBg: 'bg-[#e0f2fe] text-[#0369a1]',
-      score: `${mppData?.quality_of_hire?.avg_qoh_score ?? 88.8} QoH`,
-      slaOnTrack: true,
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
-    },
-    {
-      name: 'Bambang Wicaksono, S.T.',
-      code: 'FPTK-2026-HC-002',
-      dept: 'Enterprise Data Ops',
-      stage: 'Background Check',
-      stageBg: 'bg-[#e6f4ea] text-[#137333]',
-      score: '91.0 QoH',
-      slaOnTrack: true,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-    },
-    {
-      name: 'Citra Melinda, CFA',
-      code: 'FPTK-2026-SPI-003',
-      dept: 'Governance & SPI',
-      stage: 'User Interview 2',
-      stageBg: 'bg-[#e0f2fe] text-[#0369a1]',
-      score: '80.0 QoH',
-      slaOnTrack: false,
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
-    },
-  ];
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
@@ -660,45 +633,47 @@ export default function HROperationsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f1f5f9]">
-                  {candidates.map((c, idx) => (
-                    <tr key={idx} className="hover:bg-[#f8fafc] transition-colors">
+                  {candidates.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 px-3 text-center">
+                        <div className="rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] px-4 py-6 text-xs text-[#64748b]">
+                          Belum ada data lamaran. Data tampil otomatis setelah kandidat melamar via portal karir.
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    candidates.map((c: any, idx: number) => (
+                    <tr key={c.id ?? idx} className="hover:bg-[#f8fafc] transition-colors">
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
-                          <img
-                            src={c.avatar}
-                            alt={c.name}
-                            className="h-8 w-8 rounded-full object-cover border border-[#e2e8f0]"
-                          />
+                          <div className="h-8 w-8 rounded-full bg-[#e0f2fe] text-[#0369a1] flex items-center justify-center text-xs font-bold border border-[#e2e8f0]">
+                            {(c.fullName || '?').charAt(0)}
+                          </div>
                           <div>
-                            <p className="font-bold text-[#0f172a]">{c.name}</p>
-                            <p className="text-[10px] text-[#64748b] font-mono">{c.code}</p>
+                            <p className="font-bold text-[#0f172a]">{c.fullName}</p>
+                            <p className="text-[10px] text-[#64748b] font-mono">{c.applicationNo}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-3 text-[#334155] font-medium">
-                        {c.dept}
+                        {c.postingTitle || '-'}
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${c.stageBg}`}>
-                          &bull; {c.stage}
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#e0f2fe] text-[#0369a1]">
+                          &bull; {c.status}
                         </span>
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="font-bold text-[#0f172a] font-mono">{c.score}</span>
+                        <span className="font-bold text-[#0f172a] font-mono">{c.education || '-'}</span>
                       </td>
                       <td className="py-3 px-3 text-right">
-                        {c.slaOnTrack ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#137333]">
-                            <Clock className="h-3 w-3 text-[#137333]" /> On Track
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#dc2626]">
-                            <AlertTriangle className="h-3 w-3 text-[#dc2626]" /> Alert
-                          </span>
-                        )}
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#137333]">
+                          <Clock className="h-3 w-3 text-[#137333]" /> {c.appliedAt ? new Date(c.appliedAt).toLocaleDateString('id-ID') : 'On Track'}
+                        </span>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             )}
