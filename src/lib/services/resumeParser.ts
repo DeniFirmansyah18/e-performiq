@@ -40,6 +40,11 @@ export interface ParsedResume {
   fullName?: string;
   contact: ParsedContact;
   gender?: string;
+  nik?: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
   summary?: string;
   skills: string[];
   educations: ParsedEducation[];
@@ -252,6 +257,26 @@ export function parseResumeHeuristic(rawText: string): ParsedResume {
     gender = /laki|pria|male/i.test(v) ? 'LAKI_LAKI' : 'PEREMPUAN';
   }
 
+  // NIK: 16 digit (opsional dipisah spasi/tanda hubung).
+  let nik: string | undefined;
+  const nikMatch = text.match(/\b(?:nik|no\.?\s*ktp|nomor\s*ktp|ktp)\b\s*:?\s*([0-9][0-9\s-]{13,20}[0-9])/i)
+    ?? text.match(/\b(\d{16})\b/);
+  if (nikMatch) {
+    const digits = nikMatch[1].replace(/\D/g, '');
+    if (digits.length === 16) nik = digits;
+  }
+
+  // Alamat: "alamat: ...", "address: ..." (multi-baris dihentikan oleh heading).
+  const LOCATION_FIELDS = { address: undefined as string | undefined, city: undefined as string | undefined, province: undefined as string | undefined, postalCode: undefined as string | undefined };
+  const addrMatch = text.match(/\b(?:alamat|address|domisili|tempat tinggal)\b\s*:?\s*([^\n]{6,200})/i);
+  if (addrMatch) LOCATION_FIELDS.address = addrMatch[1].trim().replace(/\s{2,}/g, ' ');
+  const cityMatch = text.match(/\b(?:kota|kabupaten|kab\.?|city|domisili)\b\s*:?\s*([A-Za-z][A-Za-z .'-]{2,40})/i);
+  if (cityMatch) LOCATION_FIELDS.city = cityMatch[1].trim();
+  const provMatch = text.match(/\b(?:provinsi|province|propinsi)\b\s*:?\s*([A-Za-z][A-Za-z .'-]{2,40})/i);
+  if (provMatch) LOCATION_FIELDS.province = provMatch[1].trim();
+  const posMatch = text.match(/\b(?:kode pos|kodepos|postal code|zip)\b\s*:?\s*(\d{5})/i) ?? text.match(/\b(\d{5})\b/);
+  if (posMatch) LOCATION_FIELDS.postalCode = posMatch[1];
+
   let summary: string | undefined;
   const summaryMatch = text.match(
     /(?:ringkasan|tentang saya|profil|summary|about me|professional summary)\s*:?\s*\n([\s\S]{40,600}?)(?:\n\s*\n)/i,
@@ -266,6 +291,11 @@ export function parseResumeHeuristic(rawText: string): ParsedResume {
     fullName,
     contact: { email, phone, linkedinUrl, portfolioUrl },
     gender,
+    nik,
+    address: LOCATION_FIELDS.address,
+    city: LOCATION_FIELDS.city,
+    province: LOCATION_FIELDS.province,
+    postalCode: LOCATION_FIELDS.postalCode,
     summary,
     skills,
     educations,
@@ -415,6 +445,12 @@ function buildAiParsePrompt(text: string): string {
     '  "fullName": string|null,\n' +
     '  "email": string|null,\n' +
     '  "phone": string|null,\n' +
+    '  "gender": "LAKI_LAKI"|"PEREMPUAN"|null,\n' +
+    '  "nik": string|null,\n' +
+    '  "address": string|null,\n' +
+    '  "city": string|null,\n' +
+    '  "province": string|null,\n' +
+    '  "postalCode": string|null,\n' +
     '  "summary": string|null,\n' +
     '  "skills": string[],\n' +
     '  "educations": [{ "institution": string, "degree": string, "major": string, "startYear": number, "endYear": number, "gpa": number }],\n' +
@@ -485,6 +521,12 @@ export async function parseResumeWithAi(rawText: string): Promise<ParsedResume |
         email: json.email ?? undefined,
         phone: json.phone ?? undefined,
       },
+      gender: (json.gender === 'LAKI_LAKI' || json.gender === 'PEREMPUAN') ? json.gender : undefined,
+      nik: json.nik ? String(json.nik).replace(/\D/g, '').slice(0, 16) || undefined : undefined,
+      address: json.address ?? undefined,
+      city: json.city ?? undefined,
+      province: json.province ?? undefined,
+      postalCode: json.postalCode ? String(json.postalCode).replace(/\D/g, '').slice(0, 5) || undefined : undefined,
       summary: json.summary ?? undefined,
       skills,
       educations,
@@ -513,6 +555,12 @@ export function mergeParsed(heuristic: ParsedResume, ai: ParsedResume | null): P
       linkedinUrl: heuristic.contact.linkedinUrl,
       portfolioUrl: heuristic.contact.portfolioUrl,
     },
+    gender: heuristic.gender ?? ai.gender,
+    nik: heuristic.nik ?? ai.nik,
+    address: heuristic.address ?? ai.address,
+    city: heuristic.city ?? ai.city,
+    province: heuristic.province ?? ai.province,
+    postalCode: heuristic.postalCode ?? ai.postalCode,
     summary: heuristic.summary ?? ai.summary,
     skills: Array.from(skillSet),
     educations: heuristic.educations.length ? heuristic.educations : ai.educations,

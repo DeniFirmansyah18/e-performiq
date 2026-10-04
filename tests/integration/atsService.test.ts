@@ -85,6 +85,28 @@ describe('WS-4 ATS service', () => {
       const s = extractSkills('Saya menguasai Excel dan berpengalaman dengan Power BI.');
       expect(s).toEqual(expect.arrayContaining(['Excel', 'Power BI']));
     });
+
+    it('mengekstrak jenis kelamin, NIK, dan alamat dari CV', () => {
+      const cv = `Siti Aminah
+siti@example.com | 0812-9999-8888
+Jenis Kelamin: Perempuan
+NIK: 3201234567890002
+Alamat: Jl. Merdeka No. 10, RT 01/RW 02
+Kota: Bandung
+Provinsi: Jawa Barat
+Kode Pos: 40111
+
+RINGKASAN
+HR generalist berpengalaman 4 tahun di bidang rekrutmen dan payroll.
+`;
+      const p = parseResumeHeuristic(cv);
+      expect(p.gender).toBe('PEREMPUAN');
+      expect(p.nik).toBe('3201234567890002');
+      expect(p.address).toContain('Merdeka');
+      expect(p.city).toBe('Bandung');
+      expect(p.province).toBe('Jawa Barat');
+      expect(p.postalCode).toBe('40111');
+    });
   });
 
   describe('computeAtsScore', () => {

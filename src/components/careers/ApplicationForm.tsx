@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import SearchableSelect from '@/components/careers/SearchableSelect';
+import AddressSelect, { emptyAddr, type AddressValue } from '@/components/careers/AddressSelect';
 
 export interface PostingOption { id: string; postingTitle: string }
 
@@ -42,7 +43,8 @@ async function fileToDataUrl(file: File): Promise<string> {
 
 /** Form lamaran lengkap (WS-13): ATS auto-fill, pendidikan, riwayat kerja, sertifikasi, berkas. */
 export default function ApplicationForm({ postings, selectedPosting, onSelectPosting, onSubmitted }: Props) {
-  const [form, setForm] = useState({ fullName: '', email: '', phone: '', address: '', birthDate: '', gender: '', nik: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', phone: '', birthDate: '', gender: '', nik: '' });
+  const [address, setAddress] = useState<AddressValue>(emptyAddr());
   const [educations, setEducations] = useState<Education[]>([emptyEdu()]);
   const [experienceMode, setExperienceMode] = useState<'NONE' | 'MAGANG' | 'KERJA'>('NONE');
   const [experiences, setExperiences] = useState<Experience[]>([]);
@@ -84,8 +86,23 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
       if (!next.email && parsed.contact?.email) { next.email = parsed.contact.email; filled.push('Email'); }
       if (!next.phone && parsed.contact?.phone) { next.phone = parsed.contact.phone; filled.push('Telepon'); }
       if (!next.gender && parsed.gender) { next.gender = parsed.gender; filled.push('Jenis Kelamin'); }
+      if (!next.nik && parsed.nik) { next.nik = parsed.nik; filled.push('NIK'); }
+      if (!next.birthDate && parsed.birthDate) { next.birthDate = parsed.birthDate; filled.push('Tanggal Lahir'); }
       return next;
     });
+    // Alamat dari CV → isi cascade (best-effort; kandidat dapat sesuaikan).
+    const hasAddr = parsed.address || parsed.city || parsed.province || parsed.postalCode;
+    if (hasAddr) {
+      setAddress((a) => ({
+        address: a.address || parsed.address || '',
+        province: a.province || parsed.province || '',
+        city: a.city || parsed.city || '',
+        district: a.district || '',
+        village: a.village || '',
+        postalCode: a.postalCode || parsed.postalCode || '',
+      }));
+      filled.push('Alamat');
+    }
     if (Array.isArray(parsed.educations) && parsed.educations.length > 0) {
       setEducations(parsed.educations.slice(0, 5).map((e: any) => ({
         level: e.level ?? e.degree ?? '', institution: e.institution ?? '', institutionCode: '', institutionExternalId: '',
@@ -136,6 +153,8 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
     setMsg(null); setBusy(true);
     const payload = {
       ...form,
+      address: [address.address, address.village, address.district, address.city, address.province, address.postalCode]
+        .map((s) => String(s ?? '').trim()).filter(Boolean).join(', ') || null,
       birthDate: form.birthDate || undefined,
       jobPostingId: selectedPosting,
       resumeText: upload?.extracted ? upload.rawText : undefined,
@@ -220,7 +239,7 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
         </label>
         {field('nik', 'NIK (opsional)')}
       </div>
-      {field('address', 'Alamat')}
+      <AddressSelect value={address} onChange={setAddress} />
       {/* ==== PENDIDIKAN ==== */}
       <div className="p-3 rounded-xl border border-[#e2e8f0] space-y-3">
         <div className="flex items-center justify-between">
