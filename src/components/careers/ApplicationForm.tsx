@@ -13,7 +13,7 @@ interface Props {
 }
 
 interface Education {
-  level: string; institution: string; institutionCode: string; major: string;
+  level: string; institution: string; institutionCode: string; institutionExternalId: string; major: string;
   startYear: string; endYear: string; graduationStatus: string; gpa: string;
 }
 interface Experience {
@@ -24,7 +24,7 @@ interface Certification {
   kind: string; name: string; issuer: string; issuedDate: string; expiryDate: string; proofUrl: string; proofName: string;
 }
 
-const emptyEdu = (): Education => ({ level: '', institution: '', institutionCode: '', major: '', startYear: '', endYear: '', graduationStatus: 'LULUS', gpa: '' });
+const emptyEdu = (): Education => ({ level: '', institution: '', institutionCode: '', institutionExternalId: '', major: '', startYear: '', endYear: '', graduationStatus: 'LULUS', gpa: '' });
 const emptyExp = (): Experience => ({ experienceType: 'KERJA', roleTitle: '', company: '', location: '', startMonth: '', startYear: '', endMonth: '', endYear: '', isCurrent: false });
 const emptyCert = (): Certification => ({ kind: 'CERTIFICATION', name: '', issuer: '', issuedDate: '', expiryDate: '', proofUrl: '', proofName: '' });
 
@@ -56,7 +56,22 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [autoFilled, setAutoFilled] = useState<string[]>([]);
+  const [ptInfo, setPtInfo] = useState<Record<string, { loading: boolean; detail?: any; prodi?: any[] }>>({});
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /** Ambil detail PT (+prodi) dari scraper PDDikti lewat proxy server (best-effort). */
+  const loadPtInfo = async (key: string, id: string) => {
+    if (!id) return;
+    setPtInfo((s) => ({ ...s, [key]: { loading: true } }));
+    try {
+      const res = await fetch(`/api/v1/reference/pt/${encodeURIComponent(id)}?withProdi=1`);
+      const j = await res.json().catch(() => ({}));
+      const data = j?.data ?? {};
+      setPtInfo((s) => ({ ...s, [key]: { loading: false, detail: data.detail ?? null, prodi: data.prodi ?? [] } }));
+    } catch {
+      setPtInfo((s) => ({ ...s, [key]: { loading: false } }));
+    }
+  };
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -73,7 +88,7 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
     });
     if (Array.isArray(parsed.educations) && parsed.educations.length > 0) {
       setEducations(parsed.educations.slice(0, 5).map((e: any) => ({
-        level: e.level ?? e.degree ?? '', institution: e.institution ?? '', institutionCode: '',
+        level: e.level ?? e.degree ?? '', institution: e.institution ?? '', institutionCode: '', institutionExternalId: '',
         major: e.major ?? '', startYear: e.startYear ? String(e.startYear) : '',
         endYear: e.endYear ? String(e.endYear) : '', graduationStatus: 'LULUS', gpa: e.gpa ? String(e.gpa) : '',
       })));
@@ -223,8 +238,32 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
             <label className="text-[11px] text-[#334155] sm:col-span-2"><span className="font-semibold">Sekolah / Kampus</span>
               <SearchableSelect value={edu.institution} placeholder="Cari sekolah/kampus…"
                 fetchUrl={(q) => `/api/v1/reference/institutions?q=${encodeURIComponent(q)}`}
-                mapOptions={(rows) => rows.map((r) => ({ label: r.name, sublabel: [r.level, r.city, r.province].filter(Boolean).join(' · '), value: r.name, code: r.code }))}
-                onChange={(v, o) => setEducations((a) => a.map((x, j) => j === i ? { ...x, institution: v, institutionCode: o?.code ?? x.institutionCode } : x))} /></label>
+                mapOptions={(rows) => rows.map((r) => ({ label: r.name, sublabel: [r.level, r.city, r.province].filter(Boolean).join(' · '), value: r.name, code: r.code, externalId: r.externalId }))}
+                onChange={(v, o) => {
+                  setEducations((a) => a.map((x, j) => j === i ? { ...x, institution: v, institutionCode: o?.code ?? x.institutionCode, institutionExternalId: o?.externalId ?? '' } : x));
+                  if (o?.externalId) loadPtInfo(String(i), o.externalId);
+                  else setPtInfo((s) => { const n = { ...s }; delete n[String(i)]; return n; });
+                }} /></label>
+            {ptInfo[String(i)] && (
+              <div className="sm:col-span-3 text-[10px] text-[#475569] rounded-lg border border-indigo-100 bg-indigo-50/60 px-2 py-1.5">
+                {ptInfo[String(i)].loading && <span>Memuat info kampus dari PDDikti…</span>}
+                {!ptInfo[String(i)].loading && ptInfo[String(i)].detail && (
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-[#0f172a]">{ptInfo[String(i)].detail?.nama_pt}</p>
+                    <p className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {ptInfo[String(i)].detail?.status_pt && <span>Status: <b>{ptInfo[String(i)].detail.status_pt}</b></span>}
+                      {ptInfo[String(i)].detail?.akreditasi_pt && <span>Akreditasi: <b>{ptInfo[String(i)].detail.akreditasi_pt}</b></span>}
+                      {ptInfo[String(i)].detail?.provinsi_pt && <span>{ptInfo[String(i)].detail.provinsi_pt}</span>}
+                    </p>
+                    {ptInfo[String(i)].prodi && ptInfo[String(i)].prodi!.length > 0 && (
+                      <p>Prodi: {ptInfo[String(i)].prodi!.slice(0, 6).map((p) => p.nama_prodi).filter(Boolean).join(', ')}
+                        {ptInfo[String(i)].prodi!.length > 6 ? ` +${ptInfo[String(i)].prodi!.length - 6} lainnya` : ''}</p>
+                    )}
+                  </div>
+                )}
+                {!ptInfo[String(i)].loading && !ptInfo[String(i)].detail && <span>Info kampus tidak tersedia (offline).</span>}
+              </div>
+            )}
             <label className="text-[11px] text-[#334155]"><span className="font-semibold">Jurusan / Prodi</span>
               <SearchableSelect value={edu.major} placeholder="Cari jurusan…"
                 fetchUrl={(q) => `/api/v1/reference/majors?q=${encodeURIComponent(q)}`}

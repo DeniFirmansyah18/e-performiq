@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-interface Option { label: string; sublabel?: string; value: string; code?: string | null }
+interface Option { label: string; sublabel?: string; value: string; code?: string | null; externalId?: string | null }
 
 interface SearchableSelectProps {
   value: string;

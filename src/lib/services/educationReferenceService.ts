@@ -21,7 +21,20 @@ export interface InstitutionResult {
   code: string | null;       // NPSN / kode PT
   city: string | null;
   province: string | null;
+  externalId?: string | null; // ID base64url dari PDDikti (untuk detail/prodi via scraper)
   source: 'LOCAL' | 'API';
+}
+
+/**
+ * Base URL layanan scraper PDDikti milik sendiri (FastAPI: pddikti-pt-api).
+ * Endpoint: GET {base}/api/pt/search?q=... , /api/pt/{id}, /api/pt/{id}/prodi.
+ * Kosong/mati → langsung jatuh ke sumber resmi PDDikti & fallback lokal.
+ * Set via env PDDIKTI_API_URL, mis. http://127.0.0.1:8000 (default) atau
+ * https://pddikti-pt-api.contoh.com untuk deployment.
+ */
+function scraperBaseUrl(): string | null {
+  const raw = (process.env.PDDIKTI_API_URL ?? '').trim();
+  return raw ? raw.replace(/\/+$/, '') : null;
 }
 
 async function fetchJson(url: string, timeoutMs = 4000): Promise<any | null> {
@@ -48,11 +61,47 @@ export function guessLevel(name: string): string | null {
 }
 
 /**
- * Cari perguruan tinggi (PT) dari API PDDIKTI (Kemdikbud) — sumber resmi.
- * Endpoint publik PDDIKTI: GET /api/pencarian/universitas/{keyword}
- * Disediakan beberapa mirror/gateway sebagai fallback (best-effort).
+ * Cari perguruan tinggi (PT) — prioritas:
+ *  1) Scraper API sendiri (pddikti-pt-api) via env PDDIKTI_API_URL.
+ *  2) Endpoint resmi PDDikti (bila reachable).
+ *  3) Gateway komunitas (best-effort).
+ * Semua best-effort + timeout; bila kosong → pemanggil memakai fallback lokal.
  */
 async function searchCampusesApi(q: string): Promise<InstitutionResult[]> {
+  const fromScraper = await searchCampusesScraper(q);
+  if (fromScraper.length > 0) return fromScraper;
+  return searchCampusesOfficial(q);
+}
+
+/**
+ * Sumber utama: scraper API sendiri (FastAPI `pddikti-pt-api`).
+ * Respons: { ok, source, data: [{ id, kode, nama, nama_singkat }], meta }.
+ */
+async function searchCampusesScraper(q: string): Promise<InstitutionResult[]> {
+  const base = scraperBaseUrl();
+  if (!base) return [];
+  const json = await fetchJson(`${base}/api/pt/search?q=${encodeURIComponent(q)}`, 8000);
+  const arr = pickCampusArray(json);
+  if (!arr || arr.length === 0) return [];
+  return arr
+    .slice(0, 12)
+    .map((x: any) => ({
+      name: String(x.nama ?? x.nama_pt ?? x.name ?? '').trim(),
+      level: 'PT',
+      code: x.kode != null ? String(x.kode) : (x.kode_pt ?? null),
+      city: x.kab_kota_pt ?? x.kota ?? null,
+      province: x.provinsi_pt ?? x.province ?? null,
+      externalId: x.id != null ? String(x.id) : null,
+      source: 'API' as const,
+    }))
+    .filter((x: InstitutionResult) => !!x.name);
+}
+
+/**
+ * Sumber resmi PDDikti — endpoint publik (butuh clearance Cloudflare).
+ * Disediakan beberapa varian path/mirror sebagai fallback (best-effort).
+ */
+async function searchCampusesOfficial(q: string): Promise<InstitutionResult[]> {
   const enc = encodeURIComponent(q);
   const urls = [
     // Resmi PDDIKTI
@@ -245,6 +294,42 @@ async function cacheInstitutions(db: Db, items: InstitutionResult[]): Promise<vo
       `);
     } catch { /* abaikan */ }
   }
+}
+
+/** Detail PT + daftar prodi dari scraper API (best-effort). */
+export interface PtDetail {
+  detail: Record<string, any> | null;
+  prodi: Array<Record<string, any>>;
+  source: 'SCRAPER' | 'NONE';
+}
+
+/**
+ * Ambil detail sebuah perguruan tinggi (dan opsional daftar prodi) dari
+ * scraper API sendiri. `id` adalah ID base64url dari hasil pencarian.
+ * Mengembalikan { detail: null, prodi: [] } bila scraper tak dikonfigurasi/down.
+ */
+export async function getPtDetail(
+  id: string,
+  opts: { withProdi?: boolean; tahun?: string } = {},
+): Promise<PtDetail> {
+  const base = scraperBaseUrl();
+  const clean = String(id ?? '').trim();
+  if (!base || !clean) return { detail: null, prodi: [], source: 'NONE' };
+
+  const withProdi = opts.withProdi ? '?with_prodi=1' : '';
+  const json = await fetchJson(`${base}/api/pt/${encodeURIComponent(clean)}${withProdi}`, 8000);
+  if (!json || json.ok === false) return { detail: null, prodi: [], source: 'NONE' };
+
+  const detail = (json.data ?? null) as Record<string, any> | null;
+  let prodi: Array<Record<string, any>> = Array.isArray(json.prodi) ? json.prodi : [];
+
+  // Bila minta prodi tapi belum ikut, panggil endpoint prodi terpisah.
+  if (opts.withProdi && prodi.length === 0) {
+    const tahun = opts.tahun ? `?tahun=${encodeURIComponent(opts.tahun)}` : '';
+    const pj = await fetchJson(`${base}/api/pt/${encodeURIComponent(clean)}/prodi${tahun}`, 8000);
+    if (pj && Array.isArray(pj.data)) prodi = pj.data;
+  }
+  return { detail, prodi, source: 'SCRAPER' };
 }
 
 /** Cari jurusan / program studi (lokal + cadangan statis). */
