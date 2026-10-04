@@ -73,6 +73,20 @@ describe('WS-13 lamaran lengkap + referensi pendidikan + notifikasi', () => {
       expect(inst.some((i) => /universitas indonesia/i.test(i.name))).toBe(true);
     });
 
+    it('searchInstitutions menemukan SMA/SMK dari seed lokal (fallback sekolah)', async () => {
+      const inst = await searchInstitutions(db, 'SMAN 8 Jakarta');
+      expect(inst.some((i) => /sman 8 jakarta/i.test(i.name))).toBe(true);
+      const sma = inst.find((i) => /sman 8 jakarta/i.test(i.name))!;
+      expect(sma.level).toBe('SMA/SMK');
+    });
+
+    it('searchInstitutions query SMK mengembalikan jenjang SMA/SMK', async () => {
+      const inst = await searchInstitutions(db, 'SMKN 2 Surabaya');
+      const smk = inst.find((i) => /smkn 2 surabaya/i.test(i.name));
+      expect(smk).toBeTruthy();
+      expect(smk!.level).toBe('SMA/SMK');
+    });
+
     it('searchInstitutions query < 2 huruf → kosong', async () => {
       expect(await searchInstitutions(db, 'a')).toEqual([]);
     });

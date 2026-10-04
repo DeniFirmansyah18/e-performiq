@@ -1,7 +1,7 @@
 /**
  * Seed referensi pendidikan (WS-13) — jurusan umum + contoh institusi.
- * Data ini sebagai FALLBACK lokal; pencarian dapat diperkaya dari API publik
- * (api-sekolah-indonesia untuk sekolah; PDDIKTI/Sivitas untuk kampus).
+ * Data ini sebagai FALLBACK lokal; pencarian dapat diperkaya dari API resmi
+ * (sekolah: Data Referensi / "Sekolah Kita" Kemendikdasmen; kampus: PDDIKTI).
  */
 
 export const SEED_MAJORS: Array<{ name: string; groupName: string }> = [

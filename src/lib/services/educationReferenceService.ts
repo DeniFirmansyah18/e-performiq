@@ -3,8 +3,10 @@
  * dan jurusan / program studi untuk dropdown kandidat.
  *
  * Sumber:
- *  - Sekolah: API publik gratis `api-sekolah-indonesia.vercel.app` (tanpa key).
- *  - Kampus:  PDDIKTI via gateway komunitas `api-pddikti.vercel.app` (best-effort, tanpa key).
+ *  - Sekolah: Data Referensi / "Sekolah Kita" Kemendikdasmen
+ *             (`referensi.data.kemdikbud.go.id` — sumber resmi, tanpa key).
+ *             Fallback: API publik `api-sekolah-indonesia.vercel.app`.
+ *  - Kampus:  PDDIKTI (`api-pddikti.kemdikbud.go.id`) + gateway komunitas (best-effort).
  *  - Fallback lokal: tabel `education_institutions` + `education_majors` (selalu tersedia).
  *
  * Prinsip: TIDAK boleh memblokir UI. Bila API eksternal lambat/mati → kembalikan
@@ -93,14 +95,86 @@ function mapCampus(x: any): InstitutionResult {
   };
 }
 
-/** Cari sekolah (SD/SMP/SMA/SMK) dari API publik (best-effort). */
+/**
+ * Cari sekolah (SD/SMP/SMA/SMK) — PRIORITAS sumber resmi "Sekolah Kita"
+ * (Data Referensi Kemendikdasmen): `referensi.data.kemdikbud.go.id`.
+ * Bila tak tersedia → fallback ke API publik `api-sekolah-indonesia.vercel.app`.
+ */
 async function searchSchoolsApi(q: string): Promise<InstitutionResult[]> {
+  const primary = await searchSchoolsKemendikdasmen(q);
+  if (primary.length > 0) return primary;
+  return searchSchoolsIndoApi(q);
+}
+
+/**
+ * Sumber resmi: Data Referensi / Sekolah Kita (Kemendikdasmen).
+ * Endpoint pencarian: GET /pencarian?q={keyword} (mengembalikan JSON bila diminta).
+ * Disediakan beberapa varian path/mirror; toleran terhadap variasi bentuk respons.
+ */
+async function searchSchoolsKemendikdasmen(q: string): Promise<InstitutionResult[]> {
+  const enc = encodeURIComponent(q);
+  const urls = [
+    `https://referensi.data.kemdikbud.go.id/pencarian?q=${enc}`,
+    `https://referensi.data.kemdikbud.go.id/sekolah/search?keyword=${enc}`,
+    `https://sekolah.data.kemdikbud.go.id/api/sekolah?keyword=${enc}&limit=10`,
+    `https://sekolah.data.kemdikbud.go.id/pencarian?q=${enc}`,
+  ];
+  for (const url of urls) {
+    const json = await fetchJson(url, 6000);
+    const arr = pickSchoolArray(json);
+    if (arr && arr.length > 0) {
+      const mapped = arr.slice(0, 10).map(mapKemendikdasmenSchool).filter((x) => !!x.name);
+      if (mapped.length > 0) return mapped;
+    }
+  }
+  return [];
+}
+
+/** Ambil array data sekolah dari berbagai bentuk respons Data Referensi. */
+function pickSchoolArray(json: any): any[] | null {
+  if (!json) return null;
+  if (Array.isArray(json)) return json;
+  for (const k of ['data', 'result', 'results', 'sekolah', 'list', 'items', 'rows', 'dataSekolah']) {
+    if (Array.isArray(json[k])) return json[k];
+    if (json[k] && Array.isArray(json[k].data)) return json[k].data;
+    if (json[k] && Array.isArray(json[k].rows)) return json[k].rows;
+  }
+  return null;
+}
+
+/** Petakan objek sekolah Data Referensi → InstitutionResult (toleran variasi field). */
+function mapKemendikdasmenSchool(x: any): InstitutionResult {
+  const name = String(
+    x.nama_sekolah ?? x.nama ?? x.sekolah ?? x.name ?? x.nama_satuan_pendidikan ?? '',
+  ).trim();
+  const bentuk = x.bentuk_pendidikan ?? x.bentuk ?? x.jenjang ?? null;
+  return {
+    name,
+    level: bentuk ? normalizeSchoolLevel(String(bentuk)) : guessLevel(name),
+    code: x.npsn != null ? String(x.npsn) : (x.kode_sekolah ?? x.kode ?? null),
+    city: x.kabupaten_kota ?? x.kabupaten ?? x.kota ?? x.kecamatan ?? null,
+    province: x.propinsi ?? x.provinsi ?? x.province ?? null,
+    source: 'API' as const,
+  };
+}
+
+/** Normalisasi label bentuk pendidikan Kemendikdasmen → jenjang ringkas. */
+function normalizeSchoolLevel(bentuk: string): string | null {
+  const b = bentuk.trim().toUpperCase();
+  if (b.includes('SD') || b.includes('MI') || b.includes('SEKOLAH DASAR')) return 'SD';
+  if (b.includes('SMP') || b.includes('MTS') || b.includes('MENENGAH PERTAMA')) return 'SMP';
+  if (b.includes('SMA') || b.includes('SMK') || b.includes('MA') || b.includes('MENENGAH ATAS')) return 'SMA/SMK';
+  return guessLevel(bentuk);
+}
+
+/** Fallback: API publik `api-sekolah-indonesia.vercel.app` (best-effort). */
+async function searchSchoolsIndoApi(q: string): Promise<InstitutionResult[]> {
   const json = await fetchJson(`https://api-sekolah-indonesia.vercel.app/sekolah/s?sekolah=${encodeURIComponent(q)}&perPage=10`);
   const arr = json?.dataSekolah ?? json?.data ?? null;
   if (!Array.isArray(arr)) return [];
   return arr.slice(0, 10).map((x: any) => ({
     name: String(x.sekolah ?? '').trim(),
-    level: x.bentuk ?? guessLevel(String(x.sekolah ?? '')),
+    level: x.bentuk ? normalizeSchoolLevel(String(x.bentuk)) : guessLevel(String(x.sekolah ?? '')),
     code: x.npsn ?? null,
     city: x.kabupaten_kota ?? null,
     province: x.propinsi ?? null,
