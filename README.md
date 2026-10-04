@@ -46,8 +46,28 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `GROQ_MODEL` | Model Groq (default `openai/gpt-oss-120b`). Daftar aktif: console.groq.com/docs/models. |
 | `OPENROUTER_API_KEY` | Kunci API OpenRouter (agregator banyak model, ada `:free`). **Opsional.** |
 | `OPENROUTER_MODEL` | Model OpenRouter (default `qwen/qwen3.8-27b:free`). |
+| `EMAIL_PROVIDER` | Provider email notifikasi: `resend` \| `webhook`. Kosong = nonaktif (notifikasi tetap in-app + outbox). **Opsional.** |
+| `EMAIL_FROM` | Alamat pengirim email (mis. `E-PerformIQ <onboarding@resend.dev>`). Domain harus terverifikasi di provider. |
+| `RESEND_API_KEY` | Kunci Resend untuk kirim email sungguhan (https://resend.com/api-keys). **Opsional.** |
+| `EMAIL_WEBHOOK_URL` | Gateway SMTP/HTTP generik (menerima POST JSON `{to,subject,text,html,from}`). **Opsional.** |
+| `EMAIL_WEBHOOK_AUTH` | Header `Authorization` opsional untuk webhook. |
 
 > Salin `.env.example` menjadi `.env.local` untuk memulai.
+
+### Mengaktifkan pengiriman email
+Secara default **email nonaktif** — notifikasi progress lamaran tetap tampil in-app (bell di portal kandidat) dan tercatat di tabel `email_outbox` (status `QUEUED`). Untuk benar-benar mengirim email:
+
+1. Isi `.env.local` (atau Environment Variables di Vercel):
+   ```env
+   EMAIL_PROVIDER=resend
+   EMAIL_FROM=E-PerformIQ <onboarding@resend.dev>
+   RESEND_API_KEY=re_xxxxxxxxxxxxxxxx
+   ```
+2. Verifikasi status: `GET /api/v1/careers/notifications/config` → `provider: "resend"`.
+3. Uji kirim: `POST /api/v1/careers/notifications/config` dengan body `{ "to": "email@anda.com" }` (sertakan cookie sesi kandidat).
+4. Cek tabel `email_outbox`: `status` berubah `QUEUED → SENT` (atau `FAILED` + kolom `error`).
+
+> Untuk uji cepat Resend tanpa domain sendiri, gunakan `onboarding@resend.dev` — Resend hanya mengizinkan kirim ke email pemilik akun.
 
 ## Fitur AI (provider-agnostic: Gemini, Groq & OpenRouter, opsional)
 - **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI"

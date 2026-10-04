@@ -22,7 +22,45 @@ export interface EmailMessage {
 }
 
 function fromAddress(): string {
-  return process.env.EMAIL_FROM || 'E-PerformIQ <noreply@eperformiq.co.id>';
+  return process.env.EMAIL_FROM || 'E-PerformIQ <onboarding@resend.dev>';
+}
+
+/** Provider email aktif berdasarkan env. */
+export function activeEmailProvider(): 'resend' | 'webhook' | 'none' {
+  const explicit = (process.env.EMAIL_PROVIDER || '').toLowerCase();
+  if (explicit === 'resend') return process.env.RESEND_API_KEY ? 'resend' : 'none';
+  if (explicit === 'webhook') return process.env.EMAIL_WEBHOOK_URL ? 'webhook' : 'none';
+  // Auto-detect bila tidak diset eksplisit.
+  if (process.env.RESEND_API_KEY) return 'resend';
+  if (process.env.EMAIL_WEBHOOK_URL) return 'webhook';
+  return 'none';
+}
+
+/** Status konfigurasi email (tanpa membocorkan rahasia) — untuk diagnosa. */
+export function emailConfigStatus() {
+  return {
+    provider: activeEmailProvider(),
+    from: fromAddress(),
+    resendConfigured: !!process.env.RESEND_API_KEY,
+    webhookConfigured: !!process.env.EMAIL_WEBHOOK_URL,
+    note: activeEmailProvider() === 'none'
+      ? 'Email nonaktif: notifikasi tetap tampil in-app dan tercatat di email_outbox (QUEUED).'
+      : 'Email aktif: notifikasi akan dikirim melalui provider di atas.',
+  };
+}
+
+/** Bungkus body teks menjadi HTML sederhana yang aman. */
+export function toEmailHtml(subject: string, body: string): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const paragraphs = esc(body).split(/\n{2,}/).map((p) => `<p style="margin:0 0 12px">${p.replace(/\n/g, '<br/>')}</p>`).join('');
+  return `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;padding:24px">
+    <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px">
+      <h2 style="font-size:16px;margin:0 0 16px;color:#0f172a">${esc(subject)}</h2>
+      ${paragraphs}
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0"/>
+      <p style="font-size:11px;color:#94a3b8;margin:0">Email otomatis dari E-PerformIQ. Mohon tidak membalas.</p>
+    </div>
+  </body></html>`;
 }
 
 /**
@@ -30,12 +68,15 @@ function fromAddress(): string {
  * via Resend bila dikonfigurasi.
  */
 export async function sendEmail(db: Db, msg: EmailMessage): Promise<{ id: string | null; status: string }> {
+  const provider = activeEmailProvider();
+  const html = msg.html ?? toEmailHtml(msg.subject, msg.body);
+
   // 1) Selalu catat ke outbox (audit + fallback antrean).
   let outboxId: string | null = null;
   try {
     const res = (await db.execute(sql`
       INSERT INTO email_outbox (recipient, subject, body, status, provider, related_application_id)
-      VALUES (${msg.to}, ${msg.subject}, ${msg.body}, 'QUEUED', ${process.env.RESEND_API_KEY ? 'RESEND' : null},
+      VALUES (${msg.to}, ${msg.subject}, ${msg.body}, 'QUEUED', ${provider === 'none' ? null : provider.toUpperCase()},
               ${msg.applicationId ?? null}::uuid)
       RETURNING id
     `)) as unknown as { rows: Array<{ id: string }> };
@@ -44,22 +85,31 @@ export async function sendEmail(db: Db, msg: EmailMessage): Promise<{ id: string
     return { id: null, status: 'QUEUED' };
   }
 
-  // 2) Kirim via Resend bila tersedia.
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { id: outboxId, status: 'QUEUED' };
+  // 2) Kirim bila provider dikonfigurasi.
+  if (provider === 'none') return { id: outboxId, status: 'QUEUED' };
 
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ from: fromAddress(), to: [msg.to], subject: msg.subject, text: msg.body, html: msg.html }),
-    });
+    const resp = provider === 'resend'
+      ? await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+          body: JSON.stringify({ from: fromAddress(), to: [msg.to], subject: msg.subject, text: msg.body, html }),
+        })
+      : await fetch(process.env.EMAIL_WEBHOOK_URL as string, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.EMAIL_WEBHOOK_AUTH ? { Authorization: process.env.EMAIL_WEBHOOK_AUTH } : {}),
+          },
+          body: JSON.stringify({ from: fromAddress(), to: msg.to, subject: msg.subject, text: msg.body, html }),
+        });
+
     if (resp.ok) {
       await updateOutbox(db, outboxId, 'SENT', null);
       return { id: outboxId, status: 'SENT' };
     }
     const detail = await resp.text().catch(() => '');
-    await updateOutbox(db, outboxId, 'FAILED', `Resend ${resp.status}: ${detail.slice(0, 300)}`);
+    await updateOutbox(db, outboxId, 'FAILED', `${provider} ${resp.status}: ${detail.slice(0, 300)}`);
     return { id: outboxId, status: 'FAILED' };
   } catch (err) {
     await updateOutbox(db, outboxId, 'FAILED', (err as Error)?.message ?? 'network');
