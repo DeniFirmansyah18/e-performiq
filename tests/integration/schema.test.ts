@@ -4,7 +4,7 @@ import { createTestDb } from '../setup';
 
 const EXPECTED_TABLES = [
   'appraisal_periods', 'attendance_records', 'audit_logs', 'badge_awards', 'badge_criteria', 'badges', 'candidates', 'career_path_levels', 'certificates', 'companies', 'company_vision_mission', 'competencies', 'competency_evidence', 'competency_frameworks', 'competency_scores', 'course_competencies', 'course_completions', 'course_modules',
-  'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees',
+  'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employee_registrations', 'employees',
   'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'industry_benchmarks', 'internal_applications',
   'interview_slots', 'job_applications', 'job_positions', 'job_postings',
   'knowledge_handovers', 'kpi_evidence_attachments', 'learning_plan_items', 'learning_plans', 'leave_requests', 'lifetime_contributions',
@@ -41,7 +41,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 79 tabel di schema public (baseline + 0011..0018)', async () => {
+  it('membuat tepat 80 tabel di schema public (baseline + 0011..0019)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -52,13 +52,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 29 enum (baseline 18 + 3 + 3 + 1 + 1 + 2 + 1)', async () => {
+  it('membuat 30 enum (baseline 18 + 3 + 3 + 1 + 1 + 2 + 1 + 1)', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(29);
+    expect(Number(res.rows[0].count)).toBe(30);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {
