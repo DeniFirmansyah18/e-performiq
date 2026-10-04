@@ -72,13 +72,4 @@ describe('seed data', () => {
       expect(Number(res.rows[0].count)).toBeGreaterThan(0);
     }
   });
-
-  it('akun demo login sinkron dengan email seed', async () => {
-    const { DEMO_LOGIN_ACCOUNTS } = await import('@/lib/dummy-data');
-    const seedEmails = new Set(SEED_USER_EMAILS.map((u) => u.email));
-    for (const acc of DEMO_LOGIN_ACCOUNTS) {
-      expect(seedEmails.has(acc.email)).toBe(true);
-    }
-    expect(DEMO_LOGIN_ACCOUNTS.length).toBeGreaterThanOrEqual(7);
-  });
 });

@@ -18,7 +18,9 @@ npm run db:reset      # buat + migrasi + seed database .pglite/ dari nol
 npm run dev           # http://localhost:3000
 ```
 
-### Akun demo (password seragam: `enterprise2026`)
+### Akun Uji (Development)
+
+Setelah `npm run db:reset`, gunakan akun seed berikut (halaman **/login** karyawan, password seragam: `enterprise2026`):
 | Role | Email |
 | --- | --- |
 | BOD | hendra.gunawan@eperformiq.co.id |
@@ -29,7 +31,7 @@ npm run dev           # http://localhost:3000
 | SUPER_ADMIN | admin@eperformiq.co.id |
 | ASSESSOR | aris.assessor@eperformiq.co.id |
 
-Halaman login juga menyediakan quick-login 1-klik untuk tiap role.
+Kandidat mendaftar/login via **/careers/register** dan **/careers/login** (cookie terpisah).
 PIN slip gaji demo (semua karyawan): `123456`.
 
 ## Environments
@@ -206,7 +208,7 @@ npm run db:seed:pg
 4. Klik **Deploy**.
 
 ### 4. Verifikasi pasca-deploy
-- Buka `https://<project>.vercel.app/login` → login demo (mis. `budi.pratama@eperformiq.co.id` / `enterprise2026`).
+- Buka `https://<project>.vercel.app/login` → login dengan akun seed (mis. `budi.pratama@eperformiq.co.id` / `enterprise2026`).
 - Pastikan dashboard memuat data (bukan error DB).
 
 ### Mode CLI (opsional, jika memakai Vercel CLI)
