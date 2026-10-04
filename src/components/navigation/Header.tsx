@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
-import { DEMO_LOGIN_ACCOUNTS } from '@/lib/dummy-data';
 import UserGuideModal from '@/components/guide/UserGuideModal';
 import NavMenu from '@/components/navigation/NavMenu';
 import AiChatDrawer from '@/components/navigation/AiChatDrawer';
@@ -21,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function Header() {
-  const { currentUser, activeRole, switchRole, activePeriod, setActivePeriod, logout } = useAuth();
+  const { currentUser, activePeriod, setActivePeriod, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -145,29 +144,14 @@ export default function Header() {
               </div>
 
               <div className="py-2">
-                <p className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Beralih Role (Demo Switcher):
-                </p>
-                {DEMO_LOGIN_ACCOUNTS.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => {
-                      switchRole(u.role);
-                      setIsProfileOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                      activeRole === u.role
-                        ? 'bg-[#007a5a] text-white font-semibold'
-                        : 'text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div>
-                      <p className="text-xs">{u.name}</p>
-                      <p className="text-[10px] opacity-70 truncate max-w-[170px]">{u.position}</p>
-                    </div>
-                    {activeRole === u.role && <UserCheck className="h-3.5 w-3.5 flex-shrink-0" />}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-left text-xs"
+                >
+                  <UserCheck className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Profil: {currentUser.role}</span>
+                </button>
               </div>
 
               <div className="pt-2 border-t border-slate-800">
