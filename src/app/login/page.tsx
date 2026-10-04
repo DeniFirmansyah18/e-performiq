@@ -173,7 +173,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-[#f1f5f9] text-center">
+          <div className="pt-4 border-t border-[#f1f5f9] text-center space-y-2">
+            <p className="text-[11px] text-[#64748b]">
+              Belum punya akun karyawan?{' '}
+              <a href="/employee/register" className="font-semibold text-[#007a5a] hover:underline">
+                Daftar mandiri di sini
+              </a>
+            </p>
             <p className="text-[11px] text-[#64748b]">
               Dilindungi enkripsi AES-256 &amp; TLS 1.3 sesuai Standar Kepatuhan OJK/GCG &amp; KNKG RI.
             </p>
