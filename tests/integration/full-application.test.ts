@@ -48,6 +48,26 @@ describe('WS-13 lamaran lengkap + referensi pendidikan + notifikasi', () => {
       expect(majors.length).toBeGreaterThanOrEqual(10);
     });
 
+    it('searchInstitutions menemukan universitas dari seed PDDIKTI (PT)', async () => {
+      const inst = await searchInstitutions(db, 'universitas gadjah');
+      expect(inst.some((i) => /gadjah mada/i.test(i.name))).toBe(true);
+      expect(inst[0].level).toBe('PT');
+    });
+
+    it('searchInstitutions institut teknologi menemukan ITB & ITS', async () => {
+      const inst = await searchInstitutions(db, 'institut teknologi');
+      const names = inst.map((i) => i.name.toLowerCase());
+      expect(names.some((n) => n.includes('teknologi bandung'))).toBe(true);
+      expect(names.some((n) => n.includes('sepuluh nopember'))).toBe(true);
+    });
+
+    it('searchInstitutions mengembalikan kode PT (kode PDDIKTI) bila ada', async () => {
+      const inst = await searchInstitutions(db, 'universitas indonesia');
+      const ui = inst.find((i) => /^universitas indonesia$/i.test(i.name));
+      expect(ui).toBeTruthy();
+      expect(ui!.code).toBeTruthy();
+    });
+
     it('searchInstitutions mengembalikan institusi lokal (fallback) walau API eksternal tak tersedia', async () => {
       const inst = await searchInstitutions(db, 'Universitas Indonesia');
       expect(inst.some((i) => /universitas indonesia/i.test(i.name))).toBe(true);

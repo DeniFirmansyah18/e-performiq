@@ -45,29 +45,52 @@ export function guessLevel(name: string): string | null {
   return null;
 }
 
-/** Cari perguruan tinggi (PT) dari PDDIKTI gateway (best-effort). */
+/**
+ * Cari perguruan tinggi (PT) dari API PDDIKTI (Kemdikbud) — sumber resmi.
+ * Endpoint publik PDDIKTI: GET /api/pencarian/universitas/{keyword}
+ * Disediakan beberapa mirror/gateway sebagai fallback (best-effort).
+ */
 async function searchCampusesApi(q: string): Promise<InstitutionResult[]> {
-  // Endpoint pencarian kampus (gateway komunitas). Bentuk respons dapat bervariasi;
-  // kita tangani beberapa kemungkinan bentuk dengan aman.
+  const enc = encodeURIComponent(q);
   const urls = [
-    `https://api-pddikti.vercel.app/api/v1/pencarian/universitas?query=${encodeURIComponent(q)}&limit=10`,
-    `https://api-pddikti.vercel.app/v1/pencarian/universitas?query=${encodeURIComponent(q)}&limit=10`,
+    // Resmi PDDIKTI
+    `https://api-pddikti.kemdikbud.go.id/api/pencarian/universitas/${enc}`,
+    `https://pddikti.kemdikbud.go.id/api/pencarian/universitas/${enc}`,
+    // Gateway komunitas (fallback)
+    `https://api-pddikti.vercel.app/api/v1/pencarian/universitas?query=${enc}&limit=10`,
   ];
   for (const url of urls) {
-    const json = await fetchJson(url);
-    const arr = json?.data ?? json?.result ?? json?.universitas ?? (Array.isArray(json) ? json : null);
-    if (Array.isArray(arr) && arr.length > 0) {
-      return arr.slice(0, 10).map((x: any) => ({
-        name: x.nama ?? x.name ?? x.nama_pt ?? '',
-        level: 'PT',
-        code: x.kode_pt ?? x.kode ?? x.id ?? null,
-        city: x.kabupaten_kota ?? x.kota ?? x.city ?? null,
-        province: x.propinsi ?? x.province ?? null,
-        source: 'API' as const,
-      })).filter((x: InstitutionResult) => x.name);
+    const json = await fetchJson(url, 6000);
+    const arr = pickCampusArray(json);
+    if (arr && arr.length > 0) {
+      const mapped = arr.slice(0, 12).map(mapCampus).filter((x: InstitutionResult) => !!x.name);
+      if (mapped.length > 0) return mapped;
     }
   }
   return [];
+}
+
+/** Ambil array data kampus dari berbagai bentuk respons PDDIKTI/gateway. */
+function pickCampusArray(json: any): any[] | null {
+  if (!json) return null;
+  if (Array.isArray(json)) return json;
+  for (const k of ['data', 'result', 'universitas', 'list', 'items', 'results']) {
+    if (Array.isArray(json[k])) return json[k];
+    if (json[k] && Array.isArray(json[k].data)) return json[k].data;
+  }
+  return null;
+}
+
+/** Petakan objek kampus PDDIKTI → InstitutionResult (toleran terhadap variasi nama field). */
+function mapCampus(x: any): InstitutionResult {
+  return {
+    name: String(x.nama ?? x.name ?? x.nama_pt ?? x.nama_universitas ?? '').trim(),
+    level: 'PT',
+    code: x.kode_pt ?? x.kode ?? x.id ?? x.kode_pt_id ?? null,
+    city: x.kabupaten_kota ?? x.kota ?? x.city ?? x.kabupaten ?? null,
+    province: x.propinsi ?? x.province ?? x.provinsi ?? null,
+    source: 'API' as const,
+  };
 }
 
 /** Cari sekolah (SD/SMP/SMA/SMK) dari API publik (best-effort). */
@@ -105,11 +128,17 @@ export async function searchInstitutions(db: Db, q: string): Promise<Institution
   if (query.length < 2) return [];
 
   const level = guessLevel(query);
-  const tasks: Array<Promise<InstitutionResult[]>> = [searchInstitutionsLocal(db, query)];
-  if (level === 'PT') tasks.push(searchCampusesApi(query));
-  else tasks.push(searchSchoolsApi(query));
-  // Tambahkan sumber kedua secara paralel untuk cakupan lebih luas.
-  tasks.push(level === 'PT' ? searchSchoolsApi(query) : searchCampusesApi(query));
+  const tasks: Array<Promise<InstitutionResult[]>> = [];
+  // Prioritaskan sumber spesifik jenjang lebih dulu agar hasil API di depan.
+  if (level === 'PT') {
+    tasks.push(searchCampusesApi(query));   // PDDIKTI (resmi) — hasil utama
+    tasks.push(searchInstitutionsLocal(db, query));
+    tasks.push(searchSchoolsApi(query));    // pelengkap, bila kata kunci ambigu
+  } else {
+    tasks.push(searchSchoolsApi(query));    // api-sekolah-indonesia
+    tasks.push(searchInstitutionsLocal(db, query));
+    tasks.push(searchCampusesApi(query));   // pelengkap
+  }
 
   const settled = await Promise.all(tasks);
   const merged: InstitutionResult[] = [];
@@ -122,7 +151,26 @@ export async function searchInstitutions(db: Db, q: string): Promise<Institution
       merged.push(item);
     }
   }
-  return merged.slice(0, 15);
+  const result = merged.slice(0, 15);
+
+  // Cache hasil API ke tabel lokal (best-effort, agar pencarian berikutnya
+  // tetap tersedia walau API sedang down).
+  void cacheInstitutions(db, result.filter((r) => r.source === 'API'));
+  return result;
+}
+
+/** Simpan hasil API ke tabel lokal (idempoten, best-effort). */
+async function cacheInstitutions(db: Db, items: InstitutionResult[]): Promise<void> {
+  if (items.length === 0) return;
+  for (const it of items) {
+    try {
+      await db.execute(sql`
+        INSERT INTO education_institutions (name, level, code, city, province)
+        VALUES (${it.name}, ${it.level}, ${it.code}, ${it.city}, ${it.province})
+        ON CONFLICT (name, level) DO NOTHING
+      `);
+    } catch { /* abaikan */ }
+  }
 }
 
 /** Cari jurusan / program studi (lokal + cadangan statis). */
