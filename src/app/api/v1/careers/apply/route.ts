@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
         email: parsed.data.email,
         name: parsed.data.fullName,
         applicationNo: result.applicationNo,
+        phone: parsed.data.phone ?? null,
       });
     } catch { /* notifikasi opsional */ }
 

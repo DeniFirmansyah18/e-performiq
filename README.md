@@ -51,6 +51,12 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `RESEND_API_KEY` | Kunci Resend untuk kirim email sungguhan (https://resend.com/api-keys). **Opsional.** |
 | `EMAIL_WEBHOOK_URL` | Gateway SMTP/HTTP generik (menerima POST JSON `{to,subject,text,html,from}`). **Opsional.** |
 | `EMAIL_WEBHOOK_AUTH` | Header `Authorization` opsional untuk webhook. |
+| `WHATSAPP_PROVIDER` | Provider WhatsApp: `fonnte` \| `wablas` \| `meta` \| `webhook`. Kosong = nonaktif (tetap in-app + outbox). **Opsional.** |
+| `WHATSAPP_TOKEN` | Token API provider WhatsApp (fonnte/wablas/meta). |
+| `WABLAS_DOMAIN` | Domain konsol Wablas (mis. `https://console.wablas.com`). |
+| `META_PHONE_NUMBER_ID` | ID nomor telepon WhatsApp Cloud API (Meta). |
+| `WHATSAPP_WEBHOOK_URL` | Gateway HTTP/SMTP WhatsApp generik (POST JSON `{target,message}`). |
+| `WHATSAPP_WEBHOOK_AUTH` | Header `Authorization` opsional untuk webhook WhatsApp. |
 
 > Salin `.env.example` menjadi `.env.local` untuk memulai.
 
@@ -68,6 +74,31 @@ Secara default **email nonaktif** — notifikasi progress lamaran tetap tampil i
 4. Cek tabel `email_outbox`: `status` berubah `QUEUED → SENT` (atau `FAILED` + kolom `error`).
 
 > Untuk uji cepat Resend tanpa domain sendiri, gunakan `onboarding@resend.dev` — Resend hanya mengizinkan kirim ke email pemilik akun.
+
+### Mengaktifkan notifikasi WhatsApp
+Notifikasi progress lamaran juga dapat dikirim ke **WhatsApp** kandidat. Tanpa konfigurasi, pesan tetap tercatat di tabel `whatsapp_outbox` (status `QUEUED`). Provider didukung: **Fonnte**, **Wablas**, **WhatsApp Cloud API (Meta)**, dan **webhook** generik.
+
+1. Isi `.env.local` (pilih salah satu):
+   ```env
+   # Contoh Fonnte (https://fonnte.com)
+   WHATSAPP_PROVIDER=fonnte
+   WHATSAPP_TOKEN=xxxxxxxx
+
+   # Contoh Wablas (https://wablas.com)
+   # WHATSAPP_PROVIDER=wablas
+   # WHATSAPP_TOKEN=xxxxxxxx
+   # WABLAS_DOMAIN=https://console.wablas.com
+
+   # Contoh Meta Cloud API
+   # WHATSAPP_PROVIDER=meta
+   # WHATSAPP_TOKEN=EAAG...
+   # META_PHONE_NUMBER_ID=123456789
+   ```
+2. Verifikasi status: `GET /api/v1/careers/notifications/whatsapp` → `provider: "fonnte"`.
+3. Uji kirim: `POST /api/v1/careers/notifications/whatsapp` body `{ "to": "0812xxxxxxx" }` (sertakan cookie sesi kandidat).
+4. Cek tabel `whatsapp_outbox`: `status` `QUEUED → SENT` (atau `FAILED` + kolom `error`).
+
+> Nomor otomatis dinormalisasi ke format internasional (`08xxx` → `628xxx`). Fitur WhatsApp bersifat **best-effort** — kegagalan tidak mengganggu alur lamaran.
 
 ## Fitur AI (provider-agnostic: Gemini, Groq & OpenRouter, opsional)
 - **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI"

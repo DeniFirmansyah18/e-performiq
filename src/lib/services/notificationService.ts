@@ -155,13 +155,19 @@ const STAGE_LABEL: Record<string, string> = {
 /** Notifikasi saat lamaran berhasil dikirim. */
 export async function notifyApplicationSubmitted(
   db: Db,
-  p: { candidateId: string; accountId?: string | null; applicationId?: string | null; email: string; name: string; applicationNo: string },
+  p: { candidateId: string; accountId?: string | null; applicationId?: string | null; email: string; name: string; applicationNo: string; phone?: string | null },
 ): Promise<void> {
   const title = 'Lamaran Berhasil Dikirim';
   const body = `Halo ${p.name}, lamaran Anda dengan nomor ${p.applicationNo} telah kami terima. ` +
     `Pantau progres melalui halaman status lamaran. Kami akan mengirimkan notifikasi pada setiap tahap.`;
   await createNotification(db, { candidateId: p.candidateId, accountId: p.accountId, applicationId: p.applicationId, title, body, stage: 'APPLIED' });
   await sendEmail(db, { to: p.email, subject: `[E-PerformIQ] Lamaran ${p.applicationNo} diterima`, body, applicationId: p.applicationId });
+  if (p.phone) {
+    try {
+      const { sendWhatsApp } = await import('@/lib/services/whatsappService');
+      await sendWhatsApp(db, { to: p.phone, message: `*E-PerformIQ*\n${title}\n\n${body}`, applicationId: p.applicationId });
+    } catch { /* WhatsApp opsional */ }
+  }
 }
 
 /**
@@ -174,7 +180,7 @@ export async function notifyStageChange(
 ): Promise<void> {
   try {
     const info = (await db.execute(sql`
-      SELECT c.id AS "candidateId", c.email, c.full_name AS "name", c.account_id AS "accountId",
+      SELECT c.id AS "candidateId", c.email, c.phone, c.full_name AS "name", c.account_id AS "accountId",
              ja.application_no AS "applicationNo", jp.posting_title AS "postingTitle"
         FROM job_applications ja
         JOIN candidates c ON c.id = ja.candidate_id
@@ -202,6 +208,12 @@ export async function notifyStageChange(
       body,
       applicationId: p.applicationId,
     });
+    if (row.phone) {
+      try {
+        const { sendWhatsApp } = await import('@/lib/services/whatsappService');
+        await sendWhatsApp(db, { to: row.phone, message: `*E-PerformIQ — ${title}*\n\n${body}`, applicationId: p.applicationId });
+      } catch { /* WhatsApp opsional */ }
+    }
   } catch { /* abaikan */ }
 }
 
