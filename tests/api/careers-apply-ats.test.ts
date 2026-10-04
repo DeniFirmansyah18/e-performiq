@@ -57,6 +57,34 @@ describe('WS-4 endpoint upload & apply + ATS', () => {
     expect(json.data.parsed.contact.email).toBe('rina.kartika@example.com');
   });
 
+  it('upload mengekstrak gender, NIK, dan alamat dari CV', async () => {
+    const cv = `Dimas Pratama
+dimas.pratama@example.com | 0812-1111-2222
+Jenis Kelamin: Laki-laki
+NIK: 3201234567890003
+Alamat: Jl. Cikini Raya No. 5, RT 02/RW 03
+Kota: Jakarta Pusat
+Provinsi: DKI Jakarta
+Kode Pos: 10330
+
+RINGKASAN
+Data engineer berpengalaman 6 tahun membangun pipeline data.
+
+PENDIDIKAN
+S1 Teknik Informatika, Universitas Indonesia, 2012 - 2016, IPK 3.55
+`;
+    const res = await upload(multipartReq('cv-dimas.txt', cv));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    const p = json.data.parsed;
+    expect(p.gender).toBe('LAKI_LAKI');
+    expect(p.nik).toBe('3201234567890003');
+    expect(p.address).toContain('Cikini');
+    expect(p.city).toBe('Jakarta Pusat');
+    expect(p.province).toBe('DKI Jakarta');
+    expect(p.postalCode).toBe('10330');
+  });
+
   it('upload menolak ekstensi tidak didukung', async () => {
     const res = await upload(multipartReq('cv.exe', 'binary', 'application/octet-stream'));
     expect(res.status).toBe(415);

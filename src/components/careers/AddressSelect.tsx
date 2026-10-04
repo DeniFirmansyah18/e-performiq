@@ -32,7 +32,8 @@ async function fetchItems(level: string, parent = ''): Promise<Item[]> {
 
 /**
  * Pemilih alamat bertingkat (Provinsi → Kab/Kota → Kecamatan → Desa/Kelurahan)
- * + kode pos, memakai Wilayah Alamat API (best-effort). Tetap bisa input manual.
+ * + kode pos. Selalu punya data lokal (provinsi/kabupaten/kecamatan); desa &
+ * kode pos diperkaya dari Wilayah Alamat API bila tersedia.
  */
 export default function AddressSelect({ value, onChange }: Props) {
   const [provinces, setProvinces] = useState<Item[]>([]);
@@ -41,7 +42,7 @@ export default function AddressSelect({ value, onChange }: Props) {
   const [desa, setDesa] = useState<Item[]>([]);
   const [kodepos, setKodepos] = useState('');
   const [kpResults, setKpResults] = useState<Item[]>([]);
-  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [apiConfigured, setApiConfigured] = useState<boolean>(true);
   const [loading, setLoading] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const kpTimer = useRef<any>(null);
@@ -53,11 +54,10 @@ export default function AddressSelect({ value, onChange }: Props) {
       const res = await fetch('/api/v1/reference/wilayah?level=provinsi').catch(() => null);
       const j = await res?.json().catch(() => ({}));
       setProvinces(j?.data?.items ?? []);
-      setConfigured(!!j?.data?.configured);
+      setApiConfigured(j?.data?.apiConfigured ?? j?.data?.configured ?? true);
     })();
   }, []);
 
-  // Muat turunan berdasarkan nama terpilih (kode disimpan terpisah via label).
   const onProvince = async (nama: string) => {
     set({ province: nama, city: '', district: '', village: '' });
     setKabupaten([]); setKecamatan([]); setDesa([]);
@@ -77,12 +77,10 @@ export default function AddressSelect({ value, onChange }: Props) {
     if (kec) { setLoading(true); setDesa(await fetchItems('desa', kec.kode)); setLoading(false); }
   };
   const onDesa = (nama: string) => {
-    const d = desa.find((x) => x.nama === nama);
-    // Set kode pos berguna dari hasil pencarian kode pos (bila ada), jika tidak biarkan.
     set({ village: nama });
   };
 
-  // Kode pos → cari desa & auto-isi hierarki.
+  // Kode pos → cari desa & auto-isi hierarki (butuh API).
   const onKodepos = (kp: string) => {
     setKodepos(kp);
     set({ postalCode: kp });
@@ -97,9 +95,8 @@ export default function AddressSelect({ value, onChange }: Props) {
     }, 350);
   };
 
-  const applyKodeposResult = (item: Item & { alamat_lengkap?: string | null; kodepos?: string | null; tipe?: string | null }) => {
+  const applyKodeposResult = (item: Item & { alamat_lengkap?: string | null; kodepos?: string | null }) => {
     const parts = String(item.alamat_lengkap ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-    // alamat_lengkap: "Desa X, Kecamatan Y, Kabupaten Z, Provinsi"
     const village = parts[0]?.replace(/^(Desa|Kelurahan)\s+/i, '') ?? '';
     const district = parts[1]?.replace(/^Kecamatan\s+/i, '') ?? '';
     const city = parts[2]?.replace(/^(Kabupaten|Kota)\s+/i, '') ?? '';
@@ -110,12 +107,11 @@ export default function AddressSelect({ value, onChange }: Props) {
       postalCode: item.kodepos ?? value.postalCode,
     });
     setKpResults([]);
-    // Muat ulang dropdown sesuai data terisi (nama-based).
     (async () => {
       const prov = provinces.find((p) => p.nama === province);
       if (prov) {
         const kab = await fetchItems('kabupaten', prov.kode); setKabupaten(kab);
-        const kk = kab.find((k) => k.nama === city);
+        const kk = kab.find((k) => k.nama === city || k.nama === `Kota ${city}` || k.nama === `Kabupaten ${city}`);
         if (kk) {
           const kec = await fetchItems('kecamatan', kk.kode); setKecamatan(kec);
           const cc = kec.find((k) => k.nama === district);
@@ -155,6 +151,7 @@ export default function AddressSelect({ value, onChange }: Props) {
               <select value={value.province} onChange={(e) => onProvince(e.target.value)} className={sel}>
                 <option value="">— Pilih —</option>
                 {provinces.map((p) => <option key={p.kode} value={p.nama}>{p.nama}</option>)}
+                {value.province && !provinces.some((p) => p.nama === value.province) && <option value={value.province}>{value.province}</option>}
               </select></label>
             <label className="text-[11px] text-[#334155]"><span className="font-semibold">Kabupaten / Kota</span>
               <select value={value.city} onChange={(e) => onKabupaten(e.target.value)} className={sel} disabled={kabupaten.length === 0}>
@@ -169,17 +166,23 @@ export default function AddressSelect({ value, onChange }: Props) {
                 {value.district && !kecamatan.some((k) => k.nama === value.district) && <option value={value.district}>{value.district}</option>}
               </select></label>
             <label className="text-[11px] text-[#334155]"><span className="font-semibold">Desa / Kelurahan</span>
-              <select value={value.village} onChange={(e) => onDesa(e.target.value)} className={sel} disabled={desa.length === 0}>
-                <option value="">— Pilih —</option>
-                {desa.map((p) => <option key={p.kode} value={p.nama}>{p.nama}</option>)}
-                {value.village && !desa.some((k) => k.nama === value.village) && <option value={value.village}>{value.village}</option>}
-              </select></label>
+              {desa.length > 0 ? (
+                <select value={value.village} onChange={(e) => onDesa(e.target.value)} className={sel}>
+                  <option value="">— Pilih —</option>
+                  {desa.map((p) => <option key={p.kode} value={p.nama}>{p.nama}</option>)}
+                  {value.village && !desa.some((k) => k.nama === value.village) && <option value={value.village}>{value.village}</option>}
+                </select>
+              ) : (
+                <input value={value.village} onChange={(e) => set({ village: e.target.value })}
+                  placeholder="Ketik nama desa/kelurahan" className={sel} />
+              )}
+            </label>
           </div>
 
           <label className="block text-[11px] text-[#334155]">
             <span className="font-semibold">Kode Pos</span>
             <input value={kodepos} onChange={(e) => onKodepos(e.target.value)} inputMode="numeric" maxLength={5}
-              placeholder="mis. 65161 — cari otomatis desa/kelurahan" className={sel} />
+              placeholder="mis. 65161" className={sel} />
           </label>
 
           {kpResults.length > 0 && (
@@ -195,9 +198,10 @@ export default function AddressSelect({ value, onChange }: Props) {
           )}
 
           {loading && <p className="text-[10px] text-[#64748b]">Memuat wilayah…</p>}
-          {configured === false && (
-            <p className="text-[10px] text-amber-700">
-              Layanan wilayah belum dikonfigurasi — silakan ketik alamat manual.
+          {!apiConfigured && (
+            <p className="text-[10px] text-[#64748b]">
+              Data wilayah dasar tersedia offline. Untuk pencarian desa &amp; kode pos lengkap,
+              aktifkan layanan wilayah (set <code>WILAYAH_API_URL</code>).
             </p>
           )}
         </>

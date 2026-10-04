@@ -15,12 +15,14 @@ describe('Wilayah Alamat API (addressReferenceService)', () => {
 
   const jsonResponse = (body: any, okRes = true) => ({ ok: okRes, status: okRes ? 200 : 503, json: async () => body }) as any;
 
-  it('nonaktif bila WILAYAH_API_URL kosong (tanpa error)', async () => {
+  it('nonaktif API → tetap pakai seed lokal (provinsi & pencarian)', async () => {
     delete process.env.WILAYAH_API_URL;
-    expect(isAddressConfigured()).toBe(false);
-    expect(await listProvinces()).toEqual([]);
-    expect(await searchAddress('tebet')).toEqual([]);
-    expect(await resolveFullAddress('1101012001')).toBeNull();
+    expect(isAddressConfigured()).toBe(true);
+    const prov = await listProvinces();
+    expect(prov.length).toBeGreaterThanOrEqual(34);
+    expect(prov.some((p) => /aceh/i.test(p.nama))).toBe(true);
+    const res = await searchAddress('jakarta');
+    expect(res.length).toBeGreaterThan(0);
   });
 
   it('listProvinces memetakan data, + trimming trailing slash di base URL', async () => {
@@ -98,11 +100,14 @@ describe('Wilayah Alamat API (addressReferenceService)', () => {
     expect(full).toContain('12810');
   });
 
-  it('tahan terhadap error jaringan (kembalikan [] / null)', async () => {
+  it('API error jaringan → jatuh ke seed lokal (provinsi & resolusi alamat)', async () => {
     process.env.WILAYAH_API_URL = 'http://127.0.0.1:8001';
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down'); }));
-    expect(await listProvinces()).toEqual([]);
-    expect(await searchAddress('tebet')).toEqual([]);
-    expect(await resolveFullAddress('11')).toBeNull();
+    const prov = await listProvinces();
+    expect(prov.length).toBeGreaterThanOrEqual(34);
+    // Resolusi alamat dari kode provinsi/kabupaten masih dari seed lokal.
+    expect(await resolveFullAddress('32')).toContain('Jawa Barat');
+    // Desa (kode 10 digit) tidak ada di seed → null.
+    expect(await resolveFullAddress('1101012001')).toBeNull();
   });
 });

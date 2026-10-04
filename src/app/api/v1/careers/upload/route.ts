@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ok, fail, problem } from '@/lib/api/response';
-import { extractResumeText, parseResumeHeuristic, extractSkills } from '@/lib/services/resumeParser';
+import { extractResumeText, parseResume, extractSkills } from '@/lib/services/resumeParser';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,9 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const rawText = await extractResumeText(file.name, buffer);
-    const parsed = parseResumeHeuristic(rawText);
+    // Heuristik selalu jalan; AI dipakai untuk memperkaya (mis. gender/NIK/alamat
+    // yang tak berlabel rapi) bila terkonfigurasi. Best-effort — tak pernah crash.
+    const parsed = await parseResume(rawText, { useAi: true });
 
     const extracted = rawText.trim().length >= 20;
     return ok({
