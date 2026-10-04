@@ -55,6 +55,7 @@ interface CandidateProfile {
 interface QuadrantData {
   id: number;
   boxNumber: number;
+  quadrantKey: string;
   name: string;
   populationPct: string;
   employeeCount: number;
@@ -66,267 +67,122 @@ interface QuadrantData {
 }
 
 const QUADRANTS: QuadrantData[] = [
-  // Row 1 (Potensi Tinggi)
   {
     id: 7,
     boxNumber: 7,
+    quadrantKey: 'ENIGMA',
     name: 'Enigma',
     populationPct: '0.6%',
-    employeeCount: 8,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Role Re-alignment',
     actionType: 'secondary',
     description: 'Karyawan dengan potensi kepemimpinan tinggi namun kinerja saat ini belum optimal karena misalignment peran atau beban adaptasi.',
-    candidates: [
-      {
-        id: 'c-enigma-1',
-        name: 'Aris Munandar, S.T.',
-        nip: '91203411',
-        tenure: '2 Thn',
-        currentRole: 'Backend Security Engineer',
-        readinessBadge: 'Ready 1-2 Yrs',
-        targetRole: 'Lead Security Operations',
-        compositeIndex: '3.45 / 5.00',
-        competencyReadiness: '82%',
-        competencyGap: 'Cloud DevSecOps Automation',
-        idp: 'DevSecOps Specialist Immersion',
-        avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
   {
     id: 8,
     boxNumber: 8,
+    quadrantKey: 'GROWTH_STAR',
     name: 'Growth Star',
     populationPct: '2.7%',
-    employeeCount: 34,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Mentoring & Stretch',
     actionType: 'secondary',
     description: 'Talenta berkemampuan tinggi dengan kinerja stabil yang siap diasah melalui penugasan strategis dan rotasi lintas divisi.',
-    candidates: [
-      {
-        id: 'c-growth-1',
-        name: 'Farhan Hakim, M.M.',
-        nip: '89104523',
-        tenure: '5 Thn',
-        currentRole: 'Senior Risk Governance Specialist',
-        readinessBadge: 'Ready 1-2 Yrs',
-        targetRole: 'Head of Risk & Governance',
-        compositeIndex: '4.20 / 5.00',
-        competencyReadiness: '86%',
-        competencyGap: 'Regulatory FinTech Compliance',
-        idp: 'Executive Risk Certification Series',
-        avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
   {
     id: 9,
     boxNumber: 9,
+    quadrantKey: 'FUTURE_LEADER',
     name: 'Future Leader',
     populationPct: 'Top 3.4%',
-    employeeCount: 42,
+    employeeCount: 0,
     badgeType: 'top',
     actionLabel: 'Fast-Track Leadership',
     actionType: 'primary',
     description: 'Daftar suksesor tier-1 dengan performa tinggi & kapabilitas kepemimpinan strategis terverifikasi untuk jabatan struktural VP dan Director.',
-    candidates: [
-      {
-        id: 'c-fl-1',
-        name: 'Budi Pratama',
-        nip: '89201942',
-        tenure: '6 Thn',
-        currentRole: 'Lead Enterprise Solutions Architecture',
-        readinessBadge: 'Ready Now',
-        targetRole: 'VP of Enterprise Architecture',
-        compositeIndex: '4.88 / 5.00',
-        competencyReadiness: '94%',
-        competencyGap: 'Strategic Budgeting',
-        idp: 'Executive Mentoring Series',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'c-fl-2',
-        name: 'Siti Rahmawati',
-        nip: '87192081',
-        tenure: '8 Thn',
-        currentRole: 'Head of Commercial Product Strategy',
-        readinessBadge: 'Ready 1-2 Yrs',
-        targetRole: 'Director of Commercial & Strategy',
-        compositeIndex: '4.75 / 5.00',
-        competencyReadiness: '88%',
-        competencyGap: 'Cross-Border M&A',
-        idp: 'Global Leadership Immersion',
-        avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
-
-  // Row 2 (Potensi Sedang)
   {
     id: 4,
     boxNumber: 4,
+    quadrantKey: 'DILEMMA',
     name: 'Dilemma',
     populationPct: '1.1%',
-    employeeCount: 14,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Skill Upskilling',
     actionType: 'secondary',
     description: 'Karyawan dengan potensi sedang yang memerlukan reskilling kompetensi dasar agar dapat mencapai target output divisi.',
-    candidates: [
-      {
-        id: 'c-dil-1',
-        name: 'Eko Prasetyo, S.Kom.',
-        nip: '92109482',
-        tenure: '3 Thn',
-        currentRole: 'Junior IT Support Lead',
-        readinessBadge: 'Ready > 2 Yrs',
-        targetRole: 'IT Systems Administrator',
-        compositeIndex: '3.12 / 5.00',
-        competencyReadiness: '71%',
-        competencyGap: 'Linux Kernel Management',
-        idp: 'Core Infrastructure Boot Camp',
-        avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
   {
     id: 5,
     boxNumber: 5,
+    quadrantKey: 'CORE_PLAYER',
     name: 'Core Player',
     populationPct: '14.5%',
-    employeeCount: 180,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Lateral Enrichment',
     actionType: 'secondary',
     description: 'Tulang punggung operasional korporat dengan kinerja konsisten dan kontribusi berkelanjutan terhadap target divisi.',
-    candidates: [
-      {
-        id: 'c-core-1',
-        name: 'Dian Safitri, S.T.',
-        nip: '88201944',
-        tenure: '5 Thn',
-        currentRole: 'QA Engineering Lead',
-        readinessBadge: 'Ready 1-2 Yrs',
-        targetRole: 'Manager of Quality Assurance',
-        compositeIndex: '3.88 / 5.00',
-        competencyReadiness: '84%',
-        competencyGap: 'Automated Load Testing Strategy',
-        idp: 'Enterprise QA Governance Program',
-        avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
   {
     id: 6,
     boxNumber: 6,
+    quadrantKey: 'HIGH_IMPACT',
     name: 'High Impact',
     populationPct: '7.6%',
-    employeeCount: 95,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Retention & Incentives',
     actionType: 'secondary',
     description: 'Tenaga ahli spesialis berkinerja unggul yang memerlukan paket retensi, insentif jangka panjang, dan pengakuan performa.',
-    candidates: [
-      {
-        id: 'c-hi-1',
-        name: 'Agus Setiawan, S.Si.',
-        nip: '87103941',
-        tenure: '7 Thn',
-        currentRole: 'Principal Database Administrator',
-        readinessBadge: 'Ready Now',
-        targetRole: 'VP of Data Infrastructure',
-        compositeIndex: '4.55 / 5.00',
-        competencyReadiness: '91%',
-        competencyGap: 'Cloud Data Warehouse Cost Optimization',
-        idp: 'Strategic FinOps Accreditation',
-        avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
-
-  // Row 3 (Potensi Rendah)
   {
     id: 1,
     boxNumber: 1,
+    quadrantKey: 'UNDERPERFORMER',
     name: 'Underperformer',
     populationPct: '1.0%',
-    employeeCount: 12,
+    employeeCount: 0,
     badgeType: 'risk',
     actionLabel: 'PIP Plan (60 Days)',
     actionType: 'danger',
     description: 'Karyawan di kuadran risiko yang membutuhkan intervensi mendesak Performance Improvement Plan (PIP) selama 60 hari kalender.',
-    candidates: [
-      {
-        id: 'c-risk-1',
-        name: 'Andika Wijaya',
-        nip: '93108422',
-        tenure: '1.5 Thn',
-        currentRole: 'Operations Infrastructure Specialist',
-        readinessBadge: 'Under Observation',
-        targetRole: 'N/A (Evaluation in Progress)',
-        compositeIndex: '2.40 / 5.00',
-        competencyReadiness: '52%',
-        competencyGap: 'SLA Resolusi Insiden Data Center',
-        idp: 'Mandatory 60-Day SLA Recovery Mentorship',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
   {
     id: 2,
     boxNumber: 2,
+    quadrantKey: 'EFFECTIVE_PRO',
     name: 'Effective Pro',
     populationPct: '7.1%',
-    employeeCount: 88,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Skill Specialization',
     actionType: 'secondary',
     description: 'Pekerja operasional terampil dengan output kerja memenuhi target harian tanpa tuntutan kepemimpinan struktural.',
-    candidates: [
-      {
-        id: 'c-eff-1',
-        name: 'Rian Kurnia, A.Md.',
-        nip: '90102938',
-        tenure: '4 Thn',
-        currentRole: 'Network Cabling Specialist',
-        readinessBadge: 'Ready > 2 Yrs',
-        targetRole: 'Senior Datacenter Technician',
-        compositeIndex: '3.35 / 5.00',
-        competencyReadiness: '79%',
-        competencyGap: 'Optical Fiber Splicing Certification',
-        idp: 'Structured Cabling Masterclass',
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
   {
     id: 3,
     boxNumber: 3,
+    quadrantKey: 'TRUSTED_PRO',
     name: 'Trusted Pro',
     populationPct: '4.2%',
-    employeeCount: 52,
+    employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Key SME Retention',
     actionType: 'secondary',
     description: 'Subject Matter Expert (SME) dengan keandalan tinggi dan rekam jejak kerja bersih yang menjaga kelangsungan sistem vital perusahaan.',
-    candidates: [
-      {
-        id: 'c-trust-1',
-        name: 'Haryanto Sudirman, S.T.',
-        nip: '86102940',
-        tenure: '9 Thn',
-        currentRole: 'Core Banking Architect Specialist',
-        readinessBadge: 'Ready Now',
-        targetRole: 'Chief Specialist Core Systems',
-        compositeIndex: '4.60 / 5.00',
-        competencyReadiness: '95%',
-        competencyGap: 'High-Level Strategic Succession',
-        idp: 'Knowledge Preservation & Legacy Transfer',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      },
-    ],
+    candidates: [],
   },
 ];
 
@@ -757,7 +613,7 @@ export default function NineBoxMatrixPage() {
                       {/* Middle: Count */}
                       <div className="my-1.5">
                         <span className="text-xl font-black text-[#0f172a]">
-                          {quad.employeeCount}
+                          {summary?.byQuadrant?.[quad.quadrantKey] ?? 0}
                         </span>
                         <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
                       </div>
@@ -837,7 +693,7 @@ export default function NineBoxMatrixPage() {
             {/* Title & Description */}
             <div className="mt-3">
               <h3 className="text-sm font-extrabold text-[#0f172a]">
-                {currentQuadrant.name} (Top {currentQuadrant.employeeCount})
+                {currentQuadrant.name} ({summary?.byQuadrant?.[currentQuadrant.quadrantKey] ?? 0} karyawan)
               </h3>
               <p className="text-[11px] text-[#64748b] mt-1 leading-relaxed">
                 {currentQuadrant.description}
@@ -846,6 +702,14 @@ export default function NineBoxMatrixPage() {
 
             {/* Candidate Cards List */}
             <div className="mt-4 space-y-3">
+              {currentQuadrant.candidates.length === 0 && (
+                <div className="p-4 rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc]/50 text-center">
+                  <p className="text-[11px] text-[#64748b]">
+                    Detail kandidat per kuadran belum tersedia. Skor 9-Box dihitung dari hasil kalibrasi
+                    penilaian kinerja; daftar kandidat akan tampil setelah kalibrasi dijalankan.
+                  </p>
+                </div>
+              )}
               {currentQuadrant.candidates.map((cand) => (
                 <div 
                   key={cand.id} 
