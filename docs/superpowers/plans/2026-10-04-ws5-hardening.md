@@ -36,11 +36,11 @@
 **Interfaces:**
 - Produces: timeline INTERVIEW stage gains `{ meetingUrl: string | null; scheduledAt: string | null; interviewerName?: string | null }`.
 
-- [ ] **Step 1: Write failing test** — schedule an interview (`interview_schedules` insert with `meeting_url`) for an application, then assert `getTimelineByApplicationNo` returns the interview stage with `meetingUrl` set.
-- [ ] **Step 2: Run to verify failure.**
-- [ ] **Step 3: Implement** — extend the timeline query/mapping to LEFT JOIN `interview_schedules` on `application_id`; include the fields; render on the status page as a link (`target="_blank" rel="noopener"`) with the scheduled datetime; show "Jadwal wawancara menyusul" when null.
-- [ ] **Step 4: Run to verify pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 1: Write failing test** — schedule an interview (`interview_schedules` insert with `meeting_url`) for an application, then assert `getTimelineByApplicationNo` returns the interview stage with `meetingUrl` set.
+- [x] **Step 2: Run to verify failure.**
+- [x] **Step 3: Implement** — extend the timeline query/mapping to LEFT JOIN `interview_schedules` on `application_id`; include the fields; render on the status page as a link (`target="_blank" rel="noopener"`) with the scheduled datetime; show "Jadwal wawancara menyusul" when null.
+- [x] **Step 4: Run to verify pass.**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/services/timelineService.ts src/app/careers/status/page.tsx tests/integration/timelineService.test.ts
@@ -59,9 +59,9 @@ git commit -m "feat(careers): show interview meeting link & schedule on candidat
 - Consumes: `GET /api/v1/certificates/verify/:code` (existing) → `{ data: { valid, certificate? } }`.
 - Produces: a public page rendering valid/invalid state with certificate holder, course, issue date.
 
-- [ ] **Step 1: Implement the page** — client component reading `params.code`, fetching the verify API, showing a green "Sertifikat Valid" card (holder, course, date, issuer) or a red "Tidak Ditemukan/Tidak Valid" state. No auth.
-- [ ] **Step 2: Browser verify** — open `/certificates/verify/<known-code>` from a seeded certificate → valid; random code → not found.
-- [ ] **Step 3: `npm run build` + commit**
+- [x] **Step 1: Implement the page** — client component reading `params.code`, fetching the verify API, showing a green "Sertifikat Valid" card (holder, course, date, issuer) or a red "Tidak Ditemukan/Tidak Valid" state. No auth.
+- [x] **Step 2: Browser verify** — open `/certificates/verify/<known-code>` from a seeded certificate → valid; random code → not found.
+- [x] **Step 3: `npm run build` + commit**
 
 ```bash
 git add src/app/certificates
@@ -79,11 +79,11 @@ git commit -m "feat(certificates): public verification page /certificates/verify
 - Create: `docs/SOURCES.md` (OSS attribution: IRT reference, IPIP items)
 - Modify: `README.md` (link the new pages; note rate-limit follow-up)
 
-- [ ] **Step 1: Write ADR-016** — decision: public self-registration + email verify + HR approval; consequences (attack surface, mitigation: unique email, token expiry, HR gate; **rate limiting deferred** — tracked).
-- [ ] **Step 2: Write ADR-017** — decision: IRT (2PL/3PL, EAP) for psychometric; parameters seeded heuristically; calibration from real data = future.
-- [ ] **Step 3: Write ADR-018** — decision: AI-generated technical questions, HR-approved (DRAFT gate); AI advisory.
-- [ ] **Step 4: Write `docs/SOURCES.md`** — cite the IRT book (aswinjanuarsjaf/Buku_IRT) and IPIP items (public domain), noting usage.
-- [ ] **Step 5: Run full suite + build, commit**
+- [x] **Step 1: Write ADR-016** — decision: public self-registration + email verify + HR approval; consequences (attack surface, mitigation: unique email, token expiry, HR gate; **rate limiting deferred** — tracked).
+- [x] **Step 2: Write ADR-017** — decision: IRT (2PL/3PL, EAP) for psychometric; parameters seeded heuristically; calibration from real data = future.
+- [x] **Step 3: Write ADR-018** — decision: AI-generated technical questions, HR-approved (DRAFT gate); AI advisory.
+- [x] **Step 4: Write `docs/SOURCES.md`** — cite the IRT book (aswinjanuarsjaf/Buku_IRT) and IPIP items (public domain), noting usage.
+- [x] **Step 5: Run full suite + build, commit**
 
 ```bash
 npm run db:reset; $env:NO_COLOR=1; .\node_modules\.bin\vitest.cmd run --reporter=basic
