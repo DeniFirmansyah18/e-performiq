@@ -70,7 +70,7 @@ export default function CandidateLoginPage() {
                 <input
                   type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@email.com"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                 />
               </div>
             </div>
@@ -81,7 +81,7 @@ export default function CandidateLoginPage() {
                 <input
                   type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                 />
               </div>
             </div>

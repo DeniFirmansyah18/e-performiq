@@ -70,7 +70,7 @@ export default function CandidateRegisterPage() {
                   type="text" required value={form.fullName}
                   onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                   placeholder="Nama sesuai KTP"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                 />
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function CandidateRegisterPage() {
                   type="email" required value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="nama@email.com"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                 />
               </div>
             </div>
@@ -94,7 +94,7 @@ export default function CandidateRegisterPage() {
                   type="text" value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="+62 8xx-xxxx-xxxx"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                 />
               </div>
             </div>
@@ -106,7 +106,7 @@ export default function CandidateRegisterPage() {
                   type="password" required minLength={6} value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="Minimal 6 karakter"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                 />
               </div>
             </div>

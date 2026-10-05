@@ -80,7 +80,7 @@ export default function EmployeeRegisterPage() {
                       type="text" required value={form.fullName}
                       onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                       placeholder="Nama sesuai KTP"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                     />
                   </div>
                 </div>
@@ -92,7 +92,7 @@ export default function EmployeeRegisterPage() {
                       type="email" required value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       placeholder="nama@email.com"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                     />
                   </div>
                 </div>
@@ -104,7 +104,7 @@ export default function EmployeeRegisterPage() {
                       type="text" value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       placeholder="+62 8xx-xxxx-xxxx"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                     />
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export default function EmployeeRegisterPage() {
                       type="text" value={form.positionHint}
                       onChange={(e) => setForm({ ...form, positionHint: e.target.value })}
                       placeholder="cth. Staff HR"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                     />
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export default function EmployeeRegisterPage() {
                       type="password" required minLength={8} value={form.password}
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
                       placeholder="Minimal 8 karakter"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                     />
                   </div>
                 </div>
