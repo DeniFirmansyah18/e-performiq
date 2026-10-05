@@ -73,16 +73,23 @@ export async function listTemplates(db: Db): Promise<TemplateRow[]> {
   return res.rows ?? [];
 }
 
-/** Soal-soal sebuah template (tanpa membocorkan kunci jawaban ke kandidat). */
+/**
+ * Soal-soal sebuah template (tanpa membocorkan kunci jawaban ke kandidat).
+ *
+ * Secara default hanya soal AKTIF (`is_active = TRUE`) yang dikembalikan, sehingga
+ * soal DRAFT hasil generasi AI (WS-4) tidak pernah terlihat kandidat sebelum
+ * disetujui HR. Panel review HR memanggil dengan `{ includeInactive: true }`.
+ */
 export async function getQuestions(
   db: Db,
   templateId: string,
-  opts: { includeAnswers?: boolean } = {},
+  opts: { includeAnswers?: boolean; includeInactive?: boolean } = {},
 ): Promise<QuestionRow[]> {
+  const activeFilter = opts.includeInactive ? sql`` : sql` AND is_active = TRUE`;
   const res = (await db.execute(sql`
     SELECT id, order_index, type, prompt, options, correct_key, scale, reverse_scored,
            irt_a::float8 AS irt_a, irt_b::float8 AS irt_b, irt_c::float8 AS irt_c
-      FROM assessment_questions WHERE template_id = ${templateId}::uuid ORDER BY order_index
+      FROM assessment_questions WHERE template_id = ${templateId}::uuid${activeFilter} ORDER BY order_index
   `)) as unknown as { rows: QuestionRow[] };
   const rows = res.rows ?? [];
   if (!opts.includeAnswers) {

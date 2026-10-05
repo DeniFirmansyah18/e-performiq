@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { runSeed } from '@/lib/db/seed';
 import { getDb } from '@/lib/db/client';
 import { NextRequest } from 'next/server';
@@ -56,6 +56,13 @@ describe('WS-4 HR technical-test routes', () => {
     postingId = q.rows[0].id;
     hrCookie = `${SESSION_COOKIE_NAME}=${await signSession({ userId: 'e0000000-0000-4000-8000-000000000002', employeeId: 'b0000000-0000-4000-8000-000000000002', role: 'HR_MANAGER', email: 'siti.nurhaliza@eperformiq.co.id' })}`;
     employeeCookie = `${SESSION_COOKIE_NAME}=${await signSession({ userId: 'e0000000-0000-4000-8000-000000000004', employeeId: 'b0000000-0000-4000-8000-000000000004', role: 'EMPLOYEE', email: 'budi.pratama@eperformiq.co.id' })}`;
+  });
+
+  // Bersihkan soal AI yang dibuat tes ini dari DB dev (dipakai bersama oleh
+  // route test lain) agar tidak mencemari hitungan jumlah soal di suite lain.
+  afterAll(async () => {
+    const client = await getDb();
+    await client.query(`DELETE FROM assessment_questions WHERE source = 'AI'`);
   });
 
   it('POST generate tanpa sesi → 401', async () => {
