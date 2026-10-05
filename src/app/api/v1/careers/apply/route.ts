@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       documents: parsed.data.documents,
     });
 
-    let ats: { score: number; matched: string[]; missing: string[] } | null = null;
+    let ats: { score: number; matched: string[]; missing: string[]; cosine?: number } | null = null;
     if (result.candidateId && parsed.data.resumeText && parsed.data.resumeText.trim().length >= 20) {
       try {
         const atsResult = await runAts(db, {
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           fileName: parsed.data.resumeFileName,
           fileUrl: parsed.data.resumeUrl,
         });
-        ats = { score: atsResult.score, matched: atsResult.matched, missing: atsResult.missing };
+        ats = { score: atsResult.score, matched: atsResult.matched, missing: atsResult.missing, cosine: atsResult.cosine };
       } catch (err) {
         console.warn('[careers/apply] ATS gagal (diabaikan):', (err as Error)?.message);
       }

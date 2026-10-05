@@ -24,6 +24,24 @@ KEAHLIAN
 HRIS, Recruitment, Excel, Komunikasi, Payroll
 `;
 
+const CV_TECH = `Budi Santoso
+budi.santoso@example.com | 0812-3456-7890
+
+RINGKASAN
+Software engineer 5 tahun membangun aplikasi web dengan TypeScript, React, Next.js
+dan PostgreSQL untuk platform SaaS berskala besar.
+
+PENGALAMAN KERJA
+Senior Software Engineer | PT Teknologi Nusantara | Jan 2020 - Sekarang
+Mengembangkan platform dengan Next.js dan PostgreSQL.
+
+PENDIDIKAN
+S1 Teknik Informatika, Universitas Indonesia, 2014 - 2018, IPK 3.65
+
+KEAHLIAN
+TypeScript, Next.js, PostgreSQL, React, Node.js
+`;
+
 function multipartReq(fileName: string, content: string, type = 'text/plain'): NextRequest {
   const fd = new FormData();
   fd.append('file', new File([content], fileName, { type }));
@@ -105,7 +123,7 @@ S1 Teknik Informatika, Universitas Indonesia, 2012 - 2016, IPK 3.55
     const postingId = q.rows[0].id;
     const res = await apply(applyReq({
       fullName: 'Rina Kartika', email: 'rina.kartika@example.com', phone: '08132222333',
-      jobPostingId: postingId, resumeText: CV_TXT, resumeFileName: 'cv-rina.txt',
+      jobPostingId: postingId, resumeText: CV_TECH, resumeFileName: 'cv-budi.txt',
     }));
     expect(res.status).toBe(200);
     const json = await res.json();

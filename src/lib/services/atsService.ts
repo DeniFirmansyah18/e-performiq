@@ -25,6 +25,7 @@ import {
   normalizeResumeText,
   parseResume,
 } from '@/lib/services/resumeParser';
+import { matchPercentage } from '@/lib/services/cosineSimilarity';
 
 // ---------------------------------------------------------------------------
 // Sinonim / alias skill → kanonik. Dipakai agar "Js" cocok "JavaScript",
@@ -96,6 +97,7 @@ export interface AtsScoreBreakdown {
   experience: number;  // 0..1
   education: number;   // 0..1
   summary: number;     // 0..1
+  cosine: number;      // 0..1 (kecocokan teks CV vs job description)
 }
 
 export interface AtsResult {
@@ -104,16 +106,26 @@ export interface AtsResult {
   matched: string[];
   missing: string[];
   required: string[];
+  cosine: number;              // 0..100 (bag-of-words cosine similarity)
   parsed: ParsedResume;
 }
 
-const WEIGHTS = { skills: 0.6, contact: 0.1, experience: 0.15, education: 0.1, summary: 0.05 };
+// Skor akhir = 50% kecocokan skill + 50% cosine similarity teks CV↔job desc.
+const WEIGHTS = { skills: 0.5, cosine: 0.5 };
+// Bobot breakdown lama (informasi) — tidak lagi menyusun skor akhir.
+const _LEGACY_WEIGHTS = { contact: 0.1, experience: 0.15, education: 0.1, summary: 0.05 };
 
 /**
  * Hitung skor ATS dari hasil parsing + requirement lowongan.
+ * Skor utama = gabungan kecocokan skill & cosine similarity teks.
  * Deterministik; tiap komponen 0..1 lalu dibobot.
  */
-export function computeAtsScore(parsed: ParsedResume, requiredSkills: string[]): AtsResult {
+export function computeAtsScore(
+  parsed: ParsedResume,
+  requiredSkills: string[],
+  jobText: string = '',
+  resumeText: string = '',
+): AtsResult {
   const skillResult = matchSkills(parsed.skills ?? [], requiredSkills);
 
   // Kontak: email + telepon (opsional: link profil menambah sedikit).
@@ -137,20 +149,26 @@ export function computeAtsScore(parsed: ParsedResume, requiredSkills: string[]):
   // Ringkasan: ada teks bermakna → 1, tidak ada → 0.
   const summary = parsed.summary && parsed.summary.trim().length >= 40 ? 1 : 0;
 
+  // Cosine similarity: bila teks CV tidak diberikan, susun dari ringkasan + skill.
+  const effectiveResumeText = resumeText && resumeText.trim().length > 0
+    ? resumeText
+    : `${parsed.summary ?? ''} ${(parsed.skills ?? []).join(' ')}`.trim();
+  const cosine = jobText && jobText.trim().length > 0
+    ? matchPercentage(effectiveResumeText, jobText)
+    : 0;
+
   const breakdown: AtsScoreBreakdown = {
     skills: skillResult.matchRatio,
     contact,
     experience,
     education,
     summary,
+    cosine: cosine / 100,
   };
 
   const weighted =
     breakdown.skills * WEIGHTS.skills +
-    breakdown.contact * WEIGHTS.contact +
-    breakdown.experience * WEIGHTS.experience +
-    breakdown.education * WEIGHTS.education +
-    breakdown.summary * WEIGHTS.summary;
+    breakdown.cosine * WEIGHTS.cosine;
 
   const score = Math.round(Math.max(0, Math.min(1, weighted)) * 100 * 100) / 100;
 
@@ -160,6 +178,7 @@ export function computeAtsScore(parsed: ParsedResume, requiredSkills: string[]):
     matched: skillResult.matched,
     missing: skillResult.missing,
     required: skillResult.required,
+    cosine,
     parsed,
   };
 }
@@ -187,7 +206,8 @@ export async function saveResumeParse(db: Db, input: AtsPersistInput): Promise<s
          ats_score, matched_skills, missing_skills, parser)
       VALUES
         (${input.candidateId}::uuid, ${input.applicationId ?? null}::uuid, ${input.fileName ?? null},
-         ${input.fileUrl ?? null}, ${input.rawText.slice(0, 40000)}, ${JSON.stringify(input.parsed)}::jsonb,
+         ${input.fileUrl ?? null}, ${input.rawText.slice(0, 40000)},
+         ${JSON.stringify({ ...input.parsed, _ats: { cosine: input.result.cosine, score: input.result.score } })}::jsonb,
          ${input.result.score}, ${JSON.stringify(input.result.matched)}::jsonb,
          ${JSON.stringify(input.result.missing)}::jsonb, ${input.parsed.parser})
       RETURNING id
@@ -264,18 +284,24 @@ export interface RunAtsInput {
  */
 export async function runAts(db: Db, input: RunAtsInput): Promise<AtsResult> {
   let required = input.requiredSkills ?? [];
-  if (required.length === 0 && input.jobPostingId) {
+  let jobText = '';
+  if (input.jobPostingId) {
     try {
       const r = (await db.execute(sql`
-        SELECT required_skills AS "requiredSkills" FROM job_postings WHERE id = ${input.jobPostingId}::uuid
-      `)) as unknown as { rows: Array<{ requiredSkills: unknown }> };
-      const raw = r.rows?.[0]?.requiredSkills;
-      if (Array.isArray(raw)) required = raw.map((s) => String(s));
-      else if (typeof raw === 'string') {
-        try { required = JSON.parse(raw); } catch { required = []; }
+        SELECT posting_title AS "title", description, required_skills AS "requiredSkills"
+          FROM job_postings WHERE id = ${input.jobPostingId}::uuid
+      `)) as unknown as { rows: Array<{ title: string; description: string; requiredSkills: unknown }> };
+      const row = r.rows?.[0];
+      if (row) {
+        let skillList: string[] = [];
+        const raw = row.requiredSkills;
+        if (Array.isArray(raw)) skillList = raw.map((s) => String(s));
+        else if (typeof raw === 'string') { try { skillList = JSON.parse(raw); } catch { skillList = []; } }
+        if (required.length === 0) required = skillList;
+        jobText = [row.title ?? '', row.description ?? '', skillList.join(' ')].join(' ').trim();
       }
     } catch {
-      required = [];
+      if (required.length === 0) required = [];
     }
   }
 
@@ -286,7 +312,7 @@ export async function runAts(db: Db, input: RunAtsInput): Promise<AtsResult> {
   const skillSet = new Set<string>([...(parsed.skills ?? []), ...extra]);
   parsed.skills = Array.from(skillSet);
 
-  const result = computeAtsScore(parsed, required);
+  const result = computeAtsScore(parsed, required, jobText, text);
 
   await saveResumeParse(db, {
     candidateId: input.candidateId,

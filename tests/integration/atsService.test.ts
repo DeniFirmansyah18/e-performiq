@@ -206,6 +206,23 @@ HR generalist berpengalaman 4 tahun di bidang rekrutmen dan payroll.
       const empty = computeAtsScore(parseResumeHeuristic(''), ['TypeScript', 'React', 'PostgreSQL']);
       expect(full.score).toBeGreaterThan(empty.score);
     });
+
+    it('cosine: CV relevan menghasilkan cosine & skor lebih tinggi dari CV tak relevan', () => {
+      const jobText = 'Senior Software Engineer TypeScript React PostgreSQL Docker Next.js platform SaaS';
+      const relevant = computeAtsScore(parseResumeHeuristic(SAMPLE_CV), ['TypeScript', 'React', 'PostgreSQL'], jobText, SAMPLE_CV);
+      const irrelevant = computeAtsScore(parseResumeHeuristic('HR generalist payroll akuntansi pajak'), ['TypeScript', 'React'], jobText, 'HR generalist payroll akuntansi pajak');
+      expect(relevant.cosine).toBeGreaterThan(0);
+      expect(relevant.cosine).toBeGreaterThan(irrelevant.cosine);
+      expect(relevant.score).toBeGreaterThan(irrelevant.score);
+    });
+
+    it('cosine: breakdown.cosine 0..1 dan konsisten dengan AtsResult.cosine', () => {
+      const jobText = 'TypeScript React PostgreSQL';
+      const r = computeAtsScore(parseResumeHeuristic(SAMPLE_CV), ['TypeScript'], jobText, SAMPLE_CV);
+      expect(r.breakdown.cosine).toBeGreaterThanOrEqual(0);
+      expect(r.breakdown.cosine).toBeLessThanOrEqual(1);
+      expect(r.breakdown.cosine).toBeCloseTo(r.cosine / 100, 5);
+    });
   });
 
   describe('runAts (persist + sinkronisasi DB)', () => {
@@ -267,6 +284,22 @@ HR generalist berpengalaman 4 tahun di bidang rekrutmen dan payroll.
         `SELECT COUNT(*)::text AS n FROM candidate_educations WHERE candidate_id = $1::uuid`, [candidateId],
       );
       expect(Number(ed.rows[0].n)).toBe(1);
+    });
+
+    it('runAts memakai job description posting → cosine & skill cocok', async () => {
+      const ins = await client.query<{ id: string }>(
+        `INSERT INTO candidates (full_name, email) VALUES ('Uji Cosine', 'uji.cosine@example.com') RETURNING id`,
+      );
+      const candidateId = ins.rows[0].id;
+      const result = await runAts(db, {
+        candidateId,
+        jobPostingId: '87000000-0000-4000-8000-000000000001',
+        resumeText: SAMPLE_CV,
+        useAi: false,
+      });
+      expect(result.required.length).toBeGreaterThan(0);
+      expect(result.matched).toEqual(expect.arrayContaining(['TypeScript']));
+      expect(result.cosine).toBeGreaterThan(10);
     });
   });
 });
