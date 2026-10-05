@@ -381,12 +381,8 @@ export async function generateTechnicalQuestions(
     order += 1;
   }
 
-  if (opts.generatedBy) {
-    await rows(db, sql`
-      UPDATE assessment_questions SET approved_by = NULL
-       WHERE id = ANY(${sql.raw(`ARRAY[${questionIds.map((id) => `'${id}'::uuid`).join(',')}]`)}) AND FALSE
-    `).catch(() => []);
-  }
+  // Catatan: `generatedBy` tersedia untuk audit WS-5 namun belum dipersist;
+  // kolom audit (approved_by) diisi saat HR menyetujui soal.
 
   return { generated: questionIds.length, questionIds, aiUsed: true };
 }
