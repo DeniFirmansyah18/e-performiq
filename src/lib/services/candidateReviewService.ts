@@ -327,16 +327,6 @@ export async function recordDecision(db: Db, input: DecisionInput): Promise<Cand
   } catch {
     /* timeline opsional */
   }
-
-  // Bila keputusan memetakan ke HIRED, provision karyawan (idempoten, best-effort).
-  if (appStatus === 'HIRED') {
-    try {
-      const { convertHiredCandidate } = await import('@/lib/services/candidateConversionService');
-      await convertHiredCandidate(db, { applicationId: input.applicationId, actorUserId: input.decidedByUserId });
-    } catch (err) {
-      console.warn('[candidateReviewService] konversi HIRED gagal:', (err as Error)?.message);
-    }
-  }
   return input.decision;
 }
 

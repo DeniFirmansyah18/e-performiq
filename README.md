@@ -115,6 +115,20 @@ Agar email & WhatsApp benar-benar terkirim, dua prasyarat operator:
 4. **HR** membuat **jadwal wawancara** + **tautan rapat** (panel "Jadwal Wawancara") → status `INTERVIEW` + kandidat menerima tautan (portal & `/careers/status`).
 5. Setelah wawancara, HR menandai **"Selesai"** pada jadwal.
 6. **HR** menetapkan **OFFERED / HIRED / REJECTED** (dropdown status atau tombol keputusan) → tiap transisi mengirim notifikasi (in-app + email + WA, best-effort).
+7. **HIRED** → kandidat otomatis **dikonversi menjadi karyawan** (lihat di bawah).
+
+### Skor ATS (cosine similarity)
+Skor kesesuaian CV dihitung **50% kecocokan skill + 50% cosine similarity** antara teks CV dan job description (`judul + deskripsi + skill wajib`) — meniru pendekatan `CountVectorizer` + `cosine_similarity`, diimplementasikan di `src/lib/services/cosineSimilarity.ts` (tanpa dependency). `matched`/`missing` skill tetap ditampilkan sebagai info. Lihat ADR 019.
+
+### Konversi kandidat → karyawan (saat HIRED)
+Saat status lamaran menjadi **HIRED**:
+- Sistem membuat record `employees` (departemen/posisi dari posting, status `PROBATION`) + akun `users` (role `EMPLOYEE`).
+- **Sandi karyawan = sandi kandidat** (hash disalin), jadi bisa login di `/login` dengan kredensial yang sama.
+- Akun kandidat (`candidate_accounts`) **dinonaktifkan**; login kandidat dialihkan ke pesan "login di portal karyawan".
+- Idempoten (aman bila status diset HIRED berulang).
+
+### Fase karyawan di Employee Portal
+`/dashboard/employee-portal` menampilkan **3 tab fase**: **Sebelum Kerja** (Onboarding LMS) · **Saat Kerja** (Scorecard, OKR/KPI, Learning, Timesheet, Slip Gaji, dst.) · **Setelah Kerja** (offboarding self-service read & write: ajukan resign, tandai serah terima, exit interview).
 
 ## Fitur AI (provider-agnostic: Gemini, Groq & OpenRouter, opsional)
 - **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI"
@@ -183,7 +197,7 @@ yang sama secara bersamaan (menyebabkan abort). Jalankan `npm run db:reset` sebe
 skema berubah.
 
 ## Keputusan arsitektur
-Lihat `docs/decisions/` (ADR 003–018). Sumber pihak ketiga (IRT, IPIP) dicatat di
+Lihat `docs/decisions/` (ADR 003–019). Sumber pihak ketiga (IRT, IPIP) dicatat di
 `docs/SOURCES.md`.
 
 ### Follow-up keamanan
