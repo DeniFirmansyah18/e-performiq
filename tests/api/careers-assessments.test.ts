@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
+import { getDb } from '@/lib/db/client';
 import { NextRequest } from 'next/server';
 import { POST as register } from '@/app/api/v1/careers/auth/register/route';
 import { POST as apply } from '@/app/api/v1/careers/apply/route';
@@ -54,6 +55,14 @@ describe('WS-6 endpoint asesmen kandidat', () => {
     // 2) Lamar posisi publik dengan cookie kandidat → tertaut ke akun.
     const app = await apply(jsonReq('/x', { fullName: 'Kandidat Asesmen', email, jobPostingId: postingId }, cookie));
     expect(app.status).toBe(200);
+
+    // 2b) F4: buka gerbang tes (status lamaran → SCREENING) di singleton dev.
+    const devDb = await getDb();
+    await devDb.query(
+      `UPDATE job_applications SET status = 'SCREENING'::application_status_enum
+        WHERE candidate_id = (SELECT id FROM candidates WHERE LOWER(email) = LOWER($1) LIMIT 1)`,
+      [email],
+    );
 
     // 3) Daftar asesmen tersedia.
     const list = await listAssessments(getReq('/x', cookie));

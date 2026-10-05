@@ -16,6 +16,18 @@ import {
 } from '@/lib/services/assessmentService';
 import { submitApplication } from '@/lib/services/candidateService';
 
+/**
+ * Lamaran uji yang sudah dibuka untuk asesmen (status SCREENING).
+ * Gerbang F4 menolak startAttempt saat status masih SUBMITTED.
+ */
+async function submitOpenApp(db: any, opts: Parameters<typeof submitApplication>[1]) {
+  const app = await submitApplication(db, opts);
+  await db.execute(
+    (await import('drizzle-orm')).sql`UPDATE job_applications SET status = 'SCREENING'::application_status_enum WHERE id = ${app.applicationId}::uuid`,
+  );
+  return app;
+}
+
 describe('WS-6 mesin asesmen', () => {
   let client: PGlite;
   let db: any;
@@ -98,7 +110,7 @@ describe('WS-6 mesin asesmen', () => {
 
   describe('attempt lifecycle (DB)', () => {
     it('start → submit teknis menghasilkan skor & attempts SCORED', async () => {
-      const app = await submitApplication(db, {
+      const app = await submitOpenApp(db, {
         fullName: 'Peserta Teknis', email: 'peserta.teknis@example.com', jobPostingId: postingId,
       });
       const tech = await getTemplateForType(db, 'TECHNICAL');
@@ -123,7 +135,7 @@ describe('WS-6 mesin asesmen', () => {
     });
 
     it('idempoten: submit dua kali tidak menduplikasi respons', async () => {
-      const app = await submitApplication(db, {
+      const app = await submitOpenApp(db, {
         fullName: 'Peserta Ganda', email: 'peserta.ganda@example.com', jobPostingId: postingId,
       });
       const tech = await getTemplateForType(db, 'TECHNICAL');
@@ -142,7 +154,7 @@ describe('WS-6 mesin asesmen', () => {
     });
 
     it('agregat berbobot 30/40/30 dengan tiga komponen', async () => {
-      const app = await submitApplication(db, {
+      const app = await submitOpenApp(db, {
         fullName: 'Peserta Penuh', email: 'peserta.penuh@example.com', jobPostingId: postingId,
       });
       const appId = app.applicationId!;
@@ -178,7 +190,7 @@ describe('WS-6 mesin asesmen', () => {
     });
 
     it('setInterviewScore membatasi nilai ke 0..100', async () => {
-      const app = await submitApplication(db, {
+      const app = await submitOpenApp(db, {
         fullName: 'Peserta Wawancara', email: 'peserta.wawancara@example.com', jobPostingId: postingId,
       });
       await setInterviewScore(db, app.applicationId!, 150);
@@ -187,7 +199,7 @@ describe('WS-6 mesin asesmen', () => {
     });
 
     it('recomputeWeightedForApplication tanpa komponen → weighted null (tidak NaN)', async () => {
-      const app = await submitApplication(db, {
+      const app = await submitOpenApp(db, {
         fullName: 'Peserta Kosong', email: 'peserta.kosong@example.com', jobPostingId: postingId,
       });
       const r = await recomputeWeightedForApplication(db, app.applicationId!);
@@ -225,7 +237,7 @@ describe('WS-6 mesin asesmen', () => {
       expect(scorePsychometricIrt(noParams, strong)).toBeNull();
 
       // End-to-end: submit pola kuat → attempt SCORED + agregat 30/40/30 tetap valid.
-      const app = await submitApplication(db, {
+      const app = await submitOpenApp(db, {
         fullName: 'Peserta IRT Kuat', email: 'peserta.irt.kuat@example.com', jobPostingId: postingId,
       });
       await startAttempt(db, { applicationId: app.applicationId!, candidateId: app.candidateId, templateId: psy!.id });

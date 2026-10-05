@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     return ok({
       applicationNo: ctx.applicationNo,
       postingTitle: ctx.postingTitle,
+      status: ctx.status,
       attempts,
       templates: templates.map((t) => ({ id: t.id, code: t.code, title: t.title, type: t.type, weight: t.weight })),
     });

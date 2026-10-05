@@ -13,6 +13,7 @@ export interface CandidateContext {
   candidateId: string;
   applicationNo: string;
   postingTitle: string;
+  status: string;
 }
 
 /**
@@ -28,7 +29,8 @@ export async function resolveCandidateContext(
 ): Promise<CandidateContext | null> {
   const res = (await db.execute(sql`
     SELECT ja.id AS "applicationId", ja.candidate_id AS "candidateId",
-           ja.application_no AS "applicationNo", jp.posting_title AS "postingTitle"
+           ja.application_no AS "applicationNo", jp.posting_title AS "postingTitle",
+           ja.status::text AS "status"
       FROM job_applications ja
       JOIN candidates c ON c.id = ja.candidate_id
       JOIN job_postings jp ON jp.id = ja.job_posting_id

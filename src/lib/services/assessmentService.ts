@@ -226,6 +226,17 @@ export interface AttemptView {
  * mengubah. Bila belum ada → buat attempt baru berstatus IN_PROGRESS.
  */
 export async function startAttempt(db: Db, input: StartAttemptInput): Promise<AttemptView> {
+  // Gerbang: tes hanya terbuka setelah HR mengubah status lamaran ≥ SCREENING.
+  const appRow = (await db.execute(sql`
+    SELECT status::text AS status FROM job_applications WHERE id = ${input.applicationId}::uuid
+  `)) as unknown as { rows: Array<{ status: string }> };
+  const appStatus = appRow.rows?.[0]?.status ?? null;
+  const OPEN_STATUSES = ['SCREENING', 'INTERVIEW', 'OFFERED', 'HIRED'];
+  if (!appStatus || !OPEN_STATUSES.includes(appStatus)) {
+    const { ForbiddenError } = await import('@/lib/auth/errors');
+    throw new ForbiddenError('Tes belum dibuka. Menunggu seleksi HR.');
+  }
+
   const template = (await db.execute(sql`
     SELECT id, code, title, type, weight::float8 AS weight, description
       FROM assessment_templates WHERE id = ${input.templateId}::uuid

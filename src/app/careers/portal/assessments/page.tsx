@@ -22,6 +22,7 @@ export default function CandidateAssessmentsPage() {
   const [account, setAccount] = useState<{ name: string } | null>(null);
   const [attempts, setAttempts] = useState<AttemptInfo[]>([]);
   const [templates, setTemplates] = useState<TemplateInfo[]>([]);
+  const [appStatus, setAppStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +38,7 @@ export default function CandidateAssessmentsPage() {
     const j = await res.json().catch(() => ({}));
     setAttempts(j?.data?.attempts ?? []);
     setTemplates(j?.data?.templates ?? []);
+    setAppStatus(j?.data?.status ?? null);
   }, []);
 
   useEffect(() => {
@@ -60,7 +62,11 @@ export default function CandidateAssessmentsPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }),
     });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok) { setError(j?.detail || 'Gagal memulai tes.'); return; }
+    if (!res.ok) {
+      setError(j?.detail || 'Gagal memulai tes.');
+      if (res.status === 403) load();
+      return;
+    }
     setExam(j.data as AttemptView);
     setAnswers({});
   };
@@ -85,6 +91,8 @@ export default function CandidateAssessmentsPage() {
   if (!account) return null;
 
   const answeredCount = exam ? Object.keys(answers).length : 0;
+  const OPEN_STATUSES = ['SCREENING', 'INTERVIEW', 'OFFERED', 'HIRED'];
+  const locked = appStatus != null && !OPEN_STATUSES.includes(appStatus);
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
@@ -161,19 +169,28 @@ export default function CandidateAssessmentsPage() {
                 <ClipboardList className="h-4 w-4 text-[#007a5a]" />
                 <h2 className="text-sm font-extrabold text-[#0f172a]">Mulai Tes</h2>
               </div>
-              <p className="text-[11px] text-[#64748b]">Kerjakan tes berikut secara jujur. Skor psikometri (30%) dan teknis (40%) digabung dengan wawancara (30%).</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button onClick={() => startTest('PSYCHOMETRIC')}
-                  className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
-                  <p className="text-xs font-bold text-[#0f172a]">Tes Psikometri</p>
-                  <p className="text-[11px] text-[#64748b] mt-0.5">20 soal kepribadian · ~10 menit · bobot 30%</p>
-                </button>
-                <button onClick={() => startTest('TECHNICAL')}
-                  className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
-                  <p className="text-xs font-bold text-[#0f172a]">Tes Teknis</p>
-                  <p className="text-[11px] text-[#64748b] mt-0.5">8 soal logika & kuantitatif · ~15 menit · bobot 40%</p>
-                </button>
-              </div>
+              {locked ? (
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                  <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span>Tes belum dibuka. Menunggu seleksi HR. Anda akan dapat memulai tes setelah lamaran masuk tahap <strong>Screening</strong>.</span>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[11px] text-[#64748b]">Kerjakan tes berikut secara jujur. Skor psikometri (30%) dan teknis (40%) digabung dengan wawancara (30%).</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onClick={() => startTest('PSYCHOMETRIC')}
+                      className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
+                      <p className="text-xs font-bold text-[#0f172a]">Tes Psikometri</p>
+                      <p className="text-[11px] text-[#64748b] mt-0.5">20 soal kepribadian · ~10 menit · bobot 30%</p>
+                    </button>
+                    <button onClick={() => startTest('TECHNICAL')}
+                      className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
+                      <p className="text-xs font-bold text-[#0f172a]">Tes Teknis</p>
+                      <p className="text-[11px] text-[#64748b] mt-0.5">8 soal logika & kuantitatif · ~15 menit · bobot 40%</p>
+                    </button>
+                  </div>
+                </>
+              )}
             </section>
 
             <section className="rounded-2xl bg-white border border-[#e2e8f0] p-5 space-y-3">
