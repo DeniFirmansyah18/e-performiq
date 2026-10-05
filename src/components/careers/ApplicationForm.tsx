@@ -153,9 +153,13 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
     setMsg(null); setBusy(true);
     const payload = {
       ...form,
-      address: [address.address, address.village, address.district, address.city, address.province, address.postalCode]
-        .map((s) => String(s ?? '').trim()).filter(Boolean).join(', ') || null,
+      // Field opsional: kirim undefined (bukan '') agar lolos validasi enum/opsional.
+      gender: form.gender || undefined,
       birthDate: form.birthDate || undefined,
+      phone: form.phone || undefined,
+      nik: form.nik || undefined,
+      address: [address.address, address.village, address.district, address.city, address.province, address.postalCode]
+        .map((s) => String(s ?? '').trim()).filter(Boolean).join(', ') || undefined,
       jobPostingId: selectedPosting,
       resumeText: upload?.extracted ? upload.rawText : undefined,
       resumeFileName: upload?.fileName,

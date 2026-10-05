@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import ApplicationForm from '@/components/careers/ApplicationForm';
 
 interface Posting {
@@ -19,11 +20,13 @@ function skillsList(v: unknown): string[] {
 
 /** Portal Karier publik (tanpa login). Memakai /api/v1/careers/*. */
 export default function CareersPage() {
+  const router = useRouter();
   const [postings, setPostings] = useState<Posting[]>([]);
   const [selectedPosting, setSelectedPosting] = useState<string>('');
 
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [ats, setAts] = useState<AtsResult | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
   const [statusQuery, setStatusQuery] = useState('');
   const [statusResult, setStatusResult] = useState<string | null>(null);
 
@@ -50,7 +53,7 @@ export default function CareersPage() {
     setStatusResult(res.ok ? `Status: ${j.data.status} (${j.data.postingTitle})` : 'Nomor lamaran tidak ditemukan.');
   };
 
-  const reset = () => { setSubmitted(null); setAts(null); };
+  const reset = () => { setSubmitted(null); setAts(null); setRedirecting(false); };
 
   const scoreColor = (s: number) => (s >= 75 ? 'text-emerald-600' : s >= 50 ? 'text-amber-600' : 'text-rose-600');
 
@@ -167,13 +170,26 @@ export default function CareersPage() {
               )}
 
               <button onClick={reset} className="text-[11px] font-bold text-[#007a5a] underline">Kirim lamaran lain</button>
+              {redirecting && (
+                <p className="text-[11px] font-semibold text-indigo-700">
+                  Mengalihkan ke halaman progres tahapan lamaran…{' '}
+                  <a href={`/careers/status?no=${encodeURIComponent(submitted)}`} className="underline">Buka sekarang</a>
+                </p>
+              )}
             </div>
           ) : (
             <ApplicationForm
               postings={postings.map((p) => ({ id: p.id, postingTitle: p.postingTitle }))}
               selectedPosting={selectedPosting}
               onSelectPosting={setSelectedPosting}
-              onSubmitted={(no, atsRes) => { setSubmitted(no); setAts(atsRes); }}
+              onSubmitted={(no, atsRes) => {
+                setSubmitted(no);
+                setAts(atsRes);
+                // Alihkan otomatis ke halaman progres tahapan lengkap memakai
+                // kode yang baru dibuat. Beri jeda singkat agar kode sempat terlihat.
+                setRedirecting(true);
+                setTimeout(() => router.push(`/careers/status?no=${encodeURIComponent(no)}`), 1800);
+              }}
             />
           )}
         </section>

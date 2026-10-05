@@ -8,7 +8,7 @@ import {
   canonicalSkill,
   runAts,
 } from '@/lib/services/atsService';
-import { parseResumeHeuristic, extractSkills } from '@/lib/services/resumeParser';
+import { parseResumeHeuristic, extractSkills, extractTextFromDocx } from '@/lib/services/resumeParser';
 
 const SAMPLE_CV = `Budi Santoso
 budi.santoso@example.com | 0812-3456-7890
@@ -30,6 +30,58 @@ S1 Teknik Informatika, Universitas Indonesia, 2014 - 2018, IPK 3.65
 KEAHLIAN
 TypeScript, React, Node.js, PostgreSQL, Docker, Git, Komunikasi, Kepemimpinan
 `;
+
+/** Bangun berkas DOCX minimal (ZIP) dengan entri yang diberikan (stored/no compress). */
+function buildDocx(entries: Array<{ name: string; content: string }>): Buffer {
+  const chunk = (buf: Buffer) => {
+    let crc = 0xffffffff;
+    for (const b of buf) {
+      crc ^= b;
+      for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const nameBuf = Buffer.from(e.name, 'utf8');
+    const data = Buffer.from(e.content, 'utf8');
+    const crc = chunk(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(0, 8); // stored
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    const localFull = Buffer.concat([local, nameBuf, data]);
+    locals.push(localFull);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0, 10);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(nameBuf.length, 28);
+    central.writeUInt32LE(offset, 42);
+    centrals.push(Buffer.concat([central, nameBuf]));
+    offset += localFull.length;
+  }
+  const centralDir = Buffer.concat(centrals);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralDir.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, centralDir, eocd]);
+}
 
 describe('WS-4 ATS service', () => {
   describe('matchSkills', () => {
@@ -84,6 +136,34 @@ describe('WS-4 ATS service', () => {
     it('extractSkills mendeteksi skill dari kamus', () => {
       const s = extractSkills('Saya menguasai Excel dan berpengalaman dengan Power BI.');
       expect(s).toEqual(expect.arrayContaining(['Excel', 'Power BI']));
+    });
+
+    it('extractSkills tetap mendeteksi skill yang terpecah spasi (artefak PDF/run Word)', () => {
+      const s = extractSkills('Type Script, Next .js, Postgre SQL, Node .js');
+      expect(s).toEqual(expect.arrayContaining(['TypeScript', 'Next.js', 'PostgreSQL']));
+    });
+
+    it('matchSkills mencocokkan requirement pada teks skill terpecah spasi', () => {
+      const res = matchSkills(
+        extractSkills('Type Script, Next .js, Postgre SQL'),
+        ['TypeScript', 'Next.js', 'PostgreSQL'],
+      );
+      expect(res.missing).toEqual([]);
+      expect(res.matchRatio).toBe(1);
+    });
+
+    it('extractTextFromDocx menyatukan run dalam satu paragraf tanpa spasi', async () => {
+      // Bangun DOCX minimal: ZIP berisi word/document.xml dengan kata terpecah run.
+      const xml = '<?xml version="1.0"?><w:document><w:body>'
+        + '<w:p><w:r><w:t>Type</w:t></w:r><w:r><w:t>Script</w:t></w:r>'
+        + '<w:r><w:t>, Next</w:t></w:r><w:r><w:t>.js</w:t></w:r>'
+        + '<w:r><w:t>, Postgre</w:t></w:r><w:r><w:t>SQL</w:t></w:r></w:p>'
+        + '</w:body></w:document>';
+      const docxBuf = buildDocx([{ name: 'word/document.xml', content: xml }]);
+      const text = await extractTextFromDocx(docxBuf);
+      expect(text).toContain('TypeScript');
+      expect(text).toContain('Next.js');
+      expect(text).toContain('PostgreSQL');
     });
 
     it('mengekstrak jenis kelamin, NIK, dan alamat dari CV', () => {

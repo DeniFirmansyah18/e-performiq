@@ -68,18 +68,21 @@ export interface AtsSkillResult {
 /** Cocokkan skill CV vs requirement lowongan (exact kanonik + alias + substring aman). */
 export function matchSkills(candidateSkills: string[], requiredSkills: string[]): AtsSkillResult {
   const req = (requiredSkills ?? []).map((s) => String(s).trim()).filter(Boolean);
-  const candKeys = new Set(candidateSkills.map(compareKey));
+  const candKeys = new Set(candidateSkills.map(compareKey).filter(Boolean));
+  // Set "tanpa pemisah" untuk mengatasi skill kandidat yang terpecah spasi.
+  const candKeysNs = new Set(Array.from(candKeys).map((k) => k.replace(/\s+/g, '')).filter(Boolean));
   const matched: string[] = [];
   const missing: string[] = [];
   for (const r of req) {
     const key = compareKey(r);
-    // Cocok bila: kanonik sama, key sama, atau salah satu substring yang lain
-    // (min 4 huruf agar tidak over-match seperti "Go" vs "Google").
-    const hit = candKeys.has(key) ||
-      candidateSkills.some((c) => {
-        const ck = compareKey(c);
+    const keyNs = key.replace(/\s+/g, '');
+    // Cocok bila: kanonik sama, key sama, varian tanpa spasi sama, atau salah
+    // satu substring yang lain (min 4 huruf agar tidak over-match "Go" vs "Google").
+    const hit = candKeys.has(key) || candKeysNs.has(keyNs) ||
+      Array.from(candKeys).some((ck) => {
         if (!ck || !key) return false;
-        return (ck.length >= 4 && key.includes(ck)) || (key.length >= 4 && ck.includes(key));
+        const ckNs = ck.replace(/\s+/g, '');
+        return (ckNs.length >= 4 && keyNs.includes(ckNs)) || (keyNs.length >= 4 && ckNs.includes(keyNs));
       });
     (hit ? matched : missing).push(r);
   }

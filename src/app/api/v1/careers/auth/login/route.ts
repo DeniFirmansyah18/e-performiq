@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 43200,
+      maxAge: 2592000, // 30 hari — sesi tahan lama hingga logout eksplisit
       path: '/',
     });
     return response;

@@ -9,7 +9,7 @@ import { AuthError } from './errors';
  */
 export const CANDIDATE_COOKIE_NAME = 'eperformiq_candidate_token';
 const ALG = 'HS256';
-const DEFAULT_TTL = '12h';
+const DEFAULT_TTL = '30d';
 
 export type CandidateSessionPayload = {
   accountId: string;

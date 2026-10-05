@@ -19,34 +19,36 @@ function req(path: string, body?: unknown, cookie?: string): NextRequest {
 
 describe('WS-2 auth kandidat terpisah', () => {
   let client: PGlite;
+  // Email unik per run agar tidak bentrok dengan data persist di .pglite dev.
+  const email = `kandidat.satu.${Date.now()}@example.com`;
   beforeAll(async () => { ({ client } = await createTestDb()); });
   afterAll(async () => { await client.close(); });
 
   it('register membuat akun + cookie kandidat (bukan cookie karyawan)', async () => {
-    const res = await register(req('/x', { fullName: 'Kandidat Satu', email: 'Kandidat.Satu@Example.com', password: 'rahasia123' }));
+    const res = await register(req('/x', { fullName: 'Kandidat Satu', email, password: 'rahasia123' }));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data.account.email).toBe('kandidat.satu@example.com'); // dinormalisasi
+    expect(json.data.account.email).toBe(email.toLowerCase()); // dinormalisasi
     const setCookie = res.headers.get('set-cookie') || '';
     expect(setCookie).toContain('eperformiq_candidate_token');
     expect(setCookie).not.toContain('eperformiq_token=');
   });
 
   it('register email duplikat ditolak', async () => {
-    const res = await register(req('/x', { fullName: 'Dup', email: 'kandidat.satu@example.com', password: 'rahasia123' }));
+    const res = await register(req('/x', { fullName: 'Dup', email, password: 'rahasia123' }));
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
   it('login sukses mengembalikan token kandidat; password salah 401', async () => {
-    const okRes = await login(req('/x', { email: 'kandidat.satu@example.com', password: 'rahasia123' }));
+    const okRes = await login(req('/x', { email, password: 'rahasia123' }));
     expect(okRes.status).toBe(200);
     const token = (await okRes.json()).data.access_token;
     const payload = await verifyCandidateSession(token);
-    expect(payload?.email).toBe('kandidat.satu@example.com');
+    expect(payload?.email).toBe(email.toLowerCase());
     // token kandidat TIDAK valid sebagai sesi karyawan
     expect(await verifySession(token)).toBeNull();
 
-    const bad = await login(req('/x', { email: 'kandidat.satu@example.com', password: 'salah' }));
+    const bad = await login(req('/x', { email, password: 'salah' }));
     expect(bad.status).toBe(401);
   });
 
@@ -56,11 +58,11 @@ describe('WS-2 auth kandidat terpisah', () => {
     expect(anon.status).toBe(200);
     expect((await anon.json()).data.account).toBeNull();
 
-    const loginRes = await login(req('/x', { email: 'kandidat.satu@example.com', password: 'rahasia123' }));
+    const loginRes = await login(req('/x', { email, password: 'rahasia123' }));
     const token = (await loginRes.json()).data.access_token;
     const res = await me(req('/x', undefined, `eperformiq_candidate_token=${token}`));
     expect(res.status).toBe(200);
-    expect((await res.json()).data.account.email).toBe('kandidat.satu@example.com');
+    expect((await res.json()).data.account.email).toBe(email.toLowerCase());
   });
 
   it('logout mengosongkan cookie kandidat', async () => {

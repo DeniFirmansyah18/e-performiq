@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     const response = ok({
       access_token: token,
       token_type: 'Bearer',
-      expires_in: 28800,
+      expires_in: 2592000,
       user: {
         id: user.id,
         employee_id: user.employeeId,
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 28800, // 8 hours
+      maxAge: 2592000, // 30 days — sesi tahan lama hingga logout eksplisit
       path: '/',
     });
 

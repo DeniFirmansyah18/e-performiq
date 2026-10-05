@@ -149,10 +149,15 @@ function splitSections(text: string): Record<string, string> {
 export function extractSkills(text: string): string[] {
   const found = new Set<string>();
   const lower = ` ${String(text ?? '').toLowerCase()} `;
+  // Varian tanpa spasi: mengatasi artefak ekstraksi PDF/run Word yang memecah
+  // satu skill menjadi beberapa token ("Type Script", "Next .js", "Postgre SQL").
+  const nospace = lower.replace(/\s+/g, '');
   SKILL_LOOKUP.forEach((canonical, needle) => {
     const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i');
-    if (re.test(lower)) found.add(canonical);
+    if (re.test(lower)) { found.add(canonical); return; }
+    const needleNs = needle.replace(/\s+/g, '');
+    if (needleNs.length >= 3 && nospace.includes(needleNs)) found.add(canonical);
   });
   return Array.from(found);
 }
@@ -361,13 +366,17 @@ export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
       offset = dataEnd;
     }
     if (!documentXml) return '';
-    const matches = documentXml.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) ?? [];
-    if (matches.length === 0) return '';
-    // Pertahankan pemisah paragraf agar struktur CV tetap terbaca.
-    const withBreaks = documentXml.replace(/<\/w:p>/g, '\n');
-    const parts = withBreaks.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>|\n/g) ?? [];
-    return normalizeResumeText(cleanupExtracted(parts.map((p) => p.replace(/<[^>]+>/g, '\n')).join(' ')))
-      .replace(/\n{2,}/g, '\n');
+    // Pisahkan per paragraf; di dalam satu paragraf, run <w:t> bersambung
+    // TANPA spasi (Word memecah kata menjadi beberapa run, mis. "Type"+"Script").
+    // Spasi antar-kata sudah tersimpan di dalam teks run itu sendiri.
+    const paragraphs = documentXml
+      .replace(/<w:p[ >]/g, '\n<w:p ')
+      .split('\n')
+      .map((p) => (p.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) ?? [])
+        .map((run) => run.replace(/<[^>]+>/g, ''))
+        .join(''));
+    const joined = paragraphs.filter((p) => p.trim().length > 0).join('\n');
+    return normalizeResumeText(cleanupExtracted(joined)).replace(/\n{2,}/g, '\n');
   } catch {
     return '';
   }

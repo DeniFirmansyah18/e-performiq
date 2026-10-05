@@ -3,7 +3,8 @@ import type { UserRole } from '@/types';
 
 export const SESSION_COOKIE_NAME = 'eperformiq_token';
 const ALG = 'HS256';
-const DEFAULT_TTL = '8h';
+// Sesi panjang: pengguna tetap masuk hingga menekan tombol logout secara eksplisit.
+const DEFAULT_TTL = '30d';
 
 export type SessionPayload = {
   userId: string;
