@@ -103,6 +103,19 @@ Notifikasi progress lamaran juga dapat dikirim ke **WhatsApp** kandidat. Tanpa k
 
 > Nomor otomatis dinormalisasi ke format internasional (`08xxx` → `628xxx`). Fitur WhatsApp bersifat **best-effort** — kegagalan tidak mengganggu alur lamaran.
 
+### Mengaktifkan notifikasi (prasyarat)
+Agar email & WhatsApp benar-benar terkirim, dua prasyarat operator:
+1. **Email** — `EMAIL_FROM` harus memakai alamat pada **domain yang sudah diverifikasi** di Resend (bukan `onboarding@resend.dev`, yang hanya bisa mengirim ke pemilik akun). Status kirim terlihat pada `GET /api/v1/careers/notifications/health` (5 entri terakhir + kolom `error`).
+2. **WhatsApp** — `WHATSAPP_PROVIDER` + `WHATSAPP_TOKEN` valid dengan **perangkat Fonnte aktif**, dan nomor kandidat berformat `62…`.
+
+## Alur Rekrutmen (kandidat publik)
+1. **Lamar** (`/careers`) → dapat **nomor lamaran** + notifikasi in-app/email/WA. Status `SUBMITTED` → tes masih **terkunci**.
+2. **HR** ubah status ke **SCREENING** (panel Rekrutmen) → kandidat dinotifikasi; tes psikometri & teknis terbuka (`/careers/portal/assessments`).
+3. Kandidat mengerjakan tes → hasil tersimpan untuk review HR.
+4. **HR** membuat **jadwal wawancara** + **tautan rapat** (panel "Jadwal Wawancara") → status `INTERVIEW` + kandidat menerima tautan (portal & `/careers/status`).
+5. Setelah wawancara, HR menandai **"Selesai"** pada jadwal.
+6. **HR** menetapkan **OFFERED / HIRED / REJECTED** (dropdown status atau tombol keputusan) → tiap transisi mengirim notifikasi (in-app + email + WA, best-effort).
+
 ## Fitur AI (provider-agnostic: Gemini, Groq & OpenRouter, opsional)
 - **Analisis AI per fitur** — tiap panel dashboard memiliki blok "Analisis AI"
   yang menganalisis data nyata fitur tersebut (endpoint `POST /api/v1/ai/analyze`).

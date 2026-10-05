@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
+import { sql } from 'drizzle-orm';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import {
@@ -81,6 +82,9 @@ describe('WS-7 review HR + keputusan', () => {
       });
       applicationId = app.applicationId!;
       candidateId = app.candidateId;
+
+      // F4: buka gerbang asesmen (status → SCREENING) sebelum memulai tes.
+      await db.execute(sql`UPDATE job_applications SET status = 'SCREENING'::application_status_enum WHERE id = ${applicationId}::uuid`);
 
       // ATS.
       await runAts(db, {
