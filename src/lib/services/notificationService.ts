@@ -156,18 +156,24 @@ const STAGE_LABEL: Record<string, string> = {
 export async function notifyApplicationSubmitted(
   db: Db,
   p: { candidateId: string; accountId?: string | null; applicationId?: string | null; email: string; name: string; applicationNo: string; phone?: string | null },
-): Promise<void> {
+): Promise<{ email: string; whatsapp: string }> {
   const title = 'Lamaran Berhasil Dikirim';
   const body = `Halo ${p.name}, lamaran Anda dengan nomor ${p.applicationNo} telah kami terima. ` +
     `Pantau progres melalui halaman status lamaran. Kami akan mengirimkan notifikasi pada setiap tahap.`;
   await createNotification(db, { candidateId: p.candidateId, accountId: p.accountId, applicationId: p.applicationId, title, body, stage: 'APPLIED' });
-  await sendEmail(db, { to: p.email, subject: `[E-PerformIQ] Lamaran ${p.applicationNo} diterima`, body, applicationId: p.applicationId });
+  const emailRes = await sendEmail(db, { to: p.email, subject: `[E-PerformIQ] Lamaran ${p.applicationNo} diterima`, body, applicationId: p.applicationId });
+  let whatsapp = 'SKIPPED';
   if (p.phone) {
     try {
       const { sendWhatsApp } = await import('@/lib/services/whatsappService');
-      await sendWhatsApp(db, { to: p.phone, message: `*E-PerformIQ*\n${title}\n\n${body}`, applicationId: p.applicationId });
-    } catch { /* WhatsApp opsional */ }
+      const waRes = await sendWhatsApp(db, { to: p.phone, message: `*E-PerformIQ*\n${title}\n\n${body}`, applicationId: p.applicationId });
+      whatsapp = waRes?.status ?? 'UNKNOWN';
+    } catch (err) {
+      whatsapp = 'FAILED';
+      console.warn('[notificationService] WA gagal:', (err as Error)?.message);
+    }
   }
+  return { email: emailRes?.status ?? 'UNKNOWN', whatsapp };
 }
 
 /**

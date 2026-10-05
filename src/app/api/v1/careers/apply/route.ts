@@ -116,8 +116,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let notifications: { email: string; whatsapp: string } = { email: 'SKIPPED', whatsapp: 'SKIPPED' };
     try {
-      await notifyApplicationSubmitted(db, {
+      notifications = await notifyApplicationSubmitted(db, {
         candidateId: result.candidateId,
         accountId: session?.accountId ?? null,
         applicationId: result.applicationId,
@@ -126,9 +127,14 @@ export async function POST(req: NextRequest) {
         applicationNo: result.applicationNo,
         phone: parsed.data.phone ?? null,
       });
-    } catch { /* notifikasi opsional */ }
+      if (notifications.email === 'FAILED') console.warn('[careers/apply] email gagal untuk', result.applicationNo);
+      if (notifications.whatsapp === 'FAILED') console.warn('[careers/apply] WhatsApp gagal untuk', result.applicationNo);
+    } catch (err) {
+      console.warn('[careers/apply] notifikasi error:', (err as Error)?.message);
+      notifications = { email: 'ERROR', whatsapp: 'ERROR' };
+    }
 
-    return ok({ ...result, ats }, 'Lamaran berhasil dikirim.');
+    return ok({ ...result, ats, notifications }, 'Lamaran berhasil dikirim.');
   } catch (err) {
     return problem(err, '/api/v1/careers/apply');
   }

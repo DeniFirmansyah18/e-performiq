@@ -49,7 +49,7 @@ PIN slip gaji demo (semua karyawan): `123456`.
 | `OPENROUTER_API_KEY` | Kunci API OpenRouter (agregator banyak model, ada `:free`). **Opsional.** |
 | `OPENROUTER_MODEL` | Model OpenRouter (default `qwen/qwen3.8-27b:free`). |
 | `EMAIL_PROVIDER` | Provider email notifikasi: `resend` \| `webhook`. Kosong = nonaktif (notifikasi tetap in-app + outbox). **Opsional.** |
-| `EMAIL_FROM` | Alamat pengirim email (mis. `E-PerformIQ <onboarding@resend.dev>`). Domain harus terverifikasi di provider. |
+| `EMAIL_FROM` | Alamat pengirim email (mis. `E-PerformIQ <no-reply@domain-anda.id>`). Domain harus terverifikasi di provider. `onboarding@resend.dev` hanya untuk uji (kirim ke pemilik akun Resend). |
 | `RESEND_API_KEY` | Kunci Resend untuk kirim email sungguhan (https://resend.com/api-keys). **Opsional.** |
 | `EMAIL_WEBHOOK_URL` | Gateway SMTP/HTTP generik (menerima POST JSON `{to,subject,text,html,from}`). **Opsional.** |
 | `EMAIL_WEBHOOK_AUTH` | Header `Authorization` opsional untuk webhook. |
@@ -74,8 +74,9 @@ Secara default **email nonaktif** — notifikasi progress lamaran tetap tampil i
 2. Verifikasi status: `GET /api/v1/careers/notifications/config` → `provider: "resend"`.
 3. Uji kirim: `POST /api/v1/careers/notifications/config` dengan body `{ "to": "email@anda.com" }` (sertakan cookie sesi kandidat).
 4. Cek tabel `email_outbox`: `status` berubah `QUEUED → SENT` (atau `FAILED` + kolom `error`).
+5. Diagnosa cepat (HR): `GET /api/v1/careers/notifications/health` → `{ emailProvider, whatsappProvider, recent }` (5 entri outbox terakhir + error). Response `POST /careers/apply` juga menyertakan `notifications: { email, whatsapp }` berisi status pengiriman tiap kanal.
 
-> Untuk uji cepat Resend tanpa domain sendiri, gunakan `onboarding@resend.dev` — Resend hanya mengizinkan kirim ke email pemilik akun.
+> Untuk uji cepat Resend tanpa domain sendiri, gunakan `onboarding@resend.dev` — Resend hanya mengizinkan kirim ke email pemilik akun. Untuk produksi, ganti `EMAIL_FROM` ke alamat pada **domain yang sudah diverifikasi** di Resend.
 
 ### Mengaktifkan notifikasi WhatsApp
 Notifikasi progress lamaran juga dapat dikirim ke **WhatsApp** kandidat. Tanpa konfigurasi, pesan tetap tercatat di tabel `whatsapp_outbox` (status `QUEUED`). Provider didukung: **Fonnte**, **Wablas**, **WhatsApp Cloud API (Meta)**, dan **webhook** generik.
@@ -176,6 +177,10 @@ Lihat `docs/decisions/` (ADR 003–018). Sumber pihak ketiga (IRT, IPIP) dicatat
 - **Rate limiting** pada registrasi mandiri karyawan & endpoint verifikasi email
   belum diterapkan (lihat ADR 016). Rencana: token bucket per IP/email untuk
   mencegah spam pendaftaran. Ditunda, dicatat sebagai tindak lanjut.
+- **Notifikasi email/WA bersifat best-effort**: kegagalan dicatat (tidak lagi
+  ditelan diam-diam) dan tetap terlihat via `GET /api/v1/careers/notifications/health`.
+  Kirim nyata bergantung pada kredensial valid (`EMAIL_FROM` domain terverifikasi,
+  `WHATSAPP_TOKEN` + perangkat Fonnte aktif) dan nomor `62…` yang valid.
 
 ## Deploy ke Vercel
 
