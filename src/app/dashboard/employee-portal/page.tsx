@@ -380,6 +380,21 @@ setIsUpdating(false);
 return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
       
+  {/* 0. Header */}
+  <div>
+    <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">
+      <span className="font-bold uppercase tracking-wider text-[#64748b]">
+        Employee Growth Portal
+      </span>
+      <span className="font-semibold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded text-[11px] border border-[#b7e1cd]">
+        Employee Self-Service
+      </span>
+    </div>
+    <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
+      Employee Portal / Growth & Performance
+    </h1>
+  </div>
+
   {/* 1. Employee Welcome Header Card */}
   <div className="stitch-card-white p-6">
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -465,7 +480,7 @@ return (
       <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat</h2>
       <span className="text-[11px] text-[#64748b]">Layanan self-service karyawan</span>
     </div>
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       <ActionCard
         icon={Clock}
         tone="emerald"
