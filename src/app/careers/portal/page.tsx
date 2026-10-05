@@ -38,6 +38,7 @@ function skills(p: unknown): string[] {
 export default function CandidatePortalPage() {
   const router = useRouter();
   const [account, setAccount] = useState<{ name: string; email: string } | null>(null);
+  const [converted, setConverted] = useState(false);
   const [postings, setPostings] = useState<Posting[]>([]);
   const [search, setSearch] = useState('');
   const [interview, setInterview] = useState<InterviewInfo | null>(null);
@@ -46,7 +47,14 @@ export default function CandidatePortalPage() {
   useEffect(() => {
     fetch('/api/v1/careers/auth/me')
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j?.data?.account) setAccount(j.data.account); else router.replace('/careers/login'); })
+      .then((j) => {
+        if (j?.data?.account) {
+          setAccount(j.data.account);
+          if (j.data.account.converted) setConverted(true);
+        } else {
+          router.replace('/careers/login');
+        }
+      })
       .catch(() => router.replace('/careers/login'))
       .finally(() => setLoading(false));
   }, [router]);
@@ -76,6 +84,25 @@ export default function CandidatePortalPage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-sm text-[#64748b]">Memuat…</div>;
   if (!account) return null;
+
+  if (converted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-6">
+        <div className="w-full max-w-md rounded-2xl bg-white border border-[#b7e1cd] p-6 text-center space-y-3">
+          <CheckCircle2 className="h-10 w-10 text-[#137333] mx-auto" />
+          <h1 className="text-lg font-extrabold text-[#0f172a]">Selamat, Anda Kini Karyawan!</h1>
+          <p className="text-xs text-[#64748b]">
+            Lamaran Anda telah berstatus <strong>HIRED</strong>. Akun kandidat tidak lagi aktif —
+            silakan login di portal karyawan untuk mengelola profil dan kinerja Anda.
+          </p>
+          <a href="/login"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold transition-colors">
+            Login Portal Karyawan
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">

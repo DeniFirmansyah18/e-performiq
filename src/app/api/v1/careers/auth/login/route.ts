@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { verifyPassword } from '@/lib/auth/password';
 import { signCandidateSession, CANDIDATE_COOKIE_NAME } from '@/lib/auth/candidateSession';
-import { ok, problem, parseBody } from '@/lib/api/response';
+import { ok, fail, problem, parseBody } from '@/lib/api/response';
 import { AuthError } from '@/lib/auth/errors';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,15 @@ export async function POST(req: NextRequest) {
        WHERE LOWER(email) = LOWER(${email})
     `);
     const acc = (result as any).rows[0];
-    if (!acc || !acc.isActive) {
+    if (acc && !acc.isActive) {
+      // Sesi valid tetapi akun nonaktif → kemungkinan sudah dikonversi jadi karyawan.
+      return fail(
+        'ACCOUNT_CONVERTED',
+        'Anda telah menjadi karyawan. Silakan login di portal karyawan (/login).',
+        403,
+      );
+    }
+    if (!acc) {
       throw new AuthError('Email atau kata sandi tidak valid.');
     }
     const valid = await verifyPassword(password, acc.passwordHash);

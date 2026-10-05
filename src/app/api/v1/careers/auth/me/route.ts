@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { sql } from 'drizzle-orm';
+import { db } from '@/lib/db/client';
 import { getCandidateSessionOrNull, CANDIDATE_COOKIE_NAME } from '@/lib/auth/candidateSession';
 import { ok, problem } from '@/lib/api/response';
 
@@ -13,12 +15,23 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getCandidateSessionOrNull(req);
     if (!session) return ok({ account: null });
+
+    // Bila akun sudah dinonaktifkan (dikonversi jadi karyawan), tandai `converted`.
+    let isActive = true;
+    try {
+      const r = (await db.execute(sql`
+        SELECT is_active AS "isActive" FROM candidate_accounts WHERE id = ${session.accountId}::uuid LIMIT 1
+      `)) as unknown as { rows: Array<{ isActive: boolean }> };
+      isActive = r.rows[0]?.isActive ?? false;
+    } catch { /* abaikan — anggap aktif */ }
+
     return ok({
       account: {
         id: session.accountId,
         email: session.email,
         name: session.name,
         candidateId: session.candidateId,
+        converted: !isActive,
       },
     });
   } catch (err) {
