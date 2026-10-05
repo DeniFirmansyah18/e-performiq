@@ -147,6 +147,10 @@ npm run db:seed:pg    # seed ke PostgreSQL server (butuh DATABASE_URL)
   dengan progres per-modul; menyelesaikan seluruh modul menandai kursus selesai. Kursus wajib
   onboarding otomatis menerbitkan **sertifikat** bernomor & terverifikasi publik. Lihat lesson
   viewer di portal karyawan.
+- **Verifikasi sertifikat publik.** Halaman **`/certificates/verify/[code]`** (tanpa login)
+  memverifikasi keaslian sertifikat via `GET /api/v1/certificates/verify/:code`: kode valid →
+  kartu hijau (pemegang, kursus, nomor, tanggal terbit); kode tak dikenal → status merah
+  "tidak ditemukan" (bukan error 500).
 - **Portal Karier publik (ADR 010).** `/careers` (tanpa login): calon karyawan melihat lowongan
   publik, mengirim lamaran (data diri + tautan CV), dan memantau status via nomor lamaran. HR
   mengelola pelamar di panel "Rekrutmen Kandidat".
@@ -165,7 +169,13 @@ yang sama secara bersamaan (menyebabkan abort). Jalankan `npm run db:reset` sebe
 skema berubah.
 
 ## Keputusan arsitektur
-Lihat `docs/decisions/` (ADR 003–013).
+Lihat `docs/decisions/` (ADR 003–018). Sumber pihak ketiga (IRT, IPIP) dicatat di
+`docs/SOURCES.md`.
+
+### Follow-up keamanan
+- **Rate limiting** pada registrasi mandiri karyawan & endpoint verifikasi email
+  belum diterapkan (lihat ADR 016). Rencana: token bucket per IP/email untuk
+  mencegah spam pendaftaran. Ditunda, dicatat sebagai tindak lanjut.
 
 ## Deploy ke Vercel
 
