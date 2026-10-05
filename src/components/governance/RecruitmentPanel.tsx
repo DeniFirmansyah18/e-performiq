@@ -175,6 +175,11 @@ export default function RecruitmentPanel() {
             </tbody>
           </table>
           {msg && <p className="text-[11px] font-semibold text-[#137333] mt-2">{msg}</p>}
+          <p className="text-[10px] text-[#64748b] mt-2">
+            Tip: untuk memindahkan pelamar ke tahap <strong>INTERVIEW</strong>, buat jadwal & tautan rapat
+            pada panel <strong>Jadwal Wawancara</strong> di bawah. Setelah wawancara selesai, tandai
+            &ldquo;Selesai&rdquo; di panel tersebut.
+          </p>
         </div>
       )}
 

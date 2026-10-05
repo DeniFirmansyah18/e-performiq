@@ -390,6 +390,12 @@ export async function listCandidates(db: Db) {
 
 /** Ubah status lamaran (HR) + sinkronkan timeline. */
 export async function updateApplicationStatus(db: Db, applicationId: string, status: string) {
+  // Status sebelumnya untuk deteksi notifikasi (bila tahap timeline tak berubah).
+  const prevRes = (await db.execute(sql`
+    SELECT status::text AS status FROM job_applications WHERE id = ${applicationId}::uuid
+  `)) as unknown as { rows: Array<{ status: string }> };
+  const prevStatus = prevRes.rows?.[0]?.status ?? null;
+
   const res = (await db.execute(sql`
     UPDATE job_applications SET status = ${status}::application_status_enum
      WHERE id = ${applicationId}::uuid
@@ -403,6 +409,33 @@ export async function updateApplicationStatus(db: Db, applicationId: string, sta
     } catch {
       /* timeline opsional */
     }
+
+    // `syncApplicationTimeline`→`upsertStage` hanya mengirim notifikasi saat
+    // (stage,state) timeline berubah. Bila status berubah tetapi pemetaannya sama,
+    // kirim notifikasi eksplisit agar tiap transisi tetap memberitahu kandidat.
+    if (prevStatus && prevStatus !== status && sameTimelineMapping(prevStatus, status)) {
+      try {
+        const { notifyApplicationStatus } = await import('@/lib/services/notificationService');
+        await notifyApplicationStatus(db, { applicationId, status });
+      } catch { /* notifikasi best-effort */ }
+    }
   }
   return row;
+}
+
+/** (stage,state) timeline untuk sebuah status lamaran (selaras timelineService). */
+function statusToStageMapping(status: string): string {
+  switch (status) {
+    case 'SUBMITTED': return 'APPLIED:PASSED';
+    case 'SCREENING': return 'ATS_REVIEW:IN_PROGRESS';
+    case 'INTERVIEW': return 'INTERVIEW:IN_PROGRESS';
+    case 'OFFERED': return 'DECISION:IN_PROGRESS';
+    case 'HIRED': return 'DECISION:PASSED';
+    case 'REJECTED': return 'DECISION:FAILED';
+    default: return 'APPLIED:IN_PROGRESS';
+  }
+}
+
+function sameTimelineMapping(a: string, b: string): boolean {
+  return statusToStageMapping(a) === statusToStageMapping(b);
 }

@@ -223,6 +223,66 @@ export async function notifyStageChange(
   } catch { /* abaikan */ }
 }
 
+const APP_STATUS_COPY: Record<string, { title: string; body: (ctx: { applicationNo: string; postingTitle: string }) => string }> = {
+  SCREENING: {
+    title: 'Lolos Seleksi Awal',
+    body: (c) => `Selamat! Lamaran ${c.applicationNo} (${c.postingTitle}) lolos seleksi awal. Silakan lanjutkan ke tahap asesmen di portal kandidat.`,
+  },
+  INTERVIEW: {
+    title: 'Undangan Wawancara',
+    body: (c) => `Lamaran ${c.applicationNo} (${c.postingTitle}) masuk tahap wawancara. Tautan rapat tersedia di portal kandidat Anda.`,
+  },
+  OFFERED: {
+    title: 'Penawaran Kerja',
+    body: (c) => `Selamat! Anda menerima penawaran untuk posisi ${c.postingTitle}. HR akan menghubungi Anda untuk detail selanjutnya.`,
+  },
+  HIRED: {
+    title: 'Selamat, Anda Diterima',
+    body: (c) => `Selamat! Lamaran ${c.applicationNo} (${c.postingTitle}) dinyatakan DITERIMA. Selamat bergabung!`,
+  },
+  REJECTED: {
+    title: 'Hasil Seleksi Lamaran',
+    body: (c) => `Terima kasih telah melamar posisi ${c.postingTitle}. Mohon maaf, lamaran ${c.applicationNo} belum dapat kami lanjutkan saat ini.`,
+  },
+};
+
+/**
+ * Notifikasi berbasis STATUS lamaran (bukan tahap timeline). Dipakai untuk
+ * menjamin tiap transisi status HR (mis. OFFERED→HIRED) menghasilkan notifikasi,
+ * termasuk saat status turunan timeline tidak berubah. Best-effort.
+ */
+export async function notifyApplicationStatus(
+  db: Db,
+  p: { applicationId: string; status: string },
+): Promise<void> {
+  const copy = APP_STATUS_COPY[p.status];
+  if (!copy) return;
+  try {
+    const info = (await db.execute(sql`
+      SELECT c.id AS "candidateId", c.email, c.phone, c.account_id AS "accountId",
+             ja.application_no AS "applicationNo", jp.posting_title AS "postingTitle"
+        FROM job_applications ja
+        JOIN candidates c ON c.id = ja.candidate_id
+        JOIN job_postings jp ON jp.id = ja.job_posting_id
+       WHERE ja.id = ${p.applicationId}::uuid
+    `)) as unknown as { rows: any[] };
+    const row = info.rows?.[0];
+    if (!row) return;
+
+    const body = copy.body({ applicationNo: row.applicationNo, postingTitle: row.postingTitle });
+    await createNotification(db, {
+      candidateId: row.candidateId, accountId: row.accountId, applicationId: p.applicationId, title: copy.title, body, stage: 'APPLIED',
+    });
+    await sendEmail(db, { to: row.email, subject: `[E-PerformIQ] ${copy.title} — ${row.applicationNo}`, body, applicationId: p.applicationId });
+    if (row.phone) {
+      try {
+        const { sendWhatsApp } = await import('@/lib/services/whatsappService');
+        await sendWhatsApp(db, { to: row.phone, message: `*E-PerformIQ — ${copy.title}*\n\n${body}`, applicationId: p.applicationId });
+      } catch { /* WhatsApp opsional */ }
+    }
+  } catch { /* abaikan */ }
+}
+
 /** Daftar notifikasi in-app untuk akun kandidat. */
 export async function listNotifications(db: Db, accountId: string, limit = 50) {
   const res = (await db.execute(sql`
