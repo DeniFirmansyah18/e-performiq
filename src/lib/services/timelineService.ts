@@ -52,6 +52,12 @@ export interface TimelineEntry {
   state: StageState;
   note?: string | null;
   at?: string | null;
+  /** Tautan ruang wawancara online (hanya tahap INTERVIEW; null bila belum ada). */
+  meetingUrl?: string | null;
+  /** Waktu wawancara terjadwal (ISO; hanya tahap INTERVIEW). */
+  scheduledAt?: string | null;
+  /** Nama pewawancara (opsional; hanya bila di-set). */
+  interviewerName?: string | null;
 }
 
 export interface ApplicationTimelineView {
@@ -360,11 +366,40 @@ export async function getTimelineByApplicationNo(
       FROM application_timeline WHERE application_id = ${row.id}::uuid
   `)) as unknown as { rows: RawEntry[] };
 
-  return buildTimelineView(
+  const view = buildTimelineView(
     row.applicationNo,
     row.status,
     row.postingTitle,
     row.candidateName,
     entries.rows ?? [],
   );
+
+  // Lengkapi tahap INTERVIEW dengan tautan & jadwal wawancara (bila ada).
+  // Best-effort: kegagalan query tidak boleh menggagalkan timeline.
+  try {
+    const iv = (await db.execute(sql`
+      SELECT s.scheduled_at AS "scheduledAt", s.meeting_url AS "meetingUrl",
+             e.full_name AS "interviewerName"
+        FROM interview_schedules s
+        LEFT JOIN users u ON u.id = s.interviewer_user_id
+        LEFT JOIN employees e ON e.id = u.employee_id
+       WHERE s.application_id = ${row.id}::uuid
+       ORDER BY s.scheduled_at DESC LIMIT 1
+    `)) as unknown as {
+      rows: Array<{ scheduledAt: string | null; meetingUrl: string | null; interviewerName: string | null }>;
+    };
+    const sched = iv.rows?.[0];
+    if (sched) {
+      const entry = view.entries.find((e) => e.stage === 'INTERVIEW');
+      if (entry) {
+        entry.meetingUrl = sched.meetingUrl ?? null;
+        entry.scheduledAt = sched.scheduledAt ? new Date(sched.scheduledAt).toISOString() : null;
+        entry.interviewerName = sched.interviewerName ?? null;
+      }
+    }
+  } catch {
+    /* abaikan — timeline tetap tampil tanpa detail wawancara */
+  }
+
+  return view;
 }

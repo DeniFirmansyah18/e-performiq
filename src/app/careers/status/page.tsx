@@ -9,6 +9,9 @@ interface TimelineEntry {
   state: 'DONE' | 'CURRENT' | 'UPCOMING' | 'FAILED' | 'SKIPPED';
   note?: string | null;
   at?: string | null;
+  meetingUrl?: string | null;
+  scheduledAt?: string | null;
+  interviewerName?: string | null;
 }
 interface TimelineView {
   applicationNo: string;
@@ -135,6 +138,32 @@ export default function CareersStatusPage() {
                     </div>
                     {e.note && <p className="text-[11px] text-[#475569] mt-1">{e.note}</p>}
                     {e.at && <p className="text-[10px] text-[#94a3b8] mt-0.5">{new Date(e.at).toLocaleString('id-ID')}</p>}
+
+                    {/* Wawancara: tampilkan jadwal & tautan ruang online bila ada. */}
+                    {e.stage === 'INTERVIEW' && e.state !== 'UPCOMING' && (
+                      <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2">
+                        {e.scheduledAt ? (
+                          <p className="text-[11px] text-indigo-800 font-semibold">
+                            Jadwal: {new Date(e.scheduledAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}
+                            {e.interviewerName ? ` · Pewawancara: ${e.interviewerName}` : ''}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-indigo-700 font-semibold">Jadwal wawancara menyusul.</p>
+                        )}
+                        {e.meetingUrl ? (
+                          <a
+                            href={e.meetingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-indigo-600 rounded-lg px-3 py-1.5 hover:bg-indigo-700"
+                          >
+                            🎥 Bergabung ke Ruang Wawancara
+                          </a>
+                        ) : (
+                          <p className="text-[10px] text-indigo-500 mt-1">Tautan ruang wawancara akan dibagikan menjelang jadwal.</p>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}

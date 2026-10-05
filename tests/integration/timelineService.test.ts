@@ -123,5 +123,48 @@ describe('WS-5 timeline kandidat', () => {
       expect(view!.entries[0].label).toBe('Lamaran Diterima');
       expect(view!.entries[6].label).toBe('Keputusan Akhir');
     });
+
+    it('menyertakan tautan & jadwal wawancara pada tahap INTERVIEW', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'Wawancara Uji', email: 'wawancara.uji@example.com', jobPostingId: postingId,
+      });
+      const applicationId = app.applicationId!;
+      await client.query(
+        `INSERT INTO interview_schedules (application_id, scheduled_at, meeting_url, status)
+         VALUES ($1::uuid, '2026-11-01T09:00:00Z'::timestamptz, 'https://meet.example.com/abc-123', 'SCHEDULED')`,
+        [applicationId],
+      );
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      expect(view).not.toBeNull();
+      const iv = view!.entries.find((e) => e.stage === 'INTERVIEW')!;
+      expect(iv.meetingUrl).toBe('https://meet.example.com/abc-123');
+      expect(iv.scheduledAt).not.toBeNull();
+      expect(iv.status).toBe('SCHEDULED');
+    });
+
+    it('tahap INTERVIEW tetap aman saat belum ada jadwal (meetingUrl null)', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'Tanpa Jadwal', email: 'tanpa.jadwal@example.com', jobPostingId: postingId,
+      });
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      const iv = view!.entries.find((e) => e.stage === 'INTERVIEW')!;
+      expect(iv.meetingUrl == null).toBe(true);
+      expect(iv.scheduledAt == null).toBe(true);
+    });
+
+    it('jadwal tanpa meeting_url → meetingUrl null (UI tampilkan "menyusul")', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'URL Kosong', email: 'url.kosong@example.com', jobPostingId: postingId,
+      });
+      await client.query(
+        `INSERT INTO interview_schedules (application_id, scheduled_at, meeting_url, status)
+         VALUES ($1::uuid, '2026-11-02T10:00:00Z'::timestamptz, NULL, 'SCHEDULED')`,
+        [app.applicationId],
+      );
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      const iv = view!.entries.find((e) => e.stage === 'INTERVIEW')!;
+      expect(iv.meetingUrl == null).toBe(true);
+      expect(iv.scheduledAt).not.toBeNull();
+    });
   });
 });
