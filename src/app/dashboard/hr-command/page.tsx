@@ -30,6 +30,7 @@ import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
+import TechnicalTestPanel from '@/components/governance/TechnicalTestPanel';
 import EmployeeRegistrationPanel from '@/components/governance/EmployeeRegistrationPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
@@ -468,6 +469,10 @@ export default function HROperationsPage() {
 
       {/* Rekrutmen Kandidat (portal karier publik) */}
       <RecruitmentPanel />
+      {/* Bank Soal Tes Teknis (AI, WS-4): generate → tinjau → setujui */}
+      <div className="mt-5">
+        <TechnicalTestPanel />
+      </div>
       {/* Registrasi Karyawan Mandiri (email verify → HR approve) */}
       <div className="mt-5">
         <EmployeeRegistrationPanel />
