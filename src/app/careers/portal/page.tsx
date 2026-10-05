@@ -4,9 +4,16 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Layers, LogOut, Briefcase, Search, Users, CheckCircle2, XCircle,
+  Layers, LogOut, Briefcase, Search, Users, CheckCircle2, XCircle, Calendar, Video,
 } from 'lucide-react';
 import CandidateNotifications from '@/components/careers/CandidateNotifications';
+
+interface InterviewInfo {
+  stageStatus: string;
+  scheduledAt: string | null;
+  meetingUrl: string | null;
+  interviewerName: string | null;
+}
 
 interface Posting {
   id: string;
@@ -33,6 +40,7 @@ export default function CandidatePortalPage() {
   const [account, setAccount] = useState<{ name: string; email: string } | null>(null);
   const [postings, setPostings] = useState<Posting[]>([]);
   const [search, setSearch] = useState('');
+  const [interview, setInterview] = useState<InterviewInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,6 +59,15 @@ export default function CandidatePortalPage() {
   }, [search]);
 
   useEffect(() => { if (account) load(); }, [account, load]);
+
+  // Jadwal wawancara (bila HR telah membuatkan tautan).
+  useEffect(() => {
+    if (!account) return;
+    fetch('/api/v1/careers/interview')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setInterview(j?.data?.interview ?? null))
+      .catch(() => setInterview(null));
+  }, [account]);
 
   const logout = async () => {
     await fetch('/api/v1/careers/auth/me', { method: 'POST' });
@@ -83,6 +100,38 @@ export default function CandidatePortalPage() {
       </header>
 
       <main className="max-w-5xl mx-auto p-6 space-y-5">
+        {interview && (
+          <section className="rounded-2xl bg-white border border-[#b7e1cd] p-5">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-[#007a5a]" />
+              <h2 className="text-sm font-extrabold text-[#0f172a]">Jadwal Wawancara</h2>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+                {interview.stageStatus === 'PASSED' ? 'Selesai' : interview.stageStatus === 'SCHEDULED' ? 'Terjadwal' : interview.stageStatus}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-[#334155]">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-[#64748b]">Waktu</p>
+                <p className="font-semibold text-[#0f172a]">
+                  {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleString('id-ID') : 'Belum dijadwalkan'}
+                </p>
+              </div>
+              {interview.interviewerName && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-[#64748b]">Pewawancara</p>
+                  <p className="font-semibold text-[#0f172a]">{interview.interviewerName}</p>
+                </div>
+              )}
+            </div>
+            {interview.meetingUrl && (
+              <a href={interview.meetingUrl} target="_blank" rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold transition-colors">
+                <Video className="h-3.5 w-3.5" /> Gabung Wawancara
+              </a>
+            )}
+          </section>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-extrabold text-[#0f172a]">Lowongan Tersedia</h1>
