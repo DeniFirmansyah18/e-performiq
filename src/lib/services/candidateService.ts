@@ -419,6 +419,16 @@ export async function updateApplicationStatus(db: Db, applicationId: string, sta
         await notifyApplicationStatus(db, { applicationId, status });
       } catch { /* notifikasi best-effort */ }
     }
+
+    // Kandidat HIRED → provision otomatis sebagai karyawan (idempoten, best-effort).
+    if (status === 'HIRED') {
+      try {
+        const { convertHiredCandidate } = await import('@/lib/services/candidateConversionService');
+        await convertHiredCandidate(db, { applicationId });
+      } catch (err) {
+        console.warn('[candidateService] konversi HIRED gagal:', (err as Error)?.message);
+      }
+    }
   }
   return row;
 }
