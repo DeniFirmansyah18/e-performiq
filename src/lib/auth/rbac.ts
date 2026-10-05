@@ -23,6 +23,8 @@ export type Permission =
 | 'recruitment:manage'
 | 'profile:read'
 | 'profile:write'
+| 'offboarding:read'
+| 'offboarding:write'
 | 'ai:read'
 | 'wbs:read';
 
@@ -50,6 +52,8 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'recruitment:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'profile:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
 'profile:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
+'offboarding:read': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'BOD', 'EMPLOYEE', 'AUDITOR'],
+'offboarding:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'ai:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
 'wbs:read': ['SUPER_ADMIN', 'AUDITOR'],
 };

@@ -42,6 +42,8 @@ import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal
 import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
 import OnboardingPanel from '@/components/employee/OnboardingPanel';
+import OffboardingSelfPanel from '@/components/employee/OffboardingSelfPanel';
+import { PHASES, PHASE_LABEL, type WorkPhase } from '@/lib/employee/phase';
 import AttendancePanel from '@/components/employee/AttendancePanel';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
@@ -65,6 +67,8 @@ const [weightModalKpi, setWeightModalKpi] = useState<any | null>(null);
 const [editWeightVal, setEditWeightVal] = useState('');
 const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 const [isUpdating, setIsUpdating] = useState(false);
+// Fase siklus kerja (pengelompokan visual fitur yang sudah ada).
+const [activePhase, setActivePhase] = useState<WorkPhase>('DURING');
 
 // Modal states
 const [isAddKpiOpen, setIsAddKpiOpen] = useState(false);
@@ -395,6 +399,25 @@ return (
     </h1>
   </div>
 
+  {/* 0b. Tab fase siklus kerja */}
+  <div role="tablist" aria-label="Fase siklus kerja" className="flex flex-wrap gap-2">
+    {PHASES.map((phase) => (
+      <button
+        key={phase}
+        role="tab"
+        aria-selected={activePhase === phase}
+        onClick={() => setActivePhase(phase)}
+        className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+          activePhase === phase
+            ? 'bg-[#007a5a] text-white shadow-sm'
+            : 'bg-white text-[#334155] border border-[#e2e8f0] hover:bg-[#f8fafc]'
+        }`}
+      >
+        {PHASE_LABEL[phase]}
+      </button>
+    ))}
+  </div>
+
   {/* 1. Employee Welcome Header Card */}
   <div className="stitch-card-white p-6">
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -446,6 +469,19 @@ return (
     </div>
   </div>
 
+  {/* ==== FASE: Sebelum Kerja ==== */}
+  {activePhase === 'PRE' && (
+    <OnboardingPanel />
+  )}
+
+  {/* ==== FASE: Setelah Kerja ==== */}
+  {activePhase === 'POST' && (
+    <OffboardingSelfPanel />
+  )}
+
+  {/* ==== FASE: Saat Kerja ==== */}
+  {activePhase === 'DURING' && (
+    <>
   {/* 2. Feature Card Grid (click to open) */}
   <FeatureGrid>
     <FeatureCard
@@ -571,6 +607,8 @@ return (
       />
     </div>
   </div>
+    </>
+  )}
 
   {/* Panel: Scorecard GPA */}
   <ExpandablePanel open={openFeature === 'scorecard'} title="Composite Performance Scorecard" onClose={() => setOpenFeature(null)}>
