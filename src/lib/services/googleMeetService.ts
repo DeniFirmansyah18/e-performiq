@@ -64,7 +64,9 @@ async function createMeetSpace(): Promise<string | null> {
   const res = await fetch('https://meet.googleapis.com/v2/spaces', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
+    // accessType OPEN → "siapa pun yang memiliki tautan bisa bergabung tanpa
+    // menunggu izin" (kandidat eksternal tidak diblokir oleh kebijakan org TRUSTED).
+    body: JSON.stringify({ config: { accessType: 'OPEN' } }),
   });
   const json = (await res.json().catch(() => ({}))) as { meetingUri?: string; name?: string };
   if (!res.ok) return null;

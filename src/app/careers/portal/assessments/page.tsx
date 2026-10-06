@@ -119,14 +119,14 @@ export default function CandidateAssessmentsPage() {
             <div className="space-y-4">
               {exam.questions.map((q, i) => (
                 <div key={q.id} className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]">
-                  <p className="text-xs font-semibold text-[#0f172a] mb-2">{i + 1}. {q.prompt}</p>
+                  <p className="text-xs font-semibold text-black mb-2">{i + 1}. {q.prompt}</p>
                   <div className="space-y-1.5">
                     {(q.options ?? []).map((o) => (
-                      <label key={o.key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${answers[q.id] === o.key ? 'border-[#007a5a] bg-[#e6f4ea] font-semibold' : 'border-[#e2e8f0] bg-white hover:border-[#94a3b8]'}`}>
+                      <label key={o.key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs text-black cursor-pointer transition-colors ${answers[q.id] === o.key ? 'border-[#007a5a] bg-[#e6f4ea] font-semibold' : 'border-[#e2e8f0] bg-white hover:border-[#94a3b8]'}`}>
                         <input type="radio" name={q.id} checked={answers[q.id] === o.key}
                           onChange={() => setAnswers({ ...answers, [q.id]: o.key })}
                           className="accent-[#007a5a]" />
-                        {o.label}
+                        <span className="text-black">{o.label}</span>
                       </label>
                     ))}
                   </div>
@@ -156,18 +156,40 @@ export default function CandidateAssessmentsPage() {
                 </div>
               ) : (
                 <>
-                  <p className="text-[11px] text-[#64748b]">Kerjakan tes berikut secara jujur. Skor psikometri (30%) dan teknis (40%) digabung dengan wawancara (30%).</p>
+                  <p className="text-[11px] text-[#64748b]">Kerjakan tes berikut secara jujur. Skor psikometri (30%) dan teknis (40%) digabung dengan wawancara (30%). Setiap tes hanya dapat dikerjakan satu kali.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button onClick={() => startTest('PSYCHOMETRIC')}
-                      className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
-                      <p className="text-xs font-bold text-[#0f172a]">Tes Psikometri</p>
-                      <p className="text-[11px] text-[#64748b] mt-0.5">20 soal kepribadian · ~10 menit · bobot 30%</p>
-                    </button>
-                    <button onClick={() => startTest('TECHNICAL')}
-                      className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
-                      <p className="text-xs font-bold text-[#0f172a]">Tes Teknis</p>
-                      <p className="text-[11px] text-[#64748b] mt-0.5">8 soal logika & kuantitatif · ~15 menit · bobot 40%</p>
-                    </button>
+                    {(['PSYCHOMETRIC', 'TECHNICAL'] as const).map((type) => {
+                      const attempt = attempts.find((a) => a.type === type);
+                      const done = !!attempt && (attempt.status === 'SUBMITTED' || attempt.status === 'SCORED');
+                      const meta = type === 'PSYCHOMETRIC'
+                        ? { title: 'Tes Psikometri', desc: '20 soal kepribadian · ~10 menit · bobot 30%' }
+                        : { title: 'Tes Teknis', desc: '8 soal logika & kuantitatif · ~15 menit · bobot 40%' };
+                      if (done) {
+                        return (
+                          <div key={type}
+                            className="p-4 rounded-xl border border-[#b7e1cd] bg-[#f2fbf6] text-left cursor-not-allowed">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-bold text-black">{meta.title}</p>
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#137333]">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#64748b] mt-0.5">
+                              {attempt?.score != null
+                                ? `Skor ${Number(attempt.score).toFixed(0)}/100 · tidak dapat dikerjakan ulang.`
+                                : 'Sudah dikirim · tidak dapat dikerjakan ulang.'}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button key={type} onClick={() => startTest(type)}
+                          className="p-4 rounded-xl border border-[#e2e8f0] hover:border-[#007a5a] hover:shadow-md transition-all text-left">
+                          <p className="text-xs font-bold text-black">{meta.title}</p>
+                          <p className="text-[11px] text-[#64748b] mt-0.5">{meta.desc}</p>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}

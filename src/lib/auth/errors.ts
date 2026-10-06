@@ -25,6 +25,16 @@ export class NotFoundError extends Error {
   }
 }
 
+/** 409: konflik state (mis. mencoba mengulang tes yang sudah selesai). */
+export class ConflictError extends Error {
+  status = 409;
+  title = 'Conflict';
+  constructor(message = 'Sumber daya berada dalam konflik dengan permintaan.') {
+    super(message);
+    this.name = 'ConflictError';
+  }
+}
+
 export class ImmutableRecordError extends Error {
   status = 409;
   title = 'Immutable Appraisal Record';

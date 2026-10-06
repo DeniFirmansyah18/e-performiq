@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Sparkles, CheckCircle2, XCircle, Users } from 'lucide-react';
+import { X, Sparkles, CheckCircle2, XCircle, Users, ClipboardCheck } from 'lucide-react';
 import JobPostingManager from '@/components/governance/JobPostingManager';
 
 interface CandidateRow {
@@ -17,7 +17,31 @@ interface ReviewDetail {
   finalWeightedScore: number | null; overallScore: number | null;
   recommendation: string; topSkills: string[]; education: string | null; experienceYears: number | null;
   decision: string; aiSummary: string | null; decisionNotes: string | null; aiConfigured?: boolean;
+  interviewEvaluation?: InterviewEvaluationDto | null;
 }
+
+type RubricKey = 'technical_skill' | 'problem_solving' | 'communication' | 'collaboration' | 'motivation' | 'leadership' | 'professionalism';
+
+interface InterviewEvaluationDto {
+  applicationId: string;
+  scores: Record<RubricKey, number | null>;
+  compositeScore: number | null;
+  strengths: string | null;
+  concerns: string | null;
+  notes: string | null;
+  recommendation: string | null;
+  updatedAt: string | null;
+}
+
+const RUBRIC: { key: RubricKey; label: string }[] = [
+  { key: 'technical_skill', label: 'Kompetensi Teknis / Keahlian' },
+  { key: 'problem_solving', label: 'Pemecahan Masalah / Analytical Thinking' },
+  { key: 'communication', label: 'Komunikasi & Kejelasan' },
+  { key: 'collaboration', label: 'Kolaborasi / Team Fit' },
+  { key: 'motivation', label: 'Motivasi & Culture Fit' },
+  { key: 'leadership', label: 'Kepemimpinan / Potensi' },
+  { key: 'professionalism', label: 'Sikap & Profesionalisme' },
+];
 
 const STATUSES = ['SUBMITTED', 'SCREENING', 'INTERVIEW', 'OFFERED', 'HIRED', 'REJECTED'];
 
@@ -225,6 +249,7 @@ export default function RecruitmentPanel() {
               decisionBusy={decisionBusy}
               onDecision={submitDecision}
               scorePill={scorePill}
+              onReload={() => { if (reviewId) openReview(reviewId); }}
             />
           </div>
         </div>
@@ -279,9 +304,10 @@ interface ReviewBodyProps {
   decisionBusy: boolean;
   onDecision: (d: 'ACCEPTED' | 'REJECTED' | 'TALENT_POOL') => void;
   scorePill: (label: string, v: number | null) => React.ReactNode;
+  onReload: () => void;
 }
 
-function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill }: ReviewBodyProps) {
+function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill, onReload }: ReviewBodyProps) {
   return (
     <div className="p-5 space-y-4">
       {detailLoading || !detail ? (
@@ -335,6 +361,12 @@ function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill
             <div className="text-[11px] text-[#334155] whitespace-pre-wrap leading-relaxed">{detail.aiSummary}</div>
           </div>
 
+          <InterviewEvaluationForm
+            applicationId={detail.applicationId}
+            detail={detail}
+            onSaved={onReload}
+          />
+
           {detail.decision !== 'PENDING' && (
             <p className="text-[11px] font-semibold text-[#334155]">Keputusan saat ini: <strong>{detail.decision}</strong></p>
           )}
@@ -355,6 +387,135 @@ function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill
           </div>
           <p className="text-[10px] text-[#94a3b8]">Rekomendasi AI bersifat asistif; keputusan akhir tetap milik HR.</p>
         </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Form penilaian wawancara terstruktur (rubrik 7 kriteria, skala 1–5).
+ * Menyimpan via POST /api/v1/recruitment/interviews/score dengan payload
+ * `{ applicationId, rubric, strengths, concerns, notes }`; server menurunkan
+ * skor komposit (0–100) → mengisi komponen wawancara pada agregat 30/40/30
+ * yang dianalisis otomatis di kartu Review.
+ */
+function InterviewEvaluationForm({ applicationId, detail, onSaved }: {
+  applicationId: string;
+  detail: ReviewDetail;
+  onSaved: () => void;
+}) {
+  const existing = detail.interviewEvaluation ?? null;
+  const [scores, setScores] = useState<Record<RubricKey, number>>(() => {
+    const init = {} as Record<RubricKey, number>;
+    RUBRIC.forEach((c) => { init[c.key] = existing?.scores?.[c.key] ?? 0; });
+    return init;
+  });
+  const [strengths, setStrengths] = useState(existing?.strengths ?? '');
+  const [concerns, setConcerns] = useState(existing?.concerns ?? '');
+  const [notes, setNotes] = useState(existing?.notes ?? '');
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const scored = RUBRIC.map((c) => scores[c.key]).filter((v) => v >= 1);
+  const composite = scored.length
+    ? Math.round(((scored.reduce((a, b) => a + b, 0) / scored.length - 1) / 4) * 100)
+    : null;
+
+  const submit = async () => {
+    setBusy(true); setErr(null); setDone(false);
+    try {
+      const rubric: Record<string, number | null> = {};
+      RUBRIC.forEach((c) => { rubric[c.key] = scores[c.key] >= 1 ? scores[c.key] : null; });
+      const res = await fetch('/api/v1/recruitment/interviews/score', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicationId,
+          rubric,
+          strengths: strengths.trim() || undefined,
+          concerns: concerns.trim() || undefined,
+          notes: notes.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setErr(j?.detail || 'Gagal menyimpan penilaian.');
+        return;
+      }
+      setDone(true);
+      onSaved();
+    } catch {
+      setErr('Gagal menyimpan penilaian.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-[#e2e8f0] p-3">
+      <button onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between text-left">
+        <span className="flex items-center gap-1.5">
+          <ClipboardCheck className="h-3.5 w-3.5 text-[#0f766e]" />
+          <span className="text-[11px] font-bold text-[#0f172a]">Penilaian Wawancara (Rubrik)</span>
+          {existing?.compositeScore != null && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] font-bold">
+              Skor {existing.compositeScore.toFixed(0)}
+            </span>
+          )}
+        </span>
+        <span className="text-[10px] text-[#64748b]">{open ? 'Tutup ▲' : 'Buka ▼'}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          <p className="text-[10px] text-[#64748b]">
+            Nilai tiap kriteria (1–5). Rata-rata otomatis dikonversi ke skor 0–100 dan
+            diumpankan ke analisis Review (agregat asesmen 30/40/30). Skala: 1 = jauh di
+            bawah ekspektasi, 5 = jauh di atas ekspektasi.
+          </p>
+          <div className="space-y-2">
+            {RUBRIC.map((c) => (
+              <div key={c.key} className="flex items-center justify-between gap-3">
+                <label className="text-[11px] text-[#334155] flex-1">{c.label}</label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button"
+                      onClick={() => setScores((s) => ({ ...s, [c.key]: n }))}
+                      aria-label={`${c.label} = ${n}`}
+                      className={`h-7 w-7 rounded-lg text-[11px] font-bold border transition ${
+                        scores[c.key] === n
+                          ? 'bg-[#0f172a] text-white border-[#0f172a]'
+                          : 'bg-white text-[#334155] border-[#e2e8f0] hover:border-[#94a3b8]'
+                      }`}>{n}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-[#f8fafc] px-3 py-2">
+            <span className="text-[10px] text-[#64748b]">Skor komposit (otomatis)</span>
+            <span className="text-sm font-black text-[#0f172a]">{composite != null ? `${composite}/100` : '–'}</span>
+          </div>
+          <div className="space-y-2">
+            <textarea value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={2}
+              placeholder="Kekuatan kandidat (opsional)"
+              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[11px] text-black" />
+            <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} rows={2}
+              placeholder="Area perhatian / kekhawatiran (opsional)"
+              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[11px] text-black" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+              placeholder="Catatan wawancara tambahan (opsional)"
+              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[11px] text-black" />
+          </div>
+          {err && <p className="text-[10px] font-semibold text-rose-600">{err}</p>}
+          {done && <p className="text-[10px] font-semibold text-[#137333]">Penilaian tersimpan. Analisis Review diperbarui.</p>}
+          <button disabled={busy || composite == null} onClick={submit}
+            className="w-full py-2 rounded-lg bg-[#007a5a] text-white text-xs font-bold hover:bg-[#006347] disabled:opacity-50">
+            {busy ? 'Menyimpan…' : 'Simpan Penilaian Wawancara'}
+          </button>
+        </div>
       )}
     </div>
   );

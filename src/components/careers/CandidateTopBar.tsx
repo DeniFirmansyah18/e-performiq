@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Layers, ArrowLeft, LogOut } from 'lucide-react';
+import { Layers, ArrowLeft, LogOut, ClipboardList } from 'lucide-react';
 import CandidateNotifications from '@/components/careers/CandidateNotifications';
 
 interface CandidateAccount { id: string; name: string; email: string; converted?: boolean }
@@ -60,6 +60,17 @@ export default function CandidateTopBar() {
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         <span className="text-xs text-slate-300 hidden sm:inline truncate max-w-[160px]">{account.name}</span>
+        <Link
+          href="/careers/portal/assessments"
+          aria-label="Asesmen"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            pathname.startsWith('/careers/portal/assessments')
+              ? 'bg-[#007a5a] text-white'
+              : 'bg-slate-800 hover:bg-slate-700 text-white'
+          }`}
+        >
+          <ClipboardList className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Asesmen</span>
+        </Link>
         <CandidateNotifications />
         <button
           onClick={logout}

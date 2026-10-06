@@ -14,6 +14,7 @@
  */
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import type { InterviewEvaluation } from '@/lib/services/interviewEvaluationService';
 
 export interface CandidateReview {
   applicationId: string;
@@ -47,6 +48,9 @@ export interface CandidateReview {
   decision: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'TALENT_POOL';
   aiSummary: string | null;
   decisionNotes: string | null;
+
+  /** Rubrik wawancara terstruktur (bila HR sudah menilai). */
+  interviewEvaluation: InterviewEvaluation | null;
 }
 
 /** Ubah JSONB skill (array/objek) menjadi daftar string. */
@@ -149,6 +153,9 @@ export async function getCandidateReview(db: Db, applicationId: string): Promise
   `)) as unknown as { rows: any[] };
   const dec = decRes.rows?.[0] ?? {};
 
+  const { getInterviewEvaluation } = await import('@/lib/services/interviewEvaluationService');
+  const interviewEvaluation = await getInterviewEvaluation(db, applicationId);
+
   const atsScore = ats.atsScore != null ? Number(ats.atsScore) : null;
   const weighted = sc.weighted != null ? Number(sc.weighted) : null;
   const overallScore = computeOverallScore(atsScore, weighted);
@@ -186,6 +193,7 @@ export async function getCandidateReview(db: Db, applicationId: string): Promise
     decision: (dec.decision as CandidateReview['decision']) ?? 'PENDING',
     aiSummary: dec.aiSummary ?? null,
     decisionNotes: dec.decisionNotes ?? null,
+    interviewEvaluation,
   };
 }
 

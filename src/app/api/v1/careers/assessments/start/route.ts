@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
     if (err instanceof Error && /tidak ditemukan/i.test(err.message)) {
       return fail('NOT_FOUND', err.message, 404);
     }
+    if (err instanceof Error && 'status' in err && (err as { status?: number }).status === 409) {
+      return fail('CONFLICT', err.message, 409);
+    }
     return problem(err, '/api/v1/careers/assessments/start');
   }
 }

@@ -244,6 +244,17 @@ export async function startAttempt(db: Db, input: StartAttemptInput): Promise<At
   const tpl = template.rows?.[0];
   if (!tpl) throw new Error('Template asesmen tidak ditemukan.');
 
+  // Kunci: tes yang sudah SUBMITTED/SCORED tidak boleh dibuka/diulang.
+  const existing = (await db.execute(sql`
+    SELECT status::text AS status FROM assessment_attempts
+     WHERE application_id = ${input.applicationId}::uuid AND template_id = ${input.templateId}::uuid
+  `)) as unknown as { rows: Array<{ status: string }> };
+  const existingStatus = existing.rows?.[0]?.status;
+  if (existingStatus === 'SUBMITTED' || existingStatus === 'SCORED') {
+    const { ConflictError } = await import('@/lib/auth/errors');
+    throw new ConflictError('Tes sudah selesai dan tidak dapat dikerjakan ulang.');
+  }
+
   await db.execute(sql`
     INSERT INTO assessment_attempts (application_id, candidate_id, template_id, status, started_at)
     VALUES (${input.applicationId}::uuid, ${input.candidateId}::uuid, ${input.templateId}::uuid,
