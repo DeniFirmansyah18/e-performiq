@@ -56,7 +56,7 @@ export async function listHrPostings(db: Db): Promise<HrPosting[]> {
            jp.min_education AS "minEducation", jp.min_experience_years::float8 AS "minExperienceYears",
            jp.work_location AS "workLocation", jp.salary_min::float8 AS "salaryMin",
            jp.salary_max::float8 AS "salaryMax", jp.employment_type AS "employmentType",
-           COALESCE(mp.approved_quota, 0) AS "quota",
+           COALESCE(jp.quota, mp.approved_quota, 0) AS "quota",
            COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired"
       FROM job_postings jp
       JOIN departments d ON d.id = jp.department_id
@@ -140,6 +140,8 @@ export interface PostingInput {
   salaryMin?: number | null;
   salaryMax?: number | null;
   employmentType?: string | null;
+  /** Kuota override per lowongan. NULL = fallback ke MPP approved_quota. */
+  quota?: number | null;
 }
 
 /** Buat lowongan baru (HR). */
@@ -148,13 +150,14 @@ export async function createPosting(db: Db, input: PostingInput): Promise<{ id: 
     INSERT INTO job_postings
       (posting_title, description, required_skills, department_id, position_id, manpower_plan_id,
        status, is_public, is_internal_only, min_education, min_experience_years, work_location,
-       salary_min, salary_max, employment_type)
+       salary_min, salary_max, employment_type, quota)
     VALUES
       (${input.postingTitle}, ${input.description}, ${JSON.stringify(input.requiredSkills ?? [])}::jsonb,
        ${input.departmentId}::uuid, ${input.positionId}::uuid, ${input.manpowerPlanId}::uuid,
        ${input.status ?? 'DRAFT'}, ${input.isPublic ?? false}, ${!(input.isPublic ?? false)},
        ${input.minEducation ?? null}, ${input.minExperienceYears ?? null}, ${input.workLocation ?? null},
-       ${input.salaryMin ?? null}, ${input.salaryMax ?? null}, ${input.employmentType ?? 'PERMANENT'})
+       ${input.salaryMin ?? null}, ${input.salaryMax ?? null}, ${input.employmentType ?? 'PERMANENT'},
+       ${input.quota ?? null})
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };
   return res.rows[0];
@@ -172,7 +175,8 @@ export async function updatePosting(db: Db, id: string, input: PostingInput): Pr
       is_internal_only = ${!(input.isPublic ?? false)},
       min_education = ${input.minEducation ?? null}, min_experience_years = ${input.minExperienceYears ?? null},
       work_location = ${input.workLocation ?? null}, salary_min = ${input.salaryMin ?? null},
-      salary_max = ${input.salaryMax ?? null}, employment_type = ${input.employmentType ?? 'PERMANENT'}
+      salary_max = ${input.salaryMax ?? null}, employment_type = ${input.employmentType ?? 'PERMANENT'},
+      quota = ${input.quota ?? null}
     WHERE id = ${id}::uuid
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };

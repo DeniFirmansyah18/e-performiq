@@ -24,6 +24,7 @@ const UpdateSchema = z.object({
   salaryMin: z.number().min(0).nullable().optional(),
   salaryMax: z.number().min(0).nullable().optional(),
   employmentType: z.string().max(30).nullable().optional(),
+  quota: z.number().int().min(0).max(10000).nullable().optional(),
 });
 
 const StatusSchema = z.object({

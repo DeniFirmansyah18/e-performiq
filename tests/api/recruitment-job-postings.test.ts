@@ -105,8 +105,37 @@ describe('WS-12 kelola lowongan HR + tampilan publik', () => {
     expect(row.workLocation).toBe('Remote');
   });
 
-  it('PATCH tutup → availability CLOSED & hilang dari publik', async () => {
-    const res = await patchPosting(req('/x', 'PATCH', { status: 'CLOSED' }, hrCookie), { params: { id: createdId } });
+  it('quota override: PATCH mengisi quota → tersimpan & tampil di daftar HR', async () => {
+    const res = await patchPosting(req('/x', 'PATCH', {
+      postingTitle: 'Lowongan Uji WS-12 (Revisi)',
+      description: 'Deskripsi diperbarui untuk pengujian kuota.',
+      requiredSkills: ['TypeScript', 'PostgreSQL', 'Docker'],
+      departmentId: deptId, positionId: posId, manpowerPlanId: mppId,
+      status: 'OPEN', isPublic: true, quota: 7,
+    }, hrCookie), { params: { id: createdId } });
+    expect(res.status).toBe(200);
+    const list = await (await listPostings(getReq('/x', hrCookie))).json();
+    const row = list.data.postings.find((p: any) => p.id === createdId);
+    expect(row.quota).toBe(7);
+  });
+
+  it('quota override: PATCH quota=null → jatuh kembali ke kuota MPP', async () => {
+    const res = await patchPosting(req('/x', 'PATCH', {
+      postingTitle: 'Lowongan Uji WS-12 (Revisi)',
+      description: 'Deskripsi diperbarui untuk pengujian kuota.',
+      requiredSkills: ['TypeScript', 'PostgreSQL', 'Docker'],
+      departmentId: deptId, positionId: posId, manpowerPlanId: mppId,
+      status: 'OPEN', isPublic: true, quota: null,
+    }, hrCookie), { params: { id: createdId } });
+    expect(res.status).toBe(200);
+    const list = await (await listPostings(getReq('/x', hrCookie))).json();
+    const row = list.data.postings.find((p: any) => p.id === createdId);
+    // COALESCE(jp.quota, mp.approved_quota, 0) → bukan 7 lagi (memakai kuota MPP / fallback)
+    expect(row.quota).not.toBe(7);
+    expect(typeof row.quota).toBe('number');
+  });
+
+  it('PATCH tutup → availability CLOSED & hilang dari publik', async () => {    const res = await patchPosting(req('/x', 'PATCH', { status: 'CLOSED' }, hrCookie), { params: { id: createdId } });
     expect(res.status).toBe(200);
     const pub = await (await publicPostings(getReq('/api/v1/careers/postings'))).json();
     const found = pub.data.postings.find((p: any) => p.id === createdId);

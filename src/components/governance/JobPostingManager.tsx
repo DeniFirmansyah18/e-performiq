@@ -21,7 +21,7 @@ const STATUS_COLOR: Record<string, string> = {
 const EMPTY = {
   postingTitle: '', description: '', skillsText: '', departmentId: '', positionId: '', manpowerPlanId: '',
   status: 'DRAFT', isPublic: false, minEducation: '', minExperienceYears: '', workLocation: '',
-  salaryMin: '', salaryMax: '', employmentType: 'PERMANENT',
+  salaryMin: '', salaryMax: '', employmentType: 'PERMANENT', quota: '',
 };
 
 /** Manajer lowongan HR (WS-12): buat, ubah, publikasikan, tutup. */
@@ -55,6 +55,7 @@ export default function JobPostingManager() {
       status: p.status, isPublic: p.isPublic, minEducation: p.minEducation ?? '',
       minExperienceYears: p.minExperienceYears ?? '', workLocation: p.workLocation ?? '',
       salaryMin: p.salaryMin ?? '', salaryMax: p.salaryMax ?? '', employmentType: p.employmentType ?? 'PERMANENT',
+      quota: p.quota != null ? String(p.quota) : '',
     });
     setShowForm(true); setMsg(null); setErr(null);
   };
@@ -73,6 +74,7 @@ export default function JobPostingManager() {
       salaryMin: form.salaryMin === '' ? null : Number(form.salaryMin),
       salaryMax: form.salaryMax === '' ? null : Number(form.salaryMax),
       employmentType: form.employmentType || null,
+      quota: form.quota === '' ? null : Number(form.quota),
     };
     const res = await fetch(editingId ? `/api/v1/recruitment/job-postings/${editingId}` : '/api/v1/recruitment/job-postings', {
       method: editingId ? 'PATCH' : 'POST',
@@ -179,10 +181,17 @@ export default function JobPostingManager() {
                   </select></label>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                 {field('minEducation', 'Pendidikan Minimum')}
                 {field('minExperienceYears', 'Pengalaman Min (tahun)', 'number')}
                 {field('workLocation', 'Lokasi Kerja')}
+                <label className="text-[11px] text-[#334155]">
+                  <span className="font-semibold">Kuota (opsional)</span>
+                  <input type="number" min={0} value={form.quota} placeholder="Ikut MPP"
+                    onChange={(e) => setForm({ ...form, quota: e.target.value })}
+                    className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs" />
+                  <span className="text-[10px] text-[#94a3b8]">Kosongkan untuk memakai kuota MPP.</span>
+                </label>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {field('salaryMin', 'Gaji Min (Rp)', 'number')}
