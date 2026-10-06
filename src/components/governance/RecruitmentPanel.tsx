@@ -83,6 +83,9 @@ export default function RecruitmentPanel() {
         body: `Status lamaran ${row?.fullName ?? 'kandidat'} (${row?.applicationNo ?? ''}) kini ${status}.`,
       });
       await load();
+      // Beri tahu panel lain (mis. Jadwal Wawancara) agar memuat ulang daftar
+      // kandidat tanpa perlu refresh peramban.
+      window.dispatchEvent(new CustomEvent('recruitment:candidates-changed'));
     } else {
       setMsg('Gagal memperbarui status.');
     }
@@ -127,6 +130,7 @@ export default function RecruitmentPanel() {
         body: `Kandidat ${detail?.candidateName ?? ''} ditandai: ${label}. Daftar pelamar diperbarui otomatis.`,
       });
       setReviewId(null); setDetail(null); await load();
+      window.dispatchEvent(new CustomEvent('recruitment:candidates-changed'));
     } else {
       setMsg('Gagal menyimpan keputusan.');
     }

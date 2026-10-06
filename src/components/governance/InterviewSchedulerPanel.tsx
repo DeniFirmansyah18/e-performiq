@@ -75,6 +75,27 @@ export default function InterviewSchedulerPanel() {
   useEffect(() => { loadCandidates(); }, [loadCandidates]);
   useEffect(() => { loadInterviews(selectedId); }, [selectedId, loadInterviews]);
 
+  // Muat ulang saat HR mengubah status kandidat di panel lain (RecruitmentPanel),
+  // agar daftar kandidat yang dapat dijadwalkan langsung sinkron tanpa refresh.
+  useEffect(() => {
+    const onChange = () => {
+      loadCandidates();
+      if (selectedId) loadInterviews(selectedId);
+    };
+    window.addEventListener('recruitment:candidates-changed', onChange);
+    return () => window.removeEventListener('recruitment:candidates-changed', onChange);
+  }, [loadCandidates, loadInterviews, selectedId]);
+
+  // Bila kandidat terpilih tidak lagi berstatus SCREENING/INTERVIEW (mis. HR
+  // mengubahnya ke REJECTED), bersihkan pilihan agar dropdown tetap konsisten.
+  useEffect(() => {
+    if (!selectedId) return;
+    const stillSchedulable = candidates.some(
+      (c) => c.id === selectedId && (c.status === 'SCREENING' || c.status === 'INTERVIEW'),
+    );
+    if (!stillSchedulable && candidates.length > 0) setSelectedId('');
+  }, [candidates, selectedId]);
+
   const generateRoom = async () => {
     setBusy(true); setMsg(null);
     try {
