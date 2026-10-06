@@ -59,9 +59,10 @@ export async function GET(req: NextRequest) {
       SELECT i.id, i.application_id AS "applicationId", i.scheduled_at AS "scheduledAt",
              i.meeting_url AS "meetingUrl", i.duration_minutes AS "durationMinutes",
              i.status, i.score::float8 AS score, i.notes,
-             u.full_name AS "interviewerName"
+             COALESCE(e.full_name, u.email) AS "interviewerName"
         FROM interview_schedules i
         LEFT JOIN users u ON u.id = i.interviewer_user_id
+        LEFT JOIN employees e ON e.id = u.employee_id
        WHERE (${applicationId ?? null}::uuid IS NULL OR i.application_id = ${applicationId ?? null}::uuid)
        ORDER BY i.scheduled_at DESC
        LIMIT 100

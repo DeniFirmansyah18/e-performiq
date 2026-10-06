@@ -59,18 +59,40 @@ export default function InterviewSchedulerPanel() {
     if (!applicationId) { setInterviews([]); return; }
     try {
       const res = await fetch(`/api/v1/recruitment/interviews?applicationId=${applicationId}`);
-      if (!res.ok) { setInterviews([]); return; }
-      const json = await res.json();
-      setInterviews(json.data.interviews ?? []);
-    } catch { setInterviews([]); }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setInterviews([]);
+        setMsg(json?.detail || 'Gagal memuat daftar jadwal wawancara.');
+        return;
+      }
+      setInterviews(json.data?.interviews ?? []);
+    } catch (err: any) {
+      setInterviews([]);
+      setMsg(`Gagal memuat jadwal: ${err?.message ?? 'kesalahan jaringan'}`);
+    }
   }, []);
 
   useEffect(() => { loadCandidates(); }, [loadCandidates]);
   useEffect(() => { loadInterviews(selectedId); }, [selectedId, loadInterviews]);
 
-  const generateRoom = () => {
-    // Tanpa integrasi Zoom/Meet server-side, arahkan HR membuat tautan manual.
-    setMsg('Buat tautan rapat di Zoom/Google Meet lalu tempel pada kolom "Tautan Meeting".');
+  const generateRoom = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const res = await fetch('/api/v1/recruitment/interviews/generate-room', { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg(json?.detail || 'Gagal membuat tautan ruang.'); return; }
+      const url = json?.data?.meetingUrl as string | undefined;
+      if (url) setForm((f) => ({ ...f, meetingUrl: url }));
+      setMsg(
+        json?.data?.provider === 'GOOGLE_MEET_API'
+          ? 'Ruang Google Meet dibuat dan diisi otomatis.'
+          : 'Tautan ruang dibuat (mode fallback) dan diisi otomatis.',
+      );
+    } catch (err: any) {
+      setMsg(`Gagal membuat tautan ruang: ${err?.message ?? 'kesalahan jaringan'}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {

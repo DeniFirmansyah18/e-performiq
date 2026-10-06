@@ -4,8 +4,10 @@ import { runSeed } from '@/lib/db/seed';
 import { getDb } from '@/lib/db/client';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { POST as schedule } from '@/app/api/v1/recruitment/interviews/route';
+import { GET as listInterviews } from '@/app/api/v1/recruitment/interviews/route';
 import { PATCH as patchInterview } from '@/app/api/v1/recruitment/interviews/[id]/route';
 import { PATCH as patchStatus } from '@/app/api/v1/recruitment/candidates/[id]/status/route';
+import { POST as generateRoom } from '@/app/api/v1/recruitment/interviews/generate-room/route';
 
 const HR_USER = 'e0000000-0000-4000-8000-000000000002';
 
@@ -122,5 +124,28 @@ describe('WS-6 F5 jadwal wawancara HR + tautan kandidat', () => {
     });
     const res = await patchInterview(noCookie, { params: { id: interviewId } });
     expect(res.status).toBe(401);
+  });
+
+  it('GET daftar jadwal HR mengembalikan jadwal + interviewerName (bug join diperbaiki)', async () => {
+    // Regresi: query lama `SELECT u.full_name` gagal (kolom tidak ada di `users`).
+    // Sekarang join melalui employees → COALESCE(e.full_name, u.email).
+    const res = await listInterviews(new NextRequest(
+      `http://localhost:3000/api/v1/recruitment/interviews?applicationId=${applicationId}`,
+      { method: 'GET', headers: { cookie } },
+    ));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(Array.isArray(json.data.interviews)).toBe(true);
+    const found = json.data.interviews.find((r: any) => r.id === interviewId);
+    expect(found).toBeTruthy();
+    expect(found).toHaveProperty('interviewerName');
+  });
+
+  it('POST generate-room mengembalikan tautan meet (mode fallback tanpa kredensial)', async () => {
+    const res = await generateRoom(req('/x', 'POST', {}, cookie));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.meetingUrl).toMatch(/^https:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/);
+    expect(['GOOGLE_MEET_API', 'FALLBACK']).toContain(json.data.provider);
   });
 });
