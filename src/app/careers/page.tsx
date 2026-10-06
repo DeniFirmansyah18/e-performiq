@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ApplicationForm from '@/components/careers/ApplicationForm';
+import CandidateTopBar from '@/components/careers/CandidateTopBar';
 
 interface Posting {
   id: string; postingTitle: string; description: string; department: string; position: string;
@@ -59,6 +60,7 @@ export default function CareersPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans">
+      <CandidateTopBar />
       <header className="bg-[#0f172a] text-white px-6 py-4">
         <h1 className="text-lg font-extrabold">Karier di E-PerformIQ</h1>
         <p className="text-xs text-slate-300">Bergabunglah membangun ekosistem kinerja SDM kelas dunia.</p>

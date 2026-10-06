@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import CandidateTopBar from '@/components/careers/CandidateTopBar';
 
 interface TimelineEntry {
   stage: string;
@@ -82,6 +83,7 @@ export default function CareersStatusPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans">
+      <CandidateTopBar />
       <header className="bg-[#0f172a] text-white px-6 py-4">
         <h1 className="text-lg font-extrabold">Status Lamaran</h1>
         <p className="text-xs text-slate-300">Lacak progres tahapan seleksi lamaran Anda.</p>

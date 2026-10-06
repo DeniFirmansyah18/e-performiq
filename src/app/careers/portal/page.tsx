@@ -4,9 +4,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Layers, LogOut, Briefcase, Search, Users, CheckCircle2, XCircle, Calendar, Video,
+  Briefcase, Search, Users, CheckCircle2, XCircle, Calendar, Video, ClipboardList,
 } from 'lucide-react';
 import CandidateNotifications from '@/components/careers/CandidateNotifications';
+import CandidateTopBar from '@/components/careers/CandidateTopBar';
 
 interface InterviewInfo {
   stageStatus: string;
@@ -77,11 +78,6 @@ export default function CandidatePortalPage() {
       .catch(() => setInterview(null));
   }, [account]);
 
-  const logout = async () => {
-    await fetch('/api/v1/careers/auth/me', { method: 'POST' });
-    router.push('/careers/login');
-  };
-
   if (loading) return <div className="min-h-screen flex items-center justify-center text-sm text-[#64748b]">Memuat…</div>;
   if (!account) return null;
 
@@ -106,25 +102,7 @@ export default function CandidatePortalPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      <header className="h-14 bg-[#0d131f] px-4 sm:px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#007a5a]">
-            <Layers className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-bold text-white">Portal Kandidat</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-300 hidden sm:inline">{account.name}</span>
-          <CandidateNotifications />
-          <Link href="/careers/portal/assessments"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#006347] text-xs font-semibold text-white transition-colors">
-            Asesmen
-          </Link>
-          <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors">
-            <LogOut className="h-3.5 w-3.5" /> Keluar
-          </button>
-        </div>
-      </header>
+      <CandidateTopBar />
 
       <main className="max-w-5xl mx-auto p-6 space-y-5">
         {interview && (
@@ -164,13 +142,19 @@ export default function CandidatePortalPage() {
             <h1 className="text-xl font-extrabold text-[#0f172a]">Lowongan Tersedia</h1>
             <p className="text-xs text-[#64748b] mt-0.5">Pilih posisi dan lamar dengan profil terbaik Anda.</p>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94a3b8]" />
-            <input
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari posisi / divisi…"
-              className="w-full sm:w-64 pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-            />
+          <div className="flex items-center gap-2">
+            <Link href="/careers/portal/assessments"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#007a5a] hover:bg-[#006347] text-xs font-semibold text-white transition-colors whitespace-nowrap">
+              <ClipboardList className="h-3.5 w-3.5" /> Asesmen
+            </Link>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94a3b8]" />
+              <input
+                value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari posisi / divisi…"
+                className="w-full sm:w-64 pl-9 pr-3 py-2 text-sm rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+              />
+            </div>
           </div>
         </div>
 

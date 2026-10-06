@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Layers, LogOut, ClipboardList, ArrowLeft, CheckCircle2, Clock } from 'lucide-react';
+import { ClipboardList, CheckCircle2, Clock } from 'lucide-react';
+import CandidateTopBar from '@/components/careers/CandidateTopBar';
 
 interface TemplateInfo { id: string; code: string; title: string; type: string; weight: number }
 interface AttemptInfo { attemptId: string; status: string; score: number | null; submittedAt: string | null; code: string; title: string; type: string; weight: number }
@@ -51,11 +52,6 @@ export default function CandidateAssessmentsPage() {
 
   useEffect(() => { if (account) load(); }, [account, load]);
 
-  const logout = async () => {
-    await fetch('/api/v1/careers/auth/me', { method: 'POST' });
-    router.push('/careers/login');
-  };
-
   const startTest = async (type: 'PSYCHOMETRIC' | 'TECHNICAL') => {
     setError(null); setResult(null);
     const res = await fetch('/api/v1/careers/assessments/start', {
@@ -96,23 +92,7 @@ export default function CandidateAssessmentsPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      <header className="h-14 bg-[#0d131f] px-4 sm:px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Link href="/careers/portal" className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#007a5a]">
-            <Layers className="h-4 w-4 text-white" />
-          </Link>
-          <span className="text-sm font-bold text-white">Asesmen Kandidat</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-300 hidden sm:inline">{account.name}</span>
-          <Link href="/careers/portal" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white">
-            <ArrowLeft className="h-3.5 w-3.5" /> Lowongan
-          </Link>
-          <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white">
-            <LogOut className="h-3.5 w-3.5" /> Keluar
-          </button>
-        </div>
-      </header>
+      <CandidateTopBar />
 
       <main className="max-w-3xl mx-auto p-6 space-y-5">
         {error && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">{error}</div>}
