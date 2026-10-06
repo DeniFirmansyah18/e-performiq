@@ -49,6 +49,10 @@ export default function RecruitmentPanel() {
   const [profile, setProfile] = useState<any | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  // Modal notifikasi sukses (status / keputusan). Data selalu di-refresh otomatis
+  // setelah aksi berhasil agar HR tidak perlu memuat ulang peramban.
+  const [success, setSuccess] = useState<{ title: string; body: string } | null>(null);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/v1/recruitment/candidates');
@@ -69,11 +73,19 @@ export default function RecruitmentPanel() {
 
   const changeStatus = async (id: string, status: string) => {
     setMsg(null);
+    const row = rows.find((r) => r.id === id);
     const res = await fetch(`/api/v1/recruitment/candidates/${id}/status`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
     });
-    if (res.ok) { setMsg('Status diperbarui.'); await load(); }
-    else setMsg('Gagal memperbarui status.');
+    if (res.ok) {
+      setSuccess({
+        title: 'Status berhasil diperbarui',
+        body: `Status lamaran ${row?.fullName ?? 'kandidat'} (${row?.applicationNo ?? ''}) kini ${status}.`,
+      });
+      await load();
+    } else {
+      setMsg('Gagal memperbarui status.');
+    }
   };
 
   const openReview = async (id: string) => {
@@ -108,8 +120,16 @@ export default function RecruitmentPanel() {
       body: JSON.stringify({ decision, aiSummary: detail?.aiSummary ?? undefined }),
     });
     setDecisionBusy(false);
-    if (res.ok) { setMsg('Keputusan tersimpan.'); setReviewId(null); setDetail(null); await load(); }
-    else setMsg('Gagal menyimpan keputusan.');
+    if (res.ok) {
+      const label = decision === 'ACCEPTED' ? 'Diterima' : decision === 'REJECTED' ? 'Ditolak' : 'Talent Pool';
+      setSuccess({
+        title: 'Keputusan tersimpan',
+        body: `Kandidat ${detail?.candidateName ?? ''} ditandai: ${label}. Daftar pelamar diperbarui otomatis.`,
+      });
+      setReviewId(null); setDetail(null); await load();
+    } else {
+      setMsg('Gagal menyimpan keputusan.');
+    }
   };
 
   const scorePill = (label: string, v: number | null) => (
@@ -208,6 +228,25 @@ export default function RecruitmentPanel() {
 
       {/* Kelola lowongan (WS-12) */}
       <JobPostingManager />
+
+      {/* Modal notifikasi sukses (auto-refresh sudah dijalankan) */}
+      {success && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xl max-w-sm w-full p-6 text-center space-y-3">
+            <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-[#e6f4ea]">
+              <CheckCircle2 className="h-6 w-6 text-[#137333]" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#0f172a]">{success.title}</h3>
+            <p className="text-xs text-[#64748b]">{success.body}</p>
+            <button
+              onClick={() => setSuccess(null)}
+              className="w-full mt-1 px-4 py-2.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold transition-colors"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
 
       {profileId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
