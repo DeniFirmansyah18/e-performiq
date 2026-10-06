@@ -78,15 +78,17 @@ export async function getMyLifecycleProfile(db: Db, employeeId: string) {
   const row = res.rows[0];
   if (!row) return null;
 
-  // Progres orientasi (fase Sebelum Kerja).
+  // Progres orientasi (fase Sebelum Kerja). Anchor pada progam onboarding
+  // agar program tanpa baris milestone (baru dibuka) tetap terbaca; milestone
+  // di-LEFT JOIN dan boleh kosong.
   const onbRes = (await db.execute(sql`
     SELECT om.day_30_score AS "day30", om.day_60_score AS "day60", om.day_90_score AS "day90",
            om.probation_passed AS "probationPassed", om.conversion_date AS "conversionDate",
            op.status AS "opStatus", op.application_id AS "applicationId",
            op.position_id AS "onboardingPositionId"
-      FROM onboarding_milestones om
-      LEFT JOIN onboarding_programs op ON op.employee_id = om.employee_id
-     WHERE om.employee_id = ${employeeId}::uuid
+      FROM onboarding_programs op
+      LEFT JOIN onboarding_milestones om ON om.employee_id = op.employee_id
+     WHERE op.employee_id = ${employeeId}::uuid
      LIMIT 1
   `)) as unknown as { rows: any[] };
   const onb = onbRes.rows[0] ?? {};
@@ -121,10 +123,13 @@ export async function getMyLifecycleProfile(db: Db, employeeId: string) {
   const orientationDone =
     programStatus === 'COMPLETED' || onb.probationPassed === true || milestones >= 3;
 
-  // Fase: sudah ada offboarding = POST; masih orientasi/probation = PRE; else DURING.
+  // Fase: sudah ada offboarding = POST; masa orientasi belum tuntas = PRE; else DURING.
+  // Karyawan berstatus PROBATION tetap di PRE sampai orientasi tuntas (program
+  // COMPLETED / lulus percobaan / 3 milestone), baru naik ke DURING.
   let phase: WorkPhase = 'DURING';
   if (offboardingStatus) phase = 'POST';
-  else if (status === 'PROBATION' || (programStatus != null && !orientationDone)) phase = 'PRE';
+  else if (programStatus != null && !orientationDone) phase = 'PRE';
+  else if (status === 'PROBATION' && !orientationDone) phase = 'PRE';
 
   const period =
     perf?.periodCode ??

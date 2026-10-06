@@ -93,6 +93,33 @@ describe('employeeProfileService', () => {
     expect(p.onboarding.probationPassed).toBe(false);
   });
 
+  it('getMyLifecycleProfile membaca program onboarding tanpa baris milestone (anchor program)', async () => {
+    const NO_MILESTONE_EMP = 'b0000000-0000-4000-8000-000000000009';
+    await client.exec(`
+      DELETE FROM onboarding_milestones WHERE employee_id='${NO_MILESTONE_EMP}';
+      DELETE FROM onboarding_programs WHERE employee_id='${NO_MILESTONE_EMP}';
+      UPDATE employees SET status='PROBATION' WHERE id='${NO_MILESTONE_EMP}';
+      INSERT INTO onboarding_programs (employee_id, status) VALUES ('${NO_MILESTONE_EMP}','IN_PROGRESS');
+    `);
+    const p = await getMyLifecycleProfile(db, NO_MILESTONE_EMP);
+    // Program terbaca walau belum ada milestone → bukan "belum ada orientasi".
+    expect(p.onboarding.programStatus).toBe('IN_PROGRESS');
+    expect(p.phase).toBe('PRE');
+  });
+
+  it('getMyLifecycleProfile menaikkan PROBATION yang orientasinya tuntas ke fase DURING', async () => {
+    const DONE_EMP = 'b0000000-0000-4000-8000-000000000011';
+    await client.exec(`
+      DELETE FROM onboarding_milestones WHERE employee_id='${DONE_EMP}';
+      DELETE FROM onboarding_programs WHERE employee_id='${DONE_EMP}';
+      UPDATE employees SET status='PROBATION' WHERE id='${DONE_EMP}';
+      INSERT INTO onboarding_programs (employee_id, status) VALUES ('${DONE_EMP}','COMPLETED');
+    `);
+    const p = await getMyLifecycleProfile(db, DONE_EMP);
+    expect(p.phase).toBe('DURING');
+    expect(p.onboarding.programStatus).toBe('COMPLETED');
+  });
+
   it('tenureParts menghitung tahun & bulan, dan aman untuk tanggal kosong', () => {
     const ref = new Date('2026-07-01T00:00:00Z');
     const t = tenureParts('2022-03-15', ref);

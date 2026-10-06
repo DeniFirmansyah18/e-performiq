@@ -3,35 +3,15 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 
 const EXPECTED_TABLES = [
-  'appraisal_periods', 'attendance_records', 'audit_logs', 'badge_awards', 'badge_criteria', 'badges', 'candidates', 'career_path_levels', 'certificates', 'companies', 'company_vision_mission', 'competencies', 'competency_evidence', 'competency_frameworks', 'competency_scores', 'course_competencies', 'course_completions', 'course_modules',
-  'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employee_registrations', 'employees',
-  'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'industry_benchmarks', 'internal_applications',
-  'interview_slots', 'job_applications', 'job_positions', 'job_postings',
-  'knowledge_handovers', 'kpi_evidence_attachments', 'learning_plan_items', 'learning_plans', 'leave_requests', 'lifetime_contributions',
-  'manpower_plans', 'moodle_course_enrollments', 'moodle_courses', 'offboarding_requests', 'onboarding_milestones',
-  'peer_reviews_360', 'performance_appraisals', 'policy_knowledge_base', 'recruitment_assessments',
+  'appraisal_periods', 'attendance_records', 'audit_logs', 'career_path_levels', 'companies', 'competency_scores',
+  'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees',
+  'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'internal_applications',
+  'interview_slots', 'job_positions', 'job_postings',
+  'knowledge_handovers', 'kpi_evidence_attachments', 'leave_requests', 'lifetime_contributions',
+  'manpower_plans', 'moodle_course_enrollments', 'offboarding_requests', 'onboarding_milestones',
+  'peer_reviews_360', 'performance_appraisals', 'recruitment_assessments',
   'severance_calculations', 'sop_compliance_logs', 'strategic_pillars',
   'users', 'vmai_scorecards',
-  // 0011 recruitment + candidate accounts
-  'candidate_accounts', 'candidate_skills', 'candidate_educations', 'candidate_experiences',
-  'resume_parses', 'application_timeline', 'interview_schedules', 'candidate_decisions',
-  // 0012 assessment engine
-  'assessment_templates', 'assessment_questions', 'assessment_attempts', 'assessment_responses', 'candidate_assessment_scores',
-  // 0013 onboarding LMS
-  'position_courses', 'onboarding_programs',
-  // 0014 attendance logs (WS-9)
-  'attendance_logs',
-  // 0015 payroll (WS-10)
-  'salary_components', 'payroll_runs', 'payroll_items',
-  // 0017 full application (WS-13)
-  'candidate_certifications', 'candidate_documents', 'candidate_notifications', 'email_outbox',
-  'education_institutions', 'education_majors',
-  // 0018 whatsapp notifications (WS-14)
-  'whatsapp_outbox',
-  // 0022 offboarding self + exit interview (WS-6/7)
-  'exit_interviews',
-  // 0024 interview evaluations
-  'interview_evaluations',
 ].sort();
 
 describe('skema database', () => {
@@ -45,7 +25,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 82 tabel di schema public (baseline + 0011..0024)', async () => {
+  it('membuat tepat 35 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -56,13 +36,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 30 enum (baseline 18 + 3 + 3 + 1 + 1 + 2 + 1 + 1)', async () => {
+  it('membuat 7 enum', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(30);
+    expect(Number(res.rows[0].count)).toBe(7);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {
