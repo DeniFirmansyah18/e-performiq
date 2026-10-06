@@ -212,15 +212,14 @@ export async function autoFillPostings(db: Db): Promise<void> {
   try {
     await db.execute(sql`
       UPDATE job_postings jp SET status = 'FILLED', closed_at = COALESCE(closed_at, CURRENT_TIMESTAMP)
-      WHERE jp.status = 'OPEN' AND jp.manpower_plan_id IS NOT NULL
-        AND EXISTS (
-          SELECT 1 FROM manpower_plans mp WHERE mp.id = jp.manpower_plan_id
-            AND mp.approved_quota > 0
-            AND (mp.hired_count + COALESCE((
-              SELECT COUNT(*) FROM job_applications ja
-               WHERE ja.job_posting_id = jp.id AND ja.status IN ('HIRED','OFFERED')
-            ), 0)) >= mp.approved_quota
-        )
+      WHERE jp.status = 'OPEN'
+        AND COALESCE(jp.quota, (SELECT mp.approved_quota FROM manpower_plans mp WHERE mp.id = jp.manpower_plan_id), 0) > 0
+        AND (COALESCE((SELECT mp.hired_count FROM manpower_plans mp WHERE mp.id = jp.manpower_plan_id), 0)
+             + COALESCE((
+                 SELECT COUNT(*) FROM job_applications ja
+                  WHERE ja.job_posting_id = jp.id AND ja.status IN ('HIRED','OFFERED')
+               ), 0))
+            >= COALESCE(jp.quota, (SELECT mp.approved_quota FROM manpower_plans mp WHERE mp.id = jp.manpower_plan_id), 0)
     `);
   } catch {
     /* best-effort */

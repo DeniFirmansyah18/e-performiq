@@ -100,7 +100,7 @@ export async function listPublicPostings(db: Db): Promise<PublicPosting[]> {
            jp.min_education AS "minEducation", jp.min_experience_years::float8 AS "minExperienceYears",
            jp.work_location AS "workLocation", jp.employment_type AS "employmentType",
            d.department_name AS "department", p.position_title AS "position",
-           COALESCE(mp.approved_quota, 0) AS "quota",
+           COALESCE(jp.quota, mp.approved_quota, 0) AS "quota",
            COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired"
       FROM job_postings jp
       JOIN departments d ON d.id = jp.department_id
@@ -160,7 +160,7 @@ export async function listCandidatePostings(db: Db, opts: { search?: string; dep
            jp.required_skills AS "requiredSkills",
            jp.status, jp.posted_at AS "postedAt",
            d.department_name AS "department", p.position_title AS "position",
-           COALESCE(mp.approved_quota, 0) AS "quota",
+           COALESCE(jp.quota, mp.approved_quota, 0) AS "quota",
            COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired"
       FROM job_postings jp
       JOIN departments d ON d.id = jp.department_id

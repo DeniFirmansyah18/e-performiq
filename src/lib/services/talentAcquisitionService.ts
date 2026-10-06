@@ -49,8 +49,8 @@ export async function listOpenPostings(db: Db): Promise<JobPostingItem[]> {
            jp.posted_at AS "postedAt",
            pos.position_title AS "positionTitle",
            d.department_name AS "departmentName",
-           mp.approved_quota AS "approvedQuota",
-           mp.hired_count AS "hiredCount"
+           COALESCE(jp.quota, mp.approved_quota) AS "approvedQuota",
+           COALESCE(mp.hired_count, 0) AS "hiredCount"
       FROM job_postings jp
       JOIN job_positions pos ON pos.id = jp.position_id
       JOIN departments d ON d.id = jp.department_id
@@ -166,8 +166,8 @@ async function getApplicationWithQuota(db: Db, applicationId: string) {
     SELECT ia.id,
            ia.status,
            mp.id AS "manpowerPlanId",
-           mp.approved_quota AS "approvedQuota",
-           mp.hired_count AS "hiredCount"
+           COALESCE(jp.quota, mp.approved_quota) AS "approvedQuota",
+           COALESCE(mp.hired_count, 0) AS "hiredCount"
       FROM internal_applications ia
       JOIN job_postings jp ON jp.id = ia.job_posting_id
       JOIN manpower_plans mp ON mp.id = jp.manpower_plan_id
