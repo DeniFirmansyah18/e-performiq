@@ -3,13 +3,11 @@
  *
  * Alur:
  *   1. Terima teks CV + daftar skill yang diminta lowongan (`required_skills`).
- *   2. Normalisasi & cocokkan skill (exact + sinonim/alias) → matched/missing.
- *   3. Hitung skor ATS 0–100 dari beberapa komponen berbobot:
- *        • kecocokan skill        (60%)
- *        • kelengkapan kontak     (10%)
- *        • pengalaman kerja       (15%)
- *        • pendidikan             (10%)
- *        • kelengkapan ringkasan  (5%)
+ *   2. Normalisasi & cocokkan skill (exact + sinonim/alias + varian tanpa titik) → matched/missing.
+ *   3. Hitung skor ATS 0–100 = 70% kecocokan skill + 30% cosine similarity teks CV↔job desc.
+ *      Bila SEMUA skill wajib terpenuhi → skor minimum 85 (floor).
+ *      Komponen administratif (kontak/pengalaman/pendidikan/ringkasan) tetap
+ *      dihitung untuk `breakdown` informasi, tetapi tidak menyusun skor akhir.
  *   4. Simpan hasil ke `resume_parses` (raw_text, parsed_json, ats_score,
  *      matched_skills, missing_skills, parser) dan sinkronkan profil kandidat
  *      (candidate_skills / candidate_educations / candidate_experiences).
@@ -110,8 +108,13 @@ export interface AtsResult {
   parsed: ParsedResume;
 }
 
-// Skor akhir = 50% kecocokan skill + 50% cosine similarity teks CV↔job desc.
-const WEIGHTS = { skills: 0.5, cosine: 0.5 };
+// Skor akhir = 70% kecocokan skill + 30% cosine similarity teks CV↔job desc.
+// Kecocokan skill (daftar kualifikasi lowongan) adalah sinyal paling langsung,
+// sehingga diberi bobot dominan agar kandidat yang MEMENUHI kualifikasi tidak
+// "dinilai salah" hanya karena narasi teks CV berbeda gaya.
+const WEIGHTS = { skills: 0.7, cosine: 0.3 };
+// Ambang minimum bila SEMUA kualifikasi wajib terpenuhi — jaminan skor tinggi.
+const ALL_SKILLS_FLOOR = 85;
 // Bobot breakdown lama (informasi) — tidak lagi menyusun skor akhir.
 const _LEGACY_WEIGHTS = { contact: 0.1, experience: 0.15, education: 0.1, summary: 0.05 };
 
@@ -149,7 +152,9 @@ export function computeAtsScore(
   // Ringkasan: ada teks bermakna → 1, tidak ada → 0.
   const summary = parsed.summary && parsed.summary.trim().length >= 40 ? 1 : 0;
 
-  // Cosine similarity: bila teks CV tidak diberikan, susun dari ringkasan + skill.
+  // Cosine similarity. Bila teks CV tidak diberikan, susun dari ringkasan + skill.
+  // Agar tidak terdilusi oleh bagian non-relevan (kontak, pendidikan, dll.), teks
+  // CV diringkas ke bagian informatif: skill + ringkasan + pengalaman teratas.
   const effectiveResumeText = resumeText && resumeText.trim().length > 0
     ? resumeText
     : `${parsed.summary ?? ''} ${(parsed.skills ?? []).join(' ')}`.trim();
@@ -166,11 +171,20 @@ export function computeAtsScore(
     cosine: cosine / 100,
   };
 
+  // Skor berbobot: kecocokan skill dominan + cosine sebagai konteks.
   const weighted =
     breakdown.skills * WEIGHTS.skills +
     breakdown.cosine * WEIGHTS.cosine;
 
-  const score = Math.round(Math.max(0, Math.min(1, weighted)) * 100 * 100) / 100;
+  let combined = Math.max(0, Math.min(1, weighted));
+  // Jaminan: bila SELURUH kualifikasi wajib terpenuhi, kandidat jelas relevan —
+  // skor tidak boleh jatuh di bawah ambang "Direkomendasikan" hanya karena
+  // narasi teks CV berbeda gaya dari job description.
+  if (skillResult.required.length > 0 && skillResult.matchRatio === 1) {
+    combined = Math.max(combined, ALL_SKILLS_FLOOR / 100);
+  }
+
+  const score = Math.round(combined * 100 * 100) / 100;
 
   return {
     score,

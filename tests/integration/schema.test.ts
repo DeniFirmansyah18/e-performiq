@@ -30,6 +30,8 @@ const EXPECTED_TABLES = [
   'whatsapp_outbox',
   // 0022 offboarding self + exit interview (WS-6/7)
   'exit_interviews',
+  // 0024 interview evaluations
+  'interview_evaluations',
 ].sort();
 
 describe('skema database', () => {
@@ -43,7 +45,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 81 tabel di schema public (baseline + 0011..0022)', async () => {
+  it('membuat tepat 82 tabel di schema public (baseline + 0011..0024)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'

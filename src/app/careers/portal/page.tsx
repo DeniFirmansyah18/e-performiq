@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Briefcase, Search, Users, CheckCircle2, XCircle, Calendar, Video, ClipboardList,
+  Briefcase, Search, Users, CheckCircle2, XCircle, Calendar, Video,
 } from 'lucide-react';
 import CandidateNotifications from '@/components/careers/CandidateNotifications';
 import CandidateTopBar from '@/components/careers/CandidateTopBar';
@@ -143,10 +143,6 @@ export default function CandidatePortalPage() {
             <p className="text-xs text-[#64748b] mt-0.5">Pilih posisi dan lamar dengan profil terbaik Anda.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/careers/portal/assessments"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#007a5a] hover:bg-[#006347] text-xs font-semibold text-white transition-colors whitespace-nowrap">
-              <ClipboardList className="h-3.5 w-3.5" /> Asesmen
-            </Link>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94a3b8]" />
               <input

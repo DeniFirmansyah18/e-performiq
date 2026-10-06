@@ -64,9 +64,15 @@ async function createMeetSpace(): Promise<string | null> {
   const res = await fetch('https://meet.googleapis.com/v2/spaces', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    // accessType OPEN → "siapa pun yang memiliki tautan bisa bergabung tanpa
-    // menunggu izin" (kandidat eksternal tidak diblokir oleh kebijakan org TRUSTED).
-    body: JSON.stringify({ config: { accessType: 'OPEN' } }),
+    // accessType OPEN    → siapa pun yang memiliki tautan bisa bergabung tanpa
+    //                      menunggu izin (kandidat eksternal tidak diblokir org TRUSTED).
+    // entryPointAccess ALL → ruang boleh dibuka lewat tautan/Meet app (bukan hanya
+    //                      lewat aplikasi pembuatnya). Tanpa ini, ruang yang dibuat via
+    //                      OAuth default-nya CREATOR_APP_ONLY sehingga akun Gmail
+    //                      eksternal gagal bergabung — penyebab bug "tidak bisa diakses".
+    body: JSON.stringify({
+      config: { accessType: 'OPEN', entryPointAccess: 'ALL', moderation: 'OFF' },
+    }),
   });
   const json = (await res.json().catch(() => ({}))) as { meetingUri?: string; name?: string };
   if (!res.ok) return null;

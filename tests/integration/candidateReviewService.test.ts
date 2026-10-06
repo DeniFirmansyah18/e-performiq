@@ -109,7 +109,12 @@ describe('WS-7 review HR + keputusan', () => {
       expect(r!.technicalScore).toBe(100);
       expect(r!.interviewScore).toBe(80);
       expect(r!.finalWeightedScore).not.toBeNull();
-      expect(r!.matchedSkills).toEqual(expect.arrayContaining(['TypeScript', 'Node.js']));
+      // Sejak perbaikan akurasi ATS, `getCandidateReview` menghitung ulang
+      // kecocokan skill memakai `required_skills` lowongan yang tersimpan
+      // (bukan lagi nilai usang hasil parse saat melamar). Lowongan seed
+      // mensyaratkan TypeScript + Next.js + PostgreSQL, jadi skill yang
+      // benar-benar cocok adalah TypeScript dan PostgreSQL.
+      expect(r!.matchedSkills).toEqual(expect.arrayContaining(['TypeScript', 'PostgreSQL']));
       expect(r!.topSkills.length).toBeGreaterThan(0);
       expect(['STRONG_HIRE', 'HIRE', 'CONSIDER', 'NO_HIRE']).toContain(r!.recommendation);
       expect(r!.decision).toBe('PENDING');

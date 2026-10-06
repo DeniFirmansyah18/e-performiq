@@ -104,12 +104,19 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
       filled.push('Alamat');
     }
     if (Array.isArray(parsed.educations) && parsed.educations.length > 0) {
-      setEducations(parsed.educations.slice(0, 5).map((e: any) => ({
-        level: e.level ?? e.degree ?? '', institution: e.institution ?? '', institutionCode: '', institutionExternalId: '',
-        major: e.major ?? '', startYear: e.startYear ? String(e.startYear) : '',
-        endYear: e.endYear ? String(e.endYear) : '', graduationStatus: 'LULUS', gpa: e.gpa ? String(e.gpa) : '',
-      })));
-      filled.push('Pendidikan');
+      // Petakan tiap hasil parsing ke baris form; BUANG baris yang benar-benar
+      // kosong agar tidak memunculkan kotak riwayat pendidikan kosong.
+      const mapped = parsed.educations.slice(0, 5)
+        .map((e: any) => ({
+          level: e.level ?? e.degree ?? '', institution: e.institution ?? '', institutionCode: '', institutionExternalId: '',
+          major: e.major ?? '', startYear: e.startYear ? String(e.startYear) : '',
+          endYear: e.endYear ? String(e.endYear) : '', graduationStatus: 'LULUS', gpa: e.gpa ? String(e.gpa) : '',
+        }))
+        .filter((e: Education) => Boolean(e.institution || e.major || e.level || e.startYear || e.endYear || e.gpa));
+      if (mapped.length > 0) {
+        setEducations(mapped);
+        filled.push('Pendidikan');
+      }
     }
     if (Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
       setExperienceMode('KERJA');

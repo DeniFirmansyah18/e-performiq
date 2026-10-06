@@ -3,7 +3,7 @@ import type { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
-import { getMyProfile, updateMyProfile } from '@/lib/services/employeeProfileService';
+import { getMyProfile, updateMyProfile, getMyLifecycleProfile, tenureParts } from '@/lib/services/employeeProfileService';
 import type { Db } from '@/lib/db/client';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
@@ -40,5 +40,66 @@ describe('employeeProfileService', () => {
       `SELECT entity_name, record_id FROM audit_logs ORDER BY created_at DESC LIMIT 1`);
     expect(row.rows[0].entity_name).toBe('employees');
     expect(row.rows[0].record_id).toBe(BUDI);
+  });
+
+  it('getMyLifecycleProfile mengembalikan identitas, atasan, unit, dan jabatan akun login', async () => {
+    const p = await getMyLifecycleProfile(db, BUDI);
+    expect(p).not.toBeNull();
+    expect(p.fullName).toBe('Budi Pratama');
+    expect(p.employeeCode).toBe('EMP-2022-0042');
+    expect(p.departmentName).toBeTruthy();
+    expect(p.positionTitle).toBeTruthy();
+    expect(p.managerName).toBe('Raden Mas Danu, S.T., M.Kom.');
+    expect(p.status).toBe('PERMANENT');
+    expect(p.statusLabel).toBe('Tetap (Permanent)');
+  });
+
+  it('getMyLifecycleProfile menurunkan masa bakti dari join_date', async () => {
+    const p = await getMyLifecycleProfile(db, BUDI);
+    expect(p.joinDate).toBeTruthy();
+    expect(p.tenure).toBeTruthy();
+    expect(typeof p.tenure.label).toBe('string');
+    expect(p.tenure.label).not.toBe('—');
+  });
+
+  it('getMyLifecycleProfile memuat kinerja (GPA) & fase karyawan tetap', async () => {
+    const p = await getMyLifecycleProfile(db, BUDI);
+    expect(p.performance.gpa).toBeCloseTo(3.67, 1);
+    // Karyawan tetap tanpa offboarding = fase Saat Kerja.
+    expect(p.phase).toBe('DURING');
+    expect(p.offboardingStatus).toBeNull();
+  });
+
+  it('getMyLifecycleProfile menandai fase POST saat ada offboarding', async () => {
+    const OFF_EMP = 'b0000000-0000-4000-8000-000000000008';
+    await client.exec(`
+      INSERT INTO offboarding_requests (employee_id, reason_for_leaving, resignation_notice_date, last_working_day, status)
+      VALUES ('${OFF_EMP}','RESIGNATION','2026-09-01','2026-09-30','INITIATED');
+    `);
+    const p = await getMyLifecycleProfile(db, OFF_EMP);
+    expect(p.phase).toBe('POST');
+    expect(p.offboardingStatus).toBe('INITIATED');
+  });
+
+  it('getMyLifecycleProfile menandai fase PRE untuk karyawan dengan program onboarding berjalan', async () => {
+    const PRE_EMP = 'b0000000-0000-4000-8000-000000000011';
+    await client.exec(`
+      UPDATE employees SET status='PROBATION' WHERE id='${PRE_EMP}';
+      INSERT INTO onboarding_programs (employee_id, status) VALUES ('${PRE_EMP}','IN_PROGRESS');
+      INSERT INTO onboarding_milestones (employee_id, probation_passed) VALUES ('${PRE_EMP}', FALSE);
+    `);
+    const p = await getMyLifecycleProfile(db, PRE_EMP);
+    expect(p.phase).toBe('PRE');
+    expect(p.onboarding.probationPassed).toBe(false);
+  });
+
+  it('tenureParts menghitung tahun & bulan, dan aman untuk tanggal kosong', () => {
+    const ref = new Date('2026-07-01T00:00:00Z');
+    const t = tenureParts('2022-03-15', ref);
+    expect(t.years).toBe(4);
+    expect(t.months).toBe(3);
+    expect(t.label).toBe('4 Thn 3 Bln');
+    expect(tenureParts(null).label).toBe('—');
+    expect(tenureParts('bukan-tanggal').label).toBe('—');
   });
 });

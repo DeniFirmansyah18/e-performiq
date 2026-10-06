@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       SELECT u.id, u.employee_id as "employeeId", u.email, u.password_hash as "passwordHash",
              u.role, u.is_active as "isActive",
              e.full_name as "name", e.employee_code as "employeeCode", e.avatar_url as "avatarUrl",
+             e.status as "status", e.join_date as "joinDate",
              d.department_name as "department", jp.position_title as "position"
         FROM users u
         LEFT JOIN employees e ON e.id = u.employee_id
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
         department: user.department ?? 'Corporate',
         position: user.position ?? user.role,
         avatar_url: user.avatarUrl,
+        status: user.status ?? null,
+        join_date: user.joinDate ? new Date(user.joinDate).toISOString() : null,
       },
     });
 

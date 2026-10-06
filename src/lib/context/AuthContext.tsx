@@ -55,6 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               department: u.department || 'Corporate',
               position: u.position || u.role,
               avatarUrl: u.avatar_url || u.avatarUrl,
+              status: u.status ?? null,
+              joinDate: u.join_date ?? u.joinDate ?? null,
             };
             setCurrentUser(formatted);
             setActiveRole(u.role);
@@ -100,6 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         department: u.department,
         position: u.position,
         avatarUrl: u.avatar_url,
+        status: u.status ?? null,
+        joinDate: u.join_date ?? null,
       };
 
       setCurrentUser(formatted);

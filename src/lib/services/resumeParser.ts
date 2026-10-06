@@ -130,6 +130,7 @@ const RANGE_RE =
 const EXPERIENCE_HEADINGS = /(pengalaman kerja|work experience|experience|riwayat pekerjaan|employment)/i;
 const EDUCATION_HEADINGS = /(pendidikan|education|riwayat pendidikan|academic)/i;
 const SKILLS_HEADINGS = /(keahlian|skills|kompetensi|technical skills|kemampuan)/i;
+const CERT_HEADINGS = /(sertifikasi|certificat|licen[cs]e|pelatihan|training|award|penghargaan)/i;
 
 function splitSections(text: string): Record<string, string> {
   const lines = text.split('\n');
@@ -140,6 +141,7 @@ function splitSections(text: string): Record<string, string> {
     const isHeading = trimmed.length > 0 && trimmed.length < 60 && !/\d{4}/.test(trimmed);
     if (isHeading && EXPERIENCE_HEADINGS.test(trimmed)) current = 'experience';
     else if (isHeading && EDUCATION_HEADINGS.test(trimmed)) current = 'education';
+    else if (isHeading && CERT_HEADINGS.test(trimmed)) current = 'certifications';
     else if (isHeading && SKILLS_HEADINGS.test(trimmed)) current = 'skills';
     sections[current] = (sections[current] ? sections[current] + '\n' : '') + line;
   }
@@ -157,7 +159,15 @@ export function extractSkills(text: string): string[] {
     const re = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i');
     if (re.test(lower)) { found.add(canonical); return; }
     const needleNs = needle.replace(/\s+/g, '');
-    if (needleNs.length >= 3 && nospace.includes(needleNs)) found.add(canonical);
+    if (needleNs.length >= 3 && nospace.includes(needleNs)) { found.add(canonical); return; }
+    // Varian tanpa titik: "NextJs"/"NextJS" vs kamus "Next.js", "NodeJs" vs
+    // "Node.js". Buang titik dari needle lalu cocokkan dengan token utuh agar
+    // tidak over-match (butuh boundary non-alfanumerik di kedua sisi).
+    const needleNoDot = needleNs.replace(/\./g, '');
+    if (needleNoDot.length >= 3 && needleNoDot !== needleNs) {
+      const reNoDot = new RegExp(`(^|[^a-z0-9])${needleNoDot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`, 'i');
+      if (reNoDot.test(lower)) found.add(canonical);
+    }
   });
   return Array.from(found);
 }
@@ -165,17 +175,52 @@ export function extractSkills(text: string): string[] {
 export function extractEducations(section: string): ParsedEducation[] {
   if (!section) return [];
   const out: ParsedEducation[] = [];
-  const lines = section.split('\n').map((l) => l.trim()).filter(Boolean);
+  const lines = section
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    // Buang baris heading "Pendidikan"/"Education" itu sendiri.
+    .filter((l) => !EDUCATION_HEADINGS.test(l) || l.length > 30);
+
+  // Kelompokkan baris: satu entri pendidikan biasanya terdiri dari baris
+  // institusi (nama kampus/sekolah) diikuti baris derajat + tahun + jurusan.
+  // Tanpa pengelompokan, "Nama Kampus" dan "S1 ... 2022 - 2026" menjadi DUA
+  // entri terpisah (bug: muncul kotak riwayat pendidikan kosong di form).
+  let pendingInstitution: string | undefined;
+  const flush = (entry: ParsedEducation) => {
+    if (pendingInstitution && !entry.institution) entry.institution = pendingInstitution;
+    pendingInstitution = undefined;
+    if (entry.institution || entry.degree || entry.startYear || entry.endYear || entry.major) out.push(entry);
+  };
+
   for (const line of lines) {
     const degree = DEGREE_PATTERNS.find((d) => d.re.test(line))?.degree;
-    const years = (line.match(/\b(19|20)\d{2}\b/g) ?? []).map(Number);
+    // Tahun hanya dianggap tahun studi bila berdiri sendiri sebagai 4 digit
+    // (hindari menangkap nomor sertifikat seperti "EC002026122206").
+    const years = (line.match(/(?<!\d)(19|20)\d{2}(?!\d)/g) ?? []).map(Number);
     const gpaMatch = line.match(/\b(?:ipk|gpa)\b\D{0,6}([0-4](?:[.]\d{1,2})?)/i);
-    const institution = line.match(/\b(universitas|university|institut|institute|sekolah|politeknik|college|akademi|stie|stmik)\b/i);
-    if (!degree && !years.length && !institution && !gpaMatch) continue;
+    const institutionKw = line.match(/\b(universitas|university|institut|institute|sekolah|politeknik|college|akademi|stie|stmik|pesantren)\b/i);
     const majorMatch = line.match(/\b(?:jurusan|program studi|prodi|major)\b[^\n,;]*/i);
-    out.push({
+    const hasSignal = Boolean(degree || years.length || institutionKw || gpaMatch || majorMatch);
+
+    if (!hasSignal) continue;
+
+    // Baris institusi saja (nama kampus tanpa derajat/tahun/jurusan) → tahan
+    // sebagai konteks untuk entri berikutnya.
+    const institutionOnly = Boolean(institutionKw) && !degree && !years.length && !majorMatch && !gpaMatch;
+    if (institutionOnly) {
+      // Simpan institusi terakhir yang belum terpakai (buang yang menggantung).
+      pendingInstitution = line.split(/[-–|,]/)[0].trim();
+      continue;
+    }
+
+    const institution = institutionKw
+      ? line.split(/[-–|,]/)[0].trim()
+      : (pendingInstitution ?? undefined);
+
+    flush({
       level: degree,
-      institution: institution ? line.split(/[-–|]/)[0].trim() : undefined,
+      institution,
       degree,
       major: majorMatch ? majorMatch[0].replace(/^(jurusan|program studi|prodi|major)\s*:?\s*/i, '').trim() : undefined,
       startYear: years.length >= 2 ? years[0] : undefined,
@@ -331,8 +376,31 @@ function cleanupExtracted(text: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    // Escaped parens/backslash (literal \( \) \\).
     .replace(/\\([()\\])/g, '$1')
+    // Ligatur WinAnsi/glyph yang umum muncul di PDF ekspor Word:
+    //   \200 = "fi", \201 = "fl"  → dipulihkan agar kata tetap utuh
+    //   (mis. "deni\200rmansyah" → "denifirmansyah", "bug \200xing" → "bug fixing").
+    //   \210 = bullet/list → dijadikan penanda daftar (bukan spasi kosong).
+    // Harus dijalankan SEBELUM handler octal umum di bawah.
+    .replace(/\\200/g, 'fi')
+    .replace(/\\201/g, 'fl')
+    .replace(/\\210/g, '- ')
+    // Octal escape PDF: \050 → "(" , \051 → ")" , dsb.
+    .replace(/\\([0-7]{1,3})/g, (_m, oct: string) => {
+      const code = parseInt(oct, 8);
+      if (code === 0x28) return '(';
+      if (code === 0x29) return ')';
+      if (code === 0x5c) return '\\';
+      // Karakter kendali / glyph tak diinginkan → spasi.
+      if (code < 0x20 || code >= 0x7f) return ' ';
+      return String.fromCharCode(code);
+    })
+    // Tanda hubung tipografis yang sering jadi artefak ({ untuk – / -).
+    .replace(/\s*\{\s*/g, ' - ')
+    .replace(/[\u2013\u2014]/g, '-')
     .replace(/\u0000/g, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
@@ -382,26 +450,126 @@ export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
   }
 }
 
-/** Ekstrak teks (best-effort) dari PDF: literal string di dalam stream. */
+/**
+ * Ekstrak string teks dari satu potongan konten PDF (operator Tj / ' / " / TJ),
+ * sekaligus merekonstruksi spasi & baris baru dari operator posisi.
+ *
+ * PDF modern menempatkan tiap kata/→ token dengan operator `Td`/`TD`/`T*`/`Tm`,
+ * tanpa spasi literal. Tanpa rekonstruksi ini, teks keluaran menempel
+ * ("PassionateFullstackDeveloper") sehingga deteksi heading/section & cosine gagal.
+ */
+function extractPdfTextOperators(content: string): string[] {
+  const chunks: string[] = [];
+  // Tokenisasi konten: operator teks + operator posisi + string dalam array TJ.
+  const tokenRe = /(\((?:\\.|[^\\()])*\))|(\[(?:[^\[\]\\]|\\.)*\])\s*TJ|(Td|TD|T\*|Tm|Tj|'|")/g;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(content)) !== null) {
+    if (m[1]) {
+      // String literal langsung (…Tj, …', …").
+      chunks.push(m[1].slice(1, -1).replace(/\\([()\\])/g, '$1'));
+    } else if (m[2]) {
+      // Array TJ: gabungkan string, sisipkan spasi bila ada gap numerik besar.
+      const arr = m[2];
+      const items = arr.match(/\((?:\\.|[^\\()])*\)|-?\d+(?:\.\d+)?/g) ?? [];
+      let buf = '';
+      for (const it of items) {
+        if (it.startsWith('(')) {
+          buf += it.slice(1, -1).replace(/\\([()\\])/g, '$1');
+        } else {
+          // Angka = offset antar-glyph; nilai sangat negatif menandakan spasi.
+          const v = Number(it);
+          if (Number.isFinite(v) && v < -120) buf += ' ';
+        }
+      }
+      chunks.push(buf);
+    } else if (m[3]) {
+      // Operator posisi → batas kata/baris. Tm = matriks (biasanya awal baris).
+      chunks.push('\n');
+    }
+  }
+  return chunks;
+}
+
+/**
+ * Ekstrak teks (best-effort) dari PDF.
+ * Menangani stream terkompresi (FlateDecode/zlib) — mayoritas PDF modern
+ * (termasuk berkas "ATS-friendly" hasil ekspor Word/Canva) memakai kompresi ini.
+ * Langkah: temukan tiap blok `stream ... endstream`, inflate bila FlateDecode,
+ * lalu ambil operator teks dari konten yang sudah didekompresi.
+ */
 export function extractTextFromPdf(buffer: Buffer): string {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const zlib = require('node:zlib') as typeof import('node:zlib');
     const raw = buffer.toString('latin1');
     const chunks: string[] = [];
-    // 1) Objek teks PDF: (... ) Tj / (...) ' / [ ... ] TJ
-    const tjRe = /\((?:\\.|[^\\()])*\)\s*(?:Tj|'|")/g;
-    for (const m of raw.match(tjRe) ?? []) {
-      const inner = m.slice(1, m.lastIndexOf(')'));
-      chunks.push(inner.replace(/\\([()\\])/g, '$1'));
+
+    // Iterasi seluruh objek stream. Regex non-greedy sampai "endstream".
+    const streamRe = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+    let match: RegExpExecArray | null;
+    while ((match = streamRe.exec(raw)) !== null) {
+      const body = match[1];
+      const before = raw.slice(Math.max(0, match.index - 400), match.index);
+      // Lewati stream non-konten (font, CMap, metadata, gambar) — teksnya bukan
+      // isi dokumen dan justru mengotori hasil ekstraksi.
+      if (/\/(FontFile\d?|CMap|CIDInit|Type\s*\/Font|Type\s*\/Metadata|Type\s*\/XObject|Subtype\s*\/Image|FontDescriptor)\b/.test(before)) {
+        continue;
+      }
+      const isFlate = /\/FlateDecode/.test(before);
+      let content = body;
+      if (isFlate) {
+        try {
+          const inflated = zlib.inflateSync(Buffer.from(body, 'latin1'));
+          content = inflated.toString('latin1');
+        } catch {
+          // Coba tanpa header zlib (raw deflate) sebagai fallback.
+          try {
+            content = zlib.inflateRawSync(Buffer.from(body, 'latin1')).toString('latin1');
+          } catch {
+            content = '';
+          }
+        }
+      }
+      if (!content) continue;
+      // Lewati stream yang BUKAN konten halaman: font terbenam (Type1/CFF),
+      // CMap resource, objek stream (xref/metadata), dan data biner lain.
+      // Deteksi dari isi (lebih andal daripada melihat dict sebelum `stream`
+      // yang bisa berada >400 char sebelumnya atau memakai /Type /ObjStm).
+      if (/^(%!PS-AdobeFont|%!PS-Adobe-3\.0 Resource-CMap)|CIDInit|\/FontName|TSSRVF\+|^startxref/m.test(content.slice(0, 400))) {
+        continue;
+      }
+      // Hanya proses stream yang benar-benar berisi operator penampil teks.
+      if (!/(?:^|[\s\]])T[Jj]['"]?\b|\bTJ\b|\bTj\b|\bBT\b/.test(content)) {
+        continue;
+      }
+      chunks.push(...extractPdfTextOperators(content));
     }
-    // 2) Array TJ: [(..) -250 (..)] TJ
-    const arrRe = /\[((?:\s*\((?:\\.|[^\\()])*\)\s*-?\d*)*)\]\s*TJ/g;
-    for (const m of raw.match(arrRe) ?? []) {
-      const parts = m.match(/\((?:\\.|[^\\()])*\)/g) ?? [];
-      chunks.push(parts.map((p) => p.slice(1, -1).replace(/\\([()\\])/g, '$1')).join(''));
+
+    // Bila tak ada stream terkompresi yang berhasil, coba konten mentah
+    // (PDF tak terkompresi / sebagian teks di luar stream).
+    if (chunks.length === 0) {
+      chunks.push(...extractPdfTextOperators(raw));
     }
-    const text = cleanupExtracted(chunks.join(' '));
-    // Buang noise non-teks bila mayoritas karakter tak terbaca.
-    return text.replace(/\s{2,}/g, ' ').trim();
+
+    // Rekonstruksi: sisipkan spasi antar-potongan teks bila batasnya dua
+    // karakter alfanumerik yang berdempet (mis. "Passionate"+"Fullstack").
+    let joined = '';
+    for (const c of chunks) {
+      if (c === '\n') { joined += '\n'; continue; }
+      if (joined.length > 0) {
+        const prev = joined[joined.length - 1];
+        const first = c[0];
+        if (/[A-Za-z0-9]/.test(prev) && /[A-Za-z0-9]/.test(first)) joined += ' ';
+      }
+      joined += c;
+    }
+
+    const text = cleanupExtracted(joined);
+    return text
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   } catch {
     return '';
   }

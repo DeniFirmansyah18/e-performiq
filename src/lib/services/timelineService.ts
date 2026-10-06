@@ -178,6 +178,56 @@ async function backfillPreviousStages(
   }
 }
 
+/**
+ * Tahap yang dapat dianggap "sudah dilalui" karena kandidat telah maju melewatinya.
+ * Saat kandidat lolos tes psikometri DAN tes teknis, tahap Seleksi Berkas (ATS)
+ * yang tadinya "Sedang Berjalan" harus otomatis terbaca "Selesai".
+ */
+const POST_ATS_STAGES: TimelineStage[] = ['PSYCHOMETRIC', 'TECHNICAL', 'INTERVIEW', 'HR_REVIEW', 'DECISION'];
+
+/**
+ * Promosikan ATS_REVIEW menjadi PASSED bila seluruh tahap setelahnya yang wajib
+ * (psikometri + teknis) sudah PASSED, atau bila kandidat sudah melangkah lebih jauh
+ * (mis. sudah wawancara/keputusan). Tahap yang FAILED/SKIPPED tidak diubah.
+ */
+async function promoteAtsIfSurpassed(db: Db, applicationId: string): Promise<void> {
+  try {
+    const rows = (await db.execute(sql`
+      SELECT stage, status FROM application_timeline
+       WHERE application_id = ${applicationId}::uuid
+         AND stage = ANY(${sql.raw(`ARRAY['${POST_ATS_STAGES.join("','")}']::timeline_stage_enum[]`)})
+    `)) as unknown as { rows: Array<{ stage: TimelineStage; status: TimelineStatus }> };
+
+    const statusOf = new Map(rows.rows.map((r) => [r.stage, r.status]));
+    const psych = statusOf.get('PSYCHOMETRIC');
+    const tech = statusOf.get('TECHNICAL');
+    const advanced = (statusOf.get('INTERVIEW') && statusOf.get('INTERVIEW') !== 'PENDING')
+      || (statusOf.get('HR_REVIEW') && statusOf.get('HR_REVIEW') !== 'PENDING')
+      || (statusOf.get('DECISION') && statusOf.get('DECISION') !== 'PENDING');
+
+    // Syarat: kedua tes utama PASSED, atau kandidat sudah maju lebih jauh.
+    const cleared = (psych === 'PASSED' && tech === 'PASSED') || advanced;
+    if (!cleared) return;
+
+    // Hanya promosikan bila ATS_REVIEW belum PASSED dan bukan FAILED/SKIPPED.
+    const ats = (await db.execute(sql`
+      SELECT status FROM application_timeline
+       WHERE application_id = ${applicationId}::uuid AND stage = 'ATS_REVIEW'::timeline_stage_enum
+    `)) as unknown as { rows: Array<{ status: TimelineStatus }> };
+    const atsStatus = ats.rows?.[0]?.status ?? null;
+    if (atsStatus === 'PASSED' || atsStatus === 'FAILED' || atsStatus === 'SKIPPED') return;
+
+    await upsertStage(db, {
+      applicationId,
+      stage: 'ATS_REVIEW',
+      status: 'PASSED',
+      note: 'Berkas lolos seleksi.',
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Sinkronisasi dari sumber data yang ada
 // ---------------------------------------------------------------------------
@@ -261,6 +311,10 @@ export async function syncApplicationTimeline(db: Db, applicationId: string): Pr
 
   // 5) Status turunan terakhir (mis. HIRED/REJECTED tanpa keputusan eksplisit).
   await upsertStage(db, { applicationId, stage: mapped.stage, status: mapped.state });
+
+  // 6) Bila kandidat sudah lolos tes psikometri + teknis, tahap berkas (ATS)
+  //    otomatis dibaca "Selesai" meski status lamaran masih SCREENING.
+  await promoteAtsIfSurpassed(db, applicationId);
 }
 
 // ---------------------------------------------------------------------------

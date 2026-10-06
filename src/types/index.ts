@@ -28,6 +28,10 @@ export interface User {
   avatarUrl?: string;
   department: string;
   position: string;
+  /** Status kepegawaian: PROBATION | PERMANENT | CONTRACT | RESIGNED | RETIRED. */
+  status?: string | null;
+  /** Tanggal bergabung (ISO) — untuk menghitung masa bakti. */
+  joinDate?: string | null;
 }
 
 export interface StrategicPillar {

@@ -109,6 +109,43 @@ describe('WS-5 timeline kandidat', () => {
       expect(['CURRENT', 'DONE']).toContain(ats.state);
     });
 
+    it('Seleksi Berkas (ATS) otomatis Selesai setelah psikometri + teknis PASSED', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'Lolos Berkas', email: 'lolos.berkas@example.com', jobPostingId: postingId,
+      });
+      const applicationId = app.applicationId!;
+      // Status lamaran masih SCREENING (belum dipindah HR), namun kandidat sudah
+      // menyelesaikan kedua tes.
+      await client.query(
+        `UPDATE job_applications SET status = 'SCREENING'::application_status_enum WHERE id = $1::uuid`,
+        [applicationId],
+      );
+      await upsertStage(db, { applicationId, stage: 'PSYCHOMETRIC', status: 'PASSED' });
+      await upsertStage(db, { applicationId, stage: 'TECHNICAL', status: 'PASSED' });
+
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      expect(view).not.toBeNull();
+      const ats = view!.entries.find((e) => e.stage === 'ATS_REVIEW')!;
+      expect(ats.status).toBe('PASSED');
+      expect(ats.state).toBe('DONE');
+    });
+
+    it('Seleksi Berkas (ATS) tidak dipromosikan bila tes belum selesai', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'Belum Selesai', email: 'belum.selesai@example.com', jobPostingId: postingId,
+      });
+      const applicationId = app.applicationId!;
+      await client.query(
+        `UPDATE job_applications SET status = 'SCREENING'::application_status_enum WHERE id = $1::uuid`,
+        [applicationId],
+      );
+      await upsertStage(db, { applicationId, stage: 'PSYCHOMETRIC', status: 'PASSED' });
+      // TECHNICAL belum PASSED.
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      const ats = view!.entries.find((e) => e.stage === 'ATS_REVIEW')!;
+      expect(ats.status).toBe('IN_PROGRESS');
+    });
+
     it('getTimelineByApplicationNo mengembalikan null untuk nomor tak dikenal', async () => {
       const view = await getTimelineByApplicationNo(db, 'APP-00000000-XXXXX');
       expect(view).toBeNull();

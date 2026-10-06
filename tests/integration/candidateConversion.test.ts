@@ -48,7 +48,7 @@ describe('WS-7 konversi kandidat HIRED → karyawan', () => {
     const emp = await client.query<{ full_name: string; status: string; department_id: string }>(
       `SELECT full_name, status::text AS status, department_id FROM employees WHERE id = $1::uuid`, [res.employeeId]);
     expect(emp.rows[0].full_name).toBe('Kandidat Konversi');
-    expect(emp.rows[0].status).toBe('PROBATION');
+    expect(emp.rows[0].status).toBe('PERMANENT');
 
     const usr = await client.query<{ email: string; role: string; is_active: boolean; password_hash: string }>(
       `SELECT email, role::text AS role, is_active, password_hash FROM users WHERE id = $1::uuid`, [res.userId]);
@@ -61,6 +61,35 @@ describe('WS-7 konversi kandidat HIRED → karyawan', () => {
     const acc = await client.query<{ is_active: boolean }>(
       `SELECT is_active FROM candidate_accounts WHERE id = $1::uuid`, [accountId]);
     expect(acc.rows[0].is_active).toBe(false);
+  });
+
+  it('membuka jembatan fase Pra-Bekerja: onboarding_programs + milestones tertaut lamaran', async () => {
+    const email = `konversi.bridge.${Date.now()}@example.com`;
+    const { applicationId } = await makeCandidate(email);
+    const res = await convertHiredCandidate(db, { applicationId });
+
+    const prog = await client.query<{ status: string; application_id: string }>(
+      `SELECT status::text AS status, application_id FROM onboarding_programs WHERE employee_id = $1::uuid`, [res.employeeId]);
+    expect(prog.rows.length).toBe(1);
+    expect(prog.rows[0].status).toBe('IN_PROGRESS');
+    expect(prog.rows[0].application_id).toBe(applicationId);
+
+    const ms = await client.query<{ n: string }>(
+      `SELECT COUNT(*)::text AS n FROM onboarding_milestones WHERE employee_id = $1::uuid`, [res.employeeId]);
+    expect(Number(ms.rows[0].n)).toBe(1);
+  });
+
+  it('memperbarui karyawan PROBATION lama menjadi PERMANENT saat konversi ulang', async () => {
+    const email = `konversi.upgrade.${Date.now()}@example.com`;
+    const { applicationId } = await makeCandidate(email);
+    const first = await convertHiredCandidate(db, { applicationId });
+    // Turunkan status ke PROBATION untuk mensimulasikan karyawan lama.
+    await client.query(`UPDATE employees SET status = 'PROBATION'::employee_status_enum WHERE id = $1::uuid`, [first.employeeId]);
+    const second = await convertHiredCandidate(db, { applicationId });
+    expect(second.created).toBe(false);
+    const emp = await client.query<{ status: string }>(
+      `SELECT status::text AS status FROM employees WHERE id = $1::uuid`, [first.employeeId]);
+    expect(emp.rows[0].status).toBe('PERMANENT');
   });
 
   it('idempoten: panggil ulang tidak menduplikasi users', async () => {

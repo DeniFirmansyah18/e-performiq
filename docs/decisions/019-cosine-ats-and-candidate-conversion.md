@@ -12,11 +12,12 @@
 
 ## Keputusan
 
-### 1. Skor ATS = 50% kecocokan skill + 50% cosine similarity teks
+### 1. Skor ATS = 70% kecocokan skill + 30% cosine similarity teks (+ floor 85)
 - Modul murni `src/lib/services/cosineSimilarity.ts` (bag-of-words unigram + cosine) mereplikasi `CountVectorizer()` + `cosine_similarity` **tanpa dependency baru**.
 - Job description = `posting_title + description + required_skills`.
-- Bobot akhir `WEIGHTS = { skills: 0.5, cosine: 0.5 }`. Komponen administratif lama (contact/experience/education/summary) tetap dihitung untuk informasi (`breakdown`) tetapi **tidak** lagi menyusun skor akhir.
-- Alasan: lebih tahan terhadap variasi penulisan CV (mis. run DOCX terpecah) dan selaras permintaan; cocok untuk teks panjang.
+- Bobot akhir `WEIGHTS = { skills: 0.7, cosine: 0.3 }`. Komponen administratif lama (contact/experience/education/summary) tetap dihitung untuk informasi (`breakdown`) tetapi **tidak** lagi menyusun skor akhir.
+- **Floor rule:** bila SELURUH kualifikasi wajib (`required_skills`) terpenuhi (`matchRatio === 1`), skor minimum dijamin `85` (`ALL_SKILLS_FLOOR`). Kandidat yang jelas relevan tidak boleh jatuh di bawah ambang "Direkomendasikan" hanya karena gaya narasi CV berbeda dari job description.
+- Alasan: kecocokan skill (daftar kualifikasi) adalah sinyal seleksi paling langsung; cosine tetap dipakai sebagai konteks relevansi teks, tetapi tidak mendominasi kandidat yang memenuhi syarat.
 
 ### 2. Konversi otomatis kandidat → karyawan saat HIRED
 - Service `candidateConversionService.convertHiredCandidate()` dipanggil dari `updateApplicationStatus`/`recordDecision` ketika status menjadi `HIRED`.
@@ -39,7 +40,8 @@
 
 ## Konsekuensi
 
-- Skor ATS kandidat **berubah** dibanding sebelumnya (kini menekankan relevansi teks). Ambang seleksi HR perlu ditinjau ulang bila berbasis skor.
+- Skor ATS kandidat **berubah** dibanding sebelumnya (kini menekankan kecocokan skill + relevansi teks). Ambang seleksi HR perlu ditinjau ulang bila berbasis skor.
+- **Revisi (perbaikan akurasi):** bobot awal 50/50 membuat kandidat dengan kecocokan skill 100% hanya dapat ~80 karena cosine menyeret skor. Bobot kini **70/30** dan ditambah **floor 85** saat semua skill wajib terpenuhi. Deteksi skill juga diperbaiki agar varian tanpa titik (`NextJs`, `NextJS`) tercocokkan dengan kamus (`Next.js`).
 - Karyawan baru hasil konversi berstatus `PROBATION` dengan `base_salary=0` sampai HR melengkapi data kepegawaian/payroll.
 - Kandidat yang dikonversi **tidak bisa lagi** login ke portal kandidat (by design).
 - Tidak ada tabel besar baru selain `exit_interviews`; jejak konversi cukup via `users`/`employees` + `candidate_accounts.is_active=false`.

@@ -8,6 +8,8 @@ import { GET as modulesGet } from '@/app/api/v1/learning/courses/[id]/modules/ro
 import { POST as completePost } from '@/app/api/v1/learning/modules/[id]/complete/route';
 import { GET as certsGet } from '@/app/api/v1/learning/certificates/route';
 import { GET as profileGet, PATCH as profilePatch } from '@/app/api/v1/profile/me/route';
+import { GET as lifecycleGet } from '@/app/api/v1/profile/me/lifecycle/route';
+import { GET as authMeGet } from '@/app/api/v1/auth/me/route';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 const BUDI_USER = 'e0000000-0000-4000-8000-000000000004';
@@ -69,5 +71,31 @@ describe('materials/profile authenticated routes', () => {
     const get = await profileGet(req('/x', token));
     const json = await get.json();
     expect(json.data.phoneNumber).toBe('+62 811-0000-7777');
+  });
+
+  it('GET /profile/me/lifecycle 401 tanpa sesi', async () => {
+    const res = await lifecycleGet(req('/x'));
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /profile/me/lifecycle mengembalikan identitas + status + fase akun login', async () => {
+    const token = await signSession({ userId: BUDI_USER, employeeId: BUDI, role: 'EMPLOYEE', email: 'budi@x.id' });
+    const res = await lifecycleGet(req('/x', token));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.fullName).toBe('Budi Pratama');
+    expect(json.data.statusLabel).toBe('Tetap (Permanent)');
+    expect(json.data.managerName).toBeTruthy();
+    expect(json.data.tenure.label).toBeTruthy();
+    expect(['PRE', 'DURING', 'POST']).toContain(json.data.phase);
+  });
+
+  it('GET /auth/me menyertakan status & join_date karyawan', async () => {
+    const token = await signSession({ userId: BUDI_USER, employeeId: BUDI, role: 'EMPLOYEE', email: 'budi.pratama@eperformiq.co.id' });
+    const res = await authMeGet(req('/x', token));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.user.status).toBe('PERMANENT');
+    expect(json.data.user.join_date).toBeTruthy();
   });
 });

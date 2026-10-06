@@ -69,6 +69,9 @@ const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: st
 const [isUpdating, setIsUpdating] = useState(false);
 // Fase siklus kerja (pengelompokan visual fitur yang sudah ada).
 const [activePhase, setActivePhase] = useState<WorkPhase>('DURING');
+// Profil siklus hidup karyawan yang sedang login (identitas + status + progres fase).
+const [lifecycle, setLifecycle] = useState<any | null>(null);
+const [lifecycleOpen, setLifecycleOpen] = useState(false);
 
 // Modal states
 const [isAddKpiOpen, setIsAddKpiOpen] = useState(false);
@@ -140,6 +143,27 @@ const json = await res.json();
 if (active) setScorecard(json?.data ?? null);
 } catch {
 /* biarkan nilai demo bila API tidak tersedia */
+}
+})();
+return () => { active = false; };
+}, []);
+
+// Muat profil siklus hidup (identitas + status kepegawaian + progres fase) dari akun login.
+useEffect(() => {
+let active = true;
+(async () => {
+try {
+const res = await fetch('/api/v1/profile/me/lifecycle');
+if (!res.ok) return;
+const json = await res.json();
+if (active) {
+setLifecycle(json?.data ?? null);
+// Selaraskan tab fase aktif dengan fase siklus hidup karyawan.
+const p = json?.data?.phase as WorkPhase | undefined;
+if (p && PHASES.includes(p)) setActivePhase(p);
+}
+} catch {
+/* kartu identitas akan memakai data sesi sebagai fallback */
 }
 })();
 return () => { active = false; };
@@ -418,62 +442,252 @@ return (
     ))}
   </div>
 
-  {/* 1. Employee Welcome Header Card */}
-  <div className="stitch-card-white p-6">
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-      
-      {/* Identity & Badges */}
-      <div className="flex items-start gap-4">
-        <div className="relative">
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
-            alt="Budi Pratama"
-            className="h-16 w-16 rounded-2xl object-cover border border-[#e2e8f0] shadow-sm"
-          />
-          <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-[#137333] ring-2 ring-white" />
+  {/* 0c. Jembatan integrasi siklus hidup: Sebelum → Saat → Setelah Kerja */}
+  {(() => {
+    const probation = lifecycle?.onboarding;
+    const gpaVal = scorecard?.compositeGpa ?? lifecycle?.performance?.gpa;
+    const offStatus = lifecycle?.offboardingStatus;
+    const orientationDone =
+      probation?.programStatus === 'COMPLETED' || probation?.probationPassed === true || (probation?.milestonesDone ?? 0) >= 3;
+    const stages: {
+      phase: WorkPhase;
+      title: string;
+      summary: string;
+      done: boolean;
+      next: string;
+      links: { phase: WorkPhase; label: string }[];
+    }[] = [
+      {
+        phase: 'PRE',
+        title: 'Sebelum Kerja',
+        summary: orientationDone
+          ? 'Orientasi selesai'
+          : (probation?.milestonesDone ?? 0) > 0
+            ? `Orientasi ${probation?.milestonesDone}/${probation?.milestonesTotal}`
+            : probation?.programStatus
+              ? 'Orientasi berjalan'
+              : 'Belum ada orientasi',
+        done: orientationDone,
+        next: 'Lanjutkan kurikulum orientasi & capai milestone 30-60-90 hari.',
+        links: [{ phase: 'DURING', label: 'Menuju fase Saat Kerja' }],
+      },
+      {
+        phase: 'DURING',
+        title: 'Saat Kerja',
+        summary: gpaVal != null ? `GPA ${Number(gpaVal).toFixed(2)}` : 'Kinerja berjalan',
+        done: gpaVal != null,
+        next: 'Kelola KPI, timesheet, pengembangan, dan penilaian 360°.',
+        links: [{ phase: 'PRE', label: 'Sumber orientasi' }, { phase: 'POST', label: 'Menuju fase Setelah Kerja' }],
+      },
+      {
+        phase: 'POST',
+        title: 'Setelah Kerja',
+        summary: offStatus ? `Offboarding: ${offStatus}` : 'Belum dimulai',
+        done: !!offStatus,
+        next: offStatus
+          ? 'Selesaikan serah terima pengetahuan & aset.'
+          : 'Belum ada proses offboarding aktif.',
+        links: [{ phase: 'DURING', label: 'Asal kontribusi kinerja' }],
+      },
+    ];
+    const currentIdx = stages.findIndex((s) => s.phase === activePhase);
+    return (
+      <div className="stitch-card-white p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <GitBranch size={14} className="text-[#007a5a]" />
+          <h2 className="text-xs font-extrabold text-[#0f172a]">Integrasi Siklus Karyawan</h2>
+          <span className="text-[11px] text-[#64748b]">Rekrutmen → Orientasi → Kinerja → Offboarding</span>
         </div>
-
-        <div className="space-y-1.5">
-          <h1 className="text-xl font-extrabold text-[#0f172a] tracking-tight">
-            Selamat Datang, Budi Pratama
-          </h1>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748b]">
-            <span className="font-mono font-semibold text-[#0f172a]">NIP: EMP-2024-0042</span>
-            <span>&bull;</span>
-            <span className="font-medium text-[#334155]">Enterprise Technology Solutions</span>
-            <span>&bull;</span>
-            <span>Level: <strong className="text-[#0f172a]">Senior Specialist</strong></span>
-          </div>
-
-          <div className="text-xs text-[#64748b]">
-            Atasan Langsung: <strong className="text-[#334155]">Ir. H. Gunawan (VP Eng.)</strong>
-          </div>
-
-          {/* Status Pills */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#137333]" />
-              Status: Tetap (Permanent)
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
-              Masa Bakti: 3 Thn 4 Bln
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
-              Siklus: 2026-Q3 (Self-Appraisal Phase)
-            </span>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {stages.map((s, idx) => {
+            const isActive = activePhase === s.phase;
+            const isPast = idx < currentIdx;
+            return (
+              <div
+                key={s.phase}
+                className={`rounded-xl border p-3 transition-colors ${
+                  isActive
+                    ? 'border-[#007a5a] bg-[#e6f4ea]'
+                    : isPast
+                      ? 'border-[#b7e1cd] bg-white'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                }`}
+              >
+                <button
+                  onClick={() => setActivePhase(s.phase)}
+                  className="w-full text-left"
+                  aria-current={isActive ? 'step' : undefined}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
+                      Tahap {idx + 1}
+                    </span>
+                    {s.done ? (
+                      <CheckCircle2 size={14} className="text-[#137333]" />
+                    ) : isActive ? (
+                      <span className="h-2 w-2 rounded-full bg-[#007a5a]" />
+                    ) : (
+                      <Clock size={14} className="text-[#94a3b8]" />
+                    )}
+                  </div>
+                  <div className="mt-1 text-sm font-extrabold text-[#0f172a]">{s.title}</div>
+                  <div className="text-[11px] text-[#64748b] mt-0.5">{s.summary}</div>
+                </button>
+                {isActive && (
+                  <>
+                    <p className="mt-2 text-[11px] text-[#334155] leading-snug">{s.next}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {s.links.map((l) => (
+                        <button
+                          key={l.phase}
+                          onClick={() => setActivePhase(l.phase)}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] hover:bg-[#e0e7ff]"
+                        >
+                          {l.label}
+                          <ArrowRight size={10} />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
+    );
+  })()}
 
-    </div>
-  </div>
+  {/* 1. Employee Welcome Header Card */}
+  {(() => {
+    const empName = lifecycle?.fullName || currentUser?.name || 'Karyawan';
+    const empCode = lifecycle?.employeeCode || '—';
+    const deptName = lifecycle?.departmentName || currentUser?.department || 'Corporate';
+    const posTitle = lifecycle?.positionTitle || currentUser?.position || '—';
+    const managerName = lifecycle?.managerName || '—';
+    const statusLabel = lifecycle?.statusLabel || (currentUser?.status === 'PERMANENT' ? 'Tetap (Permanent)' : currentUser?.status === 'CONTRACT' ? 'Kontrak' : 'Percobaan');
+    const tenureLabel = lifecycle?.tenure?.label || '—';
+    const cycleLabel = lifecycle?.cycle || '—';
+    const avatar = lifecycle?.photoUrl || currentUser?.avatarUrl;
+    const initials = empName.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
+    const phaseLabel = PHASE_LABEL[activePhase as WorkPhase] || 'Saat Kerja';
+    const probation = lifecycle?.onboarding;
+    const gpa = lifecycle?.performance?.gpa;
+    const offStatus = lifecycle?.offboardingStatus;
+    return (
+      <div className="stitch-card-white p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Identity & Badges */}
+          <div className="flex items-start gap-4">
+            <div className="relative">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={empName}
+                  className="h-16 w-16 rounded-2xl object-cover border border-[#e2e8f0] shadow-sm"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-2xl border border-[#e2e8f0] shadow-sm bg-[#e6f4ea] flex items-center justify-center text-lg font-extrabold text-[#137333]">
+                  {initials || 'K'}
+                </div>
+              )}
+              <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-[#137333] ring-2 ring-white" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h1 className="text-xl font-extrabold text-[#0f172a] tracking-tight">
+                Selamat Datang, {empName}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748b]">
+                <span className="font-mono font-semibold text-[#0f172a]">NIP: {empCode}</span>
+                <span>&bull;</span>
+                <span className="font-medium text-[#334155]">{deptName}</span>
+                <span>&bull;</span>
+                <span>Jabatan: <strong className="text-[#0f172a]">{posTitle}</strong></span>
+              </div>
+
+              <div className="text-xs text-[#64748b]">
+                Atasan Langsung: <strong className="text-[#334155]">{managerName}</strong>
+              </div>
+
+              {/* Status Pills */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#137333]" />
+                  Status: {statusLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
+                  Masa Bakti: {tenureLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
+                  Siklus: {cycleLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#3730a3] border border-[#c7d2fe]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#3730a3]" />
+                  Fase: {phaseLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tombol detail siklus hidup */}
+          <div className="flex flex-col items-stretch lg:items-end gap-2">
+            <button
+              onClick={() => setLifecycleOpen((v) => !v)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#007a5a] text-white hover:bg-[#006347] transition-colors w-full lg:w-auto justify-center"
+            >
+              <GitBranch size={14} />
+              {lifecycleOpen ? 'Sembunyikan Siklus Hidup' : 'Lihat Siklus Hidup Karyawan'}
+            </button>
+            <span className="text-[11px] text-[#94a3b8] text-center lg:text-right">
+              Data akun yang sedang login
+            </span>
+          </div>
+        </div>
+
+        {/* Ringkasan siklus hidup: Sebelum / Saat / Setelah Kerja */}
+        {lifecycleOpen && (
+          <div className="mt-5 pt-5 border-t border-[#e2e8f0] grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Sebelum Kerja</div>
+              <div className="mt-1 text-sm font-semibold text-[#0f172a]">
+                {probation && (probation.programStatus || probation.milestonesDone > 0)
+                  ? `Orientasi: ${probation.milestonesDone}/${probation.milestonesTotal} milestone`
+                  : 'Belum ada program orientasi'}
+              </div>
+              <div className="text-[11px] text-[#64748b] mt-0.5">
+                {probation?.probationPassed ? 'Masa percobaan lulus' : 'Masa percobaan berjalan'}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Saat Kerja</div>
+              <div className="mt-1 text-sm font-semibold text-[#0f172a]">
+                {(scorecard?.compositeGpa ?? gpa) != null
+                  ? `GPA Kinerja: ${Number(scorecard?.compositeGpa ?? gpa).toFixed(2)} / 4.00`
+                  : 'Belum ada penilaian kinerja'}
+              </div>
+              <div className="text-[11px] text-[#64748b] mt-0.5">Periode {cycleLabel}</div>
+            </div>
+            <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Setelah Kerja</div>
+              <div className="mt-1 text-sm font-semibold text-[#0f172a]">
+                {offStatus ? 'Offboarding aktif' : 'Belum ada proses offboarding'}
+              </div>
+              <div className="text-[11px] text-[#64748b] mt-0.5">
+                {offStatus ? `Status: ${offStatus}` : 'Karyawan aktif'}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  })()}
 
   {/* ==== FASE: Sebelum Kerja ==== */}
   {activePhase === 'PRE' && (
     <OnboardingPanel />
   )}
-
   {/* ==== FASE: Setelah Kerja ==== */}
   {activePhase === 'POST' && (
     <OffboardingSelfPanel />

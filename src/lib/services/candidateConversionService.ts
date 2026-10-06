@@ -3,6 +3,9 @@
  *
  * Saat lamaran publik berstatus HIRED, kandidat "naik kelas" menjadi karyawan:
  *  - Dibuat record `employees` (departemen/posisi dari posting) + `users` (role EMPLOYEE).
+ *  - Karyawan hasil konversi berstatus PERMANENT (karyawan tetap).
+ *  - Dibuka jembatan fase Pra-Bekerja: `onboarding_programs` + `onboarding_milestones`
+ *    sehingga orientasi 30-60-90 hari tertaut ke lamaran/posisi asal rekrutmen.
  *  - Password karyawan = HASH password kandidat (bisa login dengan sandi yang sama).
  *  - Akun `candidate_accounts` dinonaktifkan agar tak lagi login sebagai kandidat.
  *
@@ -13,6 +16,29 @@ import type { Db } from '@/lib/db/client';
 
 function randomCode(prefix: string): string {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+/**
+ * Buka jembatan fase Pra-Bekerja untuk karyawan hasil konversi:
+ * pastikan `onboarding_programs` + `onboarding_milestones` ada dan tertaut
+ * ke lamaran/posisi asal. Idempoten (ON CONFLICT DO NOTHING).
+ */
+async function ensureOnboardingBridge(
+  db: Db,
+  employeeId: string,
+  applicationId: string,
+  positionId: string | null,
+): Promise<void> {
+  await db.execute(sql`
+    INSERT INTO onboarding_programs (employee_id, application_id, position_id, status)
+    VALUES (${employeeId}::uuid, ${applicationId}::uuid, ${positionId}::uuid, 'IN_PROGRESS'::onboarding_status_enum)
+    ON CONFLICT (employee_id) DO NOTHING
+  `);
+  await db.execute(sql`
+    INSERT INTO onboarding_milestones (employee_id, probation_passed)
+    VALUES (${employeeId}::uuid, FALSE)
+    ON CONFLICT (employee_id) DO NOTHING
+  `);
 }
 
 export async function convertHiredCandidate(
@@ -38,10 +64,14 @@ export async function convertHiredCandidate(
       FROM users u WHERE LOWER(u.email) = ${email} LIMIT 1
   `)) as unknown as { rows: Array<{ userId: string; employeeId: string | null }> };
   if (existingUser.rows[0]?.employeeId) {
+    const eid = existingUser.rows[0].employeeId!;
+    // Karyawan hasil konversi berstatus tetap; lengkapi jembatan onboarding bila belum ada.
+    await db.execute(sql`UPDATE employees SET status = 'PERMANENT'::employee_status_enum WHERE id = ${eid}::uuid AND status = 'PROBATION'::employee_status_enum`);
+    await ensureOnboardingBridge(db, eid, input.applicationId, row.positionId ?? null);
     if (row.accountId) {
       await db.execute(sql`UPDATE candidate_accounts SET is_active = FALSE WHERE id = ${row.accountId}::uuid`);
     }
-    return { employeeId: existingUser.rows[0].employeeId!, userId: existingUser.rows[0].userId, created: false };
+    return { employeeId: eid, userId: existingUser.rows[0].userId, created: false };
   }
 
   // Ambil hash password kandidat untuk dipakai karyawan baru.
@@ -56,7 +86,7 @@ export async function convertHiredCandidate(
   const empRes = (await db.execute(sql`
     INSERT INTO employees (employee_code, full_name, email, phone_number, department_id, position_id, status, base_salary, join_date)
     VALUES (${randomCode('EMP')}, ${row.fullName}, ${email}, ${row.phone ?? null},
-            ${row.departmentId}::uuid, ${row.positionId}::uuid, 'PROBATION'::employee_status_enum, 0, CURRENT_DATE)
+            ${row.departmentId}::uuid, ${row.positionId}::uuid, 'PERMANENT'::employee_status_enum, 0, CURRENT_DATE)
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };
   const employeeId = empRes.rows[0].id;
@@ -67,6 +97,10 @@ export async function convertHiredCandidate(
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };
   const userId = userRes.rows[0].id;
+
+  // Jembatan fase Pra-Bekerja: buka program onboarding + milestone 30-60-90 hari,
+  // tertaut ke lamaran/posisi asal agar siklus Rekrutmen → Orientasi menyatu.
+  await ensureOnboardingBridge(db, employeeId, input.applicationId, row.positionId ?? null);
 
   if (row.accountId) {
     await db.execute(sql`UPDATE candidate_accounts SET is_active = FALSE WHERE id = ${row.accountId}::uuid`);

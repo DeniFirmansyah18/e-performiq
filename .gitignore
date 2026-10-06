@@ -13,3 +13,7 @@ r.txt
 t.txt
 b.txt
 tsc.txt
+
+# local artifacts
+cookies.txt
+docs/*.pdf

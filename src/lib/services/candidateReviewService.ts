@@ -110,6 +110,7 @@ export async function getCandidateReview(db: Db, applicationId: string): Promise
     SELECT ja.id AS "applicationId", ja.application_no AS "applicationNo", ja.status AS "applicationStatus",
            ja.candidate_id AS "candidateId", c.full_name AS "candidateName", c.email AS "candidateEmail",
            c.education, jp.posting_title AS "postingTitle", jp.required_skills AS "requiredSkills",
+           jp.description AS "postingDescription",
            d.department_name AS "department", p.position_title AS "position"
       FROM job_applications ja
       JOIN candidates c ON c.id = ja.candidate_id
@@ -122,11 +123,39 @@ export async function getCandidateReview(db: Db, applicationId: string): Promise
   if (!row) return null;
 
   const atsRes = (await db.execute(sql`
-    SELECT ats_score::float8 AS "atsScore", matched_skills AS "matched", missing_skills AS "missing"
+    SELECT ats_score::float8 AS "atsScore", matched_skills AS "matched", missing_skills AS "missing",
+           raw_text AS "rawText", parsed_json AS "parsedJson"
       FROM resume_parses WHERE application_id = ${applicationId}::uuid
      ORDER BY created_at DESC LIMIT 1
   `)) as unknown as { rows: any[] };
   const ats = atsRes.rows?.[0] ?? {};
+
+  // Hitung ulang skor ATS dari data tersimpan agar nilai yang ditampilkan selalu
+  // memakai algoritma terkini — walau kandidat melamar sebelum algoritma berubah.
+  // Fallback ke skor tersimpan bila teks tertentu tak cukup untuk menghitung.
+  let atsScoreComputed: number | null = null;
+  let matchedComputed: string[] | null = null;
+  let missingComputed: string[] | null = null;
+  const requiredSkillsForJob = toStringArray(row.requiredSkills);
+  if (ats.rawText && String(ats.rawText).trim().length > 0 && requiredSkillsForJob.length > 0) {
+    try {
+      const { computeAtsScore } = await import('@/lib/services/atsService');
+      const { parseResumeHeuristic, extractSkills, normalizeResumeText } = await import('@/lib/services/resumeParser');
+      const text = normalizeResumeText(String(ats.rawText));
+      const parsed = parseResumeHeuristic(text);
+      parsed.skills = Array.from(new Set([...(parsed.skills ?? []), ...extractSkills(text)]));
+      const jobText = [row.postingTitle ?? '', row.postingDescription ?? '', requiredSkillsForJob.join(' ')].join(' ').trim();
+      const recomputed = computeAtsScore(parsed, requiredSkillsForJob, jobText, text);
+      atsScoreComputed = recomputed.score;
+      matchedComputed = recomputed.matched;
+      missingComputed = recomputed.missing;
+    } catch {
+      atsScoreComputed = null;
+    }
+  }
+  const atsScore = atsScoreComputed != null
+    ? atsScoreComputed
+    : (ats.atsScore != null ? Number(ats.atsScore) : null);
 
   const scRes = (await db.execute(sql`
     SELECT psychometric_score::float8 AS "psychometric", technical_score::float8 AS "technical",
@@ -156,7 +185,6 @@ export async function getCandidateReview(db: Db, applicationId: string): Promise
   const { getInterviewEvaluation } = await import('@/lib/services/interviewEvaluationService');
   const interviewEvaluation = await getInterviewEvaluation(db, applicationId);
 
-  const atsScore = ats.atsScore != null ? Number(ats.atsScore) : null;
   const weighted = sc.weighted != null ? Number(sc.weighted) : null;
   const overallScore = computeOverallScore(atsScore, weighted);
   const recommendation = recommend({
@@ -178,9 +206,9 @@ export async function getCandidateReview(db: Db, applicationId: string): Promise
     department: row.department,
     position: row.position,
     atsScore,
-    matchedSkills: toStringArray(ats.matched),
-    missingSkills: toStringArray(ats.missing),
-    requiredSkills: toStringArray(row.requiredSkills),
+    matchedSkills: matchedComputed ?? toStringArray(ats.matched),
+    missingSkills: missingComputed ?? toStringArray(ats.missing),
+    requiredSkills: requiredSkillsForJob,
     psychometricScore: sc.psychometric != null ? Number(sc.psychometric) : null,
     technicalScore: sc.technical != null ? Number(sc.technical) : null,
     interviewScore: sc.interview != null ? Number(sc.interview) : null,

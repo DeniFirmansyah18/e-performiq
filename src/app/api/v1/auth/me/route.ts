@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     const result = await db.execute(sql`
       SELECT u.id, u.employee_id as "employeeId", u.email, u.role,
              e.full_name as "name", e.employee_code as "employeeCode", e.avatar_url as "avatarUrl",
+             e.status as "status", e.join_date as "joinDate",
              d.department_name as "department", jp.position_title as "position"
         FROM users u
         LEFT JOIN employees e ON e.id = u.employee_id
@@ -47,6 +48,8 @@ export async function GET(req: NextRequest) {
         department: user.department ?? 'Corporate',
         position: user.position ?? user.role,
         avatar_url: user.avatarUrl,
+        status: user.status ?? null,
+        join_date: user.joinDate ? new Date(user.joinDate).toISOString() : null,
       },
     });
   } catch (err) {
