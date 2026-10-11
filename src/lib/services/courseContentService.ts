@@ -32,17 +32,19 @@ export async function listModules(db: Db, courseId: number, employeeId?: string)
   }));
 }
 
-/** Isi satu modul/lesson (termasuk quiz_key bila QUIZ). */
+/**
+ * Isi satu modul/lesson. Kunci jawaban (`quiz_key`) TIDAK pernah dikirim ke
+ * klien — penilaian kuis dilakukan server-side di `submitQuiz`.
+ */
 export async function getLesson(db: Db, moduleId: string) {
   const res = (await db.execute(sql`
     SELECT id, course_id AS "courseId", title, order_index AS "orderIndex",
-           content_type AS "contentType", content_url AS "contentUrl", content_body AS "contentBody",
-           quiz_key AS "quizKey"
+           content_type AS "contentType", content_url AS "contentUrl", content_body AS "contentBody"
       FROM course_modules WHERE id = ${moduleId}::uuid
   `)) as unknown as { rows: any[] };
   const row = res.rows[0];
   if (!row) return null;
-  return { ...row, courseId: Number(row.courseId), quizKey: row.quizKey ?? undefined };
+  return { ...row, courseId: Number(row.courseId) };
 }
 
 async function progressFor(db: Db, employeeId: string, courseId: number): Promise<number> {

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan } from '@/lib/auth/rbac';
@@ -144,6 +145,23 @@ export async function evaluateProbationMilestone(
       ? `Pengangkatan karyawan probation ke status Tetap (PKWTT) ID: ${updated.employeeId}`
       : `Pembaruan skor evaluasi onboarding ID: ${onboardingId}`,
   });
+
+  if (scores.probationPassed && updated?.employeeId) {
+    try {
+      const { notifyEmployeeLifecycle } = await import('./notificationService');
+      const nameRow = (await db.execute(sql`
+        SELECT full_name AS "name" FROM employees WHERE id = ${updated.employeeId}::uuid
+      `)) as unknown as { rows: Array<{ name: string }> };
+      const name = nameRow.rows[0]?.name ?? 'Karyawan';
+      await notifyEmployeeLifecycle(db, {
+        employeeId: updated.employeeId,
+        eventType: 'PROBATION_PASSED',
+        title: 'Selamat! Masa Probation Anda Selesai',
+        body: `${name}, evaluasi 30-60-90 hari Anda telah diselesaikan dan Anda resmi diangkat ` +
+          `menjadi karyawan tetap (PKWTT). Terima kasih atas dedikasi Anda.`,
+      });
+    } catch { /* best-effort */ }
+  }
 
   return updated;
 }

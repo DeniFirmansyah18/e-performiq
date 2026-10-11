@@ -28,7 +28,7 @@ const ProfileSchema = z.object({
   date_of_birth: z.string().max(30).optional(),
   emergency_contact_name: z.string().max(150).optional(),
   emergency_contact_phone: z.string().max(30).optional(),
-  photo_url: z.string().max(500).optional(),
+  photo_url: z.string().max(700_000).optional(),
   bio: z.string().max(1000).optional(),
 }).strict();
 

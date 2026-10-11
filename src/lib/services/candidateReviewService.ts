@@ -316,8 +316,12 @@ export interface DecisionInput {
 
 /**
  * Simpan keputusan HR (upsert pada `candidate_decisions`), sinkronkan status
- * lamaran + timeline. ACCEPTED → status lamaran OFFERED (lolos seleksi);
- * HIRED ditandai terpisah saat onboarding. REJECTED → REJECTED.
+ * lamaran + timeline.
+ *
+ * ACCEPTED → status lamaran **OFFERED** (penawaran dikirim); kandidat BELUM
+ * menjadi karyawan dan belum ada onboarding. Konversi kandidat→karyawan +
+ * program onboarding baru dibuat saat HR menaikkan status ke **HIRED**
+ * (`candidateService.updateApplicationStatus`). REJECTED → REJECTED.
  */
 export async function recordDecision(db: Db, input: DecisionInput): Promise<CandidateReview['decision']> {
   const review = await getCandidateReview(db, input.applicationId);
@@ -337,6 +341,10 @@ export async function recordDecision(db: Db, input: DecisionInput): Promise<Cand
                   decided_at = CURRENT_TIMESTAMP
   `);
 
+  // Keputusan penerimaan memindahkan lamaran ke OFFERED (penawaran dikirim); kandidat
+  // BELUM menjadi karyawan. Konversi kandidat→karyawan + program onboarding baru
+  // terjadi saat HR menaikkan status ke HIRED (lihat candidateService.updateApplicationStatus).
+  // REJECTED menutup lamaran. TALENT_POOL/PENDING tak mengubah status.
   const appStatus = input.decision === 'ACCEPTED' ? 'OFFERED'
     : input.decision === 'REJECTED' ? 'REJECTED'
     : null;
@@ -345,15 +353,23 @@ export async function recordDecision(db: Db, input: DecisionInput): Promise<Cand
       UPDATE job_applications SET status = ${appStatus}::application_status_enum
        WHERE id = ${input.applicationId}::uuid
     `);
+
+    // Kirim notifikasi status tailored (penawaran/reject) — memastikan kandidat
+    // melihat perubahan OFFERED/REJECTED di portal, bukan hanya update tahap generik.
+    try {
+      const { notifyApplicationStatus } = await import('@/lib/services/notificationService');
+      await notifyApplicationStatus(db, { applicationId: input.applicationId, status: appStatus });
+    } catch {
+      /* notifikasi best-effort */
+    }
   }
 
   try {
     const { syncApplicationTimeline, upsertStage } = await import('@/lib/services/timelineService');
     await syncApplicationTimeline(db, input.applicationId);
-    // Keputusan eksplisit menentukan status tahap DECISION (mengalahkan turunan status).
-    const decisionStageStatus = input.decision === 'ACCEPTED' ? 'PASSED'
-      : input.decision === 'REJECTED' ? 'FAILED'
-      : 'IN_PROGRESS';
+    // Keputusan eksplisit menentukan status tahap DECISION (mengalahkan turunan status):
+    // REJECTED → FAILED; ACCEPTED (OFFERED) & lainnya → IN_PROGRESS (menunggu respons kandidat).
+    const decisionStageStatus = input.decision === 'REJECTED' ? 'FAILED' : 'IN_PROGRESS';
     await upsertStage(db, {
       applicationId: input.applicationId,
       stage: 'DECISION',

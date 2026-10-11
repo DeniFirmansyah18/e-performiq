@@ -30,6 +30,23 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       note: parsed.data.note,
     });
     if (!row) return fail('NOT_FOUND', 'Timesheet tidak ditemukan.', 404);
+
+    // Notifikasi karyawan pemilik timesheet atas keputusan (best-effort).
+    try {
+      const { notifyEmployeeLifecycle } = await import('@/lib/services/notificationService');
+      const ownerId = (row as any).employeeId;
+      if (ownerId) {
+        await notifyEmployeeLifecycle(db, {
+          employeeId: ownerId,
+          eventType: 'TIMESHEET_DECIDED',
+          title: parsed.data.decision === 'APPROVED' ? 'Timesheet Disetujui' : 'Timesheet Ditolak',
+          body: parsed.data.note
+            ? `Keputusan: ${parsed.data.decision}. Catatan: ${parsed.data.note}`
+            : `Timesheet Anda telah ${parsed.data.decision === 'APPROVED' ? 'disetujui' : 'ditolak'}.`,
+        });
+      }
+    } catch { /* best-effort */ }
+
     return ok(row, parsed.data.decision === 'APPROVED' ? 'Timesheet disetujui.' : 'Timesheet ditolak.');
   } catch (err) {
     return problem(err, '/api/v1/attendance/timesheets/[id]/decide');

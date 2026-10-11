@@ -10,7 +10,9 @@
  * Deterministik, driver-agnostic, best-effort.
  */
 import { sql } from 'drizzle-orm';
+import { hashPassword } from '@/lib/auth/password';
 import type { Db } from '@/lib/db/client';
+import { BusinessRuleError } from '@/lib/auth/errors';
 import {
   computePayrollItem,
   computeThr,
@@ -151,6 +153,107 @@ export async function generatePayrollRun(db: Db, input: GenerateRunInput): Promi
   };
 }
 
+export interface FinalSettlementInput {
+  offboardingRequestId: string;
+  periodCode: string; // 'YYYY-MM'
+  createdBy?: string;
+}
+
+export interface FinalSettlementResult {
+  runId: string;
+  periodCode: string;
+  employeeId: string;
+  severance: number;
+  dplkTopup: number;
+  gross: number;
+  net: number;
+}
+
+/**
+ * Membuat run payroll FINAL_SETTLEMENT dari kalkulasi pesangon offboarding.
+ * Gate clearance 100% sudah dijamin di offboardingService.calculateOffboardingSeverance.
+ * Idempoten: 1 offboarding_request hanya menghasilkan 1 run (upsert via period_code unik).
+ */
+export async function generateFinalSettlementRun(
+  db: Db,
+  input: FinalSettlementInput,
+): Promise<FinalSettlementResult> {
+  // PRD §8 HARD GATE — sumber tunggal (getClearanceStatus): final settlement hanya
+  // boleh dibuat bila seluruh checklist serah terima (clearance) sudah terverifikasi,
+  // agar aturan tidak bisa dilewati lewat jalur payroll langsung.
+  const { getClearanceStatus } = await import('@/lib/repositories/offboardingRepository');
+  const clearance = await getClearanceStatus(db, input.offboardingRequestId);
+  if (!clearance.allVerified) {
+    throw new BusinessRuleError(
+      `Final settlement ditolak: Terdapat ${clearance.unverifiedCount} item serah terima yang belum terverifikasi.`
+    );
+  }
+
+  const src = (await db.execute(sql`
+    SELECT o.id AS "offboardingRequestId", o.employee_id AS "employeeId",
+           o.last_working_day::text AS "lastWorkingDay",
+           sc.severance_pay::float8 AS "severancePay",
+           sc.service_appreciation_pay::float8 AS "serviceAppreciationPay",
+           sc.compensation_pay::float8 AS "compensationPay",
+           sc.dplk_topup_amount::float8 AS "dplkTopup"
+      FROM offboarding_requests o
+      JOIN severance_calculations sc ON sc.offboarding_request_id = o.id
+     WHERE o.id = ${input.offboardingRequestId}::uuid
+  `)) as unknown as { rows: any[] };
+  const row = src.rows[0];
+  if (!row) {
+    throw new Error('Kalkulasi pesangon belum tersedia untuk offboarding ini (hitung pesangon terlebih dahulu).');
+  }
+
+  const severance =
+    Number(row.severancePay ?? 0) + Number(row.serviceAppreciationPay ?? 0) + Number(row.compensationPay ?? 0);
+  const dplkTopup = Number(row.dplkTopup ?? 0);
+  const gross = severance + dplkTopup;
+  const periodCode = `${input.periodCode}-FS-${String(row.employeeId).slice(0, 8)}`;
+
+  const runRes = (await db.execute(sql`
+    INSERT INTO payroll_runs
+      (period_code, period_start, period_end, status, is_thr_month, run_type, offboarding_request_id, created_by)
+    VALUES
+      (${periodCode}, ${row.lastWorkingDay}::date, ${row.lastWorkingDay}::date,
+       'PROCESSING', FALSE, 'FINAL_SETTLEMENT', ${input.offboardingRequestId}::uuid, ${input.createdBy ?? null}::uuid)
+    ON CONFLICT (period_code)
+    DO UPDATE SET offboarding_request_id = EXCLUDED.offboarding_request_id, run_type = 'FINAL_SETTLEMENT'
+    RETURNING id
+  `)) as unknown as { rows: Array<{ id: string }> };
+  const runId = runRes.rows[0].id;
+
+  await db.execute(sql`DELETE FROM payroll_items WHERE run_id = ${runId}::uuid`);
+  await db.execute(sql`
+    INSERT INTO payroll_items
+      (run_id, employee_id, base_salary, fixed_allowance, overtime_pay, bonus, thr,
+       other_earnings, bpjs_kesehatan, bpjs_jht, bpjs_jp, pph21, other_deductions, employer_bpjs,
+       overtime_hours, present_days, working_days, gross, total_deductions, net,
+       severance, dplk_topup)
+    VALUES
+      (${runId}::uuid, ${row.employeeId}::uuid, 0, 0, 0, 0, 0,
+       '[]'::jsonb, 0, 0, 0, 0, '[]'::jsonb, '{}'::jsonb,
+       0, 0, 0, ${gross}, 0, ${gross},
+       ${severance}, ${dplkTopup})
+  `);
+
+  await db.execute(sql`
+    UPDATE payroll_runs SET status = 'DRAFT', total_gross = ${gross},
+           total_deductions = 0, total_net = ${gross}
+     WHERE id = ${runId}::uuid
+  `);
+
+  return {
+    runId,
+    periodCode,
+    employeeId: row.employeeId,
+    severance: round2(severance),
+    dplkTopup: round2(dplkTopup),
+    gross: round2(gross),
+    net: round2(gross),
+  };
+}
+
 async function insertItem(
   db: Db, runId: string, emp: EmployeePayrollInput, r: PayrollItemResult,
   meta: { overtimeHours: number; presentDays: number; workingDays: number },
@@ -192,7 +295,9 @@ export async function markPayrollPaid(db: Db, runId: string): Promise<boolean> {
 export async function listPayrollRuns(db: Db, limit = 24) {
   const res = (await db.execute(sql`
     SELECT id, period_code AS "periodCode", period_start::text AS "periodStart", period_end::text AS "periodEnd",
-           status, is_thr_month AS "isThrMonth", total_gross::float8 AS "totalGross",
+           status, is_thr_month AS "isThrMonth", run_type AS "runType",
+           offboarding_request_id AS "offboardingRequestId",
+           total_gross::float8 AS "totalGross",
            total_deductions::float8 AS "totalDeductions", total_net::float8 AS "totalNet",
            created_at AS "createdAt", approved_at AS "approvedAt"
       FROM payroll_runs ORDER BY period_start DESC LIMIT ${limit}
@@ -210,7 +315,8 @@ export async function listPayrollItems(db: Db, runId: string) {
            pi.bonus::float8 AS bonus, pi.thr::float8 AS thr, pi.pph21::float8 AS pph21,
            pi.bpjs_kesehatan::float8 AS "bpjsKesehatan", pi.bpjs_jht::float8 AS "bpjsJht",
            pi.bpjs_jp::float8 AS "bpjsJp", pi.present_days AS "presentDays", pi.working_days AS "workingDays",
-           pi.gross::float8 AS gross, pi.total_deductions::float8 AS "totalDeductions", pi.net::float8 AS net
+           pi.gross::float8 AS gross, pi.total_deductions::float8 AS "totalDeductions", pi.net::float8 AS net,
+           pi.severance::float8 AS severance, pi.dplk_topup::float8 AS "dplkTopup"
       FROM payroll_items pi
       JOIN employees e ON e.id = pi.employee_id
       JOIN departments d ON d.id = e.department_id
@@ -224,6 +330,7 @@ export async function listPayrollItems(db: Db, runId: string) {
 export async function getPayslipDetail(db: Db, employeeId: string, runId?: string) {
   const res = (await db.execute(sql`
     SELECT pi.id, pr.period_code AS "periodCode", pr.status AS "runStatus", pr.period_start::text AS "periodStart",
+           pr.run_type AS "runType",
            e.employee_code AS "employeeCode", e.full_name AS "fullName",
            d.department_name AS "department", p.position_title AS "position",
            pi.base_salary::float8 AS "baseSalary", pi.fixed_allowance::float8 AS "fixedAllowance",
@@ -232,7 +339,8 @@ export async function getPayslipDetail(db: Db, employeeId: string, runId?: strin
            pi.bpjs_kesehatan::float8 AS "bpjsKesehatan", pi.bpjs_jht::float8 AS "bpjsJht",
            pi.bpjs_jp::float8 AS "bpjsJp", pi.pph21::float8 AS pph21, pi.other_deductions AS "otherDeductions",
            pi.employer_bpjs AS "employerBpjs", pi.present_days AS "presentDays", pi.working_days AS "workingDays",
-           pi.gross::float8 AS gross, pi.total_deductions::float8 AS "totalDeductions", pi.net::float8 AS net
+           pi.gross::float8 AS gross, pi.total_deductions::float8 AS "totalDeductions", pi.net::float8 AS net,
+           pi.severance::float8 AS severance, pi.dplk_topup::float8 AS "dplkTopup"
       FROM payroll_items pi
       JOIN payroll_runs pr ON pr.id = pi.run_id
       JOIN employees e ON e.id = pi.employee_id
@@ -289,4 +397,37 @@ export function monthsBetween(startIso: string, endIso: string): number {
 
 function round2(n: number): number {
   return Math.round((Number.isFinite(n) ? n : 0) * 100) / 100;
+}
+
+/** Daftar karyawan + konfigurasi payroll (pokok, PIN sudah-set) untuk HR. */
+export async function listEmployeesForPayrollConfig(db: Db) {
+  const res = (await db.execute(sql`
+    SELECT e.id AS "employeeId", e.employee_code AS "employeeCode", e.full_name AS "fullName",
+           e.base_salary::float8 AS "baseSalary", e.status,
+           d.department_name AS "department", p.position_title AS "position",
+           (e.payslip_pin_hash IS NOT NULL) AS "hasPayslipPin"
+      FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
+      LEFT JOIN job_positions p ON p.id = e.position_id
+     WHERE e.status IN ('PERMANENT','CONTRACT','PROBATION')
+     ORDER BY e.full_name
+  `)) as unknown as { rows: any[] };
+  return res.rows ?? [];
+}
+
+/** HR atur payroll per karyawan: gaji pokok dan/atau PIN slip (bcrypt). */
+export async function updateEmployeePayrollConfig(
+  db: Db,
+  employeeId: string,
+  input: { baseSalary?: number; payslipPin?: string | null },
+): Promise<boolean> {
+  const sets: any[] = [];
+  if (typeof input.baseSalary === 'number') sets.push(sql`base_salary = ${input.baseSalary}`);
+  if (input.payslipPin !== undefined) {
+    const hash = input.payslipPin ? await hashPassword(input.payslipPin) : null;
+    sets.push(sql`payslip_pin_hash = ${hash}`);
+  }
+  if (sets.length === 0) return false;
+  await db.execute(sql`UPDATE employees SET ${sql.join(sets, sql`, `)} WHERE id = ${employeeId}::uuid`);
+  return true;
 }

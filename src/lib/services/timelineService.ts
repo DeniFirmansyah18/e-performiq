@@ -157,7 +157,14 @@ export async function upsertStage(db: Db, input: UpsertStageInput): Promise<void
  * Tandai semua tahap yang SECARA URUTAN berada sebelum `stage` sebagai PASSED
  * (bila belum ada catatan). Dipakai agar timeline tidak "bolong" saat status
  * melompat (mis. langsung INTERVIEW).
+ *
+ * PENGECUALIAN: tahap asesmen (PSYCHOMETRIC/TECHNICAL) TIDAK ikut di-backfill PASSED.
+ * Tahap tersebut hanya boleh PASSED bila kandidat benar-benar menyelesaikan tes
+ * (lihat sync dari assessment_attempts) — supaya kandidat tak "tembus" ke wawancara
+ * sebelum menyelesaikan tes yang seharusnya lebih dulu.
  */
+const NON_BACKFILL_STAGES: TimelineStage[] = ['PSYCHOMETRIC', 'TECHNICAL'];
+
 async function backfillPreviousStages(
   db: Db,
   applicationId: string,
@@ -166,6 +173,7 @@ async function backfillPreviousStages(
   const idx = stageIndex(stage);
   for (let i = 0; i < idx; i++) {
     const s = STAGE_ORDER[i];
+    if (NON_BACKFILL_STAGES.includes(s)) continue;
     try {
       await db.execute(sql`
         INSERT INTO application_timeline (application_id, stage, status)
@@ -309,6 +317,49 @@ export async function syncApplicationTimeline(db: Db, applicationId: string): Pr
     /* abaikan */
   }
 
+  // 4b) PSYCHOMETRIC & TECHNICAL dari assessment_attempts. Tahap ini HANYA maju
+  //     bila kandidat benar-benar memulai/menyelesaikan tes terkait — bukan di-backfill.
+  //     - attempt SCORED/SUBMITTED → PASSED
+  //     - attempt IN_PROGRESS       → IN_PROGRESS (tahap aktif / "mulai")
+  //     - tanpa attempt             → dibiarkan PENDING (tetap UPCOMING di view)
+  try {
+    const attempts = (await db.execute(sql`
+      SELECT t.type::text AS type, a.status::text AS status
+        FROM assessment_attempts a
+        JOIN assessment_templates t ON t.id = a.template_id
+       WHERE a.application_id = ${applicationId}::uuid
+         AND t.type IN ('PSYCHOMETRIC','TECHNICAL')
+    `)) as unknown as { rows: Array<{ type: string; status: string }> };
+
+    // Ambil status terkuat per tipe (PASSED > IN_PROGRESS > tidak ada).
+    const rank: Record<string, number> = { IN_PROGRESS: 1, SUBMITTED: 2, SCORED: 2 };
+    const best: Record<string, { status: TimelineStatus; rank: number }> = {};
+    for (const a of attempts.rows ?? []) {
+      const st: TimelineStatus = rank[a.status] >= 2 ? 'PASSED' : 'IN_PROGRESS';
+      const r = rank[a.status] ?? 0;
+      if (!best[a.type] || r > best[a.type].rank) best[a.type] = { status: st, rank: r };
+    }
+    for (const stage of ['PSYCHOMETRIC', 'TECHNICAL'] as TimelineStage[]) {
+      const b = best[stage];
+      if (!b) continue; // tanpa attempt → jangan sentuh (biar UPCOMING)
+      // Jangan turunkan status yang sudah PASSED/FAILED/SKIPPED.
+      const cur = (await db.execute(sql`
+        SELECT status::text AS status FROM application_timeline
+         WHERE application_id = ${applicationId}::uuid AND stage = ${stage}::timeline_stage_enum
+      `)) as unknown as { rows: Array<{ status: string }> };
+      const curStatus = cur.rows?.[0]?.status ?? null;
+      if (curStatus === 'PASSED' || curStatus === 'FAILED' || curStatus === 'SKIPPED') continue;
+      await upsertStage(db, {
+        applicationId,
+        stage,
+        status: b.status,
+        note: b.status === 'IN_PROGRESS' ? 'Tes sedang dikerjakan.' : null,
+      });
+    }
+  } catch {
+    /* abaikan */
+  }
+
   // 5) Status turunan terakhir (mis. HIRED/REJECTED tanpa keputusan eksplisit).
   await upsertStage(db, { applicationId, stage: mapped.stage, status: mapped.state });
 
@@ -347,22 +398,30 @@ export function buildTimelineView(
   for (const e of raw) byStage.set(e.stage, e);
 
   const failed = raw.some((e) => e.status === 'FAILED');
-  // Tahap tertinggi yang punya progres.
-  let highest = 0;
-  raw.forEach((e) => {
-    const i = stageIndex(e.stage);
-    if (i > highest) highest = i;
-  });
 
-  const entries: TimelineEntry[] = STAGE_ORDER.map((stage, i) => {
+  // Gating berurutan: temukan indeks tahap aktif = tahap pertama yang belum selesai
+  // (bukan PASSED). Semua tahap sebelum itu harus DONE; sesudahnya UPCOMING (kecuali
+  // FAILED/SKIPPED/IN_PROGRESS/SCHEDULED yang bernada sendiri).
+  const rowsMapped = STAGE_ORDER.map((stage) => {
     const e = byStage.get(stage);
-    const status: TimelineStatus = e?.status ?? 'PENDING';
+    return { stage, e, status: (e?.status ?? 'PENDING') as TimelineStatus };
+  });
+  const firstUnsettled = rowsMapped.findIndex((r) => r.status !== 'PASSED');
+
+  const entries: TimelineEntry[] = rowsMapped.map((r, i) => {
+    const { stage, e, status } = r;
     let state: StageState;
     if (status === 'FAILED') state = 'FAILED';
     else if (status === 'SKIPPED') state = 'SKIPPED';
-    else if (status === 'PASSED') state = i === highest && !failed ? 'CURRENT' : 'DONE';
     else if (status === 'IN_PROGRESS' || status === 'SCHEDULED') state = 'CURRENT';
-    else state = i < highest ? 'DONE' : 'UPCOMING';
+    else if (status === 'PASSED') {
+      // Semua tahap PASSED → tahap terakhir dijadikan CURRENT (kandidat di ujung),
+      // sisanya DONE. Bila ada tahap belum selesai, semua PASSED = DONE.
+      state = firstUnsettled === -1 && i === rowsMapped.length - 1 ? 'CURRENT' : 'DONE';
+    } else {
+      // PENDING: CURRENT bila ini tahap aktif pertama, selain itu UPCOMING.
+      state = i === firstUnsettled ? 'CURRENT' : 'UPCOMING';
+    }
     return {
       stage,
       label: STAGE_LABEL[stage],
@@ -379,7 +438,7 @@ export function buildTimelineView(
     : 'IN_PROGRESS';
 
   const currentStage = entries.find((en) => en.state === 'CURRENT')?.stage
-    ?? (failed ? 'DECISION' : STAGE_ORDER[Math.min(highest, STAGE_ORDER.length - 1)]);
+    ?? (failed ? 'DECISION' : STAGE_ORDER[STAGE_ORDER.length - 1]);
 
   return {
     applicationNo,

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan } from '@/lib/auth/rbac';
@@ -50,7 +51,7 @@ export async function submitIndividualKpi(
 
   // PRD §8 — 100% KPI tervalidasi tautannya
   if (!data.strategicPillarId) {
-    throw new BusinessRuleError('KPI individu wajib terhubung ke minimal satu Pilar Strategis Korporasi (PRD §8).');
+    throw new BusinessRuleError('KPI individu wajib terhubung ke minimal satu Pilar Strategis Korporasi.');
   }
 
   const pillarExists = await verifyPillarExists(db, data.strategicPillarId);
@@ -222,4 +223,90 @@ export async function removeIndividualKpi(
   });
 
   return deleted;
+}
+
+/**
+ * Tanam KPI pembuka (starter) untuk karyawan baru pada periode penilaian aktif.
+ * Idempoten: tidak menambah KPI bila karyawan sudah punya KPI di periode tsb.
+ *
+ * Bila jabatan karyawan punya template (`position_kpi_templates`), template itu
+ * dipakai; jika tidak → fallback 4 sasaran SMART generik.
+ * Total bobot starter = 100% sehingga patuh aturan PRD §8 (bobot ≤ 100%).
+ */
+export async function seedStarterKpis(
+  db: Db,
+  employeeId: string,
+  periodId: string
+): Promise<{ seeded: boolean; kpis: any[]; source: 'template' | 'generic' | 'none' }> {
+  const existing = await selectKpisByEmployee(db, employeeId, periodId);
+  if (existing.length > 0) return { seeded: false, kpis: existing, source: 'none' };
+
+  // Coba template KPI per jabatan lebih dulu.
+  const tpl = (await db.execute(sql`
+    SELECT t.kpi_title AS "kpiTitle", t.target_value::float8 AS "targetValue",
+           t.unit_of_measure AS "unit", t.kpi_weight::float8 AS "kpiWeight",
+           t.strategic_pillar_id AS "strategicPillarId"
+      FROM position_kpi_templates t
+      JOIN employees e ON e.position_id = t.position_id
+     WHERE e.id = ${employeeId}::uuid AND t.is_active = TRUE
+     ORDER BY t.display_order ASC
+  `)) as unknown as { rows: Array<{ kpiTitle: string; targetValue: number; unit: string; kpiWeight: number; strategicPillarId: string | null }> };
+
+  if (tpl.rows?.length) {
+    const created: any[] = [];
+    for (const t of tpl.rows) {
+      const pillarId = t.strategicPillarId ?? (await defaultPillarId(db));
+      if (!pillarId) continue;
+      const row = await insertIndividualKpi(db, {
+        periodId,
+        employeeId,
+        strategicPillarId: pillarId,
+        kpiTitle: t.kpiTitle,
+        targetValue: Number(t.targetValue),
+        unitOfMeasure: t.unit,
+        kpiWeight: Number(t.kpiWeight),
+        status: 'SUBMITTED',
+      });
+      created.push(row);
+    }
+    if (created.length) return { seeded: true, kpis: created, source: 'template' };
+  }
+
+  const strategicPillarId = await defaultPillarId(db);
+  if (!strategicPillarId) return { seeded: false, kpis: [], source: 'none' };
+
+  // 4 sasaran SMART generik (Bobot 30/25/25/20 = 100%).
+  const starters = [
+    { title: 'Pencapaian Target Kerja Utama (Job Output)', target: 100, weight: 30 },
+    { title: 'Kualitas & Ketepatan Waktu (SLA/Zero Defect)', target: 100, weight: 25 },
+    { title: 'Kolaborasi Lintas Fungsi & Disiplin Proses', target: 100, weight: 25 },
+    { title: 'Pengembangan Kompetensi & Knowledge Sharing', target: 100, weight: 20 },
+  ];
+
+  const created: any[] = [];
+  for (const s of starters) {
+    const row = await insertIndividualKpi(db, {
+      periodId,
+      employeeId,
+      strategicPillarId,
+      kpiTitle: s.title,
+      targetValue: s.target,
+      unitOfMeasure: '%',
+      kpiWeight: s.weight,
+      status: 'SUBMITTED',
+    });
+    created.push(row);
+  }
+  return { seeded: true, kpis: created, source: 'generic' };
+}
+
+/** Pilar strategis default (bobot tertinggi, aktif) untuk menautkan KPI. */
+async function defaultPillarId(db: Db): Promise<string | null> {
+  const pillar = (await db.execute(sql`
+    SELECT id FROM strategic_pillars
+     WHERE is_active = TRUE
+     ORDER BY strategic_weight DESC, created_at ASC
+     LIMIT 1
+  `)) as unknown as { rows: Array<{ id: string }> };
+  return pillar.rows[0]?.id ?? null;
 }

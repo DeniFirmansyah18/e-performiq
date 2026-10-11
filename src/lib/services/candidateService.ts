@@ -410,21 +410,30 @@ export async function updateApplicationStatus(db: Db, applicationId: string, sta
       /* timeline opsional */
     }
 
-    // `syncApplicationTimeline`→`upsertStage` hanya mengirim notifikasi saat
-    // (stage,state) timeline berubah. Bila status berubah tetapi pemetaannya sama,
-    // kirim notifikasi eksplisit agar tiap transisi tetap memberitahu kandidat.
-    if (prevStatus && prevStatus !== status && sameTimelineMapping(prevStatus, status)) {
+    // Kirim notifikasi status tailored pada SETIAP perubahan status (bukan hanya saat
+    // pemetaan timeline sama), agar kandidat selalu melihat update OFFERED/HIRED/REJECTED
+    // di portal — termasuk lonjakan status yang melewati tahap timeline.
+    if (prevStatus && prevStatus !== status) {
       try {
         const { notifyApplicationStatus } = await import('@/lib/services/notificationService');
         await notifyApplicationStatus(db, { applicationId, status });
       } catch { /* notifikasi best-effort */ }
     }
 
-    // Kandidat HIRED → provision otomatis sebagai karyawan (idempoten, best-effort).
+    // Kandidat HIRED → provision otomatis sebagai karyawan + program onboarding
+    // (idempoten, best-effort). Inilah titik transisi kandidat→karyawan:
+    // sebelumnya kandidat hanya berstatus OFFERED (penawaran dikirim).
     if (status === 'HIRED') {
       try {
         const { convertHiredCandidate } = await import('@/lib/services/candidateConversionService');
-        await convertHiredCandidate(db, { applicationId });
+        const conv = await convertHiredCandidate(db, { applicationId });
+        try {
+          const { generateOnboardingProgram, refreshOnboardingStatus } = await import('@/lib/services/onboardingService');
+          await generateOnboardingProgram(db, { employeeId: conv.employeeId, applicationId });
+          await refreshOnboardingStatus(db, conv.employeeId);
+        } catch (err) {
+          console.warn('[candidateService] generate onboarding gagal:', (err as Error)?.message);
+        }
       } catch (err) {
         console.warn('[candidateService] konversi HIRED gagal:', (err as Error)?.message);
       }
@@ -444,8 +453,4 @@ function statusToStageMapping(status: string): string {
     case 'REJECTED': return 'DECISION:FAILED';
     default: return 'APPLIED:IN_PROGRESS';
   }
-}
-
-function sameTimelineMapping(a: string, b: string): boolean {
-  return statusToStageMapping(a) === statusToStageMapping(b);
 }

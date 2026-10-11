@@ -11,6 +11,7 @@ interface AuthContextType {
   switchRole: (role: UserRole) => void;
   loginAs: (role: UserRole) => Promise<boolean>;
   loginWithCredentials: (email: string, pass: string) => Promise<boolean>;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -127,6 +128,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginAs(role);
   };
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/auth/me');
+      if (!res.ok) return;
+      const json = await res.json();
+      const u = json.data?.user;
+      if (!u) return;
+      setCurrentUser((prev) => (prev ? { ...prev, avatarUrl: u.avatar_url || u.avatarUrl, name: u.name ?? prev.name } : prev));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const logout = async () => {
     try {
       await fetch('/api/v1/auth/logout', { method: 'POST' });
@@ -151,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         switchRole,
         loginAs,
         loginWithCredentials,
+        refreshUser,
         logout,
         isAuthenticated,
         isLoading,

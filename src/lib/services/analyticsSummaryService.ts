@@ -59,6 +59,14 @@ export async function getBenchmarkGap(db: Db, periodCode?: string) {
   metrics[1].actual = Number(Number(qoh.rows[0]?.avg ?? 0).toFixed(2));
   metrics[1].variance = Number((metrics[1].actual - metrics[1].benchmark).toFixed(2));
 
+  // VMAI nyata dari scorecard (bukan 0 hardcoded).
+  try {
+    const { getVmaiScorecardData } = await import('./analyticsService');
+    const scorecard = await getVmaiScorecardData(db, periodCode ?? '2026-Q3');
+    metrics[0].actual = Number(Number(scorecard.overallVMAI ?? 0).toFixed(2));
+    metrics[0].variance = Number((metrics[0].actual - metrics[0].benchmark).toFixed(2));
+  } catch { /* biarkan 0 bila pilar belum ada */ }
+
   return {
     period_code: periodCode ?? null,
     company_name: 'PT E-PerformIQ Nusantara',

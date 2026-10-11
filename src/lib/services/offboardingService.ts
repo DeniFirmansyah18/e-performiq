@@ -11,6 +11,10 @@ import {
   upsertSeveranceRecord,
   markSeverancePaid,
   selectLifetimeContributions,
+  advanceOffboardingStatus,
+  deactivateEmployeeOnExit,
+  deactivateUserAccount,
+  getClearanceStatus,
 } from '@/lib/repositories/offboardingRepository';
 import { logAction } from './auditService';
 
@@ -39,6 +43,17 @@ export async function createOffboardingRequest(
     newData: created,
     description: `Inisiasi offboarding & checklist clearance untuk karyawan ID: ${data.employeeId}`,
   });
+
+  try {
+    const { notifyEmployeeLifecycle } = await import('./notificationService');
+    await notifyEmployeeLifecycle(db, {
+      employeeId: data.employeeId,
+      eventType: 'OFFBOARDING_INITIATED',
+      title: 'Proses Offboarding Dimulai',
+      body: `Proses offboarding Anda telah dimulai dengan hari kerja terakhir ${data.lastWorkingDay}. ` +
+        `Mohon lengkapi checklist serah terima (handover) melalui portal karyawan.`,
+    });
+  } catch { /* best-effort */ }
 
   return created;
 }
@@ -77,6 +92,12 @@ export async function verifyHandoverItem(
     session.employeeId || session.userId
   );
 
+  // State machine: begitu ada item serah terima yang diverifikasi, request
+  // masuk fase CLEARANCE_IN_PROGRESS (monotonik, tidak akan mundur).
+  if (updated?.offboardingRequestId) {
+    await advanceOffboardingStatus(db, updated.offboardingRequestId, 'CLEARANCE_IN_PROGRESS');
+  }
+
   await logAction(db, {
     userId: session.userId,
     actionType: 'APPROVE',
@@ -107,11 +128,10 @@ export async function calculateOffboardingSeverance(
 
   // --- PRD §8 Acceptance Criteria (HARD GATE): Clearance Check ---
   // "Surat bebas kewajiban dan kalkulasi pesangon/DPLK tidak dapat dicetak/disahkan jika checklist serah terima aset/pengetahuan belum berstatus Completed."
-  const handovers = await selectHandoversByRequest(db, offboardingRequestId);
-  const unverified = handovers.filter((h) => !h.isVerified);
-  if (unverified.length > 0) {
+  const clearance = await getClearanceStatus(db, offboardingRequestId);
+  if (!clearance.allVerified) {
     throw new BusinessRuleError(
-      `Kalkulasi pesangon & surat clearance ditolak: Terdapat ${unverified.length} item serah terima yang belum terverifikasi (PRD §8 Acceptance Criteria).`
+      `Kalkulasi pesangon & surat clearance ditolak: Terdapat ${clearance.unverifiedCount} item serah terima yang belum terverifikasi.`
     );
   }
 
@@ -174,6 +194,52 @@ export async function disburseSeverance(
   const paymentRef = `TRX-DISB-${Date.now().toString().slice(-6)}`;
   const paid = await markSeverancePaid(db, severanceId, paymentRef);
 
+  // Setelah pesangon cair dan clearance 100%, tuntasikan lifecycle:
+  // offboarding → COMPLETED, karyawan dinonaktifkan (RESIGNED/RETIRED), akun login dimatikan.
+  let completion: {
+    offboardingStatus: string | null;
+    employeeDeactivated: boolean;
+    exitStatus: 'RESIGNED' | 'RETIRED' | null;
+  } = { offboardingStatus: null, employeeDeactivated: false, exitStatus: null };
+
+  const requestId = paid?.offboardingRequestId as string | undefined;
+  if (requestId) {
+    const offboarding = await selectOffboardingById(db, requestId);
+    const clearance = await getClearanceStatus(db, requestId);
+
+    if (offboarding && clearance.allVerified) {
+      await advanceOffboardingStatus(db, requestId, 'COMPLETED');
+
+      const reason = String(offboarding.reasonForLeaving || '').toLowerCase();
+      const exitStatus: 'RESIGNED' | 'RETIRED' =
+        reason.includes('pensiun') || reason.includes('pension') ? 'RETIRED' : 'RESIGNED';
+
+      const deactivated = await deactivateEmployeeOnExit(
+        db,
+        offboarding.employeeId,
+        exitStatus,
+        offboarding.lastWorkingDay
+      );
+      if (deactivated) {
+        await deactivateUserAccount(db, offboarding.employeeId);
+        await logAction(db, {
+          userId: session.userId,
+          actionType: 'UPDATE',
+          entityName: 'employees',
+          recordId: offboarding.employeeId,
+          newData: deactivated,
+          description: `Offboarding tuntas: karyawan ${offboarding.employeeName ?? offboarding.employeeId} dinonaktifkan (${exitStatus}) & akun login dimatikan.`,
+        });
+      }
+
+      completion = {
+        offboardingStatus: 'COMPLETED',
+        employeeDeactivated: Boolean(deactivated),
+        exitStatus,
+      };
+    }
+  }
+
   await logAction(db, {
     userId: session.userId,
     actionType: 'DISBURSE',
@@ -183,7 +249,26 @@ export async function disburseSeverance(
     description: `Pencairan dana hak pesangon berhasil ditransfer dengan referensi: ${paymentRef}`,
   });
 
-  return paid;
+  // Notifikasi akhir siklus hidup: pesangon dibayarkan + status keluar.
+  try {
+    let targetEmployee: string | undefined = (paid as any)?.employeeId;
+    if (!targetEmployee && paid?.offboardingRequestId) {
+      const off = await selectOffboardingById(db, String(paid.offboardingRequestId));
+      targetEmployee = off?.employeeId;
+    }
+    if (targetEmployee) {
+      const { notifyEmployeeLifecycle } = await import('./notificationService');
+      await notifyEmployeeLifecycle(db, {
+        employeeId: targetEmployee,
+        eventType: 'SEVERANCE_PAID',
+        title: 'Hak Pesangon Telah Dicairkan',
+        body: `Hak pesangon Anda telah ditransfer dengan referensi ${paymentRef}. ` +
+          `Terima kasih atas kontribusi Anda selama bergabung bersama kami.`,
+      });
+    }
+  } catch { /* best-effort */ }
+
+  return { ...paid, completion };
 }
 
 export async function getLegacyVault(db: Db, employeeId: string) {

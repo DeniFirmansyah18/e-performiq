@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
+import { getDb } from '@/lib/db/client';
 import { NextRequest } from 'next/server';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { GET as getReview } from '@/app/api/v1/recruitment/candidates/[id]/review/route';
@@ -60,11 +61,17 @@ describe('WS-7 endpoint review & keputusan', () => {
     expect(json.data.aiSummary.length).toBeGreaterThan(10);
   });
 
-  it('POST decision ACCEPTED → 200 + status berubah', async () => {
+  it('POST decision ACCEPTED → 200 + status lamaran OFFERED (belum HIRED)', async () => {
     const res = await postDecision(req('/x', 'POST', { decision: 'ACCEPTED', notes: 'ok' }, hrCookie), { params: { id: appId } });
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data.decision).toBe('ACCEPTED');
+    // Route menulis ke DB persisten (bukan client in-memory pada suite ini).
+    const appDb = await getDb();
+    const q = await appDb.query<{ status: string }>(
+      `SELECT status FROM job_applications WHERE id = $1::uuid`, [appId],
+    );
+    expect(q.rows[0].status).toBe('OFFERED');
   });
 
   it('POST decision keputusan invalid → 400', async () => {

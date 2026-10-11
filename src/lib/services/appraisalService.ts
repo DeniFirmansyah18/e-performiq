@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan, can } from '@/lib/auth/rbac';
@@ -31,6 +32,39 @@ export async function getAppraisalById(db: Db, id: string) {
   return selectAppraisalById(db, id);
 }
 
+/**
+ * Ambil periode penilaian yang sedang ACTIVE; bila belum ada, buat periode
+ * untuk kuartal berjalan secara idempoten. Dipakai saat onboarding karyawan
+ * baru agar KPI pembuka langsung tertaut ke periode penilaian yang sah.
+ */
+export async function ensureActiveAppraisalPeriod(db: Db) {
+  const existing = (await db.execute(sql`
+    SELECT id, period_code AS "periodCode", start_date AS "startDate", end_date AS "endDate", status
+      FROM appraisal_periods
+     WHERE status = 'ACTIVE'::period_status_enum
+     ORDER BY start_date DESC
+     LIMIT 1
+  `)) as unknown as { rows: any[] };
+  if (existing.rows[0]) return existing.rows[0];
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const quarter = Math.floor(now.getMonth() / 3) + 1;
+  const periodCode = `${year}-Q${quarter}`;
+  const startMonth = (quarter - 1) * 3;
+  const startDate = new Date(Date.UTC(year, startMonth, 1));
+  const endDate = new Date(Date.UTC(year, startMonth + 3, 0));
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+  const created = (await db.execute(sql`
+    INSERT INTO appraisal_periods (period_code, start_date, end_date, status)
+    VALUES (${periodCode}, ${fmt(startDate)}::date, ${fmt(endDate)}::date, 'ACTIVE'::period_status_enum)
+    ON CONFLICT (period_code) DO UPDATE SET status = 'ACTIVE'::period_status_enum
+    RETURNING id, period_code AS "periodCode", start_date AS "startDate", end_date AS "endDate", status
+  `)) as unknown as { rows: any[] };
+  return created.rows[0];
+}
+
 export async function calculateAndSaveGPA(
   db: Db,
   session: SessionPayload,
@@ -44,7 +78,7 @@ export async function calculateAndSaveGPA(
   const isAuthorizedCalibrator = can(session.role, 'appraisal:calibrate');
   if (existing?.isCalibrated && !isAuthorizedCalibrator) {
     throw new ImmutableRecordError(
-      `Nilai penilaian karyawan ${input.employeeId} pada periode ${input.periodId} telah disahkan dan berstatus immutable (PRD §6.2).`
+      `Nilai penilaian karyawan ${input.employeeId} pada periode ${input.periodId} telah disahkan dan berstatus immutable.`
     );
   }
 
@@ -112,7 +146,7 @@ export async function calibrateAppraisal(
 
   if (appraisal.isCalibrated) {
     throw new ImmutableRecordError(
-      `Nilai penilaian ID '${appraisalId}' telah disahkan oleh Komite Kalibrasi dan berstatus immutable (PRD §6.2).`
+      `Nilai penilaian ID '${appraisalId}' telah disahkan oleh Komite Kalibrasi dan berstatus immutable.`
     );
   }
 

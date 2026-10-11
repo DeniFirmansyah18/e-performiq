@@ -58,12 +58,13 @@ describe('WS-8 endpoint onboarding', () => {
     expect(json.data.enrolled).toBeGreaterThanOrEqual(4);
   });
 
-  it('GET onboarding mengembalikan 4 kursus wajib untuk SWE', async () => {
+  it('GET onboarding mengembalikan kursus wajib untuk SWE (termasuk kursus onboarding ter-generate)', async () => {
     const res = await getOnboarding(getReq('/x', empCookie));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data.totalMandatory).toBe(4);
-    expect(json.data.items.length).toBe(4);
+    // 4 kursus kurikulum posisi + 1 kursus onboarding per-posisi yang di-generate otomatis.
+    expect(json.data.totalMandatory).toBe(5);
+    expect(json.data.items.length).toBe(5);
   });
 
   it('HR: POST generate untuk karyawan lain', async () => {

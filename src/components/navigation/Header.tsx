@@ -6,11 +6,11 @@ import { useAuth } from '@/lib/context/AuthContext';
 import UserGuideModal from '@/components/guide/UserGuideModal';
 import NavMenu from '@/components/navigation/NavMenu';
 import AiChatDrawer from '@/components/navigation/AiChatDrawer';
+import NotificationBell from '@/components/navigation/NotificationBell';
 import {
   Layers,
   Search,
   Calendar,
-  Bell,
   ShieldCheck,
   ChevronDown,
   LogOut,
@@ -94,16 +94,13 @@ export default function Header() {
             className="bg-transparent text-xs font-semibold focus:outline-none cursor-pointer text-slate-200"
           >
             <option value="2026-Q3" className="bg-[#0d131f] text-white">2026-Q3</option>
+            <option value="2026-Q4" className="bg-[#0d131f] text-white">2026-Q4</option>
             <option value="2026-FY" className="bg-[#0d131f] text-white">2026-FY</option>
-            <option value="2026-Q2" className="bg-[#0d131f] text-white">2026-Q2</option>
           </select>
         </div>
 
-        {/* Notification Bell */}
-        <button className="relative p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-[#0d131f]" />
-        </button>
+        {/* Notification Bell (live, lintas-role) */}
+        <NotificationBell />
 
         {/* Shield Icon */}
         <button className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">

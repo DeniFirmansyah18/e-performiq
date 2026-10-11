@@ -41,9 +41,16 @@ export async function POST(req: NextRequest) {
     const valid = await verifyPassword(password, acc.passwordHash);
     if (!valid) throw new AuthError('Email atau kata sandi tidak valid.');
 
+    // Tautkan baris kandidat lama (lamaran anonim) ke akun ini berdasarkan email,
+    // agar notifikasi & konteks lamaran yang dibuat tanpa akun tetap terlihat di portal.
+    await db.execute(sql`
+      UPDATE candidates SET account_id = ${acc.id}::uuid
+       WHERE LOWER(email) = LOWER(${acc.email}) AND account_id IS NULL
+    `);
+
     // kandidat terkait (bila sudah pernah melamar)
     const cand = await db.execute(sql`
-      SELECT id FROM candidates WHERE account_id = ${acc.id}::uuid LIMIT 1
+      SELECT id FROM candidates WHERE account_id = ${acc.id}::uuid ORDER BY created_at DESC LIMIT 1
     `);
     const candidateId = (cand as any).rows[0]?.id ?? null;
 

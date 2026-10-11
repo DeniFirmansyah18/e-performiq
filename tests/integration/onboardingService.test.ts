@@ -44,20 +44,33 @@ describe('WS-8 onboarding LMS per-posisi + e-sertifikat', () => {
   it('generateOnboardingProgram membuat program + plan + enrollment kursus wajib', async () => {
     const res = await generateOnboardingProgram(db, { employeeId });
     expect(res.planId).toBeTruthy();
-    expect(res.enrolled).toBe(4);
+    // 4 kursus seed + 1 kurikulum onboarding per-posisi hasil generate = 5 wajib.
+    expect(res.enrolled).toBe(5);
 
     const status = await getOnboardingStatus(db, employeeId);
     expect(status.programId).toBeTruthy();
-    expect(status.totalMandatory).toBe(4);
+    expect(status.totalMandatory).toBe(5);
     expect(status.completedMandatory).toBe(0);
-    expect(status.items.filter((i) => i.enrolled).length).toBe(4);
+    expect(status.items.filter((i) => i.enrolled).length).toBe(5);
     expect(status.progressPct).toBe(0);
+
+    // Kurikulum onboarding per-posisi benar-benar dibuat (kursus nyata + modul).
+    const onb = await client.query<{ id: number }>(
+      `SELECT id FROM moodle_courses WHERE course_code = 'ONB-A0000000'`,
+    );
+    expect(onb.rows[0]?.id).toBeTruthy();
+    const mods = await client.query<{ n: string; quiz: string }>(
+      `SELECT COUNT(*)::text AS n, COUNT(*) FILTER (WHERE content_type='QUIZ')::text AS quiz
+         FROM course_modules WHERE course_id = $1`, [onb.rows[0].id],
+    );
+    expect(Number(mods.rows[0].n)).toBeGreaterThanOrEqual(3);
+    expect(Number(mods.rows[0].quiz)).toBeGreaterThanOrEqual(1);
 
     // Learning plan + item terbuat.
     const items = await client.query<{ n: string }>(
       `SELECT COUNT(*)::text AS n FROM learning_plan_items WHERE plan_id = $1::uuid`, [res.planId],
     );
-    expect(Number(items.rows[0].n)).toBe(4);
+    expect(Number(items.rows[0].n)).toBe(5);
   });
 
   it('idempoten: generate dua kali tidak menduplikasi program/enrollment', async () => {
@@ -69,7 +82,7 @@ describe('WS-8 onboarding LMS per-posisi + e-sertifikat', () => {
     const enr = await client.query<{ n: string }>(
       `SELECT COUNT(*)::text AS n FROM moodle_course_enrollments WHERE employee_id = $1::uuid`, [employeeId],
     );
-    expect(Number(enr.rows[0].n)).toBe(4);
+    expect(Number(enr.rows[0].n)).toBe(5);
   });
 
   it('menyelesaikan semua kursus wajib → program COMPLETED + e-sertifikat terbit', async () => {
@@ -82,13 +95,13 @@ describe('WS-8 onboarding LMS per-posisi + e-sertifikat', () => {
     }
 
     const after = await getOnboardingStatus(db, employeeId);
-    expect(after.completedMandatory).toBe(4);
+    expect(after.completedMandatory).toBe(5);
     expect(after.progressPct).toBe(100);
     expect(after.status).toBe('COMPLETED');
 
     // Sertifikat terbit untuk SEMUA kursus wajib.
     const certs = await getCertificatesForEmployee(db, employeeId);
-    expect(certs.length).toBe(4);
+    expect(certs.length).toBe(5);
 
     // Item plan DONE.
     const items = await client.query<{ done: string; total: string }>(
@@ -115,7 +128,7 @@ describe('WS-8 onboarding LMS per-posisi + e-sertifikat', () => {
     expect(r).toBeNull();
   });
 
-  it('karyawan tanpa posisi: generate tetap aman (0 enrollment)', async () => {
+  it('karyawan di posisi tanpa kurikulum: generate membuat kurikulum onboarding nyata', async () => {
     const ins = await client.query<{ id: string }>(
       `INSERT INTO employees (id, employee_code, full_name, email, department_id, position_id, status, base_salary, join_date)
        SELECT gen_random_uuid(), 'EMP-NEW-9002', 'Tanpa Posisi', 'tanpa.posisi@eperformiq.co.id',
@@ -125,9 +138,10 @@ describe('WS-8 onboarding LMS per-posisi + e-sertifikat', () => {
     );
     if (ins.rows[0]) {
       const res = await generateOnboardingProgram(db, { employeeId: ins.rows[0].id });
-      expect(res.enrolled).toBe(0);
+      // Posisi ini awalnya tanpa kurikulum; generate kini membuat 1 kursus onboarding nyata.
+      expect(res.enrolled).toBe(1);
       const status = await getOnboardingStatus(db, ins.rows[0].id);
-      expect(status.totalMandatory).toBe(0);
+      expect(status.totalMandatory).toBe(1);
       expect(status.progressPct).toBe(0);
     }
   });

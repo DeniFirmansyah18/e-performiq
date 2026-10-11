@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Sparkles, CheckCircle2, XCircle, Users, ClipboardCheck } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Sparkles, CheckCircle2, Users } from 'lucide-react';
 import JobPostingManager from '@/components/governance/JobPostingManager';
 
 interface CandidateRow {
@@ -32,16 +33,6 @@ interface InterviewEvaluationDto {
   recommendation: string | null;
   updatedAt: string | null;
 }
-
-const RUBRIC: { key: RubricKey; label: string }[] = [
-  { key: 'technical_skill', label: 'Kompetensi Teknis / Keahlian' },
-  { key: 'problem_solving', label: 'Pemecahan Masalah / Analytical Thinking' },
-  { key: 'communication', label: 'Komunikasi & Kejelasan' },
-  { key: 'collaboration', label: 'Kolaborasi / Team Fit' },
-  { key: 'motivation', label: 'Motivasi & Culture Fit' },
-  { key: 'leadership', label: 'Kepemimpinan / Potensi' },
-  { key: 'professionalism', label: 'Sikap & Profesionalisme' },
-];
 
 const STATUSES = ['SUBMITTED', 'SCREENING', 'INTERVIEW', 'OFFERED', 'HIRED', 'REJECTED'];
 
@@ -148,10 +139,15 @@ export default function RecruitmentPanel() {
     });
     setDecisionBusy(false);
     if (res.ok) {
-      const label = decision === 'ACCEPTED' ? 'Diterima' : decision === 'REJECTED' ? 'Ditolak' : 'Talent Pool';
+      const label = decision === 'ACCEPTED' ? 'Diterima — status lamaran OFFERED (penawaran dikirim)'
+        : decision === 'REJECTED' ? 'Ditolak'
+        : 'Talent Pool';
+      const next = decision === 'ACCEPTED'
+        ? ' Naikkan status ke HIRED setelah kandidat menerima tawaran untuk mengonversinya menjadi karyawan + membuat program onboarding.'
+        : '';
       setSuccess({
         title: 'Keputusan tersimpan',
-        body: `Kandidat ${detail?.candidateName ?? ''} ditandai: ${label}. Daftar pelamar diperbarui otomatis.`,
+        body: `Kandidat ${detail?.candidateName ?? ''} ditandai: ${label}.${next}`,
       });
       setReviewId(null); setDetail(null); await load();
       window.dispatchEvent(new CustomEvent('recruitment:candidates-changed'));
@@ -231,8 +227,8 @@ export default function RecruitmentPanel() {
         </div>
       )}
 
-      {reviewId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {reviewId && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-[#0f172a] text-white px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -252,15 +248,16 @@ export default function RecruitmentPanel() {
               onReload={() => { if (reviewId) openReview(reviewId); }}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Kelola lowongan (WS-12) */}
       <JobPostingManager />
 
       {/* Modal notifikasi sukses (auto-refresh sudah dijalankan) */}
-      {success && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true">
+      {success && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true">
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xl max-w-sm w-full p-6 text-center space-y-3">
             <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-[#e6f4ea]">
               <CheckCircle2 className="h-6 w-6 text-[#137333]" />
@@ -274,11 +271,12 @@ export default function RecruitmentPanel() {
               Mengerti
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {profileId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {profileId && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-[#0f172a] text-white px-5 py-3.5 flex items-center justify-between">
               <span className="text-sm font-bold">Detail Pelamar</span>
@@ -292,7 +290,8 @@ export default function RecruitmentPanel() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -361,31 +360,17 @@ function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill
             <div className="text-[11px] text-[#334155] whitespace-pre-wrap leading-relaxed">{detail.aiSummary}</div>
           </div>
 
-          <InterviewEvaluationForm
-            applicationId={detail.applicationId}
-            detail={detail}
-            onSaved={onReload}
-          />
-
           {detail.decision !== 'PENDING' && (
             <p className="text-[11px] font-semibold text-[#334155]">Keputusan saat ini: <strong>{detail.decision}</strong></p>
           )}
 
           <div className="flex flex-wrap gap-2 pt-1 border-t border-[#f1f5f9]">
-            <button disabled={decisionBusy} onClick={() => onDecision('ACCEPTED')}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#007a5a] text-white text-xs font-bold hover:bg-[#006347] disabled:opacity-50">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Terima
-            </button>
             <button disabled={decisionBusy} onClick={() => onDecision('TALENT_POOL')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1d4ed8] text-white text-xs font-bold hover:bg-[#1e40af] disabled:opacity-50">
               <Users className="h-3.5 w-3.5" /> Talent Pool
             </button>
-            <button disabled={decisionBusy} onClick={() => onDecision('REJECTED')}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 disabled:opacity-50">
-              <XCircle className="h-3.5 w-3.5" /> Tolak
-            </button>
           </div>
-          <p className="text-[10px] text-[#94a3b8]">Rekomendasi AI bersifat asistif; keputusan akhir tetap milik HR.</p>
+          <p className="text-[10px] text-[#94a3b8]">Keputusan lolos/tolak kini diatur melalui dropdown Status Kandidat.</p>
         </>
       )}
     </div>
@@ -393,133 +378,9 @@ function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill
 }
 
 /**
- * Form penilaian wawancara terstruktur (rubrik 7 kriteria, skala 1–5).
- * Menyimpan via POST /api/v1/recruitment/interviews/score dengan payload
- * `{ applicationId, rubric, strengths, concerns, notes }`; server menurunkan
- * skor komposit (0–100) → mengisi komponen wawancara pada agregat 30/40/30
- * yang dianalisis otomatis di kartu Review.
+ * Form penilaian wawancara terstruktur (rubrik 7 kriteria, skala 1–5) telah
+ * dipindahkan ke panel "Jadwal Wawancara" (InterviewSchedulerPanel).
  */
-function InterviewEvaluationForm({ applicationId, detail, onSaved }: {
-  applicationId: string;
-  detail: ReviewDetail;
-  onSaved: () => void;
-}) {
-  const existing = detail.interviewEvaluation ?? null;
-  const [scores, setScores] = useState<Record<RubricKey, number>>(() => {
-    const init = {} as Record<RubricKey, number>;
-    RUBRIC.forEach((c) => { init[c.key] = existing?.scores?.[c.key] ?? 0; });
-    return init;
-  });
-  const [strengths, setStrengths] = useState(existing?.strengths ?? '');
-  const [concerns, setConcerns] = useState(existing?.concerns ?? '');
-  const [notes, setNotes] = useState(existing?.notes ?? '');
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-
-  const scored = RUBRIC.map((c) => scores[c.key]).filter((v) => v >= 1);
-  const composite = scored.length
-    ? Math.round(((scored.reduce((a, b) => a + b, 0) / scored.length - 1) / 4) * 100)
-    : null;
-
-  const submit = async () => {
-    setBusy(true); setErr(null); setDone(false);
-    try {
-      const rubric: Record<string, number | null> = {};
-      RUBRIC.forEach((c) => { rubric[c.key] = scores[c.key] >= 1 ? scores[c.key] : null; });
-      const res = await fetch('/api/v1/recruitment/interviews/score', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          applicationId,
-          rubric,
-          strengths: strengths.trim() || undefined,
-          concerns: concerns.trim() || undefined,
-          notes: notes.trim() || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setErr(j?.detail || 'Gagal menyimpan penilaian.');
-        return;
-      }
-      setDone(true);
-      onSaved();
-    } catch {
-      setErr('Gagal menyimpan penilaian.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="rounded-xl border border-[#e2e8f0] p-3">
-      <button onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between text-left">
-        <span className="flex items-center gap-1.5">
-          <ClipboardCheck className="h-3.5 w-3.5 text-[#0f766e]" />
-          <span className="text-[11px] font-bold text-[#0f172a]">Penilaian Wawancara (Rubrik)</span>
-          {existing?.compositeScore != null && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] font-bold">
-              Skor {existing.compositeScore.toFixed(0)}
-            </span>
-          )}
-        </span>
-        <span className="text-[10px] text-[#64748b]">{open ? 'Tutup ▲' : 'Buka ▼'}</span>
-      </button>
-
-      {open && (
-        <div className="mt-3 space-y-3">
-          <p className="text-[10px] text-[#64748b]">
-            Nilai tiap kriteria (1–5). Rata-rata otomatis dikonversi ke skor 0–100 dan
-            diumpankan ke analisis Review (agregat asesmen 30/40/30). Skala: 1 = jauh di
-            bawah ekspektasi, 5 = jauh di atas ekspektasi.
-          </p>
-          <div className="space-y-2">
-            {RUBRIC.map((c) => (
-              <div key={c.key} className="flex items-center justify-between gap-3">
-                <label className="text-[11px] text-[#334155] flex-1">{c.label}</label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button key={n} type="button"
-                      onClick={() => setScores((s) => ({ ...s, [c.key]: n }))}
-                      aria-label={`${c.label} = ${n}`}
-                      className={`h-7 w-7 rounded-lg text-[11px] font-bold border transition ${
-                        scores[c.key] === n
-                          ? 'bg-[#0f172a] text-white border-[#0f172a]'
-                          : 'bg-white text-[#334155] border-[#e2e8f0] hover:border-[#94a3b8]'
-                      }`}>{n}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between rounded-lg bg-[#f8fafc] px-3 py-2">
-            <span className="text-[10px] text-[#64748b]">Skor komposit (otomatis)</span>
-            <span className="text-sm font-black text-[#0f172a]">{composite != null ? `${composite}/100` : '–'}</span>
-          </div>
-          <div className="space-y-2">
-            <textarea value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={2}
-              placeholder="Kekuatan kandidat (opsional)"
-              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[11px] text-black" />
-            <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} rows={2}
-              placeholder="Area perhatian / kekhawatiran (opsional)"
-              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[11px] text-black" />
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-              placeholder="Catatan wawancara tambahan (opsional)"
-              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[11px] text-black" />
-          </div>
-          {err && <p className="text-[10px] font-semibold text-rose-600">{err}</p>}
-          {done && <p className="text-[10px] font-semibold text-[#137333]">Penilaian tersimpan. Analisis Review diperbarui.</p>}
-          <button disabled={busy || composite == null} onClick={submit}
-            className="w-full py-2 rounded-lg bg-[#007a5a] text-white text-xs font-bold hover:bg-[#006347] disabled:opacity-50">
-            {busy ? 'Menyimpan…' : 'Simpan Penilaian Wawancara'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const GENDER_LABEL: Record<string, string> = { LAKI_LAKI: 'Laki-laki', PEREMPUAN: 'Perempuan' };
 const MONTH_SHORT = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];

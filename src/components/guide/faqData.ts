@@ -699,4 +699,58 @@ export const FAQ_DATA: FaqItem[] = [
       legalBasis: 'Pedoman Transparansi & Jejak Pengawasan GCG (Standar KNKG RI).',
     },
   },
+  {
+    id: 'keamanan-4',
+    category: 'keamanan',
+    categoryLabel: 'Keamanan & GCG',
+    categoryColor: 'bg-[#FFF8E5] text-[#5C4500] border-[#FEDB87]',
+    question: 'Apa bedanya "Tanya Chatbot HR" dan "Tanya AI"?',
+    summary: 'Chatbot HR menjawab aturan/SOP & data pribadi Anda (pasti, tanpa AI). Tanya AI menganalisis data lewat model AI (Gemini/Groq/OpenRouter) untuk pertanyaan bebas.',
+    detail: {
+      background:
+        'Ada dua tombol tanya di aplikasi: "Tanya Chatbot HR" (kiri bawah) dan "Tanya AI" (bilah atas). Keduanya beda mesin dan beda kegunaan.',
+      explanation: [
+        '1. Tanya Chatbot HR — mesin jawaban berbasis aturan (deterministik, tanpa model AI).',
+        '   • Baca basis pengetahuan SOP/kebijakan (policy_knowledge_base) dengan pencocokan kata kunci.',
+        '   • Bisa menjawab pertanyaan DATA pribadi Anda secara terbatas, misal "berapa cuti saya yang sudah disetujui".',
+        '   • Hasil selalu salah satu dari: POLICY (aturan), DATA (angka pribadi), AI (jika AI dikonfigurasi & jawaban aturan tak ketemu), atau FALLBACK.',
+        '   • Tidak butuh kunci API. Tekan tombol ini untuk pertanyaan aturan, prosedur, atau hak/status Anda.',
+        '2. Tanya AI — asisten bersenjata model AI bahasa alami.',
+        '   • Kirim percakapan ke model AI (Gemini, Groq, atau OpenRouter) yang sudah dikonfigurasi admin di server.',
+        '   • Cocok untuk pertanyaan bebas, analisis, ringkasan, atau saran yang butuh penalaran, misal "bantu rangkum tren nilai tim saya".',
+        '   • Butuh kunci API AI yang aktif; tombolnya nonaktif jika belum dikonfigurasi.',
+        '   • Jawaban bersifat analitis/saran, bukan angka resmi — selalu cek angka resmi di dashboard.',
+      ],
+      importantNote:
+        'Aturan singkat: pertanyaan aturan/SOP atau data resmi Anda sendiri → "Tanya Chatbot HR". Pertanyaan bebas, analisis, atau minta saran → "Tanya AI".',
+    },
+  },
+  {
+    id: 'keamanan-5',
+    category: 'keamanan',
+    categoryLabel: 'Keamanan & GCG',
+    categoryColor: 'bg-[#FFF8E5] text-[#5C4500] border-[#FEDB87]',
+    question: 'Bagaimana notifikasi lonceng berjalan dan siapa saja yang menerima pengingat otomatis?',
+    summary: 'Setiap aksi bisnis yang sukses langsung menyimpan notifikasi ke penerima yang tepat (per orang atau per peran); lonceng menampilkan notifikasi sesuai peran/akun Anda tiap 15 detik.',
+    detail: {
+      background:
+        'Sistem kini mencatat notifikasi event secara eksplisit di database saat aksi bisnis sukses, bukan menghitung ulang di tampilan. Jadi tidak ada notifikasi nyasar ke peran lain.',
+      explanation: [
+        'Bagaimana notifikasi dibuat:',
+        '• Saat aksi bisnis sukses (misal karyawan mengajukan cuti, atasan menilai tim, HR menjalankan penggajian), sistem menyimpan baris notifikasi berisi penerima (per karyawan, per akun, atau per peran) beserta judul, isi, kategori, tautan, dan status email.',
+        '• Penerima bersifat eksplisit: notifikasi untuk HR hanya muncul di akun HR, bukan bocor ke karyawan atau sebaliknya.',
+        'Notifikasi apa saja yang tersedia per peran:',
+        '• Karyawan: cuti disetujui/ditolak, timesheet disetujui/ditolak, slip gaji siap, pesangon dibayar, penugasan pelatihan, kontrak akan berakhir.',
+        '• Atasan / People Manager: pengajuan cuti tim baru, pengajuan timesheet tim baru.',
+        '• HR Manager & People Manager: pengajuan cuti baru, pengajuan timesheet baru, batch penilaian siap, permintaan finalisasi periode, tunjangan/reimbursement menunggu.',
+        '• HR / Direksi / Auditor: penggajian (payroll run) siap, kandidat diterima (hired).',
+        'Cara kerja lonceng notifikasi:',
+        '• Ikon lonceng di bilah atas menampilkan jumlah notifikasi belum dibaca sesuai akun/peran Anda.',
+        '• Lonceng memperbarui otomatis setiap 15 detik dan setiap kali jendela aplikasi kembali aktif — tanpa perlu menyegarkan halaman.',
+        '• Klik satu notifikasi untuk membuka fitur terkait, atau tandai semua telah dibaca.',
+      ],
+      importantNote:
+        'Jika sebelumnya notifikasi tidak muncul di peran tertentu, kini sudah diperbaiki: setiap peran melihat pengingat dari aksinya sendiri, tersimpan permanen di database dan tampil real-time di lonceng.',
+    },
+  },
 ];

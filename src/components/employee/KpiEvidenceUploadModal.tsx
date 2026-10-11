@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Paperclip, X, AlertCircle } from 'lucide-react';
 
 interface KpiOption {
@@ -62,10 +63,10 @@ try {
 }
 };
 
-return (
-<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+  return createPortal(
+<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
   <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
-    <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-slate-800">
+    <div className="bg-gradient-to-r from-[#0f172a] to-[#134e4a] text-white p-5 flex items-center justify-between border-b border-slate-800">
       <div className="flex items-center gap-2.5">
         <div className="p-2 rounded-lg bg-indigo-600 text-white">
           <Paperclip className="h-4 w-4" />
@@ -150,6 +151,7 @@ return (
       </button>
     </form>
   </div>
-</div>
-);
+</div>,
+    document.body
+  );
 }

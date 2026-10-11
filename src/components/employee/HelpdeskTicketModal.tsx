@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageSquare, ShieldCheck, X, AlertCircle } from 'lucide-react';
 
 interface HelpdeskTicketModalProps {
@@ -75,8 +76,8 @@ try {
 }
 };
 
-return (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} />
     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
       <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50">
@@ -206,6 +207,7 @@ return (
       </form>
     </div>
   </div>
-</div>
-);
+</div>,
+    document.body
+  );
 }

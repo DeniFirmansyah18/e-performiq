@@ -3,15 +3,29 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 
 const EXPECTED_TABLES = [
+  // Inti HR & PRD
   'appraisal_periods', 'attendance_records', 'audit_logs', 'career_path_levels', 'companies', 'competency_scores',
-  'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees',
+  'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees', 'employee_notifications',
   'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'internal_applications',
-  'interview_slots', 'job_positions', 'job_postings',
-  'knowledge_handovers', 'kpi_evidence_attachments', 'leave_requests', 'lifetime_contributions',
-  'manpower_plans', 'moodle_course_enrollments', 'offboarding_requests', 'onboarding_milestones',
-  'peer_reviews_360', 'performance_appraisals', 'recruitment_assessments',
-  'severance_calculations', 'sop_compliance_logs', 'strategic_pillars',
-  'users', 'vmai_scorecards',
+  'gpa_batch_jobs',
+  'interview_slots', 'job_positions', 'job_postings', 'knowledge_handovers', 'kpi_evidence_attachments',
+  'leave_requests', 'lifetime_contributions', 'manpower_plans', 'moodle_course_enrollments', 'moodle_courses',
+  'offboarding_requests', 'onboarding_milestones', 'onboarding_programs', 'payroll_items', 'payroll_runs',
+  'peer_reviews_360', 'performance_appraisals', 'policy_knowledge_base', 'position_courses', 'position_kpi_templates',
+  'recruitment_assessments', 'resume_parses', 'salary_components', 'severance_calculations',
+  'sop_compliance_logs', 'strategic_pillars', 'users', 'vmai_scorecards', 'whatsapp_outbox',
+  // Absensi & karier publik
+  'attendance_logs', 'application_timeline', 'job_applications', 'candidates', 'candidate_accounts',
+  'candidate_documents', 'candidate_educations', 'candidate_experiences', 'candidate_skills',
+  'candidate_certifications', 'candidate_notifications', 'candidate_decisions', 'candidate_assessment_scores',
+  'interview_schedules', 'interview_evaluations', 'employee_registrations',
+  // Asesmen & sertifikasi
+  'assessment_templates', 'assessment_questions', 'assessment_attempts', 'assessment_responses',
+  'certificates', 'course_modules', 'course_completions', 'course_competencies', 'learning_plans',
+  'learning_plan_items', 'badges', 'badge_criteria', 'badge_awards',
+  // Kompetensi & benchmark
+  'competencies', 'competency_frameworks', 'competency_evidence', 'industry_benchmarks',
+  'company_vision_mission', 'education_institutions', 'education_majors', 'exit_interviews', 'email_outbox',
 ].sort();
 
 describe('skema database', () => {
@@ -25,7 +39,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 35 tabel di schema public (24 PRD + 7 Govera360 + 4 Kotak 3 & Absensi)', async () => {
+  it('membuat tepat 84 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -36,13 +50,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 7 enum', async () => {
+  it('membuat 32 enum', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(7);
+    expect(Number(res.rows[0].count)).toBe(32);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {

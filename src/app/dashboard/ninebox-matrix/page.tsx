@@ -1,5 +1,7 @@
 'use client';
 
+import { createPortal } from 'react-dom';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
@@ -981,8 +983,8 @@ export default function NineBoxMatrixPage() {
       </ExpandablePanel>
 
       {/* Modal Moderasi & Kalibrasi Komite Penilai (Assessor) */}
-      {isCalibrateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      {isCalibrateModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
               <div>
@@ -991,7 +993,7 @@ export default function NineBoxMatrixPage() {
                   <span>Sidang Kalibrasi &amp; Moderasi Komite Penilai (Assessor)</span>
                 </h3>
                 <p className="text-[11px] text-[#64748b]">
-                  Standar Forced Distribution Kurva Gaussian BUMN &amp; Segmentasi 9-Box McKinsey/GE (PRD §3.2).
+                  Standar Forced Distribution Kurva Gaussian BUMN &amp; Segmentasi 9-Box McKinsey/GE.
                 </p>
               </div>
               <button onClick={() => setIsCalibrateModalOpen(false)} className="text-[#64748b] hover:text-[#0f172a]">
@@ -1167,7 +1169,8 @@ export default function NineBoxMatrixPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

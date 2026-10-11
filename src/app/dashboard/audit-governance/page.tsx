@@ -159,7 +159,7 @@ export default function AuditGovernancePage() {
             </span>
           </div>
           <p className="text-xs text-[#64748b] mt-1">
-            Pengawasan kepatuhan independen berbasis prinsip TARIF, penegakan integritas data penilaian, serta pelacakan jejak audit multi-level anti-manipulasi (PRD §5.4 &amp; §6.2).
+            Pengawasan kepatuhan independen berbasis prinsip TARIF, penegakan integritas data penilaian, serta pelacakan jejak audit multi-level anti-manipulasi.
           </p>
         </div>
 

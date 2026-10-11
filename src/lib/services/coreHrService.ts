@@ -158,3 +158,61 @@ approvedAt: row.approved_at,
 createdAt: row.created_at,
 };
 }
+
+function mapLeaveRow(row: any): LeaveRequest {
+  return {
+    id: row.id,
+    employeeId: row.employee_id,
+    leaveType: row.leave_type,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    totalDays: Number(row.total_days),
+    reason: row.reason,
+    status: row.status,
+    approverId: row.approver_id,
+    approvedAt: row.approved_at,
+    createdAt: row.created_at,
+  };
+}
+
+/** Daftar permohonan cuti milik seorang karyawan (untuk panel self-service). */
+export async function listMyLeaveRequests(employeeId: string): Promise<LeaveRequest[]> {
+  const db = await getDb();
+  const res = await db.query(
+    `SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY created_at DESC LIMIT 100;`,
+    [employeeId]
+  );
+  return (res.rows ?? []).map(mapLeaveRow);
+}
+
+/** Daftar seluruh permohonan cuti berstatus menunggu (untuk HR/atasan). */
+export async function listPendingLeaveRequests(): Promise<Array<LeaveRequest & { employeeName?: string }>> {
+  const db = await getDb();
+  const res = await db.query(
+    `SELECT lr.*, e.full_name AS employee_name
+       FROM leave_requests lr
+       JOIN employees e ON e.id = lr.employee_id
+      WHERE lr.status = 'SUBMITTED'
+      ORDER BY lr.created_at DESC LIMIT 200;`
+  );
+  return (res.rows ?? []).map((row: any) => ({ ...mapLeaveRow(row), employeeName: row.employee_name }));
+}
+
+/** Setujui/tolak permohonan cuti. approverId dari sesi HR/atasan. */
+export async function decideLeaveRequest(params: {
+  leaveId: string;
+  approverId: string;
+  decision: 'APPROVED' | 'REJECTED';
+}): Promise<LeaveRequest> {
+  const db = await getDb();
+  const res = await db.query(
+    `UPDATE leave_requests
+        SET status = $1, approver_id = $2, approved_at = CURRENT_TIMESTAMP
+      WHERE id = $3 AND status = 'SUBMITTED'
+      RETURNING *;`,
+    [params.decision, params.approverId, params.leaveId]
+  );
+  const row = res.rows[0];
+  if (!row) throw new Error('Permohonan tidak ditemukan atau sudah diproses.');
+  return mapLeaveRow(row);
+}

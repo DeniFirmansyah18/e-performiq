@@ -19,13 +19,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (session) {
-      await logAction(db, {
-        userId: session.userId,
-        actionType: 'LOGOUT',
-        entityName: 'users',
-        recordId: session.userId,
-        description: `User logout dari sistem: ${session.email}`,
-      });
+      try {
+        await logAction(db, {
+          userId: session.userId,
+          actionType: 'LOGOUT',
+          entityName: 'users',
+          recordId: session.userId,
+          description: `User logout dari sistem: ${session.email}`,
+        });
+      } catch (auditErr) {
+        // Audit log bersifat best-effort: kegagalan mencatat TIDAK boleh
+        // menggagalkan logout (mis. user_id tidak lagi ada di tabel users →
+        // pelanggaran FK). Sesi tetap harus dihapus.
+        console.warn('[logout] gagal mencatat audit log:', auditErr);
+      }
     }
 
     const response = ok({ message: 'Logout berhasil.' });

@@ -37,7 +37,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return ok({
       message: 'Nilai penilaian berhasil disahkan oleh Komite Kalibrasi dan telah dikunci.',
       appraisal: calibrated,
-      immutability_note: 'Nilai ini telah disahkan dan dikunci. Tidak dapat diubah tanpa persetujuan berjenjang Direktur HR (PRD §6.2).',
+      immutability_note: 'Nilai ini telah disahkan dan dikunci. Tidak dapat diubah tanpa persetujuan berjenjang Direktur HR.',
     });
   } catch (err) {
     return problem(err, `/api/v1/performance/appraisals/${params.id}/calibrate`);

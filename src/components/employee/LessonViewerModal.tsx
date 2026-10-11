@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CheckCircle2, PlayCircle, FileText, HelpCircle } from 'lucide-react';
 
 interface ModuleItem { id: string; title: string; orderIndex: number; contentType: 'TEXT' | 'VIDEO' | 'PDF' | 'QUIZ'; completed: boolean }
@@ -60,11 +61,11 @@ export default function LessonViewerModal({ courseId, courseTitle, onClose, onCh
 
   const icon = (t: string) => t === 'VIDEO' ? <PlayCircle className="h-3.5 w-3.5 text-[#0284c7]" /> : t === 'QUIZ' ? <HelpCircle className="h-3.5 w-3.5 text-[#b45309]" /> : <FileText className="h-3.5 w-3.5 text-[#007a5a]" />;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#e2e8f0] p-4 sticky top-0 bg-white">
-          <h3 className="text-sm font-extrabold text-[#0f172a]">{courseTitle}</h3>
+        <div className="flex items-center justify-between p-4 sticky top-0 bg-gradient-to-r from-[#0f172a] to-[#134e4a] text-white">
+          <h3 className="text-sm font-extrabold text-white">{courseTitle}</h3>
           <button onClick={onClose} className="text-[#64748b] hover:text-[#0f172a]"><X className="h-4 w-4" /></button>
         </div>
 
@@ -138,6 +139,7 @@ export default function LessonViewerModal({ courseId, courseTitle, onClose, onCh
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

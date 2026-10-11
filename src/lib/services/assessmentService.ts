@@ -54,21 +54,38 @@ export async function getTemplateForType(
   type: AssessmentType,
   positionId?: string | null,
 ): Promise<TemplateRow | null> {
+  // Tes TEKNIS wajib khusus posisi: TIDAK fallback ke template generik, supaya
+  // kandidat tidak menerima soal posisi lain (mis. Software Engineer ke DM).
+  // Tanpa template posisi → null → komponen teknis tidak dijalankan.
+  const technicalScope =
+    type === 'TECHNICAL' && positionId
+      ? sql` AND position_id = ${positionId}::uuid`
+      : sql``;
   const res = (await db.execute(sql`
     SELECT id, code, title, type, weight::float8 AS weight, description
       FROM assessment_templates
-     WHERE type = ${type}::assessment_type_enum AND is_active = TRUE
+     WHERE type = ${type}::assessment_type_enum AND is_active = TRUE${technicalScope}
      ORDER BY (position_id = ${positionId ?? null}::uuid) DESC NULLS LAST, created_at ASC
      LIMIT 1
   `)) as unknown as { rows: TemplateRow[] };
   return res.rows?.[0] ?? null;
 }
 
-/** Daftar template aktif (untuk katalog asesmen). */
-export async function listTemplates(db: Db): Promise<TemplateRow[]> {
+/**
+ * Daftar template aktif (untuk katalog asesmen).
+ * Bila `positionId` diberikan, hanya template yang cocok posisi tersebut atau
+ * template generik (`position_id IS NULL`) yang dikembalikan — mencegah kandidat
+ * melihat template posisi lain.
+ */
+export async function listTemplates(db: Db, positionId?: string | null): Promise<TemplateRow[]> {
+  // Psikometri & wawancara boleh pakai template generik; tes TEKNIS wajib khusus
+  // posisi (lihat getTemplateForType) — generik disembunyikan dari kandidat.
+  const scopeFilter = positionId
+    ? sql` AND (position_id = ${positionId}::uuid OR (position_id IS NULL AND type <> 'TECHNICAL'::assessment_type_enum))`
+    : sql``;
   const res = (await db.execute(sql`
     SELECT id, code, title, type, weight::float8 AS weight, description
-      FROM assessment_templates WHERE is_active = TRUE ORDER BY type, code
+      FROM assessment_templates WHERE is_active = TRUE${scopeFilter} ORDER BY type, code
   `)) as unknown as { rows: TemplateRow[] };
   return res.rows ?? [];
 }

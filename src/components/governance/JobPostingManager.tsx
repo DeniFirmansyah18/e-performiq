@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Briefcase, Plus, Eye, EyeOff, Pencil } from 'lucide-react';
+import OrgQuickAdd from '@/components/governance/OrgQuickAdd';
 
 interface HrPosting {
   id: string; postingTitle: string; description: string; requiredSkills: string[];
@@ -46,6 +48,14 @@ export default function JobPostingManager() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Muat ulang referensi saat MPP ditambah/diubah/dihapus di panel Manajemen MPP
+  // (komponen terpisah pada halaman yang sama) agar dropdown MPP langsung terbaru.
+  useEffect(() => {
+    const onMppChanged = () => { void load(); };
+    window.addEventListener('mpp:changed', onMppChanged);
+    return () => window.removeEventListener('mpp:changed', onMppChanged);
+  }, [load]);
+
   const openCreate = () => { setEditingId(null); setForm({ ...EMPTY }); setShowForm(true); setMsg(null); setErr(null); };
   const openEdit = (p: HrPosting) => {
     setEditingId(p.id);
@@ -81,7 +91,7 @@ export default function JobPostingManager() {
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
     const j = await res.json().catch(() => ({}));
-    if (res.ok) { setMsg(editingId ? 'Lowongan diperbarui.' : 'Lowongan dibuat.'); setShowForm(false); await load(); }
+    if (res.ok) { setMsg(editingId ? 'Lowongan diperbarui.' : 'Lowongan dibuat.'); setShowForm(false); await load(); window.dispatchEvent(new Event('recruitment:postings-changed')); }
     else setErr(j?.detail || 'Gagal menyimpan lowongan.');
     setBusy(false);
   };
@@ -92,7 +102,7 @@ export default function JobPostingManager() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(isPublic === undefined ? { status } : { status, isPublic }),
     });
-    if (res.ok) { setMsg('Status lowongan diperbarui.'); await load(); }
+    if (res.ok) { setMsg('Status lowongan diperbarui.'); await load(); window.dispatchEvent(new Event('recruitment:postings-changed')); }
     else setErr('Gagal memperbarui status.');
     setBusy(false);
   };
@@ -117,8 +127,8 @@ export default function JobPostingManager() {
         <button onClick={openCreate} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold hover:bg-[#006347]"><Plus className="h-3 w-3" /> Buat Lowongan</button>
       </div>
 
-      {msg && <p className="text-[11px] font-semibold text-[#047857]">{msg}</p>}
-      {err && <p className="text-[11px] font-semibold text-rose-600">{err}</p>}
+      {msg && <p className="text-xs text-[#047857] bg-[#ecfdf5] px-3 py-2 rounded-lg">{msg}</p>}
+      {err && <p className="text-xs text-[#b91c1c] bg-[#fef2f2] px-3 py-2 rounded-lg">{err}</p>}
 
       {rows.length === 0 ? (
         <p className="text-xs text-[#64748b]">Belum ada lowongan. Klik &quot;Buat Lowongan&quot;.</p>
@@ -149,14 +159,14 @@ export default function JobPostingManager() {
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <form onSubmit={submit} className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-[#0f172a] text-white px-5 py-3.5 flex items-center justify-between">
+      {showForm && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+          <form onSubmit={submit} className="bg-white rounded-t-2xl sm:rounded-2xl border border-[#e2e8f0] shadow-2xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="shrink-0 bg-[#0f172a] text-white px-5 py-3.5 flex items-center justify-between">
               <span className="text-sm font-bold">{editingId ? 'Ubah Lowongan' : 'Buat Lowongan'}</span>
-              <button type="button" onClick={() => setShowForm(false)} className="p-1 rounded-lg hover:bg-white/10 text-lg leading-none">&times;</button>
+              <button type="button" onClick={() => setShowForm(false)} className="p-1 rounded-lg hover:bg-white/10 text-lg leading-none" aria-label="Tutup">&times;</button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {field('postingTitle', 'Judul Lowongan *')}
               <label className="block text-[11px] text-[#334155]"><span className="font-semibold">Deskripsi *</span>
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required minLength={10} className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs h-20" /></label>
@@ -169,16 +179,28 @@ export default function JobPostingManager() {
                     <option value="">— Pilih MPP —</option>
                     {(ref?.mpps ?? []).map((m) => <option key={m.id} value={m.id}>{m.department} · {m.position} ({m.hiredCount}/{m.approvedQuota})</option>)}
                   </select></label>
-                <label className="text-[11px] text-[#334155]"><span className="font-semibold">Departemen *</span>
+                <div className="text-[11px] text-[#334155]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">Departemen *</span>
+                    <OrgQuickAdd kind="department" disabled={busy}
+                      onCreated={async (d) => { await load(); setForm((f) => ({ ...f, departmentId: d.id, positionId: '' })); }} />
+                  </div>
                   <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value, positionId: '' })} required className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs">
                     <option value="">— Pilih —</option>
                     {(ref?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select></label>
-                <label className="text-[11px] text-[#334155]"><span className="font-semibold">Posisi *</span>
+                  </select>
+                </div>
+                <div className="text-[11px] text-[#334155]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">Posisi *</span>
+                    <OrgQuickAdd kind="position" departmentId={form.departmentId} disabled={busy}
+                      onCreated={async (p) => { await load(); setForm((f) => ({ ...f, positionId: p.id })); }} />
+                  </div>
                   <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs">
                     <option value="">— Pilih —</option>
                     {positionsForDept.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-                  </select></label>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
@@ -212,16 +234,17 @@ export default function JobPostingManager() {
                 </label>
               </div>
 
-              {err && <p className="text-[11px] font-semibold text-rose-600">{err}</p>}
-              <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={() => setShowForm(false)} className="px-3 py-2 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg">Batal</button>
-                <button type="submit" disabled={busy} className="px-4 py-2 text-xs font-bold text-white bg-[#007a5a] rounded-lg hover:bg-[#006347] disabled:opacity-50">
-                  {busy ? 'Menyimpan…' : (editingId ? 'Simpan Perubahan' : 'Buat Lowongan')}
-                </button>
-              </div>
+              {err && <p className="text-[11px] font-semibold text-[#b91c1c] bg-[#fef2f2] px-3 py-2 rounded-lg">{err}</p>}
+            </div>
+            <div className="shrink-0 border-t border-[#e2e8f0] px-5 py-3 flex justify-end gap-2 bg-[#f8fafc]">
+              <button type="button" onClick={() => setShowForm(false)} className="px-3 py-2 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg">Batal</button>
+              <button type="submit" disabled={busy} className="px-4 py-2 text-xs font-bold text-white bg-[#007a5a] rounded-lg hover:bg-[#006347] disabled:opacity-50">
+                {busy ? 'Menyimpan…' : (editingId ? 'Simpan Perubahan' : 'Buat Lowongan')}
+              </button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

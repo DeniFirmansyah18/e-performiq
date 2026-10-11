@@ -1,12 +1,42 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Camera } from 'lucide-react';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface Profile {
   employeeCode: string; fullName: string; email: string; status: string;
   phoneNumber?: string; address?: string; dateOfBirth?: string;
   emergencyContactName?: string; emergencyContactPhone?: string; photoUrl?: string; bio?: string;
+  gender?: string; nik?: string;
+}
+
+const GENDER_LABEL: Record<string, string> = { LAKI_LAKI: 'Laki-laki', PEREMPUAN: 'Perempuan' };
+
+/** Kecilkan foto profil ke data URL agar aman disimpan di kolom teks (serverless). */
+async function shrinkToDataUrl(file: File, maxDim = 320): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error('Gagal membaca berkas'));
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('Gambar tidak valid'));
+    i.src = dataUrl;
+  });
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', 0.7);
 }
 
 const EDITABLE = ['phone_number', 'address', 'date_of_birth', 'emergency_contact_name', 'emergency_contact_phone', 'photo_url', 'bio'] as const;
@@ -18,6 +48,8 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
   const [form, setForm] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,8 +77,24 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
       const res = await fetch('/api/v1/profile/me', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
-      setMsg(res.ok ? 'Profil berhasil diperbarui.' : 'Gagal memperbarui profil.');
+      if (res.ok) {
+        setMsg('Profil berhasil diperbarui.');
+        await refreshUser();
+      } else {
+        const j = await res.json().catch(() => ({}));
+        setMsg(j?.detail || 'Gagal memperbarui profil.');
+      }
     } finally { setSaving(false); }
+  };
+
+  const onPickPhoto = async (file?: File | null) => {
+    if (!file) return;
+    try {
+      const url = await shrinkToDataUrl(file);
+      setForm((f) => ({ ...f, photo_url: url }));
+    } catch {
+      setMsg('Foto tidak dapat diproses.');
+    }
   };
 
   if (!isOpen) return null;
@@ -59,12 +107,12 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
     </label>
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#e2e8f0] p-4 sticky top-0 bg-white">
-          <h3 className="text-sm font-extrabold text-[#0f172a]">Profil Saya</h3>
-          <button onClick={onClose} className="text-[#64748b] hover:text-[#0f172a]"><X className="h-4 w-4" /></button>
+        <div className="flex items-center justify-between p-4 sticky top-0 bg-gradient-to-r from-[#0f172a] to-[#134e4a] text-white">
+          <h3 className="text-sm font-extrabold text-white">Profil Saya</h3>
+          <button onClick={onClose} className="text-slate-300 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="p-4 space-y-4">
@@ -74,16 +122,41 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
             <div className="text-xs"><span className="text-[#64748b]">Nama</span><p className="font-bold text-[#0f172a]">{profile?.fullName}</p></div>
             <div className="text-xs"><span className="text-[#64748b]">Email</span><p className="font-bold text-[#0f172a]">{profile?.email}</p></div>
             <div className="text-xs"><span className="text-[#64748b]">Status</span><p className="font-bold text-[#0f172a]">{profile?.status}</p></div>
+            <div className="text-xs"><span className="text-[#64748b]">NIK</span><p className="font-bold text-[#0f172a]">{profile?.nik || '-'}</p></div>
+            <div className="text-xs"><span className="text-[#64748b]">Jenis Kelamin</span><p className="font-bold text-[#0f172a]">{profile?.gender ? (GENDER_LABEL[profile.gender] ?? profile.gender) : '-'}</p></div>
             <p className="text-[10px] text-[#64748b] sm:col-span-2">Field bertanda di atas bersifat read-only (dikelola HR).</p>
           </div>
 
           {/* Editable */}
+          <div className="flex items-center gap-3 p-3 rounded-xl border border-[#e2e8f0]">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-[#f1f5f9] flex items-center justify-center ring-1 ring-[#e2e8f0] shrink-0">
+              {form.photo_url
+                ? <img src={form.photo_url} alt="Foto profil" className="h-full w-full object-cover" />
+                : <Camera className="h-6 w-6 text-[#94a3b8]" />}
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-[#334155]">Foto Profil</p>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden"
+                onChange={async (e) => { await onPickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-[11px] font-bold hover:bg-[#006347]">
+                  <Camera className="h-3 w-3" /> Unggah Foto
+                </button>
+                {form.photo_url && (
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, photo_url: '' }))}
+                    className="text-[11px] font-semibold text-rose-600 hover:underline">Hapus</button>
+                )}
+              </div>
+              <p className="text-[10px] text-[#64748b]">JPG/PNG, otomatis diperkecil. Tersimpan saat klik Simpan.</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {editable('phone_number', 'Telepon')}
             {editable('date_of_birth', 'Tanggal Lahir', 'date')}
             {editable('emergency_contact_name', 'Kontak Darurat (Nama)')}
             {editable('emergency_contact_phone', 'Kontak Darurat (Telepon)')}
-            {editable('photo_url', 'URL Foto')}
           </div>
           {editable('address', 'Alamat')}
           <label className="block text-xs">
@@ -99,6 +172,7 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { ok, fail, problem } from '@/lib/api/response';
 import { getCandidateSession } from '@/lib/auth/candidateSession';
@@ -25,15 +26,30 @@ export async function POST(req: NextRequest) {
     const parsed = StartSchema.safeParse(body);
     if (!parsed.success) return fail('VALIDATION_ERROR', 'Parameter tes tidak valid.', 400);
 
-    // Resolusi template: eksplisit via id, atau via tipe.
+    // Resolusi template: eksplisit via id, atau via tipe (discoped ke posisi lamaran).
     let templateId = parsed.data.templateId;
     if (!templateId && parsed.data.type) {
       const { getTemplateForType } = await import('@/lib/services/assessmentService');
-      const tpl = await getTemplateForType(db, parsed.data.type);
+      const tpl = await getTemplateForType(db, parsed.data.type, ctx.positionId);
       if (!tpl) return fail('NOT_FOUND', 'Template asesmen tidak tersedia.', 404);
       templateId = tpl.id;
     }
     if (!templateId) return fail('BAD_REQUEST', 'Sebutkan templateId atau type.', 400);
+
+    // Tolak template posisi lain: hanya template posisi lamaran (tes teknik wajib
+    // khusus posisi) atau generik non-teknis yang boleh.
+    const scope = (await db.execute(sql`
+      SELECT position_id AS "positionId", type AS "type" FROM assessment_templates
+       WHERE id = ${templateId}::uuid LIMIT 1
+    `)) as unknown as { rows: Array<{ positionId: string | null; type: string }> };
+    const tplPosition = scope.rows?.[0]?.positionId ?? null;
+    const tplType = scope.rows?.[0]?.type ?? null;
+    if (tplPosition && tplPosition !== ctx.positionId) {
+      return fail('FORBIDDEN', 'Tes ini bukan untuk posisi yang Anda lamar.', 403);
+    }
+    if (!tplPosition && tplType === 'TECHNICAL') {
+      return fail('FORBIDDEN', 'Tes teknis untuk posisi ini belum tersedia.', 403);
+    }
 
     const attempt = await startAttempt(db, {
       applicationId: ctx.applicationId,

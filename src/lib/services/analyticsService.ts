@@ -29,13 +29,32 @@ export async function getVmaiScorecardData(db: Db, periodId = '2026-Q3') {
   `)) as unknown as { rows: Array<{ periodCode: string }> };
   const periodCode = periodRes.rows[0]?.periodCode ?? periodId;
 
-  const vmai = calculateVMAI(pillars, 1.0, { totalEmployees, periodCode });
+  const gcgComplianceFactor = await computeGcgComplianceFactor(db, periodCode);
+  const vmai = calculateVMAI(pillars, gcgComplianceFactor, { totalEmployees, periodCode });
 
   return {
     ...vmai,
     periodCode,
     totalEmployees,
   };
+}
+
+/**
+ * Faktor kepatuhan GCG dari temuan audit operasional (PRD §8):
+ *   factor = 1 - min(0.5, fatalFindings * 0.1)
+ * `fatalFindings` = jumlah temuan audit internal (procedure_errors) pada
+ * `sop_compliance_logs` periode terkait. Menurunkan VMAI maksimum 50%.
+ */
+export async function computeGcgComplianceFactor(db: Db, periodCode?: string): Promise<number> {
+  const res = (await db.execute(sql`
+    SELECT COALESCE(SUM(s.procedure_errors), 0)::int AS "fatal"
+      FROM sop_compliance_logs s
+      JOIN appraisal_periods ap ON ap.id = s.period_id
+     WHERE ${periodCode ? sql`ap.period_code = ${periodCode}` : sql`TRUE`}
+  `)) as unknown as { rows: Array<{ fatal: number }> };
+  const fatalFindings = Number(res.rows[0]?.fatal ?? 0);
+  const penalty = Math.min(0.5, fatalFindings * 0.1);
+  return Number((1 - penalty).toFixed(2));
 }
 
 export async function getNineBoxDistributionData(db: Db, periodId?: string) {
@@ -143,7 +162,7 @@ export async function getCascadingTree(db: Db, perspectiveFilter?: string) {
       all_individual_kpis_linked: true,
       orphan_kpi_count: 0,
       validation_status: 'PASSED',
-      message: 'Seluruh KPI individu telah terhubung ke minimal 1 pilar strategis korporasi (PRD §8).',
+      message: 'Seluruh KPI individu telah terhubung ke minimal 1 pilar strategis korporasi.',
     },
     generated_at: new Date().toISOString(),
   };

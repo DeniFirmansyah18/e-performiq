@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { NineBoxQuadrant } from '@/types';
 import { Users, X, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
@@ -209,8 +210,8 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
       </div>
 
       {/* Detail Modal for Selected Quadrant */}
-      {selectedQuadrant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+      {selectedQuadrant && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
@@ -278,7 +279,8 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

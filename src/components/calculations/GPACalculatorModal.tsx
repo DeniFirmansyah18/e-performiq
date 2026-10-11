@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 import { X, Calculator, CheckCircle2, RotateCcw } from 'lucide-react';
 
@@ -61,8 +62,8 @@ export default function GPACalculatorModal({ isOpen, onClose, onSuccess }: Props
     setPotential(3.8);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-6">
         
         {/* Header */}
@@ -252,6 +253,7 @@ export default function GPACalculatorModal({ isOpen, onClose, onSuccess }: Props
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -38,6 +38,26 @@ describe('WS-6 endpoint asesmen kandidat', () => {
     await client.exec(`UPDATE job_postings SET is_public = TRUE, status = 'OPEN' WHERE id IN (SELECT id FROM job_postings LIMIT 3);`);
     const q = await client.query<{ id: string }>(`SELECT id FROM job_postings WHERE is_public = TRUE LIMIT 1`);
     postingId = q.rows[0].id;
+
+    // Tes teknis kini WAJIB khusus posisi (tanpa fallback generik). Buat template
+    // teknis untuk posisi lowongan uji + salin 8 soal generik sebagai soal aktifnya.
+    // Route memakai DB dev persisten → tulis lewat getDb(), bukan client in-memory.
+    const dev = await getDb();
+    await dev.exec(`
+      INSERT INTO assessment_templates (code, title, type, weight, is_active, position_id)
+      SELECT 'TECH-TESTPOS', 'Tes Teknis (Uji Posisi)', 'TECHNICAL'::assessment_type_enum, 40, TRUE, jp.position_id
+        FROM job_postings jp WHERE jp.id = '${postingId}'
+      ON CONFLICT (code) DO NOTHING;
+    `);
+    await dev.exec(`
+      INSERT INTO assessment_questions (template_id, order_index, type, prompt, options, correct_key, is_active)
+      SELECT t2.id, q.order_index, q.type, q.prompt, q.options, q.correct_key, TRUE
+        FROM assessment_questions q
+        JOIN assessment_templates t1 ON t1.id = q.template_id AND t1.code = 'TECH-GEN'
+        JOIN assessment_templates t2 ON t2.code = 'TECH-TESTPOS'
+       WHERE q.is_active = TRUE
+         AND NOT EXISTS (SELECT 1 FROM assessment_questions x WHERE x.template_id = t2.id);
+    `);
   });
   afterAll(async () => { await client.close(); });
 

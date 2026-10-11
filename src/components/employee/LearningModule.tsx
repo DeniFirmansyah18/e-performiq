@@ -159,14 +159,23 @@ export default function LearningModule() {
               <div key={c.certificateNo} className="p-3 rounded-lg border border-[#b7e1cd] bg-[#f2fbf5] flex flex-col gap-1">
                 <p className="text-xs font-bold text-[#0f172a]">{c.courseTitle}</p>
                 <span className="text-[10px] font-mono text-[#137333]">{c.certificateNo}</span>
-                <a
-                  href={`/api/v1/certificates/verify/${c.verificationCode}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[10px] font-semibold text-[#0284c7] underline w-fit"
-                >
-                  Verifikasi sertifikat
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`/api/v1/certificates/verify/${c.verificationCode}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-semibold text-[#0284c7] underline w-fit"
+                  >
+                    Verifikasi sertifikat
+                  </a>
+                  <a
+                    href={`/api/v1/certificates/verify/${c.verificationCode}/pdf`}
+                    download={`sertifikat-${c.verificationCode}.pdf`}
+                    className="text-[10px] font-semibold text-[#047857] underline w-fit"
+                  >
+                    Unduh PDF
+                  </a>
+                </div>
               </div>
             ))}
           </div>

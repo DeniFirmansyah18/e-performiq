@@ -43,6 +43,26 @@ describe('WS-4 AI tech-test generator', () => {
     expect(chk.rows[0].is_active).toBe(false);
   });
 
+  it('generate auto-buat template TECHNICAL khusus posisi (bukan generik)', async () => {
+    const pos = await client.query<{ position_id: string }>(
+      `SELECT position_id FROM job_postings WHERE id = $1::uuid`, [postingId],
+    );
+    const posId = pos.rows[0].position_id;
+    // Template khusus posisi harus ada.
+    const tpl = await client.query<{ id: string; position_id: string | null }>(
+      `SELECT id, position_id FROM assessment_templates
+        WHERE type = 'TECHNICAL'::assessment_type_enum AND position_id = $1::uuid`, [posId],
+    );
+    expect(tpl.rows.length).toBe(1);
+    expect(tpl.rows[0].position_id).toBe(posId);
+    // Soal hasil generate menempel ke template posisi, BUKAN template generik.
+    const inGeneric = await client.query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM assessment_questions
+        WHERE template_id = 'c0000000-0000-4000-8000-000000000002'::uuid AND source = 'AI'`,
+    );
+    expect(inGeneric.rows[0].n).toBe(0);
+  });
+
   it('non-JSON AI atau kosong tidak crash (best-effort)', async () => {
     const { generateContent } = await import('@/lib/services/aiService');
     vi.mocked(generateContent).mockResolvedValueOnce({ configured: true, text: 'maaf, tidak bisa' });

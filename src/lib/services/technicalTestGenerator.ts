@@ -249,8 +249,9 @@ async function loadPosting(db: Db, positionId: string): Promise<PostingRow | nul
 }
 
 /**
- * Template TECHNICAL untuk sebuah posisi: pilih yang spesifik posisi bila ada,
- * lalu fallback ke template generik (code TECH-GEN).
+ * Template TECHNICAL untuk sebuah posisi (read-only).
+ * Pilih yang spesifik posisi bila ada, lalu fallback ke template generik (TECH-GEN).
+ * Dipakai sisi kandidat & listing draft; TIDAK membuat template baru.
  */
 async function resolveTechnicalTemplate(db: Db, positionId: string): Promise<{ id: string } | null> {
   const specific = await rows<{ id: string }>(db, sql`
@@ -271,16 +272,50 @@ async function resolveTechnicalTemplate(db: Db, positionId: string): Promise<{ i
      ORDER BY created_at ASC
      LIMIT 1
   `);
-  if (generic[0]) return generic[0];
+  return generic[0] ?? null;
+}
 
-  // Terakhir: template TECHNICAL apa pun yang aktif.
-  const any = await rows<{ id: string }>(db, sql`
+/**
+ * Template TECHNICAL khusus posisi; **buat otomatis** bila belum ada.
+ *
+ * Kunci pemisahan soal per posisi: hasil generate AI SELALU masuk template milik
+ * posisi itu, bukan template generik bersama — mencegah soal Software Engineer
+ * muncul di tes Digital Marketing. `code` unik: `TECH-<8 huruf id posisi>`.
+ */
+async function resolveOrCreateTechnicalTemplate(
+  db: Db,
+  positionId: string,
+  positionTitle: string,
+): Promise<{ id: string }> {
+  const existing = await rows<{ id: string }>(db, sql`
     SELECT id FROM assessment_templates
-     WHERE type = 'TECHNICAL'::assessment_type_enum AND is_active = TRUE
+     WHERE type = 'TECHNICAL'::assessment_type_enum
+       AND position_id = ${positionId}::uuid
      ORDER BY created_at ASC
      LIMIT 1
   `);
-  return any[0] ?? null;
+  if (existing[0]) return existing[0];
+
+  const code = `TECH-${positionId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+  const created = await rows<{ id: string }>(db, sql`
+    INSERT INTO assessment_templates (code, title, type, weight, description, position_id, is_active)
+    VALUES (
+      ${code}, ${'Tes Teknis — ' + positionTitle}, 'TECHNICAL'::assessment_type_enum, 40,
+      ${'Bank soal teknis khusus posisi ' + positionTitle + '.'}, ${positionId}::uuid, TRUE
+    )
+    ON CONFLICT (code) DO NOTHING
+    RETURNING id
+  `);
+  if (created[0]) return created[0];
+
+  // Balapan insert (kode sudah ada) → ambil yang ada.
+  const raced = await rows<{ id: string }>(db, sql`
+    SELECT id FROM assessment_templates
+     WHERE type = 'TECHNICAL'::assessment_type_enum AND position_id = ${positionId}::uuid
+     ORDER BY created_at ASC LIMIT 1
+  `);
+  if (raced[0]) return raced[0];
+  throw new BusinessRuleError('Gagal menyiapkan template tes teknis untuk posisi ini.');
 }
 
 // ---------------------------------------------------------------------------
@@ -317,10 +352,9 @@ export async function generateTechnicalQuestions(
     return { generated: 0, questionIds: [], aiUsed: false };
   }
 
-  const template = await resolveTechnicalTemplate(db, posting.position_id);
-  if (!template) {
-    throw new BusinessRuleError('Template tes teknis untuk posisi ini tidak ditemukan.');
-  }
+  // Buat/ambil template khusus posisi ini — soal AI TIDAK boleh menempel ke
+  // template generik bersama (mencegah kebocoran soal antar posisi).
+  const template = await resolveOrCreateTechnicalTemplate(db, posting.position_id, posting.posting_title);
 
   const prompt = buildPrompt({
     positionTitle: posting.posting_title,

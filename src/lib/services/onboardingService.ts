@@ -47,6 +47,7 @@ export interface OnboardingItem {
   completionPct: number;
   completionState: string | null;
   certified: boolean;
+  verificationCode: string | null;
 }
 
 export interface OnboardingStatus {
@@ -79,6 +80,18 @@ export async function generateOnboardingProgram(
   const positionId = emp.rows[0]?.positionId ?? null;
   const positionTitle = emp.rows[0]?.positionTitle ?? 'Karyawan Baru';
   const fullName = emp.rows[0]?.fullName ?? 'Karyawan';
+
+  // Bila posisi belum punya kurikulum onboarding hasil-generate, buat sekarang
+  // (AI bila tersedia; fallback deterministik bila tidak) agar karyawan baru
+  // benar-benar menyelesaikan materi spesifik posisinya.
+  if (positionId) {
+    try {
+      const { generatePositionOnboardingCourse } = await import('@/lib/services/onboardingProgramAiService');
+      await generatePositionOnboardingCourse(db, positionId, { useAi: true });
+    } catch (err) {
+      console.warn('[onboardingService] generate kurikulum posisi gagal:', (err as Error)?.message);
+    }
+  }
 
   // Learning plan (IDP) onboarding. Ambil bila sudah ada (idempoten via program).
   const existing = (await db.execute(sql`
@@ -161,9 +174,9 @@ export async function getOnboardingStatus(db: Db, employeeId: string): Promise<O
   const enrollMap = new Map(enrolls.rows.map((e) => [Number(e.courseId), e]));
 
   const certs = (await db.execute(sql`
-    SELECT course_id AS "courseId" FROM certificates WHERE employee_id = ${employeeId}::uuid
-  `)) as unknown as { rows: Array<{ courseId: number }> };
-  const certSet = new Set(certs.rows.map((c) => Number(c.courseId)));
+    SELECT course_id AS "courseId", verification_code AS "verificationCode" FROM certificates WHERE employee_id = ${employeeId}::uuid
+  `)) as unknown as { rows: Array<{ courseId: number; verificationCode: string }> };
+  const certMap = new Map(certs.rows.map((c) => [Number(c.courseId), c.verificationCode]));
 
   const items: OnboardingItem[] = courses.map((c) => {
     const e = enrollMap.get(c.courseId);
@@ -175,7 +188,8 @@ export async function getOnboardingStatus(db: Db, employeeId: string): Promise<O
       enrolled: !!e,
       completionPct: e ? Number(e.completionPct) : 0,
       completionState: e?.completionState ?? null,
-      certified: certSet.has(c.courseId),
+      certified: certMap.has(c.courseId),
+      verificationCode: certMap.get(c.courseId) ?? null,
     };
   });
 

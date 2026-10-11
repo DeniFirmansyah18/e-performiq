@@ -20,7 +20,8 @@ const SELECT_PROFILE = (db: Db, employeeId: string) => sql`
          phone_number AS "phoneNumber", department_id AS "departmentId", position_id AS "positionId",
          status, base_salary AS "baseSalary", join_date AS "joinDate",
          date_of_birth AS "dateOfBirth", address, emergency_contact_name AS "emergencyContactName",
-         emergency_contact_phone AS "emergencyContactPhone", photo_url AS "photoUrl", bio
+         emergency_contact_phone AS "emergencyContactPhone", photo_url AS "photoUrl", bio,
+         gender, nik
     FROM employees WHERE id = ${employeeId}::uuid
 `;
 

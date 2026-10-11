@@ -63,6 +63,8 @@ describe('WS-4 HR technical-test routes', () => {
   afterAll(async () => {
     const client = await getDb();
     await client.query(`DELETE FROM assessment_questions WHERE source = 'AI'`);
+    // Bersihkan template teknis khusus posisi hasil auto-create (kode TECH-<8 hex>).
+    await client.query(`DELETE FROM assessment_templates WHERE type = 'TECHNICAL'::assessment_type_enum AND position_id IS NOT NULL AND code ~ '^TECH-[0-9A-F]{8}$'`);
   });
 
   it('POST generate tanpa sesi → 401', async () => {

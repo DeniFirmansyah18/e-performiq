@@ -16,7 +16,8 @@ const TimesheetSchema = z.object({
   taskSummary: z.string().min(3).max(2000),
   activityCategory: z.string().max(50).optional(),
   location: z.string().max(200).optional(),
-  photos: z.array(z.string().max(1000)).max(5).optional(),
+  // Foto bukti sebagai data URL hasil kompres klien (<=640px JPEG).
+  photos: z.array(z.string().max(1_400_000)).max(5).optional(),
 });
 
 // GET /api/v1/attendance/timesheets — timesheet karyawan yang login
@@ -44,6 +45,17 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return fail('VALIDATION_ERROR', parsed.error.issues[0]?.message ?? 'Data timesheet tidak valid.', 400);
 
     const row = await submitTimesheet(db, { employeeId: session.employeeId, ...parsed.data });
+
+    // Notifikasi atasan: ada timesheet menunggu approval (best-effort).
+    try {
+      const { notifyRoles } = await import('@/lib/services/notificationService');
+      await notifyRoles(db, ['PEOPLE_MANAGER', 'HR_MANAGER'], {
+        eventType: 'TIMESHEET_SUBMITTED',
+        title: 'Timesheet Menunggu Persetujuan',
+        body: `Timesheet tanggal ${parsed.data.workDate} telah dikirim dan menunggu persetujuan.`,
+      });
+    } catch { /* best-effort */ }
+
     return ok(row, 'Timesheet dikirim untuk persetujuan atasan.');
   } catch (err) {
     if (err instanceof Error && /lembur/i.test(err.message)) {

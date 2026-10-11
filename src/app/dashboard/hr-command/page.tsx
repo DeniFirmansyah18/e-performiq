@@ -1,5 +1,7 @@
 'use client';
 
+import { createPortal } from 'react-dom';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
@@ -25,14 +27,19 @@ import {
   Users,
   GraduationCap,
   TrendingDown,
+  Banknote,
 } from 'lucide-react';
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
+import PositionCourseMappingPanel from '@/components/governance/PositionCourseMappingPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
+import ManpowerPlanManager from '@/components/governance/ManpowerPlanManager';
 import InterviewSchedulerPanel from '@/components/governance/InterviewSchedulerPanel';
 import TechnicalTestPanel from '@/components/governance/TechnicalTestPanel';
 import EmployeeRegistrationPanel from '@/components/governance/EmployeeRegistrationPanel';
+import ManagerAssignmentPanel from '@/components/governance/ManagerAssignmentPanel';
+import LeaveApprovalPanel from '@/components/governance/LeaveApprovalPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
 import FeatureGrid from '@/components/ui/FeatureGrid';
@@ -48,17 +55,23 @@ export default function HROperationsPage() {
   const [openFeature, setOpenFeature] = useState<HrFeature | null>(null);
   const [mppData, setMppData] = useState<any>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
+  const [disbursingId, setDisbursingId] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  // Generate Program Onboarding (HR): pilih karyawan lalu buat program via LMS.
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [onboardingEmployeeId, setOnboardingEmployeeId] = useState('');
+  const [isOnboardingSubmitting, setIsOnboardingSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [resMpp, resOff, resCand] = await Promise.all([
+      const [resMpp, resOff, resCand, resEmp] = await Promise.all([
         fetch('/api/v1/pre-employment/mpp-summary'),
         fetch('/api/v1/offboarding/initiate'),
         fetch('/api/v1/recruitment/candidates'),
+        fetch('/api/v1/hr/employees'),
       ]);
       if (resMpp.ok) {
         const json = await resMpp.json();
@@ -71,6 +84,10 @@ export default function HROperationsPage() {
       if (resCand.ok) {
         const json = await resCand.json();
         setCandidates(json.data?.candidates || []);
+      }
+      if (resEmp.ok) {
+        const json = await resEmp.json();
+        setEmployees(json.data?.employees || []);
       }
     } catch {
       // fallback
@@ -95,7 +112,7 @@ export default function HROperationsPage() {
     competencyInterviewScore: 86,
     recruitmentCost: 6500000,
     timeToFillDays: 21,
-    hiringStatus: 'OFFERED',
+    hiringStatus: 'HIRED',
   });
 
   const handleCreateFptk = async (e: React.FormEvent) => {
@@ -121,7 +138,7 @@ export default function HROperationsPage() {
       const json = await res.json();
       if (res.ok) {
         setActionNotice(
-          `Kandidat '${fptkForm.candidateName}' berhasil didaftarkan! Skor Quality of Hire (QoH): ${json.data?.computedQoH || '88.8'} (Status: ${json.data?.hiringStatus || 'OFFERED'}).`
+          `Kandidat '${fptkForm.candidateName}' berhasil didaftarkan! Skor Quality of Hire (QoH): ${json.data?.computedQoH || '88.8'} (Status: ${json.data?.hiringStatus || 'HIRED'}).`
         );
         setIsFptkModalOpen(false);
         setFptkForm({
@@ -133,7 +150,7 @@ export default function HROperationsPage() {
           competencyInterviewScore: 86,
           recruitmentCost: 6500000,
           timeToFillDays: 21,
-          hiringStatus: 'OFFERED',
+          hiringStatus: 'HIRED',
         });
         loadData();
       } else {
@@ -143,6 +160,36 @@ export default function HROperationsPage() {
       setActionNotice(`Error: ${err.message}`);
     } finally {
       setIsFptkSubmitting(false);
+    }
+  };
+
+  const handleGenerateOnboarding = async () => {
+    if (!onboardingEmployeeId) {
+      setActionNotice('Pilih karyawan terlebih dahulu.');
+      return;
+    }
+    setIsOnboardingSubmitting(true);
+    setActionNotice(null);
+    try {
+      const res = await fetch('/api/v1/recruitment/onboarding/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId: onboardingEmployeeId }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        const employee = employees.find((emp) => emp.employeeId === onboardingEmployeeId);
+        setActionNotice(
+          `Program onboarding untuk '${employee?.fullName || 'karyawan'}' berhasil dibuat. ${json.message || ''}`.trim()
+        );
+        setOnboardingEmployeeId('');
+      } else {
+        setActionNotice(`Gagal: ${json.detail || 'Terjadi kesalahan'}`);
+      }
+    } catch (err: any) {
+      setActionNotice(`Error: ${err.message}`);
+    } finally {
+      setIsOnboardingSubmitting(false);
     }
   };
 
@@ -214,6 +261,28 @@ export default function HROperationsPage() {
       }
     } catch (err: any) {
       setActionNotice(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDisburseSeverance = async (severanceId: string, requestId: string) => {
+    setDisbursingId(requestId);
+    try {
+      const res = await fetch('/api/v1/offboarding/disburse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ severance_id: severanceId }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setActionNotice(json?.data?.message || 'Pesangon berhasil dicairkan.');
+        loadData();
+      } else {
+        setActionNotice(`Gagal: ${json.detail || json.error?.message || json.message || 'Terjadi kesalahan pencairan.'}`);
+      }
+    } catch (err: any) {
+      setActionNotice(`Error: ${err.message}`);
+    } finally {
+      setDisbursingId(null);
     }
   };
 
@@ -468,6 +537,11 @@ export default function HROperationsPage() {
 
       </div>
 
+      {/* Kelola MPP: kuota formasi & budget (tersinkron ke form Buat Lowongan) */}
+      <div className="mt-5">
+        <ManpowerPlanManager />
+      </div>
+
       {/* Rekrutmen Kandidat (portal karier publik) */}
       <RecruitmentPanel />
       {/* Jadwal Wawancara (tautan meeting → kandidat) */}
@@ -481,6 +555,14 @@ export default function HROperationsPage() {
       {/* Registrasi Karyawan Mandiri (email verify → HR approve) */}
       <div className="mt-5">
         <EmployeeRegistrationPanel />
+      </div>
+      {/* Penugasan atasan langsung (manager_id) */}
+      <div className="mt-5">
+        <ManagerAssignmentPanel />
+      </div>
+      {/* Persetujuan cuti & izin karyawan */}
+      <div className="mt-5">
+        <LeaveApprovalPanel />
       </div>
       {/* Payroll (komponen lengkap + AI advisory) */}
       <div className="mt-5">
@@ -504,7 +586,47 @@ export default function HROperationsPage() {
 
       {/* Panel: Learning & Certification */}
       <ExpandablePanel open={openFeature === 'learning'} title="Learning & Certification" onClose={() => setOpenFeature(null)}>
+      <div className="stitch-card-white p-6 mb-6 space-y-4">
+        <div className="flex items-center gap-2 border-b border-[#f1f5f9] pb-4">
+          <GraduationCap className="w-5 h-5 text-[#007a5a]" />
+          <div>
+            <h2 className="text-base font-extrabold text-[#0f172a]">Generate Program Onboarding</h2>
+            <p className="text-xs text-slate-500">
+              Buat program onboarding LMS (learning plan + kursus wajib posisi) untuk karyawan baru.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Karyawan</label>
+            <select
+              value={onboardingEmployeeId}
+              onChange={(e) => setOnboardingEmployeeId(e.target.value)}
+              className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+            >
+              <option value="">— Pilih karyawan —</option>
+              {employees.map((emp) => (
+                <option key={emp.employeeId} value={emp.employeeId}>
+                  {emp.fullName}
+                  {emp.employeeCode ? ` (${emp.employeeCode})` : ''}
+                  {emp.position ? ` — ${emp.position}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerateOnboarding}
+            disabled={isOnboardingSubmitting || !onboardingEmployeeId}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#007a5a] text-white text-xs font-bold hover:bg-[#00664b] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <GraduationCap className="w-4 h-4" />
+            {isOnboardingSubmitting ? 'Memproses...' : 'Generate Program Onboarding'}
+          </button>
+        </div>
+      </div>
       <LearningCertificationPanel />
+      <PositionCourseMappingPanel />
         <AiAnalyzePanel feature="learning" />
       </ExpandablePanel>
 
@@ -588,7 +710,7 @@ export default function HROperationsPage() {
                       </div>
                     </div>
                     <div className="space-y-1.5 border-t border-[#f1f5f9] pt-2">
-                      <p className="text-[11px] font-bold text-[#334155]">Checklist Serah Terima Tugas (PRD §8 Hard Gate):</p>
+                      <p className="text-[11px] font-bold text-[#334155]">Checklist Serah Terima Tugas (Hard Gate):</p>
                       {(off.handovers || []).map((h: any) => (
                         <div key={h.id} className="flex items-center justify-between p-2 rounded-lg bg-[#f8fafc] text-xs">
                           <span className={h.isVerified ? 'line-through text-[#64748b]' : 'font-semibold text-[#0f172a]'}>
@@ -624,7 +746,17 @@ export default function HROperationsPage() {
                       </div>
                     )}
 
-                    <div className="pt-2 border-t border-[#f1f5f9] flex justify-end">
+                    <div className="pt-2 border-t border-[#f1f5f9] flex justify-end gap-2">
+                      {off.severanceId && !off.isSeverancePaid && (
+                        <button
+                          onClick={() => handleDisburseSeverance(off.severanceId, off.id)}
+                          disabled={disbursingId === off.id}
+                          className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00674c] text-white text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                        >
+                          <Banknote className="h-3.5 w-3.5" />
+                          <span>{disbursingId === off.id ? 'Mencairkan...' : 'Cairkan Pesangon'}</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => handleCalculateSeverance(off.id)}
                         className="px-3.5 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
@@ -850,8 +982,8 @@ export default function HROperationsPage() {
       </ExpandablePanel>
 
       {/* Modal Input FPTK Baru */}
-      {isFptkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+      {isFptkModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">
@@ -904,7 +1036,6 @@ export default function HROperationsPage() {
                     onChange={(e) => setFptkForm({ ...fptkForm, hiringStatus: e.target.value })}
                     className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
                   >
-                    <option value="OFFERED">OFFERED (Siap Onboarding)</option>
                     <option value="HIRED">HIRED (Kandidat Menerima)</option>
                     <option value="INTERVIEW_PASSED">INTERVIEW PASSED</option>
                   </select>
@@ -996,7 +1127,8 @@ export default function HROperationsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

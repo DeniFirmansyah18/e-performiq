@@ -105,6 +105,38 @@ INSERT INTO strategic_pillars (id, company_id, perspective, pillar_name, descrip
   ('c0000000-0000-4000-8000-000000000004','a0000000-0000-4000-8000-000000000001','LEARNING_GROWTH','Kapabilitas Human Capital & Penguatan Budaya AKHLAK','Rata-rata 24 jam pelatihan/karyawan/tahun, retensi Top 20% Talent, dan indeks kepemimpinan 360.',25)
 ON CONFLICT (id) DO NOTHING;
 
+-- Template KPI per jabatan (position_kpi_templates). Bobot tiap jabatan = 100%.
+INSERT INTO position_kpi_templates (position_id, kpi_title, target_value, unit_of_measure, kpi_weight, strategic_pillar_id, display_order) VALUES
+  -- CEO (grade 1) — hasil korporasi
+  ('a0000000-0000-4000-8000-000000000201','Pertumbuhan Pendapatan vs RKAP',15,'%',40,'c0000000-0000-4000-8000-000000000001',1),
+  ('a0000000-0000-4000-8000-000000000201','EBITDA Margin Korporasi',20,'%',30,'c0000000-0000-4000-8000-000000000001',2),
+  ('a0000000-0000-4000-8000-000000000201','Indeks Kepuasan Stakeholder',90,'%',30,'c0000000-0000-4000-8000-000000000002',3),
+  -- VP of Human Capital (grade 2) — human capital
+  ('a0000000-0000-4000-8000-000000000202','Retensi Top 20% Talent',95,'%',35,'c0000000-0000-4000-8000-000000000004',1),
+  ('a0000000-0000-4000-8000-000000000202','Indeks Budaya AKHLAK',85,'%',30,'c0000000-0000-4000-8000-000000000004',2),
+  ('a0000000-0000-4000-8000-000000000202','Efisiensi Biaya Human Capital',100,'%',35,'c0000000-0000-4000-8000-000000000001',3),
+  -- Head of Engineering & Ops (grade 2) — operasional
+  ('a0000000-0000-4000-8000-000000000203','Keandalan Sistem (Uptime)',99.9,'%',40,'c0000000-0000-4000-8000-000000000003',1),
+  ('a0000000-0000-4000-8000-000000000203','Zero Fatal SOP Finding',100,'%',30,'c0000000-0000-4000-8000-000000000003',2),
+  ('a0000000-0000-4000-8000-000000000203','Ketepatan Delivery Proyek',95,'%',30,'c0000000-0000-4000-8000-000000000002',3),
+  -- Senior Software Engineer (grade 4) — teknis
+  ('a0000000-0000-4000-8000-000000000204','Defect Density (Bug per KLOC)',2,'DEFECT/KLOC',35,'c0000000-0000-4000-8000-000000000003',1),
+  ('a0000000-0000-4000-8000-000000000204','Ketepatan Sprint Commitment',95,'%',35,'c0000000-0000-4000-8000-000000000003',2),
+  ('a0000000-0000-4000-8000-000000000204','Coverage Unit Test',80,'%',30,'c0000000-0000-4000-8000-000000000004',3),
+  -- Chief Internal Auditor (grade 2) — kepatuhan
+  ('a0000000-0000-4000-8000-000000000205','Penyelesaian Audit Plan Tahunan',100,'%',40,'c0000000-0000-4000-8000-000000000003',1),
+  ('a0000000-0000-4000-8000-000000000205','Temuan Kritis yang Ditutup',100,'%',35,'c0000000-0000-4000-8000-000000000003',2),
+  ('a0000000-0000-4000-8000-000000000205','Kepatuhan Regulasi & Tata Kelola',100,'%',25,'c0000000-0000-4000-8000-000000000003',3),
+  -- HR System Administrator (grade 3) — sistem HC
+  ('a0000000-0000-4000-8000-000000000206','Uptime Sistem HRIS',99,'%',40,'c0000000-0000-4000-8000-000000000003',1),
+  ('a0000000-0000-4000-8000-000000000206','Akurasi Data Karyawan',99,'%',35,'c0000000-0000-4000-8000-000000000003',2),
+  ('a0000000-0000-4000-8000-000000000206','Dukungan Pengguna HRIS (SLA)',90,'%',25,'c0000000-0000-4000-8000-000000000002',3),
+  -- Lead Talent Assessor & Facilitator (grade 2) — asesmen
+  ('a0000000-0000-4000-8000-000000000207','Kualitas Laporan Asesmen',95,'%',35,'c0000000-0000-4000-8000-000000000004',1),
+  ('a0000000-0000-4000-8000-000000000207','Ketepatan Waktu Fasilitasi',95,'%',35,'c0000000-0000-4000-8000-000000000002',2),
+  ('a0000000-0000-4000-8000-000000000207','Realisasi Program Pengembangan',100,'%',30,'c0000000-0000-4000-8000-000000000004',3)
+ON CONFLICT (position_id, kpi_title) DO NOTHING;
+
 -- Corporate KPIs
 INSERT INTO corporate_kpis (id, strategic_pillar_id, period_year, kpi_code, kpi_name, target_value, unit_of_measure) VALUES
   ('c0000000-0000-4000-8000-000000000101','c0000000-0000-4000-8000-000000000001',2026,'CORP-FIN-01','Revenue Growth vs RKAP Target',15.0,'%_GROWTH'),

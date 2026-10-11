@@ -13,7 +13,7 @@ import {
   recordDecision,
   listReviewQueue,
 } from '@/lib/services/candidateReviewService';
-import { submitApplication } from '@/lib/services/candidateService';
+import { submitApplication, updateApplicationStatus } from '@/lib/services/candidateService';
 import { runAts } from '@/lib/services/atsService';
 import { getTemplateForType, getQuestions, startAttempt, submitAttempt, setInterviewScore } from '@/lib/services/assessmentService';
 
@@ -133,14 +133,14 @@ describe('WS-7 review HR + keputusan', () => {
       expect(res!.aiSummary.trim().length).toBeGreaterThan(20);
     });
 
-    it('recordDecision ACCEPTED → status OFFERED + timeline DECISION', async () => {
+    it('recordDecision ACCEPTED → status OFFERED (belum konversi, belum onboarding)', async () => {
       const userRes = await client.query<{ id: string }>(`SELECT id FROM users LIMIT 1`);
-      const userId = userRes.rows[0].id;
       const decision = await recordDecision(db, {
-        applicationId, decidedByUserId: userId, decision: 'ACCEPTED', notes: 'Kandidat kuat.',
+        applicationId, decidedByUserId: userRes.rows[0].id, decision: 'ACCEPTED', notes: 'Kandidat kuat.',
       });
       expect(decision).toBe('ACCEPTED');
 
+      // ACCEPTED mengirim penawaran (OFFERED) — belum menjadi karyawan.
       const app = await client.query<{ status: string }>(
         `SELECT status FROM job_applications WHERE id = $1::uuid`, [applicationId],
       );
@@ -150,10 +150,43 @@ describe('WS-7 review HR + keputusan', () => {
         `SELECT status FROM application_timeline WHERE application_id = $1::uuid AND stage = 'DECISION'`,
         [applicationId],
       );
-      expect(tl.rows[0]?.status).toBe('PASSED');
+      expect(tl.rows[0]?.status).toBe('IN_PROGRESS');
+
+      // Belum ada karyawan hasil konversi.
+      const emp = await client.query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n FROM employees e JOIN users u ON u.employee_id = e.id
+          WHERE LOWER(u.email) = 'dewi.anggraini@example.com'`,
+      );
+      expect(Number(emp.rows[0].n)).toBe(0);
 
       const r2 = await getCandidateReview(db, applicationId);
       expect(r2!.decision).toBe('ACCEPTED');
+    });
+
+    it('OFFERED → HIRED memicu konversi karyawan + program onboarding', async () => {
+      await updateApplicationStatus(db, applicationId, 'HIRED');
+
+      const app = await client.query<{ status: string }>(
+        `SELECT status FROM job_applications WHERE id = $1::uuid`, [applicationId],
+      );
+      expect(app.rows[0].status).toBe('HIRED');
+
+      const tl = await client.query<{ status: string }>(
+        `SELECT status FROM application_timeline WHERE application_id = $1::uuid AND stage = 'DECISION'`,
+        [applicationId],
+      );
+      expect(tl.rows[0]?.status).toBe('PASSED');
+
+      const emp = await client.query<{ id: string }>(
+        `SELECT e.id FROM employees e
+           JOIN users u ON u.employee_id = e.id
+          WHERE LOWER(u.email) = 'dewi.anggraini@example.com' LIMIT 1`,
+      );
+      expect(emp.rows.length).toBe(1);
+      const onb = await client.query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n FROM onboarding_programs WHERE employee_id = $1::uuid`, [emp.rows[0].id],
+      );
+      expect(Number(onb.rows[0].n)).toBe(1);
     });
 
     it('recordDecision REJECTED → status REJECTED + timeline DECISION FAILED', async () => {
@@ -173,6 +206,13 @@ describe('WS-7 review HR + keputusan', () => {
         [app2.applicationId],
       );
       expect(tl.rows[0]?.status).toBe('FAILED');
+
+      // REJECTED tidak mengonversi kandidat menjadi karyawan.
+      const emp = await client.query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n FROM employees e JOIN users u ON u.employee_id = e.id
+          WHERE LOWER(u.email) = 'kandidat.tolak@example.com'`,
+      );
+      expect(Number(emp.rows[0].n)).toBe(0);
     });
 
     it('recordDecision idempoten (upsert satu baris)', async () => {

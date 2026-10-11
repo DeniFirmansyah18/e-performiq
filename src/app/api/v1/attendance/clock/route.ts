@@ -13,7 +13,9 @@ const Geo = z.object({ lat: z.number().optional(), lng: z.number().optional() })
 const ActionSchema = z.object({
   action: z.enum(['check-in', 'check-out']),
   workDate: z.string().max(10).optional(),
-  photoUrl: z.string().max(1000).optional(),
+  // Foto dikirim sebagai data URL (data:image/jpeg;base64,...) hasil kompres klien.
+  // Batas ~1MB agar muat di payload serverless; klien sudah mengecilkan ke <=640px.
+  photoUrl: z.string().max(1_400_000).optional(),
   note: z.string().max(500).optional(),
   geo: Geo,
 });

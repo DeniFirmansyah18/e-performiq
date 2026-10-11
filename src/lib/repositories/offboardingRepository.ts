@@ -86,6 +86,23 @@ export async function selectHandoversByRequest(db: Db, requestId: string) {
   return result.rows as any[];
 }
 
+/**
+ * Status clearance serah-terima (PRD §8 HARD GATE). Sumber tunggal kebenaran:
+ * baik kalkulasi pesangon, run final settlement, maupun penutupan lifecycle
+ * WAJIB memakai helper ini agar aturan tidak bisa lewat di salah satu jalur.
+ */
+export async function getClearanceStatus(db: Db, requestId: string) {
+  const handovers = await selectHandoversByRequest(db, requestId);
+  const total = handovers.length;
+  const verifiedCount = handovers.filter((h) => h.isVerified).length;
+  return {
+    total,
+    verifiedCount,
+    unverifiedCount: total - verifiedCount,
+    allVerified: total > 0 && verifiedCount === total,
+  };
+}
+
 export async function updateHandoverVerification(
   db: Db,
   handoverId: string,
@@ -168,7 +185,8 @@ export async function markSeverancePaid(db: Db, severanceId: string, paymentRef:
            payment_reference_no = ${paymentRef},
            paid_at = CURRENT_TIMESTAMP
      WHERE id = ${severanceId}::uuid
-    RETURNING id, is_paid as "isPaid", payment_reference_no as "paymentReferenceNo", paid_at as "paidAt"
+    RETURNING id, offboarding_request_id as "offboardingRequestId",
+              is_paid as "isPaid", payment_reference_no as "paymentReferenceNo", paid_at as "paidAt"
   `);
   return result.rows[0] as any;
 }
@@ -182,6 +200,72 @@ export async function selectLifetimeContributions(db: Db, employeeId: string) {
       FROM lifetime_contributions
      WHERE employee_id = ${employeeId}::uuid
      ORDER BY date_achieved DESC
+  `);
+  return result.rows as any[];
+}
+
+/**
+ * Majukan status offboarding (state machine) dengan guard monotonik:
+ * hanya boleh bergerak INITIATED → CLEARANCE_IN_PROGRESS → COMPLETED/DISPUTED,
+ * tidak boleh mundur. Mengembalikan status terbaru.
+ */
+export async function advanceOffboardingStatus(
+  db: Db,
+  requestId: string,
+  nextStatus: 'CLEARANCE_IN_PROGRESS' | 'COMPLETED' | 'DISPUTED'
+) {
+  const result = await db.execute(sql`
+    UPDATE offboarding_requests
+       SET status = ${nextStatus}::offboarding_status_enum
+     WHERE id = ${requestId}::uuid
+       AND CASE status
+             WHEN 'INITIATED' THEN 1
+             WHEN 'CLEARANCE_IN_PROGRESS' THEN 2
+             WHEN 'COMPLETED' THEN 3
+             WHEN 'DISPUTED' THEN 2
+             ELSE 0
+           END
+         < CASE ${nextStatus}
+             WHEN 'CLEARANCE_IN_PROGRESS' THEN 2
+             WHEN 'COMPLETED' THEN 3
+             WHEN 'DISPUTED' THEN 2
+             ELSE 0
+           END
+    RETURNING id, employee_id as "employeeId", status, last_working_day as "lastWorkingDay"
+  `);
+  return (result.rows[0] as any) ?? null;
+}
+
+/**
+ * Tulis-balik deaktivasi karyawan saat offboarding tuntas:
+ * employees.status → RESIGNED/RETIRED + last_working_day, dan nonaktifkan akun login.
+ * Idempoten: hanya berubah bila status karyawan masih aktif (PROBATION/PERMANENT/CONTRACT).
+ */
+export async function deactivateEmployeeOnExit(
+  db: Db,
+  employeeId: string,
+  exitStatus: 'RESIGNED' | 'RETIRED',
+  lastWorkingDay: string
+) {
+  const result = await db.execute(sql`
+    UPDATE employees
+       SET status = ${exitStatus}::employee_status_enum,
+           last_working_day = ${lastWorkingDay}::date
+     WHERE id = ${employeeId}::uuid
+       AND status NOT IN ('RESIGNED','RETIRED')
+    RETURNING id, status, last_working_day as "lastWorkingDay"
+  `);
+  return (result.rows[0] as any) ?? null;
+}
+
+/** Nonaktifkan akun login (users.is_active=false) milik karyawan yang keluar. */
+export async function deactivateUserAccount(db: Db, employeeId: string) {
+  const result = await db.execute(sql`
+    UPDATE users
+       SET is_active = FALSE
+     WHERE employee_id = ${employeeId}::uuid
+       AND is_active = TRUE
+    RETURNING id, email
   `);
   return result.rows as any[];
 }

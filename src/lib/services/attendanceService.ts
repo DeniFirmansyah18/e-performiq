@@ -1,5 +1,9 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { computeDisciplineFactor } from '@/lib/engines/discipline-engine';
+
+/** Batas jam masuk sebelum dianggap telat (kebijakan kehadiran). */
+const LATE_CUTOFF = '09:00:00';
 
 /** Satu baris fakta kehadiran harian dari tabel attendance_records. */
 export interface AttendanceFactRow {
@@ -76,4 +80,34 @@ prev = d;
 }
 
 return spells * spells * absentDates.length;
+}
+/**
+ * Indikator disiplin (keputusan D3): menurunkan skor SOP lewat faktor 0.6-1.0.
+ * lateCount = hari masuk setelah LATE_CUTOFF; workDays = total baris kehadiran
+ * hari kerja; bradford = Bradford Factor periode.
+ */
+export async function deriveDisciplineIndicator(
+  db: Db,
+  employeeId: string,
+  periodStart: string,
+  periodEnd: string
+) {
+  const res = (await db.execute(sql`
+    SELECT COUNT(*) FILTER (
+             WHERE is_weekend = FALSE AND is_present = TRUE AND check_in > ${LATE_CUTOFF}::time
+           )::int AS "lateCount",
+           COUNT(*) FILTER (WHERE is_weekend = FALSE)::int AS "workDays"
+      FROM attendance_records
+     WHERE employee_id = ${employeeId}::uuid
+       AND work_date BETWEEN ${periodStart}::date AND ${periodEnd}::date
+  `)) as unknown as { rows: Array<{ lateCount: number; workDays: number }> };
+
+  const lateCount = Number(res.rows?.[0]?.lateCount ?? 0);
+  const workDays = Number(res.rows?.[0]?.workDays ?? 0);
+
+  const facts = await getAttendanceFactRows(db, employeeId, periodStart, periodEnd);
+  const bradford = computeBradfordFactor(facts);
+
+  const result = computeDisciplineFactor({ lateCount, workDays, bradford });
+  return { ...result, lateCount, workDays, bradford };
 }

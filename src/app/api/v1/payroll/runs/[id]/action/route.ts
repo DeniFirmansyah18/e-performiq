@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
@@ -25,6 +26,26 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       : await markPayrollPaid(db, ctx.params.id);
 
     if (!okFlag) return fail('BUSINESS_RULE', 'Status run tidak mengizinkan aksi ini.', 422);
+
+    // Saat dibayar: beri tahu setiap karyawan dalam run (best-effort).
+    if (parsed.data.action === 'pay') {
+      try {
+        const items = (await db.execute(sql`
+          SELECT DISTINCT employee_id AS "employeeId" FROM payroll_items
+           WHERE run_id = ${ctx.params.id}::uuid AND employee_id IS NOT NULL
+        `)) as unknown as { rows: Array<{ employeeId: string }> };
+        const { notifyEmployeeLifecycle } = await import('@/lib/services/notificationService');
+        await Promise.all((items.rows ?? []).map((r) =>
+          notifyEmployeeLifecycle(db, {
+            employeeId: r.employeeId,
+            eventType: 'PAYROLL_ITEM_PAID',
+            title: 'Payroll Telah Dibayarkan',
+            body: 'Gaji Anda untuk periode ini telah ditransfer. Silakan cek slip gaji di portal karyawan.',
+          }),
+        ));
+      } catch { /* best-effort */ }
+    }
+
     return ok({ runId: ctx.params.id, action: parsed.data.action }, parsed.data.action === 'approve' ? 'Payroll disetujui.' : 'Payroll ditandai dibayar.');
   } catch (err) {
     return problem(err, '/api/v1/payroll/runs/[id]/action');

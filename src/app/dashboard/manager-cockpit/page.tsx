@@ -1,5 +1,7 @@
 'use client';
 
+import { createPortal } from 'react-dom';
+
 import React, { useState, useEffect } from 'react';
 import {
   Download,
@@ -27,6 +29,21 @@ import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
 type ManagerFeature = 'roster' | 'approval' | 'evaluasi';
+
+interface ProbationMilestone {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  position: string;
+  department: string;
+  day30Score: number | null;
+  day60Score: number | null;
+  day90Score: number | null;
+  managerNotes: string | null;
+  probationPassed: boolean;
+  conversionDate: string | null;
+}
 
 interface TeamMember {
   id: string;
@@ -71,6 +88,14 @@ export default function ManagerCockpitPage() {
     potentialScore: 4.2,
   });
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isPullingDerived, setIsPullingDerived] = useState(false);
+
+  // Live probation (30-60-90) milestones + evaluasi form.
+  const [probations, setProbations] = useState<ProbationMilestone[]>([]);
+  const [activeProbation, setActiveProbation] = useState<ProbationMilestone | null>(null);
+  const [probationForm, setProbationForm] = useState({ day30: '', day60: '', day90: '', notes: '' });
+  const [isSavingProbation, setIsSavingProbation] = useState(false);
+  const [probationMsg, setProbationMsg] = useState<string | null>(null);
 
   const [teamRoster, setTeamRoster] = useState<TeamMember[]>([
     {
@@ -205,6 +230,79 @@ export default function ManagerCockpitPage() {
     };
   }, []);
 
+  // Probation (30-60-90) milestones — sumber data nyata untuk panel evaluasi.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/pre-employment/probation');
+        if (!res.ok) return;
+        const json = await res.json();
+        const rows: ProbationMilestone[] = json?.data?.milestones ?? [];
+        if (active) setProbations(rows);
+      } catch {
+        /* panel eval tetap tampil walau API tidak tersedia */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const openProbationEval = (m: ProbationMilestone) => {
+    setActiveProbation(m);
+    setProbationMsg(null);
+    setProbationForm({
+      day30: m.day30Score != null ? String(m.day30Score) : '',
+      day60: m.day60Score != null ? String(m.day60Score) : '',
+      day90: m.day90Score != null ? String(m.day90Score) : '',
+      notes: m.managerNotes ?? '',
+    });
+  };
+
+  const submitProbationEval = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeProbation) return;
+    setIsSavingProbation(true);
+    setProbationMsg(null);
+    const num = (v: string) => (v.trim() === '' ? undefined : Number(v));
+    try {
+      const res = await fetch(`/api/v1/pre-employment/probation/${activeProbation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          day_30_score: num(probationForm.day30),
+          day_60_score: num(probationForm.day60),
+          day_90_score: num(probationForm.day90),
+          manager_notes: probationForm.notes || undefined,
+        }),
+      });
+      if (res.ok) {
+        setProbationMsg('Skor evaluasi probation tersimpan.');
+        setProbations((prev) =>
+          prev.map((p) =>
+            p.id === activeProbation.id
+              ? {
+                  ...p,
+                  day30Score: num(probationForm.day30) ?? p.day30Score,
+                  day60Score: num(probationForm.day60) ?? p.day60Score,
+                  day90Score: num(probationForm.day90) ?? p.day90Score,
+                  managerNotes: probationForm.notes || p.managerNotes,
+                }
+              : p
+          )
+        );
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setProbationMsg(json.detail || 'Gagal menyimpan evaluasi probation.');
+      }
+    } catch {
+      setProbationMsg('Terjadi kesalahan koneksi.');
+    } finally {
+      setIsSavingProbation(false);
+    }
+  };
+
   const handleOpenEval = (member: TeamMember) => {
     setSelectedMember(member);
     setEvalForm({
@@ -214,6 +312,45 @@ export default function ManagerCockpitPage() {
       coreValuesScore: member.coreValuesScore,
       potentialScore: member.potentialScore,
     });
+  };
+
+  const handlePullDerivedScores = async () => {
+    if (!selectedMember) return;
+    setIsPullingDerived(true);
+    setApprovalMsg(null);
+    try {
+      const res = await fetch(
+        `/api/v1/performance/gpa-preview?employee_id=${selectedMember.id}&period_id=d0000000-0000-4000-8000-000000000001`
+      );
+      const json = await res.json();
+      if (res.ok && json.data) {
+        const c = json.data.components ?? {};
+        // SOP pakai nilai final (base × faktor disiplin) bila tersedia; jika tidak, base.
+        const sopBase = c.sopScore?.value;
+        const sopFinal = c.sopScore?.detail?.finalWithDiscipline ?? sopBase;
+        const coreVal = c.coreValuesScore?.value;
+        setEvalForm((prev) => ({
+          ...prev,
+          sopScore: sopFinal != null ? Number(sopFinal) : prev.sopScore,
+          coreValuesScore: coreVal != null ? Number(coreVal) : prev.coreValuesScore,
+        }));
+        const missing = [
+          c.sopScore?.source === 'missing' ? 'SOP' : null,
+          c.coreValuesScore?.source === 'missing' ? 'penilaian rekan (360°)' : null,
+        ].filter(Boolean);
+        setApprovalMsg(
+          missing.length
+            ? `Skor ditarik dari data. Belum tersedia: ${missing.join(', ')} — KPI & Kompetensi diisi manual.`
+            : 'Skor ditarik dari data sistem (KPI manual; SOP, disiplin, dan penilaian rekan otomatis).'
+        );
+      } else {
+        setApprovalMsg(`Gagal menarik data: ${json.detail || 'Tidak ada data'}`);
+      }
+    } catch (err: any) {
+      setApprovalMsg(`Error: ${err.message}`);
+    } finally {
+      setIsPullingDerived(false);
+    }
   };
 
   const handleSaveEvaluation = async (e: React.FormEvent) => {
@@ -260,7 +397,7 @@ export default function ManagerCockpitPage() {
           )
         );
         setApprovalMsg(
-          `Evaluasi kinerja untuk ${selectedMember.name} berhasil disimpan! GPA Komposit: ${data.composite_gpa} (Rating ${data.performance_rating} — ${data.nine_box_placement?.quadrant}).`
+          `Evaluasi kinerja untuk ${selectedMember.name} berhasil disimpan! Nilai Kinerja: ${data.composite_gpa} (Rating ${data.performance_rating} — ${data.nine_box_placement?.quadrant}).`
         );
         setSelectedMember(null);
       } else {
@@ -365,16 +502,16 @@ export default function ManagerCockpitPage() {
           icon={ClipboardCheck}
           title="Approval KPI"
           metric="Tabel Evaluasi"
-          tag="KPI & GPA"
-          description="Tabel penilaian anggota tim dan goal cascading: KPI, SOP, 360 Review, GPA, dan posisi 9-Box."
+          tag="Target & Nilai"
+          description="Tabel penilaian anggota tim: Target Kerja, Kepatuhan Prosedur, Penilaian Rekan (360°), Nilai Kinerja, dan posisi 9-Box."
           onOpen={() => setOpenFeature('approval')}
         />
         <FeatureCard
           icon={Calculator}
-          title="Evaluasi GPA"
+          title="Evaluasi Nilai Kinerja"
           metric="Action Drawer"
           tag="Otorisasi"
-          description="Tindakan otorisasi manajerial, penghitungan GPA tim, dan peninjauan lamaran internal."
+          description="Tindakan otorisasi manajerial, penghitungan nilai kinerja tim, dan peninjauan lamaran internal."
           onOpen={() => setOpenFeature('evaluasi')}
         />
       </FeatureGrid>
@@ -398,9 +535,9 @@ export default function ManagerCockpitPage() {
           <ActionCard
             icon={StarIcon}
             tone="amber"
-            title="Evaluasi GPA Tim"
-            tag="GPA"
-            description="Hitung dan tinjau GPA komposit anggota tim Anda."
+            title="Evaluasi Nilai Kinerja Tim"
+            tag="Nilai"
+            description="Hitung dan tinjau nilai kinerja anggota tim Anda."
             onClick={() => setOpenFeature('evaluasi')}
           />
           <ActionCard
@@ -441,7 +578,7 @@ export default function ManagerCockpitPage() {
               91.2%
             </span>
             <span className="text-sm font-semibold text-[#64748b] ml-1">
-              (GPA 3.65)
+              (Nilai Kinerja 3.65)
             </span>
           </div>
           <div className="mt-3 pt-2.5 border-t border-[#f1f5f9] flex items-center gap-2">
@@ -476,7 +613,7 @@ export default function ManagerCockpitPage() {
         <div className="stitch-metric-card">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
-              SOP Adherence Index
+              Tingkat Kepatuhan Prosedur
             </span>
             <span className="text-[11px] font-bold text-[#c5221f] bg-[#fce8e6] px-1.5 py-0.5 rounded">
               1 Alert
@@ -498,7 +635,7 @@ export default function ManagerCockpitPage() {
         <div className="stitch-metric-card">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
-              360 Feedback Status
+              Status Penilaian Rekan (360°)
             </span>
             <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
               100% Selesai
@@ -572,9 +709,9 @@ export default function ManagerCockpitPage() {
                 <th className="py-2.5 px-3">Anggota Tim (Direct Report)</th>
                 <th className="py-2.5 px-3">Pilar Strategis BSC</th>
                 <th className="py-2.5 px-3 text-center">KPI Selesai (%)</th>
-                <th className="py-2.5 px-3 text-center">Insiden SOP</th>
-                <th className="py-2.5 px-3 text-center">360 Peer Review</th>
-                <th className="py-2.5 px-3 text-center">Prediksi GPA & 9-Box</th>
+                <th className="py-2.5 px-3 text-center">Insiden Prosedur</th>
+                <th className="py-2.5 px-3 text-center">Penilaian Rekan</th>
+                <th className="py-2.5 px-3 text-center">Nilai Kinerja & 9-Box</th>
                 <th className="py-2.5 px-3 text-right">Status Kalibrasi</th>
               </tr>
             </thead>
@@ -708,7 +845,7 @@ export default function ManagerCockpitPage() {
       </ExpandablePanel>
 
       {/* Panel: Evaluasi GPA & Otorisasi */}
-      <ExpandablePanel open={openFeature === 'evaluasi'} title="Tindakan Otorisasi & Evaluasi GPA" onClose={() => setOpenFeature(null)}>
+      <ExpandablePanel open={openFeature === 'evaluasi'} title="Tindakan Otorisasi & Evaluasi Nilai Kinerja" onClose={() => setOpenFeature(null)}>
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -750,29 +887,75 @@ export default function ManagerCockpitPage() {
             </div>
           </div>
 
-          {/* Action 2: 30-60-90 Days Review */}
+          {/* Action 2: 30-60-90 Days Review (live probation milestones) */}
           <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded">
                   Probation Milestone
                 </span>
-                <span className="text-[11px] text-[#64748b]">Jatuh Tempo: 2 Hari</span>
+                <span className="text-[11px] text-[#64748b]">
+                  {probations.filter((p) => !p.probationPassed).length} Karyawan Berjalan
+                </span>
               </div>
 
               <h3 className="text-sm font-bold text-[#0f172a]">
                 30-60-90 Days Probation Review
               </h3>
 
-              <p className="text-xs text-[#64748b] leading-relaxed">
-                <strong>Rizky Pratama</strong> (Jr. Cloud Engineer) telah memasuki Hari ke-60 masa percobaan. Peer review tim infrastruktur sudah lengkap (Skor 4.2/5.0).
-              </p>
+              {probations.length === 0 ? (
+                <p className="text-xs text-[#64748b] leading-relaxed">
+                  Belum ada catatan evaluasi probation pada basis data. Skor Hari-30/60/90 akan muncul di sini setelah HR membuat program onboarding karyawan.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {probations.map((p) => (
+                    <div
+                      key={p.id}
+                      className="rounded-lg border border-[#e2e8f0] p-2.5 space-y-1.5 bg-[#f8fafc]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#0f172a] truncate">{p.employeeName}</p>
+                          <p className="text-[10px] text-[#64748b] truncate">{p.position} · {p.department}</p>
+                        </div>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                            p.probationPassed
+                              ? 'bg-[#e6f4ea] text-[#137333]'
+                              : 'bg-[#fef3c7] text-[#92400e]'
+                          }`}
+                        >
+                          {p.probationPassed ? 'Lulus (Tetap)' : 'Probation'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#334155]">
+                        <span className="font-semibold">H30</span> {p.day30Score ?? '—'}
+                        <span className="mx-1 text-[#cbd5e1]">|</span>
+                        <span className="font-semibold">H60</span> {p.day60Score ?? '—'}
+                        <span className="mx-1 text-[#cbd5e1]">|</span>
+                        <span className="font-semibold">H90</span> {p.day90Score ?? '—'}
+                      </div>
+                      <button
+                        onClick={() => openProbationEval(p)}
+                        className="w-full text-[11px] font-semibold text-[#0369a1] hover:text-[#075985] hover:underline text-left"
+                      >
+                        Isi / perbarui evaluasi →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
-              <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Buku Catatan Mentor</span>
-              <button className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs">
-                Beri Nilai Evaluasi Tahap 2
+              <span className="text-xs text-[#64748b]">Sinkron dengan modul Pre-Employment</span>
+              <button
+                onClick={() => probations[0] && openProbationEval(probations[0])}
+                disabled={probations.length === 0}
+                className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Beri Nilai Evaluasi
               </button>
             </div>
           </div>
@@ -816,9 +999,9 @@ export default function ManagerCockpitPage() {
         <AiAnalyzePanel feature="manager" />
       </ExpandablePanel>
 
-      {/* Modal Evaluasi Kinerja & Hitung GPA Tim */}
-      {selectedMember && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      {/* Modal Evaluasi Kinerja & Hitung Nilai Tim */}
+      {selectedMember && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-5 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
               <div className="flex items-center gap-3">
@@ -842,11 +1025,22 @@ export default function ManagerCockpitPage() {
             </div>
 
             <form onSubmit={handleSaveEvaluation} className="space-y-4">
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
+                <span className="text-[11px] text-[#64748b]">Skor bisa diisi manual, atau tarik otomatis dari data sistem.</span>
+                <button
+                  type="button"
+                  onClick={handlePullDerivedScores}
+                  disabled={isPullingDerived}
+                  className="flex-shrink-0 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-[#007a5a] text-[#007a5a] hover:bg-[#ecfdf5] disabled:opacity-50 cursor-pointer"
+                >
+                  {isPullingDerived ? 'Menarik...' : 'Tarik dari data'}
+                </button>
+              </div>
               <div className="space-y-3">
                 {/* 1. KPI Score */}
                 <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-[#334155]">1. Capaian Sasaran KPI SMART (Bobot: 50%)</span>
+                    <span className="font-semibold text-[#334155]">1. Capaian Target Kerja (Bobot: 50%)</span>
                     <span className="font-mono font-bold text-[#007a5a]">{evalForm.kpiScore}%</span>
                   </div>
                   <input
@@ -864,7 +1058,7 @@ export default function ManagerCockpitPage() {
                 {/* 2. SOP Score */}
                 <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-[#334155]">2. Kepatuhan Prosedur SOP & SLA (Bobot: 20%)</span>
+                    <span className="font-semibold text-[#334155]">2. Kepatuhan Prosedur & Tenggat (Bobot: 20%)</span>
                     <span className="font-mono font-bold text-[#0284c7]">{evalForm.sopScore}%</span>
                   </div>
                   <input
@@ -900,7 +1094,7 @@ export default function ManagerCockpitPage() {
                 {/* 4. Core Values */}
                 <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-[#334155]">4. Nilai Luhur Budaya AKHLAK & 360° (Bobot: 15%)</span>
+                    <span className="font-semibold text-[#334155]">4. Sikap & Penilaian Rekan (360°) (Bobot: 15%)</span>
                     <span className="font-mono font-bold text-[#7c3aed]">{evalForm.coreValuesScore}%</span>
                   </div>
                   <input
@@ -944,7 +1138,7 @@ export default function ManagerCockpitPage() {
                   <div className="p-4 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-bold text-[#137333] uppercase tracking-wider block">
-                        Kalkulasi Komposit GPA Real-Time
+                        Nilai Kinerja Real-Time
                       </span>
                       <p className="text-xs text-[#0f172a] font-bold mt-0.5">
                         Total Skor: {totalPct}% &bull; Rating Prediksi: {rating}
@@ -979,7 +1173,91 @@ export default function ManagerCockpitPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Evaluasi Probation 30-60-90 */}
+      {activeProbation && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <form onSubmit={submitProbationEval} className="p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded">
+                    Evaluasi Probation
+                  </span>
+                  <h3 className="text-base font-bold text-[#0f172a] mt-1.5">
+                    {activeProbation.employeeName}
+                  </h3>
+                  <p className="text-xs text-[#64748b]">
+                    {activeProbation.position} · {activeProbation.department}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setActiveProbation(null); setProbationMsg(null); }}
+                  className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#64748b]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {([['day30', 'Hari-30'], ['day60', 'Hari-60'], ['day90', 'Hari-90']] as const).map(([key, label]) => (
+                  <label key={key} className="space-y-1">
+                    <span className="text-[11px] font-semibold text-[#334155] block">{label}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      value={probationForm[key]}
+                      onChange={(e) => setProbationForm((f) => ({ ...f, [key]: e.target.value }))}
+                      className="w-full rounded-lg border border-[#cbd5e1] px-2.5 py-1.5 text-sm text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0369a1]/40"
+                      placeholder="0-100"
+                    />
+                  </label>
+                ))}
+              </div>
+
+              <label className="space-y-1 block">
+                <span className="text-[11px] font-semibold text-[#334155] block">Catatan Manajerial</span>
+                <textarea
+                  rows={3}
+                  value={probationForm.notes}
+                  onChange={(e) => setProbationForm((f) => ({ ...f, notes: e.target.value }))}
+                  className="w-full rounded-lg border border-[#cbd5e1] px-2.5 py-1.5 text-sm text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0369a1]/40"
+                  placeholder="Observasi kinerja, sikap kerja, dan rekomendasi..."
+                />
+              </label>
+
+              {probationMsg && (
+                <p className="text-xs text-[#0f172a] bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-3 py-2">
+                  {probationMsg}
+                </p>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#f1f5f9]">
+                <button
+                  type="button"
+                  onClick={() => { setActiveProbation(null); setProbationMsg(null); }}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-[#64748b] hover:bg-[#f1f5f9] rounded-lg"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProbation}
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm disabled:opacity-60"
+                >
+                  {isSavingProbation ? 'Menyimpan...' : 'Simpan Evaluasi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>

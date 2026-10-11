@@ -109,6 +109,62 @@ describe('WS-5 timeline kandidat', () => {
       expect(['CURRENT', 'DONE']).toContain(ats.state);
     });
 
+    it('gating: status INTERVIEW tanpa tes psikometri/teknis tidak menandai tahap tes DONE', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'Gate Uji', email: 'gate.uji@example.com', jobPostingId: postingId,
+      });
+      const applicationId = app.applicationId!;
+      // HR melompatkan status ke INTERVIEW tanpa kandidat mengerjakan tes apa pun.
+      await client.query(
+        `UPDATE job_applications SET status = 'INTERVIEW'::application_status_enum WHERE id = $1::uuid`,
+        [applicationId],
+      );
+      await syncApplicationTimeline(db, applicationId);
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      expect(view).not.toBeNull();
+      const psy = view!.entries.find((e) => e.stage === 'PSYCHOMETRIC')!;
+      const tech = view!.entries.find((e) => e.stage === 'TECHNICAL')!;
+      // Tes belum dikerjakan → JANGAN DONE; tahap interview boleh CURRENT.
+      expect(psy.state).not.toBe('DONE');
+      expect(tech.state).not.toBe('DONE');
+      const iv = view!.entries.find((e) => e.stage === 'INTERVIEW')!;
+      expect(iv.state).toBe('CURRENT');
+    });
+
+    it('gating: tes psikometri IN_PROGRESS membuat tahap INTERVIEW tetap UPCOMING', async () => {
+      const app = await submitApplication(db, {
+        fullName: 'Gate Uji 2', email: 'gate.uji2@example.com', jobPostingId: postingId,
+      });
+      const applicationId = app.applicationId!;
+      await client.query(
+        `UPDATE job_applications SET status = 'SCREENING'::application_status_enum WHERE id = $1::uuid`,
+        [applicationId],
+      );
+      // HR tetap SCREENING; kandidat baru memulai (belum menyelesaikan) psikometri.
+      const tpl = await client.query<{ id: string }>(
+         `INSERT INTO assessment_templates (code, title, type, weight, is_active)
+         VALUES ('PSY-GATE-TEST', 'Psikometri Gate', 'PSYCHOMETRIC'::assessment_type_enum, 30, TRUE)
+         ON CONFLICT (code) DO UPDATE SET title = EXCLUDED.title RETURNING id`,
+      );
+      const templateId = (tpl as any).rows[0].id;
+      await client.query(
+        `INSERT INTO assessment_attempts (application_id, candidate_id, template_id, status)
+         SELECT $1::uuid, ja.candidate_id, $2::uuid, 'IN_PROGRESS'::assessment_status_enum
+           FROM job_applications ja WHERE ja.id = $1::uuid`,
+        [applicationId, templateId],
+      );
+      await syncApplicationTimeline(db, applicationId);
+      const view = await getTimelineByApplicationNo(db, app.applicationNo);
+      const psy = view!.entries.find((e) => e.stage === 'PSYCHOMETRIC')!;
+      const tech = view!.entries.find((e) => e.stage === 'TECHNICAL')!;
+      const iv = view!.entries.find((e) => e.stage === 'INTERVIEW')!;
+      expect(psy.status).toBe('IN_PROGRESS');
+      expect(psy.state).toBe('CURRENT');
+      // Tahap setelah tes yang belum selesai tidak boleh melewati (bukan DONE).
+      expect(tech.state).not.toBe('DONE');
+      expect(iv.state).not.toBe('DONE');
+    });
+
     it('Seleksi Berkas (ATS) otomatis Selesai setelah psikometri + teknis PASSED', async () => {
       const app = await submitApplication(db, {
         fullName: 'Lolos Berkas', email: 'lolos.berkas@example.com', jobPostingId: postingId,

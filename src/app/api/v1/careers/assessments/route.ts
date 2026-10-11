@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     const [attempts, templates] = await Promise.all([
       listAttemptsForApplication(db, ctx.applicationId),
-      listTemplates(db),
+      listTemplates(db, ctx.positionId),
     ]);
     return ok({
       applicationNo: ctx.applicationNo,

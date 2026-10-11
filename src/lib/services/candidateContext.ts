@@ -14,6 +14,8 @@ export interface CandidateContext {
   applicationNo: string;
   postingTitle: string;
   status: string;
+  /** Posisi yang dilamar (job_postings.position_id) — dasar pemilihan template tes. */
+  positionId: string | null;
 }
 
 /**
@@ -30,7 +32,7 @@ export async function resolveCandidateContext(
   const res = (await db.execute(sql`
     SELECT ja.id AS "applicationId", ja.candidate_id AS "candidateId",
            ja.application_no AS "applicationNo", jp.posting_title AS "postingTitle",
-           ja.status::text AS "status"
+           ja.status::text AS "status", jp.position_id AS "positionId"
       FROM job_applications ja
       JOIN candidates c ON c.id = ja.candidate_id
       JOIN job_postings jp ON jp.id = ja.job_posting_id

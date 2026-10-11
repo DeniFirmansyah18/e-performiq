@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
     `);
     const acc = (inserted as any).rows[0];
 
+    // Tautkan lamaran anonim sebelumnya (email sama) ke akun baru ini, agar
+    // notifikasi & konteks lamaran langsung tampil di portal kandidat.
+    await db.execute(sql`
+      UPDATE candidates SET account_id = ${acc.id}::uuid
+       WHERE LOWER(email) = ${normalizedEmail} AND account_id IS NULL
+    `);
+
     const token = await signCandidateSession({
       accountId: acc.id,
       candidateId: null,

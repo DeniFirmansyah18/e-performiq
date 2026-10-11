@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     const result = await db.execute(sql`
       SELECT u.id, u.employee_id as "employeeId", u.email, u.role,
-             e.full_name as "name", e.employee_code as "employeeCode", e.avatar_url as "avatarUrl",
+             e.full_name as "name", e.employee_code as "employeeCode", COALESCE(e.photo_url, e.avatar_url) as "avatarUrl",
              e.status as "status", e.join_date as "joinDate",
              d.department_name as "department", jp.position_title as "position"
         FROM users u

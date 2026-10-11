@@ -8,6 +8,7 @@ export type Permission =
 | 'kpi:approve'
 | 'appraisal:calculate'
 | 'appraisal:calibrate'
+| 'appraisal:batch'
 | 'audit:read'
 | 'attendance:read'
 | 'attendance:write'
@@ -37,6 +38,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'kpi:approve': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'ASSESSOR'],
 'appraisal:calibrate': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'ASSESSOR'],
+'appraisal:batch': ['SUPER_ADMIN', 'HR_MANAGER'],
 'audit:read': ['SUPER_ADMIN', 'AUDITOR'],
 'attendance:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
 'attendance:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
@@ -51,7 +53,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'recruitment:read': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR'],
 'recruitment:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'profile:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
-'profile:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
+'profile:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR'],
 'offboarding:read': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'BOD', 'EMPLOYEE', 'AUDITOR'],
 'offboarding:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'ai:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],

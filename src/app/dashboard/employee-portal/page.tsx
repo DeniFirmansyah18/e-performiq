@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/context/AuthContext';
 import {
 Download,
@@ -31,14 +32,15 @@ Bot,
 Briefcase,
 UserCheck,
 Trophy,
+CalendarDays,
 } from 'lucide-react';
-import TimesheetModal from '@/components/employee/TimesheetModal';
 import PaySlipModal from '@/components/employee/PaySlipModal';
 import CareerPathModal from '@/components/employee/CareerPathModal';
 import HelpdeskChatbotDrawer from '@/components/employee/HelpdeskChatbotDrawer';
 import ReimbursementModal from '@/components/employee/ReimbursementModal';
 import HelpdeskTicketModal from '@/components/employee/HelpdeskTicketModal';
 import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal';
+import FinalizationRequestModal from '@/components/employee/FinalizationRequestModal';
 import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
 import OnboardingPanel from '@/components/employee/OnboardingPanel';
@@ -52,7 +54,7 @@ import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
-type EmployeeFeature = 'scorecard' | 'okr' | 'development';
+type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet';
 
 export default function EmployeePortalPage() {
 const { currentUser } = useAuth();
@@ -78,9 +80,14 @@ const [isAddKpiOpen, setIsAddKpiOpen] = useState(false);
 const [is360Open, setIs360Open] = useState(false);
 const [isTreeOpen, setIsTreeOpen] = useState(false);
 const [treeData, setTreeData] = useState<any | null>(null);
+// 360°: daftar rekan kerja yang bisa dinilai + agregat umpan balik untuk diri sendiri.
+const [peers360, setPeers360] = useState<Array<{ id: string; fullName: string; positionTitle: string }>>([]);
+const [peerAgg360, setPeerAgg360] = useState<{ avg: number; score: number; count: number; sufficient: boolean; minimumReviewers: number } | null>(null);
+// Lifetime Contribution (LCI) milik karyawan login.
+const [legacy, setLegacy] = useState<{ totalLciPoints: number; totalContributions: number; totalQuantifiedImpactIdr: number; hallOfFameEligible: boolean; items: any[] } | null>(null);
+const [isLegacyOpen, setIsLegacyOpen] = useState(false);
 
 // Govera360 Modals
-const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
 const [isPayslipOpen, setIsPayslipOpen] = useState(false);
 const [isCareerOpen, setIsCareerOpen] = useState(false);
 const [isChatbotOpen, setIsChatbotOpen] = useState(false);
@@ -89,6 +96,12 @@ const [isTicketOpen, setIsTicketOpen] = useState(false);
 const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
 const [isJobBoardOpen, setIsJobBoardOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
+const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
+const [isDownloadingKpi, setIsDownloadingKpi] = useState(false);
+// Modul Cuti / Leave (fase DURING–POST): pengajuan + riwayat.
+const [isLeaveOpen, setIsLeaveOpen] = useState(false);
+const [leaveList, setLeaveList] = useState<any[]>([]);
+const [leaveForm, setLeaveForm] = useState({ leaveType: 'ANNUAL', startDate: '', endDate: '', totalDays: '1', reason: '' });
 
 // New KPI Form State
 const [kpiForm, setKpiForm] = useState({
@@ -131,6 +144,34 @@ setLoading(false);
 useEffect(() => {
 loadKpis(selectedPeriod);
 }, [loadKpis, selectedPeriod]);
+
+// Unduh rekapitulasi portofolio KPI sebagai PDF asli (dari basis data).
+const downloadKpiPortfolio = useCallback(async () => {
+if (isDownloadingKpi) return;
+setIsDownloadingKpi(true);
+setStatusMsg(null);
+try {
+const res = await fetch(`/api/v1/performance/kpi-portfolio/pdf?period_id=${selectedPeriod}`);
+if (!res.ok) {
+const json = await res.json().catch(() => ({}));
+throw new Error(json?.error?.message || json?.message || 'Gagal membuat dokumen PDF.');
+}
+const blob = await res.blob();
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `portofolio-kpi-${selectedPeriod}.pdf`;
+document.body.appendChild(a);
+a.click();
+a.remove();
+URL.revokeObjectURL(url);
+setStatusMsg({ type: 'success', text: 'Portofolio KPI berhasil diunduh.' });
+} catch (err) {
+setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Gagal mengunduh portofolio KPI.' });
+} finally {
+setIsDownloadingKpi(false);
+}
+}, [isDownloadingKpi, selectedPeriod]);
 
 // Task 8: muat scorecard GPA nyata milik karyawan dari DB.
 useEffect(() => {
@@ -175,6 +216,111 @@ setKpiForm((prev) => ({ ...prev, periodId }));
 loadKpis(periodId);
 };
 
+// Label singkat periode (mis. "Q3") agar judul kartu finalisasi ikut periode terpilih.
+const PERIOD_SHORT_LABEL: Record<string, string> = {
+'d0000000-0000-4000-8000-000000000001': 'Q3',
+'d0000000-0000-4000-8000-000000000002': 'Q4',
+};
+const periodShortLabel = PERIOD_SHORT_LABEL[selectedPeriod] ?? 'Q3';
+
+// Muat daftar rekan kerja (evaluatee) untuk picker 360° dari DB.
+const loadPeers360 = useCallback(async () => {
+try {
+const res = await fetch('/api/v1/performance/360-reviews/peers');
+if (!res.ok) return;
+const json = await res.json();
+const peers = json?.data?.peers ?? [];
+setPeers360(peers);
+if (peers[0]) {
+setReviewForm((prev) => ({
+...prev,
+evaluateeId: peers.some((p: any) => p.id === prev.evaluateeId) ? prev.evaluateeId : peers[0].id,
+}));
+}
+} catch {
+/* biarkan daftar kosong bila API tak tersedia */
+}
+}, []);
+
+// Muat agregat umpan balik 360° (anonim) untuk diri sendiri pada periode terpilih.
+const loadAgg360 = useCallback(async (periodId: string) => {
+try {
+const res = await fetch(`/api/v1/performance/360-reviews?period_id=${periodId}`);
+if (!res.ok) return;
+const json = await res.json();
+setPeerAgg360(json?.data ? {
+avg: json.data.avg, score: json.data.score, count: json.data.count,
+sufficient: json.data.sufficient, minimumReviewers: json.data.minimumReviewers ?? 3,
+} : null);
+} catch {
+/* biarkan agregat kosong */
+}
+}, []);
+
+// Muat portofolio Lifetime Contribution (LCI) milik karyawan login dari DB.
+const loadLegacy = useCallback(async () => {
+try {
+const res = await fetch('/api/v1/offboarding/legacy-vault/me');
+if (!res.ok) return;
+const json = await res.json();
+const v = json?.data?.legacy_vault;
+if (v) setLegacy({
+totalLciPoints: v.total_lci_points,
+totalContributions: v.total_contributions,
+totalQuantifiedImpactIdr: v.total_quantified_impact_idr,
+hallOfFameEligible: v.lci_hall_of_fame_eligible,
+items: v.items ?? [],
+});
+} catch {
+/* biarkan kartu kosong */
+}
+}, []);
+
+useEffect(() => { void loadPeers360(); void loadLegacy(); }, [loadPeers360, loadLegacy]);
+useEffect(() => { void loadAgg360(selectedPeriod); }, [loadAgg360, selectedPeriod]);
+
+const loadLeave = useCallback(async () => {
+try {
+const res = await fetch('/api/v1/governance/leaves?scope=mine');
+if (!res.ok) return;
+const json = await res.json();
+setLeaveList(json?.data?.items ?? []);
+} catch {
+/* riwayat kosong */
+}
+}, []);
+
+const handleSubmitLeave = async (e: React.FormEvent) => {
+e.preventDefault();
+setIsUpdating(true);
+setStatusMsg(null);
+try {
+const res = await fetch('/api/v1/governance/leaves', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+leaveType: leaveForm.leaveType,
+startDate: leaveForm.startDate,
+endDate: leaveForm.endDate,
+totalDays: Number(leaveForm.totalDays),
+reason: leaveForm.reason,
+}),
+});
+const json = await res.json();
+if (res.ok) {
+setStatusMsg({ type: 'success', text: 'Permohonan cuti diajukan & menunggu persetujuan atasan.' });
+setLeaveForm({ leaveType: 'ANNUAL', startDate: '', endDate: '', totalDays: '1', reason: '' });
+void loadLeave();
+} else {
+setStatusMsg({ type: 'error', text: json?.error?.message || json?.message || 'Gagal mengajukan cuti.' });
+}
+} catch (err: any) {
+setStatusMsg({ type: 'error', text: err.message });
+} finally {
+setIsUpdating(false);
+}
+};
+
 const handleCreateKpi = async (e: React.FormEvent) => {
 e.preventDefault();
 setIsUpdating(true);
@@ -197,7 +343,7 @@ const json = await res.json();
 if (res.ok) {
 setStatusMsg({
 type: 'success',
-text: `Sasaran KPI '${kpiForm.title}' (bobot ${kpiForm.weight}%) berhasil diajukan dan tertaut ke Pilar Strategis BSC!`,
+text: `Target kerja '${kpiForm.title}' (bobot ${kpiForm.weight}%) berhasil disimpan dan tertaut ke Pilar Strategis perusahaan!`,
 });
 setIsAddKpiOpen(false);
 setKpiForm({
@@ -214,7 +360,7 @@ handlePeriodChange(kpiForm.periodId);
 loadKpis(selectedPeriod);
 }
 } else {
-setStatusMsg({ type: 'error', text: json.detail || 'Gagal mengajukan sasaran KPI baru.' });
+setStatusMsg({ type: 'error', text: json.detail || 'Gagal menyimpan target kerja baru.' });
 }
 } catch (err: any) {
 setStatusMsg({ type: 'error', text: err.message });
@@ -331,7 +477,7 @@ const res = await fetch('/api/v1/performance/360-reviews', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
-period_id: 'd0000000-0000-4000-8000-000000000001',
+period_id: selectedPeriod,
 evaluatee_id: reviewForm.evaluateeId,
 relationship_type: 'PEER',
 integrity_score: Number(reviewForm.integrity),
@@ -347,6 +493,7 @@ type: 'success',
 text: `Feedback 360° untuk rekan kerja berhasil dikirim secara anonim & terenkripsi ke database!`,
 });
 setIs360Open(false);
+void loadAgg360(selectedPeriod);
 } else {
 setStatusMsg({ type: 'error', text: json.detail || 'Gagal mengirim evaluasi 360°.' });
 }
@@ -474,7 +621,7 @@ return (
       {
         phase: 'DURING',
         title: 'Saat Kerja',
-        summary: gpaVal != null ? `GPA ${Number(gpaVal).toFixed(2)}` : 'Kinerja berjalan',
+        summary: gpaVal != null ? `Nilai Kinerja ${Number(gpaVal).toFixed(2)}` : 'Kinerja berjalan',
         done: gpaVal != null,
         next: 'Kelola KPI, timesheet, pengembangan, dan penilaian 360°.',
         links: [{ phase: 'PRE', label: 'Sumber orientasi' }, { phase: 'POST', label: 'Menuju fase Setelah Kerja' }],
@@ -620,8 +767,8 @@ return (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
                   Masa Bakti: {tenureLabel}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
-                  Siklus: {cycleLabel}
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]" title="Periode penilaian terakhir yang sudah dievaluasi">
+                  Siklus Terakhir: {cycleLabel}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#3730a3] border border-[#c7d2fe]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#3730a3]" />
@@ -664,7 +811,7 @@ return (
               <div className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Saat Kerja</div>
               <div className="mt-1 text-sm font-semibold text-[#0f172a]">
                 {(scorecard?.compositeGpa ?? gpa) != null
-                  ? `GPA Kinerja: ${Number(scorecard?.compositeGpa ?? gpa).toFixed(2)} / 4.00`
+                  ? `Nilai Kinerja: ${Number(scorecard?.compositeGpa ?? gpa).toFixed(2)} / 4.00`
                   : 'Belum ada penilaian kinerja'}
               </div>
               <div className="text-[11px] text-[#64748b] mt-0.5">Periode {cycleLabel}</div>
@@ -700,15 +847,15 @@ return (
   <FeatureGrid>
     <FeatureCard
       icon={Compass}
-      title="Scorecard GPA"
+      title="Nilai Kinerja"
       metric="4-Pilar"
       tag="Model GCG"
-      description="Composite Performance Scorecard: KPI, SOP, Kompetensi, dan Core Values dengan formula bobot transparan."
+      description="Ringkasan nilai Anda: Target Kerja (50%), Kepatuhan Prosedur (20%), Kemampuan & Pelatihan (15%), Sikap & Penilaian Rekan (15%)."
       onOpen={() => setOpenFeature('scorecard')}
     />
     <FeatureCard
       icon={Target}
-      title="Sasaran Kerja & OKR"
+      title="Target Kerja"
       metric={`${totalWeight}%`}
       tag="Cascading BSC"
       description="Sasaran kerja aktif yang terhubung hierarkis ke Balanced Scorecard perusahaan, lengkap dengan input realisasi."
@@ -735,9 +882,9 @@ return (
         icon={Clock}
         tone="emerald"
         title="Isi Timesheet Harian"
-        tag="Timesheet"
-        description="Catat jam kerja harian dan aktivitas Anda untuk periode berjalan."
-        onClick={() => setIsTimesheetOpen(true)}
+        tag="Absensi"
+        description="Check-in/out, catat jam kerja harian, lembur, dan aktivitas Anda."
+        onClick={() => setOpenFeature('timesheet')}
       />
       <ActionCard
         icon={Lock}
@@ -780,6 +927,14 @@ return (
         onClick={() => setIsReimbursementOpen(true)}
       />
       <ActionCard
+        icon={CalendarDays}
+        tone="blue"
+        title="Cuti & Izin"
+        tag={`${leaveList.length} pengajuan`}
+        description="Ajukan cuti tahunan/sakit/spesial dan pantau status persetujuannya."
+        onClick={() => { void loadLeave(); setIsLeaveOpen(true); }}
+      />
+      <ActionCard
         icon={MessageSquare}
         tone="rose"
         title="Tiket Bantuan"
@@ -808,29 +963,30 @@ return (
         tone="slate"
         title="Unduh Portofolio KPI"
         tag="Dokumen"
-        description="Unduh rekapitulasi portofolio KPI Anda dalam satu berkas."
-        onClick={() => window.print()}
+        description="Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF."
+        onClick={() => downloadKpiPortfolio()}
+        disabled={isDownloadingKpi}
       />
       <ActionCard
         icon={Send}
         tone="emerald"
-        title="Ajukan Finalisasi Q3"
+        title={`Ajukan Finalisasi ${periodShortLabel}`}
         tag="Self-Appraisal"
-        description="Kirim pengajuan finalisasi penilaian kinerja periode Q3 kepada atasan."
-        onClick={() => setIsProfileOpen(true)}
+        description={`Kirim pengajuan finalisasi penilaian kinerja periode ${periodShortLabel} kepada atasan.`}
+        onClick={() => setIsFinalizeOpen(true)}
       />
     </div>
   </div>
     </>
   )}
 
-  {/* Panel: Scorecard GPA */}
-  <ExpandablePanel open={openFeature === 'scorecard'} title="Composite Performance Scorecard" onClose={() => setOpenFeature(null)}>
+  {/* Panel: Nilai Kinerja */}
+  <ExpandablePanel open={openFeature === 'scorecard'} title="Nilai Kinerja (Scorecard)" onClose={() => setOpenFeature(null)}>
   <div className="stitch-card-white p-6 space-y-4">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f1f5f9] pb-3">
       <div className="flex items-center gap-3">
         <h2 className="text-base font-extrabold text-[#0f172a]">
-          Composite Performance Scorecard
+          Nilai Kinerja Anda
         </h2>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#475569]">
           Model GCG 4-Pilar
@@ -844,7 +1000,7 @@ return (
     </div>
 
     <p className="text-xs text-[#64748b]">
-      Formula bobot matematis transparan tanpa bias subjektif, tersinkronisasi otomatis dengan HR Command Center.
+      Nilai ini dihitung otomatis dan adil: 50% dari Target Kerja, 20% dari Kepatuhan Prosedur, 15% dari Kemampuan & Pelatihan, dan 15% dari Sikap & Penilaian Rekan. Sama persis dengan yang dilihat HR.
     </p>
 
     {/* Scorecard Layout */}
@@ -854,7 +1010,7 @@ return (
       <div className="lg:col-span-3 p-5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex flex-col justify-between space-y-3">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">
-            Cumulative Weighted GPA
+            Nilai Kinerja Keseluruhan
           </span>
           <div className="flex items-baseline gap-1 mt-1.5">
             <span className="text-4xl font-black text-[#0f172a] font-sans">
@@ -887,7 +1043,7 @@ return (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
                 <Target className="h-3.5 w-3.5 text-[#007a5a]" />
-                Cascaded KPI
+                1. Target Kerja
               </div>
               <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.kpiCompositeScore != null ? Number((scorecard.kpiCompositeScore * 0.5).toFixed(2)) : '46.25'}%</span>
             </div>
@@ -908,7 +1064,7 @@ return (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
                 <ShieldCheck className="h-3.5 w-3.5 text-[#0284c7]" />
-                SOP Compliance
+                2. Kepatuhan Prosedur
               </div>
               <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.sopComplianceScore != null ? Number((scorecard.sopComplianceScore * 0.2).toFixed(2)) : '19.20'}%</span>
             </div>
@@ -929,7 +1085,7 @@ return (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
                 <Award className="h-3.5 w-3.5 text-[#007a5a]" />
-                Competency Mastery
+                3. Kemampuan & Pelatihan
               </div>
               <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.competencyScore != null ? Number((scorecard.competencyScore * 0.15).toFixed(2)) : '12.75'}%</span>
             </div>
@@ -950,7 +1106,7 @@ return (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
                 <Users className="h-3.5 w-3.5 text-[#007a5a]" />
-                Core Values & 360°
+                4. Sikap & Penilaian Rekan
               </div>
               <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.coreValuesScore != null ? Number((scorecard.coreValuesScore * 0.15).toFixed(2)) : '13.50'}%</span>
             </div>
@@ -972,14 +1128,14 @@ return (
     <AiAnalyzePanel feature="employee" />
   </ExpandablePanel>
 
-  {/* Panel: Sasaran Kerja & Cascading OKR */}
-  <ExpandablePanel open={openFeature === 'okr'} title="Sasaran Kerja & Cascading OKR Aktif" onClose={() => setOpenFeature(null)}>
+  {/* Panel: Target Kerja & Cascading OKR */}
+  <ExpandablePanel open={openFeature === 'okr'} title="Target Kerja Aktif" onClose={() => setOpenFeature(null)}>
   <div className="stitch-card-white p-6 space-y-4">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
       <div>
         <div className="flex items-center gap-2">
           <h2 className="text-base font-extrabold text-[#0f172a]">
-            Sasaran Kerja & Cascading OKR Aktif
+            Target Kerja Aktif
           </h2>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
             totalWeight === 100 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#e0f2fe] text-[#0369a1]'
@@ -993,7 +1149,7 @@ return (
           </span>
         </div>
         <p className="text-xs text-[#64748b] mt-0.5">
-          Setiap target individu terhubung secara hierarkis ke Balanced Scorecard (BSC) Perusahaan (PRD §8).
+          Setiap target individu terhubung secara hierarkis ke Balanced Scorecard (BSC) Perusahaan.
         </p>
       </div>
 
@@ -1044,7 +1200,7 @@ return (
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5 text-white" />
-          <span>Ajukan Milestone Baru</span>
+          <span>Tambah Target Kerja</span>
         </button>
       </div>
     </div>
@@ -1080,11 +1236,11 @@ return (
     )}
 
     {/* Modal Update Actual */}
-    {selectedKpi && (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    {selectedKpi && typeof document !== 'undefined' && createPortal(
+      <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
           <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
-            <h3 className="text-sm font-extrabold text-[#0f172a]">Input Nilai Realisasi KPI</h3>
+            <h3 className="text-sm font-extrabold text-[#0f172a]">Isi Capaian Target Kerja</h3>
             <button onClick={() => setSelectedKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
           </div>
           <div className="space-y-1">
@@ -1114,17 +1270,18 @@ return (
             </div>
           </form>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
     {/* Modal Update Weight */}
-    {weightModalKpi && (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    {weightModalKpi && typeof document !== 'undefined' && createPortal(
+      <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
           <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
             <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
               <Sliders className="h-4 w-4 text-[#0284c7]" />
-              <span>Sesuaikan Bobot Sasaran KPI</span>
+              <span>Sesuaikan Bobot Target Kerja</span>
             </h3>
             <button onClick={() => setWeightModalKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
           </div>
@@ -1158,7 +1315,8 @@ return (
             </div>
           </form>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
     {/* Real Database KPIs from PostgreSQL */}
@@ -1245,6 +1403,10 @@ return (
   </ExpandablePanel>
 
   {/* Panel: Pengembangan Diri */}
+  <ExpandablePanel open={openFeature === 'timesheet'} title="Absensi & Timesheet Harian" onClose={() => setOpenFeature(null)}>
+    <AttendancePanel />
+  </ExpandablePanel>
+
   <ExpandablePanel open={openFeature === 'development'} title="Pengembangan Diri & Pembelajaran" onClose={() => setOpenFeature(null)}>
   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
     
@@ -1306,7 +1468,7 @@ return (
             </h3>
           </div>
           <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#fef3c7] text-[#92400e]">
-            2 Menunggu
+            {peers360.length > 0 ? `${peers360.length} Rekan Terdaftar` : 'Menunggu Rekan'}
           </span>
         </div>
 
@@ -1319,13 +1481,17 @@ return (
             <Lock className="h-3.5 w-3.5" />
             <span>Jaminan Kerahasiaan 100%</span>
           </div>
-          <p className="text-[11px] text-[#64748b]">
-            Anda memiliki 2 rekan kerja yang menunggu umpan balik nilai budaya AKHLAK & Integritas untuk siklus Q3.
-          </p>
-          <div className="flex items-center gap-1.5 pt-1">
-            <span className="h-6 w-6 rounded-full bg-[#007a5a] text-white text-[10px] font-bold flex items-center justify-center">AF</span>
-            <span className="h-6 w-6 rounded-full bg-[#0284c7] text-white text-[10px] font-bold flex items-center justify-center">DS</span>
-          </div>
+          {peerAgg360 && peerAgg360.count > 0 ? (
+            <p className="text-[11px] text-[#64748b]">
+              Anda menerima <span className="font-bold text-[#0284c7]">{peerAgg360.count}</span> umpan balik (min. {peerAgg360.minimumReviewers}).
+              Skor budaya agregat: <span className="font-bold text-[#007a5a]">{peerAgg360.avg.toFixed(2)}/5</span>
+              {peerAgg360.sufficient ? ' · cukup' : ' · belum cukup'}.
+            </p>
+          ) : (
+            <p className="text-[11px] text-[#64748b]">
+              Belum ada umpan balik masuk untuk siklus {periodShortLabel}. Berikan umpan balik anonim kepada rekan kerja Anda.
+            </p>
+          )}
         </div>
       </div>
 
@@ -1350,7 +1516,7 @@ return (
             </h3>
           </div>
           <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#475569]">
-            Tier: Gold Contributor
+            Tier: {(legacy?.totalLciPoints ?? 0) >= 100 ? 'Gold Contributor' : (legacy?.totalLciPoints ?? 0) > 0 ? 'Contributor' : 'Belum Ada'}
           </span>
         </div>
 
@@ -1360,17 +1526,25 @@ return (
 
         <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs space-y-2">
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-black text-[#0f172a] font-sans">140</span>
+            <span className="text-2xl font-black text-[#0f172a] font-sans">{legacy?.totalLciPoints ?? 0}</span>
             <span className="text-xs font-semibold text-[#64748b]">Poin Legacy Akumulatif</span>
           </div>
-          <ul className="text-[11px] text-[#475569] space-y-1 list-disc list-inside">
-            <li>1 Paten Terdaftar: &ldquo;Dynamic API Gateway Rate Limiting&rdquo;</li>
-            <li>2 Inovasi Kaizen: &ldquo;FF-Cost Staging Optimization&rdquo;</li>
-          </ul>
+          {legacy && legacy.items.length > 0 ? (
+            <ul className="text-[11px] text-[#475569] space-y-1 list-disc list-inside">
+              {legacy.items.slice(0, 3).map((it) => (
+                <li key={it.contribution_id}>{it.achievement_title} (+{it.points_awarded} poin)</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-[#64748b]">Belum ada kontribusi tercatat. Kontribusi ditambahkan oleh HR saat pencapaian terverifikasi (paten, Kaizen, mentorship, dampak pendapatan).</p>
+          )}
         </div>
       </div>
 
-      <button className="w-full py-2 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors">
+      <button
+        onClick={() => setIsLegacyOpen(true)}
+        className="w-full py-2 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors"
+      >
         <span>Lihat Portofolio Legacy</span>
       </button>
     </div>
@@ -1378,9 +1552,6 @@ return (
   </div>
 
   {/* Learning & Development (integrasi model Moodle) */}
-  <div className="mt-5">
-    <AttendancePanel />
-  </div>
   <div className="mt-5">
     <OnboardingPanel />
   </div>
@@ -1391,16 +1562,16 @@ return (
   </ExpandablePanel>
 
   {/* Modal 1: Ajukan Sasaran KPI Baru */}
-  {isAddKpiOpen && (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  {isAddKpiOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn">
         <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
           <div>
             <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
               <Plus className="h-4 w-4 text-[#007a5a]" />
-              <span>Ajukan Sasaran Kerja / KPI Baru</span>
+              <span>Tambah Target Kerja Baru</span>
             </h3>
-            <p className="text-[11px] text-[#64748b]">Wajib terhubung ke minimal 1 Pilar Strategis BSC (PRD §8).</p>
+            <p className="text-[11px] text-[#64748b]">Setiap target harus terhubung ke minimal 1 Pilar Strategis perusahaan.</p>
           </div>
           <button onClick={() => setIsAddKpiOpen(false)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer">
             <X className="h-4 w-4" />
@@ -1480,7 +1651,7 @@ return (
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#334155] mb-1">Bobot Sasaran (%)</label>
+              <label className="block text-xs font-semibold text-[#334155] mb-1">Bobot Target (%)</label>
               <input
                 type="number"
                 min="1"
@@ -1495,7 +1666,7 @@ return (
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#334155] mb-1">Judul Sasaran KPI (SMART Target)</label>
+            <label className="block text-xs font-semibold text-[#334155] mb-1">Judul Target Kerja</label>
             <input
               type="text"
               required
@@ -1507,7 +1678,7 @@ return (
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#334155] mb-1">Pilar Strategis Balanced Scorecard (BSC)</label>
+            <label className="block text-xs font-semibold text-[#334155] mb-1">Pilar Strategis Perusahaan</label>
             <select
               value={kpiForm.pillarId}
               onChange={(e) => setKpiForm({ ...kpiForm, pillarId: e.target.value })}
@@ -1559,23 +1730,24 @@ return (
               disabled={isUpdating || (kpiForm.periodId === selectedPeriod && remainingQuota === 0)}
               className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
             >
-              {isUpdating ? 'Memvalidasi...' : 'Ajukan KPI'}
+              {isUpdating ? 'Memvalidasi...' : 'Simpan Target Kerja'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )}
 
   {/* Modal 2: Isi Ulasan 360° Anonim */}
-  {is360Open && (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  {is360Open && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn">
         <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
           <div>
             <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-[#0284c7]" />
-              <span>Ulasan Kinerja 360° Multi-Rater (PRD §5.2)</span>
+              <span>Ulasan Kinerja 360° Multi-Rater</span>
             </h3>
             <p className="text-[11px] text-[#64748b]">Jaminan anonimitas terenkripsi penuh sesuai standar tata kelola GCG.</p>
           </div>
@@ -1592,9 +1764,12 @@ return (
               onChange={(e) => setReviewForm({ ...reviewForm, evaluateeId: e.target.value })}
               className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#0284c7] bg-white text-[#0f172a]"
             >
-              <option value="b0000000-0000-4000-8000-000000000007">Anisa Wijaya, S.Ds. — Product Designer UI/UX</option>
-              <option value="b0000000-0000-4000-8000-000000000008">Dimas Prasetyo, S.Kom. — DevOps & SRE Engineer</option>
-              <option value="b0000000-0000-4000-8000-000000000009">Rian Hidayat, S.Kom. — Junior Backend Developer</option>
+              {peers360.length === 0 && <option value="">Memuat rekan kerja…</option>}
+              {peers360.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.fullName}{p.positionTitle ? ` — ${p.positionTitle}` : ''}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -1672,12 +1847,195 @@ return (
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
+  )}
+
+  {/* Modal 2b: Portofolio Talent Legacy & Lifetime Contribution (LCI) */}
+  {isLegacyOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setIsLegacyOpen(false)}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+          <div>
+            <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+              <Bookmark className="h-4 w-4 text-[#007a5a]" />
+              <span>Portofolio Talent Legacy &amp; Lifetime Contribution</span>
+            </h3>
+            <p className="text-[11px] text-[#64748b]">PST-05: Lifetime Contribution Index (LCI) — arsip dampak jangka panjang.</p>
+          </div>
+          <button onClick={() => setIsLegacyOpen(false)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+            <p className="text-[10px] font-bold text-[#64748b] uppercase">Poin LCI</p>
+            <p className="text-lg font-black text-[#0f172a]">{legacy?.totalLciPoints ?? 0}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+            <p className="text-[10px] font-bold text-[#64748b] uppercase">Kontribusi</p>
+            <p className="text-lg font-black text-[#0f172a]">{legacy?.totalContributions ?? 0}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+            <p className="text-[10px] font-bold text-[#64748b] uppercase">Dampak (Rp)</p>
+            <p className="text-lg font-black text-[#0f172a]">{(legacy?.totalQuantifiedImpactIdr ?? 0).toLocaleString('id-ID')}</p>
+          </div>
+        </div>
+
+        {legacy?.hallOfFameEligible && (
+          <div className="p-3 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Memenuhi syarat Talent Legacy Hall of Fame (≥ 100 poin LCI).
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-[#334155]">Rincian Kontribusi</p>
+          {legacy && legacy.items.length > 0 ? (
+            <div className="divide-y divide-[#f1f5f9] border border-[#e2e8f0] rounded-xl overflow-hidden">
+              {legacy.items.map((it) => (
+                <div key={it.contribution_id} className="p-3 flex items-center justify-between text-xs bg-white">
+                  <div>
+                    <p className="font-semibold text-[#0f172a]">{it.achievement_title}</p>
+                    <p className="text-[10px] text-[#64748b]">{it.achievement_type} · {it.date_achieved ?? '—'}</p>
+                  </div>
+                  <span className="font-bold text-[#007a5a]">+{it.points_awarded} poin</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#64748b] p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+              Belum ada kontribusi tercatat untuk akun ini.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  )}
+
+  {/* Modal 2c: Cuti & Izin (self-service) */}
+  {isLeaveOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setIsLeaveOpen(false)}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+          <div>
+            <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-[#0284c7]" />
+              <span>Pengajuan Cuti & Izin</span>
+            </h3>
+            <p className="text-[11px] text-[#64748b]">Ajukan cuti dan pantau status persetujuan dari atasan/HR.</p>
+          </div>
+          <button onClick={() => setIsLeaveOpen(false)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmitLeave} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-[11px] font-bold text-[#334155] space-y-1">
+              <span>Jenis Cuti</span>
+              <select
+                value={leaveForm.leaveType}
+                onChange={(e) => setLeaveForm({ ...leaveForm, leaveType: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-[#e2e8f0] bg-white"
+              >
+                <option value="ANNUAL">Cuti Tahunan</option>
+                <option value="SICK">Cuti Sakit</option>
+                <option value="MATERNITY">Cuti Melahirkan</option>
+                <option value="SPECIAL">Cuti Khusus</option>
+              </select>
+            </label>
+            <label className="text-[11px] font-bold text-[#334155] space-y-1">
+              <span>Total Hari</span>
+              <input
+                type="number"
+                min="1"
+                value={leaveForm.totalDays}
+                onChange={(e) => setLeaveForm({ ...leaveForm, totalDays: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-[#e2e8f0] bg-white"
+              />
+            </label>
+            <label className="text-[11px] font-bold text-[#334155] space-y-1">
+              <span>Tanggal Mulai</span>
+              <input
+                type="date"
+                required
+                value={leaveForm.startDate}
+                onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-[#e2e8f0] bg-white"
+              />
+            </label>
+            <label className="text-[11px] font-bold text-[#334155] space-y-1">
+              <span>Tanggal Selesai</span>
+              <input
+                type="date"
+                required
+                value={leaveForm.endDate}
+                onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-[#e2e8f0] bg-white"
+              />
+            </label>
+          </div>
+          <label className="text-[11px] font-bold text-[#334155] space-y-1 block">
+            <span>Alasan</span>
+            <textarea
+              rows={2}
+              value={leaveForm.reason}
+              onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+              className="w-full px-3 py-2 text-xs rounded-lg border border-[#e2e8f0] bg-white"
+            />
+          </label>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="px-4 py-1.5 text-xs font-bold text-white bg-[#0284c7] hover:bg-[#0369a1] rounded-lg disabled:opacity-50"
+            >
+              {isUpdating ? 'Mengirim...' : 'Ajukan Cuti'}
+            </button>
+          </div>
+        </form>
+
+        <div className="pt-3 border-t border-[#f1f5f9] space-y-2">
+          <p className="text-[11px] font-extrabold text-[#0f172a]">Riwayat Pengajuan</p>
+          {leaveList.length > 0 ? (
+            <div className="space-y-1.5">
+              {leaveList.map((l: any) => (
+                <div key={l.id} className="flex items-center justify-between p-2.5 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] text-[11px]">
+                  <div>
+                    <p className="font-bold text-[#0f172a]">{l.leaveType} &middot; {l.totalDays} hari</p>
+                    <p className="text-[#64748b]">{l.startDate} s/d {l.endDate}</p>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                      l.status === 'APPROVED'
+                        ? 'bg-[#e6f4ea] text-[#007a5a]'
+                        : l.status === 'REJECTED'
+                        ? 'bg-[#fee2e2] text-[#b91c1c]'
+                        : 'bg-[#fef3c7] text-[#b45309]'
+                    }`}
+                  >
+                    {l.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#64748b] p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+              Belum ada pengajuan cuti.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
   )}
 
   {/* Modal 3: Diagram Pohon Cascading BSC */}
-  {isTreeOpen && (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  {isTreeOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
           <div>
@@ -1699,7 +2057,7 @@ return (
           </div>
 
           <div className="space-y-2">
-            <p className="font-bold text-xs text-[#334155]">Pilar Strategis Balanced Scorecard Aktif:</p>
+            <p className="font-bold text-xs text-[#334155]">Pilar Strategis Perusahaan Aktif:</p>
             {(treeData?.level_2_strategic_pillars || []).map((p: any) => (
               <div key={p.pillar_id} className="p-3 rounded-xl border border-[#e2e8f0] bg-white space-y-2">
                 <div className="flex items-center justify-between">
@@ -1726,7 +2084,8 @@ return (
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )}
 
   {/* Learning & Development telah dipindahkan ke Panel Pengembangan Diri */}
@@ -1734,12 +2093,6 @@ return (
   <MyProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
   {/* Govera360 Modals */}
-  <TimesheetModal
-    isOpen={isTimesheetOpen}
-    onClose={() => setIsTimesheetOpen(false)}
-    onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
-  />
-
   <PaySlipModal
     isOpen={isPayslipOpen}
     onClose={() => setIsPayslipOpen(false)}
@@ -1778,6 +2131,14 @@ return (
   <HelpdeskChatbotDrawer
     isOpen={isChatbotOpen}
     onClose={() => setIsChatbotOpen(false)}
+  />
+
+  <FinalizationRequestModal
+    isOpen={isFinalizeOpen}
+    onClose={() => setIsFinalizeOpen(false)}
+    onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
+    periodId={selectedPeriod}
+    periodLabel={periodShortLabel}
   />
 
 </div>

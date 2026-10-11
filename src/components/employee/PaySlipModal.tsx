@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, X, Download, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
 
 interface PaySlipModalProps {
@@ -22,7 +23,7 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
     setErrorMsg('');
 
     try {
-      const res = await fetch('/api/v1/finance/payslip', {
+      const res = await fetch('/api/v1/payroll/payslip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin }),
@@ -30,7 +31,7 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
 
       const json = await res.json();
       if (!res.ok) {
-        setErrorMsg(json.detail || json.message || 'PIN keamanan salah. Masukkan 6 digit PIN (Default: 123456).');
+        setErrorMsg(json.detail || json.message || 'PIN keamanan salah atau slip belum diproses HR.');
         return;
       }
 
@@ -50,10 +51,10 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
     }).format(val);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
-        <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-slate-800">
+        <div className="bg-gradient-to-r from-[#0f172a] to-[#134e4a] text-white p-5 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-emerald-600 text-white">
               <FileText className="h-4 w-4" />
@@ -130,7 +131,7 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md font-bold">
-                    Periode: {payslipData.period}
+                    Periode: {payslipData.periodCode}
                   </span>
                 </div>
               </div>
@@ -143,12 +144,30 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
                   </span>
                   <div className="flex justify-between text-slate-600">
                     <span>Gaji Pokok:</span>
-                    <span className="font-mono">{formatIDR(payslipData.earnings.baseSalary)}</span>
+                    <span className="font-mono">{formatIDR(payslipData.baseSalary)}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Tunjangan Tetap:</span>
-                    <span className="font-mono">{formatIDR(payslipData.earnings.fixedAllowance)}</span>
+                    <span className="font-mono">{formatIDR(payslipData.fixedAllowance)}</span>
                   </div>
+                  {payslipData.overtimePay > 0 && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>Lembur ({payslipData.overtimeHours} jam):</span>
+                      <span className="font-mono">{formatIDR(payslipData.overtimePay)}</span>
+                    </div>
+                  )}
+                  {payslipData.bonus > 0 && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>Bonus:</span>
+                      <span className="font-mono">{formatIDR(payslipData.bonus)}</span>
+                    </div>
+                  )}
+                  {payslipData.thr > 0 && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>THR:</span>
+                      <span className="font-mono">{formatIDR(payslipData.thr)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -156,12 +175,20 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
                     Komponen Pemotongan (-)
                   </span>
                   <div className="flex justify-between text-slate-600">
-                    <span>BPJS Naker:</span>
-                    <span className="font-mono">{formatIDR(payslipData.deductions.bpjsKetenagakerjaan)}</span>
+                    <span>BPJS Kesehatan:</span>
+                    <span className="font-mono">{formatIDR(payslipData.bpjsKesehatan)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>BPJS JHT:</span>
+                    <span className="font-mono">{formatIDR(payslipData.bpjsJht)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>BPJS JP:</span>
+                    <span className="font-mono">{formatIDR(payslipData.bpjsJp)}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>PPh 21:</span>
-                    <span className="font-mono">{formatIDR(payslipData.deductions.pph21)}</span>
+                    <span className="font-mono">{formatIDR(payslipData.pph21)}</span>
                   </div>
                 </div>
               </div>
@@ -169,14 +196,14 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
               {/* Take Home Pay */}
               <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between font-bold">
                 <span className="text-xs text-slate-800">Total Gaji Bersih (Take Home Pay):</span>
-                <span className="text-sm font-mono text-emerald-600">{formatIDR(payslipData.netSalary)}</span>
+                <span className="text-sm font-mono text-emerald-600">{formatIDR(payslipData.net)}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-[11px] text-slate-400 flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                Terotentikasi &amp; Sah Sesuai PP No. 36/2021
+                Kehadiran {payslipData.presentDays}/{payslipData.workingDays} hari &bull; PP No. 36/2021
               </span>
               <button
                 onClick={() => alert('Fitur unduh PDF slip gaji terenkripsi telah disiapkan.')}
@@ -189,6 +216,7 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
