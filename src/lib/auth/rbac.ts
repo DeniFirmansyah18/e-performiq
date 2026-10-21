@@ -29,7 +29,8 @@ export type Permission =
 | 'ai:read'
 | 'wbs:read'
 | 'employment:read'
-| 'employment:manage';
+| 'employment:manage'
+| 'attendance:correct';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
 
@@ -62,6 +63,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'wbs:read': ['SUPER_ADMIN', 'AUDITOR'],
 'employment:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
 'employment:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'attendance:correct': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 };
 export function can(role: UserRole, permission: Permission): boolean {
 return MATRIX[permission].includes(role);
