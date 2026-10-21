@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { BusinessRuleError } from '@/lib/auth/errors';
 import { appendActivity } from './activityFeedService';
+import { storeSnapshot } from './dailyPerformanceService';
 
 export interface IndicatorRow {
   id: string;
@@ -113,6 +114,9 @@ export async function saveEntry(
       entityId: row.id,
       summary: `Mengirim realisasi indikator (${input.actualValue}) untuk ${input.entryDate}`,
     });
+    // Snapshot langsung ditulis agar cockpit, rekap, dan status tim terisi
+    // tanpa menunggu pekerjaan terjadwal.
+    await storeSnapshot(db, input.employeeId, input.entryDate, { silent: true });
   }
   return row;
 }
@@ -160,5 +164,10 @@ export async function verifyEntry(
     RETURNING ${ENTRY_SELECT}
   `)) as unknown as { rows: EntryRow[] };
 
-  return res.rows[0];
+  const updated = res.rows[0];
+  // Penolakan mengeluarkan entri dari perhitungan, jadi snapshot hari itu
+  // harus dihitung ulang agar rekap tidak menyimpan angka lama.
+  await storeSnapshot(db, updated.employeeId, String(updated.entryDate).slice(0, 10), { silent: true });
+
+  return updated;
 }

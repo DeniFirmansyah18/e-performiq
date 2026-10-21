@@ -124,7 +124,12 @@ export async function computeSnapshot(db: Db, employeeId: string, date: string):
   };
 }
 
-export async function storeSnapshot(db: Db, employeeId: string, date: string): Promise<SnapshotRow> {
+export async function storeSnapshot(
+  db: Db,
+  employeeId: string,
+  date: string,
+  opts: { silent?: boolean } = {},
+): Promise<SnapshotRow> {
   const snap = await computeSnapshot(db, employeeId, date);
 
   await db.execute(sql`
@@ -143,12 +148,16 @@ export async function storeSnapshot(db: Db, employeeId: string, date: string): P
           computed_at = CURRENT_TIMESTAMP
   `);
 
-  await appendActivity(db, {
-    employeeId,
-    eventType: 'DPI_STATUS',
-    summary: `Status ${snap.trafficLight} (DPI ${snap.score ?? '-'}) pada ${date}`,
-    occurredAt: `${date}T23:59:00+07:00`,
-  });
+  // Snapshot yang dipicu pengiriman entri tidak menambah baris feed; entri
+  // hariannya sudah tercatat sebagai KPI_DAILY.
+  if (!opts.silent) {
+    await appendActivity(db, {
+      employeeId,
+      eventType: 'DPI_STATUS',
+      summary: `Status ${snap.trafficLight} (DPI ${snap.score ?? '-'}) pada ${date}`,
+      occurredAt: `${date}T23:59:00+07:00`,
+    });
+  }
 
   return snap;
 }
