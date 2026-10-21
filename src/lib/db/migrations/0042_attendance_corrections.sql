@@ -1,6 +1,8 @@
 -- 0042: Mode kerja & koreksi absensi (PRD v2.0 §5.5, §10.3 H).
-CREATE TYPE work_mode_enum AS ENUM ('WFO', 'WFH', 'FIELD_DUTY');
-CREATE TYPE correction_status_enum AS ENUM ('SUBMITTED', 'APPROVED', 'REJECTED');
+DO $$ BEGIN CREATE TYPE work_mode_enum AS ENUM ('WFO', 'WFH', 'FIELD_DUTY');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE correction_status_enum AS ENUM ('SUBMITTED', 'APPROVED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 ALTER TABLE attendance_logs
   ADD COLUMN IF NOT EXISTS work_mode work_mode_enum NOT NULL DEFAULT 'WFO';

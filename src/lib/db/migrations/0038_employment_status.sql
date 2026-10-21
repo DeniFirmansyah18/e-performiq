@@ -1,7 +1,8 @@
 -- 0038: Status kepegawaian + riwayat (PRD v2.0 §10.3 A).
 -- Aditif: kolom baru punya default sehingga data berjalan tetap valid.
-CREATE TYPE employment_status_enum AS ENUM
+DO $$ BEGIN CREATE TYPE employment_status_enum AS ENUM
   ('PROBATION', 'PKWT', 'PKWTT', 'TETAP', 'RESIGNED', 'RETIRED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 ALTER TABLE employees
   ADD COLUMN IF NOT EXISTS employment_status employment_status_enum NOT NULL DEFAULT 'PROBATION',

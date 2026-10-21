@@ -1,7 +1,8 @@
 -- 0039: Feed aktivitas terpadu (PRD v2.0 §5.11, §10.3 F).
-CREATE TYPE activity_event_type_enum AS ENUM
+DO $$ BEGIN CREATE TYPE activity_event_type_enum AS ENUM
   ('ATTENDANCE', 'KPI_DAILY', 'DPI_STATUS', 'LEAVE', 'OVERTIME',
    'TRAINING', 'LETTER', 'DISCIPLINARY', 'RECOGNITION', 'CAREER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS activity_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

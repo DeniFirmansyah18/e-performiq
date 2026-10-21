@@ -1,9 +1,13 @@
 -- 0040: Indikator & entri KPI harian (PRD v2.0 §10.3 B).
-CREATE TYPE kpi_direction_enum AS ENUM ('HIGHER_BETTER', 'LOWER_BETTER');
-CREATE TYPE kpi_frequency_enum AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY');
-CREATE TYPE kpi_aggregation_enum AS ENUM ('SUM', 'AVG', 'LAST', 'MAX');
-CREATE TYPE daily_entry_status_enum AS ENUM
+DO $$ BEGIN CREATE TYPE kpi_direction_enum AS ENUM ('HIGHER_BETTER', 'LOWER_BETTER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE kpi_frequency_enum AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE kpi_aggregation_enum AS ENUM ('SUM', 'AVG', 'LAST', 'MAX');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE daily_entry_status_enum AS ENUM
   ('DRAFT', 'SUBMITTED', 'VERIFIED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS kpi_indicators (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

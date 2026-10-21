@@ -1,5 +1,6 @@
 -- 0041: Ambang DPI, snapshot harian, dan view rekap (PRD v2.0 §10.3 C, G).
-CREATE TYPE traffic_light_enum AS ENUM ('GREEN', 'YELLOW', 'RED', 'NO_DATA');
+DO $$ BEGIN CREATE TYPE traffic_light_enum AS ENUM ('GREEN', 'YELLOW', 'RED', 'NO_DATA');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS company_dpi_settings (
   company_id UUID PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,

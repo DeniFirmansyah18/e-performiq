@@ -26,6 +26,11 @@ const EXPECTED_TABLES = [
   // Kompetensi & benchmark
   'competencies', 'competency_frameworks', 'competency_evidence', 'industry_benchmarks',
   'company_vision_mission', 'education_institutions', 'education_majors', 'exit_interviews', 'email_outbox',
+  // PRD v2.0 fase 1: daily performance, self-service, feed
+  'employment_status_history', 'activity_events', 'kpi_indicators', 'kpi_daily_entries',
+  'company_dpi_settings', 'daily_performance_snapshots', 'attendance_corrections',
+  // Tabel migrasi 0032/0033/0036 yang belum terdaftar (pre-existing gap)
+  'appraisal_finalization_requests', 'improvement_ideas', 'sop_period_metrics',
 ].sort();
 
 describe('skema database', () => {
@@ -39,7 +44,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 84 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 95 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -50,13 +55,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 32 enum', async () => {
+  it('membuat 41 enum', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(32);
+    expect(Number(res.rows[0].count)).toBe(41);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {
