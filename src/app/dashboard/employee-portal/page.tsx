@@ -50,6 +50,10 @@ import AttendancePanel from '@/components/employee/AttendancePanel';
 import DailyStatusCard from '@/components/employee/DailyStatusCard';
 import DailyKpiChecklist from '@/components/employee/DailyKpiChecklist';
 import PerformanceRecapTabs from '@/components/employee/PerformanceRecapTabs';
+import OvertimeModal from '@/components/employee/OvertimeModal';
+import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
+import DisciplinaryModal from '@/components/employee/DisciplinaryModal';
+import DocumentsCard from '@/components/employee/DocumentsCard';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
@@ -100,6 +104,8 @@ const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
 const [isJobBoardOpen, setIsJobBoardOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
 const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
+const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
+const [isDisciplinaryOpen, setIsDisciplinaryOpen] = useState(false);
 const [isDownloadingKpi, setIsDownloadingKpi] = useState(false);
 // Modul Cuti / Leave (fase DURING–POST): pengajuan + riwayat.
 const [isLeaveOpen, setIsLeaveOpen] = useState(false);
@@ -853,6 +859,12 @@ return (
   </div>
   <PerformanceRecapTabs />
 
+  {/* 1b. Layanan mandiri (PRD v2 §5.6) */}
+  <div className="grid gap-3 lg:grid-cols-2">
+    <SocialSecurityCard />
+    <DocumentsCard />
+  </div>
+
   {/* 2. Feature Card Grid (click to open) */}
   <FeatureGrid>
     <FeatureCard
@@ -895,6 +907,22 @@ return (
         tag="Absensi"
         description="Check-in/out, catat jam kerja harian, lembur, dan aktivitas Anda."
         onClick={() => setOpenFeature('timesheet')}
+      />
+      <ActionCard
+        icon={Clock}
+        tone="amber"
+        title="Ajukan Lembur"
+        tag="Persetujuan atasan"
+        description="Rencanakan lembur sebelum bekerja agar jam lembur masuk perhitungan payroll."
+        onClick={() => setIsOvertimeOpen(true)}
+      />
+      <ActionCard
+        icon={AlertTriangle}
+        tone="rose"
+        title="Sanksi & Penghargaan"
+        tag="Transparan"
+        description="Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan."
+        onClick={() => setIsDisciplinaryOpen(true)}
       />
       <ActionCard
         icon={Lock}
@@ -2107,6 +2135,9 @@ return (
     isOpen={isPayslipOpen}
     onClose={() => setIsPayslipOpen(false)}
   />
+
+    <OvertimeModal open={isOvertimeOpen} onClose={() => setIsOvertimeOpen(false)} />
+    <DisciplinaryModal open={isDisciplinaryOpen} onClose={() => setIsDisciplinaryOpen(false)} />
 
   <CareerPathModal
     isOpen={isCareerOpen}
