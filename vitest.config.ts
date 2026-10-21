@@ -2,9 +2,11 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'node:path';
 
 export default defineConfig({
+  // tsconfig keeps jsx: "preserve" for Next.js; Vitest must compile JSX itself.
+  esbuild: { jsx: 'automatic' },
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     testTimeout: 30000,
     hookTimeout: 30000,
     // Route handler tests import routes that use the getDb() PGlite singleton (the dev

@@ -47,6 +47,9 @@ import OnboardingPanel from '@/components/employee/OnboardingPanel';
 import OffboardingSelfPanel from '@/components/employee/OffboardingSelfPanel';
 import { PHASES, PHASE_LABEL, type WorkPhase } from '@/lib/employee/phase';
 import AttendancePanel from '@/components/employee/AttendancePanel';
+import DailyStatusCard from '@/components/employee/DailyStatusCard';
+import DailyKpiChecklist from '@/components/employee/DailyKpiChecklist';
+import PerformanceRecapTabs from '@/components/employee/PerformanceRecapTabs';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
@@ -843,6 +846,13 @@ return (
   {/* ==== FASE: Saat Kerja ==== */}
   {activePhase === 'DURING' && (
     <>
+  {/* 1. Employee Daily Cockpit (PRD v2 §7.5) */}
+  <div className="grid gap-3 lg:grid-cols-2">
+    <DailyStatusCard />
+    <DailyKpiChecklist />
+  </div>
+  <PerformanceRecapTabs />
+
   {/* 2. Feature Card Grid (click to open) */}
   <FeatureGrid>
     <FeatureCard
