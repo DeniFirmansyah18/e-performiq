@@ -27,7 +27,9 @@ export type Permission =
 | 'offboarding:read'
 | 'offboarding:write'
 | 'ai:read'
-| 'wbs:read';
+| 'wbs:read'
+| 'employment:read'
+| 'employment:manage';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
 
@@ -58,6 +60,8 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'offboarding:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'ai:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'ASSESSOR'],
 'wbs:read': ['SUPER_ADMIN', 'AUDITOR'],
+'employment:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
+'employment:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 };
 export function can(role: UserRole, permission: Permission): boolean {
 return MATRIX[permission].includes(role);
