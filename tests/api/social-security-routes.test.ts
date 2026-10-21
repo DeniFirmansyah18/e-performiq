@@ -70,7 +70,7 @@ describe('social security', () => {
   });
 
   it('reveal mengembalikan nomor penuh dan menulis audit log', async () => {
-    const before = await db.query<{ n: number }>(
+    const before = await client.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM audit_logs WHERE entity_name = 'employee_social_security'`,
     );
 
@@ -78,7 +78,7 @@ describe('social security', () => {
     expect(res.status).toBe(200);
     expect((await res.json()).data.bpjsTkNumber).toBe('8101234567890123');
 
-    const after = await db.query<{ n: number }>(
+    const after = await client.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM audit_logs WHERE entity_name = 'employee_social_security'`,
     );
     expect(Number(after.rows[0].n)).toBe(Number(before.rows[0].n) + 1);
