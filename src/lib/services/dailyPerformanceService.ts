@@ -258,7 +258,8 @@ export async function rollupPeriod(db: Db, employeeId: string, periodId: string)
   }
 
   let updated = 0;
-  for (const [kpiId, agg] of byKpi) {
+  const entries = Array.from(byKpi.entries());
+  for (const [kpiId, agg] of entries) {
     if (agg.weightSum === 0) continue;
     const actual = agg.target * (agg.weighted / agg.weightSum);
     await db.execute(sql`

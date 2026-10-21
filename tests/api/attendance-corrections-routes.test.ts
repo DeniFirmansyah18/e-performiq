@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { runSeed } from '@/lib/db/seed';
 import { getDb } from '@/lib/db/client';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
+import type { SqlClient } from '@/lib/db/client';
 import { POST as postCorrection } from '@/app/api/v1/me/attendance-corrections/route';
 import { PUT as putDecide } from '@/app/api/v1/attendance/corrections/[id]/decide/route';
 
@@ -16,7 +17,7 @@ const jsonReq = (path: string, method: string, body: unknown, cookie: string) =>
   });
 
 describe('attendance corrections', () => {
-  let client: any;
+  let client: SqlClient;
   let employeeId = '';
   let empCookie = '';
   let hrCookie = '';
