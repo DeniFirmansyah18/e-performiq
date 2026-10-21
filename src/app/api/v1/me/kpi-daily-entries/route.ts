@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
     const session = await getAuthSession(req);
     if (!session) return fail('UNAUTHORIZED', 'Sesi tidak valid.', 401);
     assertCan(session, 'kpi:read');
-    if (!session.employeeId) return fail('FORBIDDEN', 'Akun tidak memiliki ID karyawan.', 403);
 
     const today = isoDay();
     const from = req.nextUrl.searchParams.get('from') ?? today;
@@ -32,7 +31,16 @@ export async function GET(req: NextRequest) {
       return fail('VALIDATION_ERROR', 'Format tanggal harus YYYY-MM-DD.', 400);
     }
 
-    const items = await listEntries(db, session.employeeId, from, to);
+    // `employeeId` hanya boleh dipakai pengawas; karyawan selalu membaca miliknya.
+    const requested = req.nextUrl.searchParams.get('employeeId');
+    let target = session.employeeId;
+    if (requested && requested !== session.employeeId) {
+      assertCan(session, 'kpi:approve');
+      target = requested;
+    }
+    if (!target) return fail('FORBIDDEN', 'Akun tidak memiliki ID karyawan.', 403);
+
+    const items = await listEntries(db, target, from, to);
     return ok({ items });
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;

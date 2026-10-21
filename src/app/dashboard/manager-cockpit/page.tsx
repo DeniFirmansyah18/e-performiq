@@ -22,6 +22,7 @@ import {
   ClipboardCheck,
 } from 'lucide-react';
 import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
+import DailyVerificationPanel from '@/components/governance/DailyVerificationPanel';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
@@ -487,6 +488,9 @@ export default function ManagerCockpitPage() {
           <button onClick={() => setApprovalMsg(null)} className="text-[#137333] hover:underline font-bold">Tutup</button>
         </div>
       )}
+
+      {/* 1. Verifikasi Kinerja Harian Tim (PRD v2 §5.5) */}
+      <DailyVerificationPanel />
 
       {/* 2. Feature Card Grid (click to open) */}
       <FeatureGrid>
