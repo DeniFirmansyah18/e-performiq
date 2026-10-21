@@ -54,6 +54,7 @@ import OvertimeModal from '@/components/employee/OvertimeModal';
 import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
 import DisciplinaryModal from '@/components/employee/DisciplinaryModal';
 import DocumentsCard from '@/components/employee/DocumentsCard';
+import CareerLadderPanel from '@/components/employee/CareerLadderPanel';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
@@ -864,6 +865,7 @@ return (
     <SocialSecurityCard />
     <DocumentsCard />
   </div>
+  <CareerLadderPanel />
 
   {/* 2. Feature Card Grid (click to open) */}
   <FeatureGrid>
