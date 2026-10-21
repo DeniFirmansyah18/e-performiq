@@ -37,8 +37,10 @@ TypeScript, React, Node.js, PostgreSQL, Docker, Git, Komunikasi, Kepemimpinan
 function buildDocx(entries: Array<{ name: string; content: string }>): Buffer {
   const chunk = (buf: Buffer) => {
     let crc = 0xffffffff;
-    for (const b of buf) {
-      crc ^= b;
+    // Iterasi indeks, bukan `for...of`, agar lolos typecheck pada target es5
+    // tanpa menyalakan downlevelIteration untuk seluruh proyek.
+    for (let i = 0; i < buf.length; i++) {
+      crc ^= buf[i];
       for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
     }
     return (crc ^ 0xffffffff) >>> 0;

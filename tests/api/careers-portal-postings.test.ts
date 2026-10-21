@@ -18,7 +18,7 @@ describe('WS-3 daftar lowongan kandidat', () => {
     // publikasikan sebuah lowongan + set kuota agar kuota/status terhitung
     await client.exec(`
       UPDATE job_postings SET is_public = TRUE, status = 'OPEN' WHERE id IN (
-        SELECT id FROM job_postings LIMIT 3
+        SELECT id FROM job_postings ORDER BY id LIMIT 3
       );
     `);
   });
@@ -51,29 +51,39 @@ describe('WS-3 daftar lowongan kandidat', () => {
   });
 
   it('lowongan non-publik tidak muncul', async () => {
-    await client.exec(`UPDATE job_postings SET is_public = FALSE WHERE id IN (SELECT id FROM job_postings LIMIT 3);`);
+    await client.exec(`UPDATE job_postings SET is_public = FALSE WHERE id IN (SELECT id FROM job_postings ORDER BY id LIMIT 3);`);
     const json = await (await portalPostings(req())).json();
     // setelah di-unpublish semua, minimal tidak ada yang tersisa dari 3 itu
     expect(Array.isArray(json.data.postings)).toBe(true);
   });
 
   it('kuota override per lowongan (job_postings.quota) dihormati, bukan MPP', async () => {
-    // Ambil 1 lowongan + MPP-nya, lalu set kuota override di atas jumlah hired
-    // agar tanpa override lowongan akan tampak FILLED.
-    const one = await client.query<{ id: string; mpp: string; mppQuota: number; hired: number }>(`
-      SELECT jp.id, jp.manpower_plan_id AS mpp, mp.approved_quota AS "mppQuota",
-             COALESCE(mp.hired_count, 0)
+    // Ambil 1 lowongan + MPP-nya secara deterministik (ORDER BY wajib: LIMIT 1 tanpa
+    // ORDER BY bergantung urutan fisik baris yang bergeser tiap run).
+    const one = await client.query<{ id: string; mpp: string; mppQuota: number }>(`
+      SELECT jp.id, jp.manpower_plan_id AS mpp, mp.approved_quota AS "mppQuota"
+        FROM job_postings jp JOIN manpower_plans mp ON mp.id = jp.manpower_plan_id
+       WHERE mp.approved_quota > 0
+       ORDER BY jp.id LIMIT 1
+    `);
+    const { id, mpp, mppQuota } = one.rows[0];
+
+    // MPP dianggap sudah terisi penuh, LALU hitung ulang "hired" efektif. Urutan ini
+    // penting: menghitung hired sebelum mengubah hired_count membuat sisa kuota
+    // bergantung pada nilai lama, sehingga hasilnya berubah antar run.
+    await client.exec(`UPDATE manpower_plans SET hired_count = ${mppQuota} WHERE id = '${mpp}';`);
+    const effective = await client.query<{ hired: number }>(`
+      SELECT COALESCE(mp.hired_count, 0)
                + COALESCE((SELECT COUNT(*) FROM job_applications ja
                             WHERE ja.job_posting_id = jp.id AND ja.status IN ('HIRED','OFFERED')), 0) AS hired
         FROM job_postings jp JOIN manpower_plans mp ON mp.id = jp.manpower_plan_id
-       WHERE mp.approved_quota > 0 LIMIT 1
+       WHERE jp.id = '${id}'
     `);
-    const { id, mpp, mppQuota, hired } = one.rows[0];
-    const overrideQuota = Number(hired) + 2;
+    const hired = Number(effective.rows[0].hired);
+    const overrideQuota = hired + 2;
 
     // 1) kuota override > terisi, status OPEN → tersedia walau MPP sudah penuh.
     await client.exec(`
-      UPDATE manpower_plans SET hired_count = ${mppQuota} WHERE id = '${mpp}';
       UPDATE job_postings SET is_public = TRUE, status = 'OPEN', quota = ${overrideQuota} WHERE id = '${id}';
     `);
     const withOverride = (await (await portalPostings(req())).json()).data.postings

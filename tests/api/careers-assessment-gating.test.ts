@@ -25,17 +25,25 @@ describe('WS-6 F4 gerbang tes (harus SCREENING+)', () => {
   beforeAll(async () => {
     const client = await getDb();
     await runSeed(client);
-    await client.exec(`UPDATE job_postings SET is_public = TRUE, status = 'OPEN' WHERE id IN (SELECT id FROM job_postings LIMIT 3);`);
-    const q = await client.query<{ id: string }>(`SELECT id FROM job_postings WHERE is_public = TRUE LIMIT 1`);
+    // Deterministik: ORDER BY wajib, karena UPDATE pada run sebelumnya menggeser
+    // urutan fisik baris sehingga LIMIT 1 tanpa ORDER BY bisa memilih lowongan lain.
+    await client.exec(`UPDATE job_postings SET is_public = TRUE, status = 'OPEN'
+      WHERE id IN (SELECT id FROM job_postings ORDER BY id LIMIT 3);`);
+    const q = await client.query<{ id: string }>(
+      `SELECT id FROM job_postings WHERE is_public = TRUE ORDER BY id LIMIT 1`,
+    );
     postingId = q.rows[0].id;
 
     // Tes teknis kini WAJIB khusus posisi: siapkan template teknis untuk posisi
-    // lowongan uji (idempotent) + salin 8 soal generik sebagai soal aktif.
+    // lowongan uji + salin 8 soal generik sebagai soal aktif.
+    // DO UPDATE (bukan DO NOTHING) agar template lama yang terikat ke posisi lain
+    // dari run sebelumnya dipindahkan ke posisi yang diuji, bukan dibiarkan basi.
     await client.exec(`
       INSERT INTO assessment_templates (code, title, type, weight, is_active, position_id)
       SELECT 'TECH-GATE', 'Tes Teknis (Gerbang Uji)', 'TECHNICAL'::assessment_type_enum, 40, TRUE, jp.position_id
         FROM job_postings jp WHERE jp.id = '${postingId}'
-      ON CONFLICT (code) DO NOTHING;
+      ON CONFLICT (code) DO UPDATE
+        SET position_id = EXCLUDED.position_id, is_active = TRUE;
       INSERT INTO assessment_questions (template_id, order_index, type, prompt, options, correct_key, is_active)
       SELECT t2.id, q.order_index, q.type, q.prompt, q.options, q.correct_key, TRUE
         FROM assessment_questions q
