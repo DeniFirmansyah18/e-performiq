@@ -1,0 +1,49 @@
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { getAuthSession } from '@/lib/auth/getAuthSession';
+import { assertCan } from '@/lib/auth/rbac';
+import { ok, fail } from '@/lib/api/response';
+import { db } from '@/lib/db/client';
+import { createConversation, listConversations } from '@/lib/services/chatService';
+
+const BodySchema = z.object({
+  type: z.enum(['DIRECT', 'GROUP']).default('DIRECT'),
+  title: z.string().max(200).optional(),
+  memberIds: z.array(z.string().uuid()).min(1),
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getAuthSession(req);
+    if (!session) return fail('UNAUTHORIZED', 'Sesi tidak valid.', 401);
+    assertCan(session, 'chat:read');
+    return ok({ items: await listConversations(db, session.userId) });
+  } catch (err: any) {
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    return fail(status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',
+      err?.message ?? 'Gagal memuat percakapan', status);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getAuthSession(req);
+    if (!session) return fail('UNAUTHORIZED', 'Sesi tidak valid.', 401);
+    assertCan(session, 'chat:write');
+
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return fail('VALIDATION_ERROR', parsed.error.issues[0]?.message ?? 'Data tidak valid', 400);
+    }
+
+    const row = await createConversation(db, { ...parsed.data, createdBy: session.userId });
+    return ok(row, 'Percakapan dibuat.');
+  } catch (err: any) {
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    return fail(
+      status === 422 ? 'BUSINESS_RULE_VIOLATION' : status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',
+      err?.message ?? 'Gagal membuat percakapan',
+      status,
+    );
+  }
+}
