@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
+import CompanyActivityFeed from '@/components/governance/CompanyActivityFeed';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import PositionCourseMappingPanel from '@/components/governance/PositionCourseMappingPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
@@ -580,6 +581,7 @@ export default function HROperationsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CostOfWorkforceCard />
         <FlightRiskHeatmap />
+        <CompanyActivityFeed />
       </div>
         <AiAnalyzePanel feature="hr" />
       </ExpandablePanel>
