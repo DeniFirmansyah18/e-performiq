@@ -1,0 +1,130 @@
+import { sql } from 'drizzle-orm';
+import type { Db } from '@/lib/db/client';
+import { BusinessRuleError } from '@/lib/auth/errors';
+
+export type PolicyType = 'SOP' | 'PP' | 'SK' | 'IK';
+export type PolicyStatus = 'DRAFT' | 'AKTIF' | 'OBSOLETE';
+
+export interface PolicyRow {
+  id: string;
+  documentCode: string;
+  title: string;
+  policyType: PolicyType;
+  version: string;
+  effectiveDate: string;
+  fileUrl: string;
+  status: PolicyStatus;
+  acknowledgedAt: string | null;
+}
+
+/** Hanya versi AKTIF yang boleh dibaca karyawan sebagai kewajiban. */
+export async function listPolicies(db: Db, employeeId: string): Promise<PolicyRow[]> {
+  const res = (await db.execute(sql`
+    SELECT p.id, p.document_code AS "documentCode", p.title,
+           p.policy_type AS "policyType", p.version,
+           p.effective_date AS "effectiveDate", p.file_url AS "fileUrl", p.status,
+           a.acknowledged_at AS "acknowledgedAt"
+      FROM policy_documents p
+      LEFT JOIN policy_acknowledgments a
+        ON a.policy_document_id = p.id AND a.employee_id = ${employeeId}::uuid
+     WHERE p.status = 'AKTIF'
+     ORDER BY p.policy_type, p.title
+  `)) as unknown as { rows: PolicyRow[] };
+  return res.rows ?? [];
+}
+
+export async function getPolicy(db: Db, id: string): Promise<PolicyRow | null> {
+  const res = (await db.execute(sql`
+    SELECT id, document_code AS "documentCode", title, policy_type AS "policyType",
+           version, effective_date AS "effectiveDate", file_url AS "fileUrl", status,
+           NULL::timestamptz AS "acknowledgedAt"
+      FROM policy_documents WHERE id = ${id}::uuid
+  `)) as unknown as { rows: PolicyRow[] };
+  return res.rows?.[0] ?? null;
+}
+
+export async function acknowledge(
+  db: Db,
+  input: { policyId: string; employeeId: string },
+): Promise<{ acknowledgedAt: string }> {
+  const doc = await getPolicy(db, input.policyId);
+  if (!doc) throw new BusinessRuleError('Dokumen tidak ditemukan.');
+  if (doc.status !== 'AKTIF') {
+    throw new BusinessRuleError('Hanya dokumen berstatus AKTIF yang dapat diakui.');
+  }
+
+  const res = (await db.execute(sql`
+    INSERT INTO policy_acknowledgments (policy_document_id, employee_id)
+    VALUES (${input.policyId}::uuid, ${input.employeeId}::uuid)
+    ON CONFLICT (policy_document_id, employee_id) DO NOTHING
+    RETURNING acknowledged_at AS "acknowledgedAt"
+  `)) as unknown as { rows: Array<{ acknowledgedAt: string }> };
+
+  if (res.rows?.[0]) return res.rows[0];
+
+  const existing = (await db.execute(sql`
+    SELECT acknowledged_at AS "acknowledgedAt" FROM policy_acknowledgments
+     WHERE policy_document_id = ${input.policyId}::uuid
+       AND employee_id = ${input.employeeId}::uuid
+  `)) as unknown as { rows: Array<{ acknowledgedAt: string }> };
+  return existing.rows[0];
+}
+
+/** Menerbitkan versi baru; versi lama otomatis menjadi OBSOLETE. */
+export async function publishVersion(
+  db: Db,
+  input: {
+    documentCode: string;
+    title: string;
+    policyType: PolicyType;
+    version: string;
+    effectiveDate: string;
+    fileUrl: string;
+    ownerDepartmentId?: string;
+    supersedesId?: string;
+  },
+): Promise<PolicyRow> {
+  if (input.supersedesId) {
+    await db.execute(sql`
+      UPDATE policy_documents SET status = 'OBSOLETE' WHERE id = ${input.supersedesId}::uuid
+    `);
+  }
+
+  const res = (await db.execute(sql`
+    INSERT INTO policy_documents
+      (document_code, title, policy_type, version, owner_department_id,
+       effective_date, file_url, status, supersedes_id)
+    VALUES (${input.documentCode}, ${input.title}, ${input.policyType}::policy_type_enum,
+            ${input.version}, ${input.ownerDepartmentId ?? null}::uuid,
+            ${input.effectiveDate}::date, ${input.fileUrl}, 'AKTIF',
+            ${input.supersedesId ?? null}::uuid)
+    RETURNING id, document_code AS "documentCode", title,
+              policy_type AS "policyType", version,
+              effective_date AS "effectiveDate", file_url AS "fileUrl", status,
+              NULL::timestamptz AS "acknowledgedAt"
+  `)) as unknown as { rows: PolicyRow[] };
+  return res.rows[0];
+}
+
+export async function compliance(
+  db: Db,
+): Promise<Array<{ departmentId: string; active: number; acknowledged: number; percent: number }>> {
+  const res = (await db.execute(sql`
+    SELECT e.department_id AS "departmentId",
+           count(DISTINCT e.id)::int AS active,
+           count(DISTINCT a.employee_id)::int AS acknowledged
+      FROM employees e
+      LEFT JOIN policy_acknowledgments a ON a.employee_id = e.id
+      LEFT JOIN policy_documents p
+        ON p.id = a.policy_document_id AND p.status = 'AKTIF'
+     WHERE e.status <> 'RESIGNED'
+     GROUP BY e.department_id
+  `)) as unknown as { rows: Array<{ departmentId: string; active: number; acknowledged: number }> };
+
+  return (res.rows ?? []).map((r) => ({
+    departmentId: r.departmentId,
+    active: Number(r.active),
+    acknowledged: Number(r.acknowledged),
+    percent: Number(r.active) > 0 ? Math.round((Number(r.acknowledged) / Number(r.active)) * 100) : 0,
+  }));
+}
