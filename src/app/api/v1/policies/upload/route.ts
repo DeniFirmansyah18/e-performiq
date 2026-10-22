@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
 import { ok, fail } from '@/lib/api/response';
+import { rateLimit, rateLimitHeaders, rateLimitKey } from '@/lib/api/rateLimit';
 import { buildStorageKey, putObject, storageDriver } from '@/lib/storage/fileStorage';
 import { validatePdf } from '@/lib/storage/pdfValidation';
 import { scanBuffer } from '@/lib/storage/scanFile';
@@ -13,6 +14,9 @@ export const dynamic = 'force-dynamic';
 const MAX_SIZE = 10 * 1024 * 1024;
 /** Batas halaman PDF — menjaga waktu render & penyimpanan tetap wajar. */
 const MAX_PAGES = 300;
+/** Unggahan mahal (I/O + pemindaian): 10 per menit per pengguna. */
+const UPLOAD_LIMIT = 10;
+const UPLOAD_WINDOW_MS = 60_000;
 
 /**
  * POST /api/v1/policies/upload  (multipart/form-data, field `file`)
@@ -25,6 +29,19 @@ export async function POST(req: NextRequest) {
     const session = await getAuthSession(req);
     if (!session) return fail('UNAUTHORIZED', 'Sesi tidak valid.', 401);
     assertCan(session, 'policy:manage');
+
+    const limited = rateLimit(rateLimitKey(req, session.userId), UPLOAD_LIMIT, UPLOAD_WINDOW_MS);
+    if (!limited.allowed) {
+      const res = fail(
+        'RATE_LIMITED',
+        `Terlalu banyak unggahan. Coba lagi dalam ${limited.retryAfterSeconds} detik.`,
+        429,
+      );
+      for (const [k, v] of Object.entries(rateLimitHeaders(limited, UPLOAD_LIMIT))) {
+        res.headers.set(k, v);
+      }
+      return res;
+    }
 
     const form = await req.formData().catch(() => null);
     if (!form) {

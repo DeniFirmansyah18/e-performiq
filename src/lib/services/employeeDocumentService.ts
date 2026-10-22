@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { BusinessRuleError } from '@/lib/auth/errors';
+import { logAction } from './auditService';
 
 export interface DocumentRow {
   id: string;
@@ -82,6 +83,16 @@ export async function verifyDocument(
 
   const row = res.rows?.[0];
   if (!row) throw new BusinessRuleError('Berkas tidak ditemukan atau sudah diverifikasi.');
+
+  await logAction(db, {
+    userId: input.verifierId,
+    actionType: 'APPROVE',
+    entityName: 'employee_documents',
+    recordId: row.id,
+    newData: { employeeId: row.employeeId, documentType: row.documentType, decision: input.decision },
+    description: `Verifikasi berkas ${row.documentType} karyawan ${row.employeeId}: ${input.decision}`,
+  });
+
   return row;
 }
 

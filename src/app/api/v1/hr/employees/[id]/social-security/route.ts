@@ -33,7 +33,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return fail('VALIDATION_ERROR', parsed.error.issues[0]?.message ?? 'Data tidak valid', 400);
     }
 
-    const row = await upsertSocialSecurity(db, { employeeId: params.id, ...parsed.data });
+    const row = await upsertSocialSecurity(db, {
+      employeeId: params.id, ...parsed.data, actorId: session.userId,
+    });
     return ok(row, 'Data BPJS tersimpan.');
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;

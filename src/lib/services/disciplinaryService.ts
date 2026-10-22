@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { BusinessRuleError } from '@/lib/auth/errors';
 import { appendActivity } from './activityFeedService';
+import { logAction } from './auditService';
 
 export type DisciplinaryType = 'TEGURAN' | 'SP1' | 'SP2' | 'SP3';
 export type AppealStatus = 'NONE' | 'UNDER_APPEAL' | 'APPEAL_ACCEPTED' | 'APPEAL_REJECTED';
@@ -90,6 +91,16 @@ export async function issueDisciplinary(
     summary: `${input.actionType} diterbitkan (${input.effectiveDate})`,
     visibility: 'CONFIDENTIAL',
   });
+
+  await logAction(db, {
+    userId: input.issuedBy,
+    actionType: 'CREATE',
+    entityName: 'disciplinary_actions',
+    recordId: row.id,
+    newData: { employeeId: input.employeeId, actionType: input.actionType, effectiveDate: input.effectiveDate },
+    description: `Menerbitkan ${input.actionType} untuk karyawan ${input.employeeId}`,
+  });
+
   return row;
 }
 

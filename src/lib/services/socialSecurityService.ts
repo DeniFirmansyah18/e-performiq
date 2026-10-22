@@ -123,6 +123,7 @@ export async function upsertSocialSecurity(
     bpjsTkStatus?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
     bpjsKesStatus?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
     registeredAt?: string | null;
+    actorId?: string;
   },
 ): Promise<SocialSecurityMasked> {
   for (const [label, value] of [
@@ -159,6 +160,25 @@ export async function upsertSocialSecurity(
               bpjs_kes_class AS "bpjsKesClass", bpjs_tk_status AS "bpjsTkStatus",
               bpjs_kes_status AS "bpjsKesStatus", registered_at AS "registeredAt"
   `)) as unknown as { rows: SocialSecurityMasked[] };
+
+  // Jejak audit sengaja hanya mencatat BIDANG yang berubah, bukan nomornya.
+  await logAction(db, {
+    userId: input.actorId ?? null,
+    actionType: 'UPDATE',
+    entityName: 'employee_social_security',
+    recordId: input.employeeId,
+    newData: {
+      fields: Object.entries({
+        bpjsTkNumber: input.bpjsTkNumber,
+        bpjsKesNumber: input.bpjsKesNumber,
+        bpjsKesClass: input.bpjsKesClass,
+        bpjsTkStatus: input.bpjsTkStatus,
+        bpjsKesStatus: input.bpjsKesStatus,
+        registeredAt: input.registeredAt,
+      }).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k]) => k),
+    },
+    description: 'Memperbarui data peserta BPJS (nomor tidak dicatat)',
+  });
 
   const row = res.rows[0];
   return {

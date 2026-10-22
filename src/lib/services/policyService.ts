@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { BusinessRuleError } from '@/lib/auth/errors';
+import { logAction } from './auditService';
 
 export type PolicyType = 'SOP' | 'PP' | 'SK' | 'IK';
 export type PolicyStatus = 'DRAFT' | 'AKTIF' | 'OBSOLETE';
@@ -105,6 +106,8 @@ export async function publishVersion(
     scanStatus?: 'CLEAN' | 'INFECTED' | 'SKIPPED';
     scanEngine?: string;
     pageCount?: number | null;
+    /** Pelaku, untuk jejak audit. Opsional agar pemanggil lama tetap jalan. */
+    actorId?: string;
   },
 ): Promise<PolicyRow> {
   if (!input.fileUrl && !input.storageKey) {
@@ -138,7 +141,25 @@ export async function publishVersion(
               file_size AS "fileSize", scan_status AS "scanStatus",
               NULL::timestamptz AS "acknowledgedAt"
   `)) as unknown as { rows: PolicyRow[] };
-  return res.rows[0];
+
+  const row = res.rows[0];
+  await logAction(db, {
+    userId: input.actorId ?? null,
+    actionType: 'CREATE',
+    entityName: 'policy_documents',
+    recordId: row.id,
+    newData: {
+      documentCode: input.documentCode,
+      version: input.version,
+      policyType: input.policyType,
+      status: 'AKTIF',
+      storageKey: input.storageKey ?? null,
+      scanStatus: input.scanStatus ?? 'SKIPPED',
+    },
+    description: `Menerbitkan ${input.policyType} ${input.documentCode} versi ${input.version}`,
+  });
+
+  return row;
 }
 
 export interface HrPolicyRow extends PolicyRow {
@@ -188,6 +209,7 @@ export async function publishByVersion(
     scanStatus?: 'CLEAN' | 'INFECTED' | 'SKIPPED';
     scanEngine?: string;
     pageCount?: number | null;
+    actorId?: string;
   },
 ): Promise<PolicyRow> {
   let supersedesId: string | undefined;

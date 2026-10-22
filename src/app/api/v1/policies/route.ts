@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       return fail('VALIDATION_ERROR', parsed.error.issues[0]?.message ?? 'Data tidak valid', 400);
     }
 
-    const row = await publishByVersion(db, parsed.data);
+    const row = await publishByVersion(db, { ...parsed.data, actorId: session.userId });
     return ok(row, `Versi ${row.version} diterbitkan.`);
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;
