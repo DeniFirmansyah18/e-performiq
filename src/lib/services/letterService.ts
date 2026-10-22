@@ -231,3 +231,53 @@ export async function closeLetter(
 export async function notifyLetterEvent(db: Db, employeeId: string, summary: string): Promise<void> {
   await appendActivity(db, { employeeId, eventType: 'LETTER', summary, visibility: 'CONFIDENTIAL' });
 }
+
+export interface HrLetterRow extends LetterRow {
+  openDispositions: number;
+  createdByName: string | null;
+}
+
+/**
+ * Register surat untuk HR: seluruh klasifikasi (termasuk TERBATAS/RAHASIA),
+ * beserta jumlah disposisi yang belum selesai. Hanya untuk peran HR.
+ */
+export async function listAllLetters(
+  db: Db,
+  filter: { status?: LetterStatus } = {},
+): Promise<HrLetterRow[]> {
+  const letters = (await db.execute(sql`
+    SELECT ${LETTER_SELECT_QUALIFIED},
+           u.email AS "createdByName",
+           (SELECT count(*)::int FROM letter_dispositions d
+             WHERE d.letter_id = l.id
+               AND d.status IN ('BELUM_DIBACA', 'DIBACA', 'DIKERJAKAN')) AS "openDispositions"
+      FROM letters l
+      LEFT JOIN users u ON u.id = l.created_by
+     WHERE (${filter.status ?? null}::letter_status_enum IS NULL
+            OR l.status = ${filter.status ?? null}::letter_status_enum)
+     ORDER BY l.letter_date DESC, l.agenda_number
+  `)) as unknown as { rows: HrLetterRow[] };
+
+  const rows = letters.rows ?? [];
+  if (rows.length === 0) return [];
+
+  const idList = sql.join(rows.map((r) => sql`${r.id}::uuid`), sql`, `);
+  const dispositions = (await db.execute(sql`
+    SELECT ${DISP_SELECT} FROM letter_dispositions
+     WHERE letter_id IN (${idList})
+     ORDER BY created_at
+  `)) as unknown as { rows: DispositionRow[] };
+
+  const byLetter = new Map<string, DispositionRow[]>();
+  for (const d of dispositions.rows ?? []) {
+    const list = byLetter.get(d.letterId) ?? [];
+    list.push(d);
+    byLetter.set(d.letterId, list);
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    openDispositions: Number(r.openDispositions) || 0,
+    dispositions: byLetter.get(r.id) ?? [],
+  }));
+}

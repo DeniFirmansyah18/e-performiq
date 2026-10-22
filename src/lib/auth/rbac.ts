@@ -44,7 +44,8 @@ export type Permission =
 | 'letter:manage'
 | 'letter:dispose'
 | 'chat:read'
-| 'chat:write';
+| 'chat:write'
+| 'policy:manage';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
 
@@ -92,6 +93,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'letter:dispose': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'chat:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
 'chat:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
+'policy:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 };
 export function can(role: UserRole, permission: Permission): boolean {
 return MATRIX[permission].includes(role);

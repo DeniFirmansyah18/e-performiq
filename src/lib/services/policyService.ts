@@ -106,10 +106,79 @@ export async function publishVersion(
   return res.rows[0];
 }
 
+export interface HrPolicyRow extends PolicyRow {
+  acknowledgedCount: number;
+  supersedesId: string | null;
+}
+
+/**
+ * Daftar seluruh versi (DRAFT/AKTIF/OBSOLETE) untuk HR, beserta jumlah
+ * karyawan yang sudah mengakui tiap versi.
+ */
+export async function listAllPolicies(db: Db): Promise<HrPolicyRow[]> {
+  const res = (await db.execute(sql`
+    SELECT p.id, p.document_code AS "documentCode", p.title,
+           p.policy_type AS "policyType", p.version,
+           p.effective_date AS "effectiveDate", p.file_url AS "fileUrl", p.status,
+           p.supersedes_id AS "supersedesId",
+           (SELECT count(*)::int FROM policy_acknowledgments a
+             WHERE a.policy_document_id = p.id) AS "acknowledgedCount"
+      FROM policy_documents p
+     ORDER BY p.document_code, p.effective_date DESC
+  `)) as unknown as { rows: HrPolicyRow[] };
+  return res.rows ?? [];
+}
+
+/**
+ * Menerbitkan versi baru lewat `supersedesVersion` (kode + versi), bukan UUID —
+ * panel HR tahu kode dan versi, bukan id baris lama.
+ */
+export async function publishByVersion(
+  db: Db,
+  input: {
+    documentCode: string;
+    title: string;
+    policyType: PolicyType;
+    version: string;
+    effectiveDate: string;
+    fileUrl: string;
+    ownerDepartmentId?: string;
+    supersedesVersion?: string;
+  },
+): Promise<PolicyRow> {
+  let supersedesId: string | undefined;
+
+  if (input.supersedesVersion) {
+    const prev = (await db.execute(sql`
+      SELECT id FROM policy_documents
+       WHERE document_code = ${input.documentCode}
+         AND version = ${input.supersedesVersion}
+    `)) as unknown as { rows: Array<{ id: string }> };
+
+    supersedesId = prev.rows?.[0]?.id;
+    if (!supersedesId) {
+      throw new BusinessRuleError(
+        `Versi ${input.supersedesVersion} untuk ${input.documentCode} tidak ditemukan.`,
+      );
+    }
+  }
+
+  const duplicate = (await db.execute(sql`
+    SELECT 1 FROM policy_documents
+     WHERE document_code = ${input.documentCode} AND version = ${input.version}
+  `)) as unknown as { rows: unknown[] };
+  if (duplicate.rows?.length) {
+    throw new BusinessRuleError(
+      `Versi ${input.version} untuk ${input.documentCode} sudah ada. Gunakan nomor versi lain.`,
+    );
+  }
+
+  return publishVersion(db, { ...input, supersedesId });
+}
+
 export async function compliance(
   db: Db,
-): Promise<Array<{ departmentId: string; active: number; acknowledged: number; percent: number }>> {
-  const res = (await db.execute(sql`
+): Promise<Array<{ departmentId: string; active: number; acknowledged: number; percent: number }>> {  const res = (await db.execute(sql`
     SELECT e.department_id AS "departmentId",
            count(DISTINCT e.id)::int AS active,
            count(DISTINCT a.employee_id)::int AS acknowledged
