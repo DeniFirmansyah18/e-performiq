@@ -45,7 +45,10 @@ export type Permission =
 | 'letter:dispose'
 | 'chat:read'
 | 'chat:write'
-| 'policy:manage';
+| 'policy:manage'
+| 'career:manage'
+| 'social_security:manage'
+| 'disciplinary:manage';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
 
@@ -88,6 +91,9 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'social_security:read': ['SUPER_ADMIN', 'HR_MANAGER', 'EMPLOYEE'],
 'social_security:reveal': ['SUPER_ADMIN', 'HR_MANAGER', 'EMPLOYEE'],
 'career:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
+'career:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'social_security:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'disciplinary:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'letter:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
 'letter:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'letter:dispose': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],

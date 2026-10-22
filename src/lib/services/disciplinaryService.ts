@@ -166,3 +166,69 @@ export async function awardRecognition(
   });
   return row;
 }
+
+/* ------------------------------------------------------------------ */
+/* Panel HR                                                            */
+/* ------------------------------------------------------------------ */
+
+export interface HrDisciplinaryRow extends DisciplinaryRow {
+  employeeCode: string;
+  employeeName: string;
+  issuedByName: string | null;
+}
+
+/** Daftar sanksi lintas karyawan untuk HR. */
+export async function listAllDisciplinary(
+  db: Db,
+  filter: { employeeId?: string; appealStatus?: AppealStatus } = {},
+): Promise<HrDisciplinaryRow[]> {
+  const res = (await db.execute(sql`
+    SELECT a.id, a.employee_id AS "employeeId", a.action_type AS "actionType", a.reason,
+           a.evidence_url AS "evidenceUrl", a.effective_date AS "effectiveDate",
+           a.expiry_date AS "expiryDate", a.appeal_status AS "appealStatus",
+           a.appeal_deadline AS "appealDeadline", a.appeal_reason AS "appealReason",
+           e.employee_code AS "employeeCode", e.full_name AS "employeeName",
+           u.email AS "issuedByName"
+      FROM disciplinary_actions a
+      JOIN employees e ON e.id = a.employee_id
+      LEFT JOIN users u ON u.id = a.issued_by
+     WHERE (${filter.employeeId ?? null}::uuid IS NULL OR a.employee_id = ${filter.employeeId ?? null}::uuid)
+       AND (${filter.appealStatus ?? null}::text IS NULL OR a.appeal_status = ${filter.appealStatus ?? null})
+     ORDER BY a.effective_date DESC, a.created_at DESC
+  `)) as unknown as { rows: HrDisciplinaryRow[] };
+  return res.rows ?? [];
+}
+
+/**
+ * Keputusan HR atas keberatan karyawan. Hanya berlaku saat status UNDER_APPEAL;
+ * catatan sanksi tidak dihapus, hanya statusnya berubah.
+ */
+export async function decideAppeal(
+  db: Db,
+  input: { id: string; decision: 'APPEAL_ACCEPTED' | 'APPEAL_REJECTED'; note: string },
+): Promise<DisciplinaryRow> {
+  if (input.note.trim().length < 5) {
+    throw new BusinessRuleError('Catatan keputusan wajib diisi (minimal 5 karakter).');
+  }
+
+  const current = (await db.execute(sql`
+    SELECT appeal_status AS "appealStatus" FROM disciplinary_actions WHERE id = ${input.id}::uuid
+  `)) as unknown as { rows: Array<{ appealStatus: AppealStatus }> };
+
+  const row = current.rows?.[0];
+  if (!row) throw new BusinessRuleError('Sanksi tidak ditemukan.');
+  if (row.appealStatus !== 'UNDER_APPEAL') {
+    throw new BusinessRuleError(
+      `Tidak ada keberatan yang menunggu keputusan (status ${row.appealStatus}).`,
+    );
+  }
+
+  const res = (await db.execute(sql`
+    UPDATE disciplinary_actions
+       SET appeal_status = ${input.decision}::appeal_status_enum,
+           appeal_reason = COALESCE(appeal_reason, '') || E'\n[keputusan HR] ' || ${input.note}
+     WHERE id = ${input.id}::uuid
+    RETURNING ${DISC_SELECT}
+  `)) as unknown as { rows: DisciplinaryRow[] };
+  return res.rows[0];
+}

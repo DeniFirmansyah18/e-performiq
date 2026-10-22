@@ -84,3 +84,30 @@ export async function verifyDocument(
   if (!row) throw new BusinessRuleError('Berkas tidak ditemukan atau sudah diverifikasi.');
   return row;
 }
+
+export interface HrDocumentRow extends DocumentRow {
+  employeeCode: string;
+  employeeName: string;
+  verifiedByName: string | null;
+}
+
+/** Antrean/daftar berkas untuk HR, lengkap dengan nama karyawan. */
+export async function listDocumentsForHr(
+  db: Db,
+  filter: { status?: DocumentRow['verificationStatus']; employeeId?: string } = {},
+): Promise<HrDocumentRow[]> {
+  const res = (await db.execute(sql`
+    SELECT d.id, d.employee_id AS "employeeId", d.document_type AS "documentType",
+           d.file_url AS "fileUrl", d.issued_date AS "issuedDate", d.expiry_date AS "expiryDate",
+           d.verification_status AS "verificationStatus", d.verified_at AS "verifiedAt",
+           e.employee_code AS "employeeCode", e.full_name AS "employeeName",
+           u.email AS "verifiedByName"
+      FROM employee_documents d
+      JOIN employees e ON e.id = d.employee_id
+      LEFT JOIN users u ON u.id = d.verified_by
+     WHERE (${filter.status ?? null}::text IS NULL OR d.verification_status = ${filter.status ?? null})
+       AND (${filter.employeeId ?? null}::uuid IS NULL OR d.employee_id = ${filter.employeeId ?? null}::uuid)
+     ORDER BY d.created_at DESC
+  `)) as unknown as { rows: HrDocumentRow[] };
+  return res.rows ?? [];
+}
