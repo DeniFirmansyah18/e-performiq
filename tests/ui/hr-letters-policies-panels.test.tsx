@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
-import LetterManagerPanel from '@/components/governance/LetterManagerPanel';
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';import LetterManagerPanel from '@/components/governance/LetterManagerPanel';
 import PolicyManagerPanel from '@/components/governance/PolicyManagerPanel';
 
 const letters = {
@@ -99,5 +98,51 @@ describe('PolicyManagerPanel', () => {
     expect(screen.getByLabelText(/Kode dokumen/i)).toBeTruthy();
     expect(screen.getByLabelText(/^Versi/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Terbitkan versi/i })).toBeTruthy();
+  });
+
+  it('menyediakan kontrol unggah PDF, bukan hanya URL', () => {
+    render(<PolicyManagerPanel />);
+    const input = screen.getByLabelText(/Berkas PDF/i) as HTMLInputElement;
+    expect(input.type).toBe('file');
+    expect(input.accept).toContain('application/pdf');
+  });
+
+  it('mengunggah PDF lalu menampilkan berkas siap terbit', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: any) => {
+      if (url.includes('/policies/upload')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              storageKey: 'policies/abc-SOP-Cuti.pdf',
+              fileName: 'SOP Cuti.pdf',
+              size: 1234,
+              checksumSha256: 'a'.repeat(64),
+              pageCount: 2,
+              scanStatus: 'SKIPPED',
+              scanEngine: 'none',
+              driver: 'local',
+            },
+          }),
+        } as any;
+      }
+      if (url.includes('/hr/policies')) return policies as any;
+      return { ok: true, json: async () => ({ data: { items: [] } }) } as any;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<PolicyManagerPanel />);
+    const input = screen.getByLabelText(/Berkas PDF/i) as HTMLInputElement;
+    const file = new File([new Uint8Array([37, 80, 68, 70])], 'SOP Cuti.pdf', { type: 'application/pdf' });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText(/Berkas siap terbit/i)).toBeTruthy());
+    expect(screen.getByText(/SOP Cuti\.pdf/)).toBeTruthy();
+    expect(screen.getByText(/2 halaman/)).toBeTruthy();
+
+    const uploadCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/policies/upload'));
+    expect(uploadCall).toBeTruthy();
+    expect(uploadCall![1]?.method).toBe('POST');
   });
 });

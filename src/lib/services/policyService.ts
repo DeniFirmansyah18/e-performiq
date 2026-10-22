@@ -15,14 +15,28 @@ export interface PolicyRow {
   fileUrl: string;
   status: PolicyStatus;
   acknowledgedAt: string | null;
+  storageKey?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  scanStatus?: 'CLEAN' | 'INFECTED' | 'SKIPPED' | null;
 }
+
+/**
+ * `fileUrl` selalu bisa dipakai UI: bila dokumen diunggah, arahkan ke endpoint
+ * unduh aplikasi; bila dokumen lama menyimpan URL eksternal, pakai URL itu.
+ */
+const FILE_URL_EXPR = sql`
+  COALESCE(p.file_url, '/api/v1/policies/' || p.id || '/file')
+`;
 
 /** Hanya versi AKTIF yang boleh dibaca karyawan sebagai kewajiban. */
 export async function listPolicies(db: Db, employeeId: string): Promise<PolicyRow[]> {
   const res = (await db.execute(sql`
     SELECT p.id, p.document_code AS "documentCode", p.title,
            p.policy_type AS "policyType", p.version,
-           p.effective_date AS "effectiveDate", p.file_url AS "fileUrl", p.status,
+           p.effective_date AS "effectiveDate", ${FILE_URL_EXPR} AS "fileUrl", p.status,
+           p.storage_key AS "storageKey", p.file_name AS "fileName",
+           p.file_size AS "fileSize", p.scan_status AS "scanStatus",
            a.acknowledged_at AS "acknowledgedAt"
       FROM policy_documents p
       LEFT JOIN policy_acknowledgments a
@@ -35,10 +49,12 @@ export async function listPolicies(db: Db, employeeId: string): Promise<PolicyRo
 
 export async function getPolicy(db: Db, id: string): Promise<PolicyRow | null> {
   const res = (await db.execute(sql`
-    SELECT id, document_code AS "documentCode", title, policy_type AS "policyType",
-           version, effective_date AS "effectiveDate", file_url AS "fileUrl", status,
+    SELECT p.id, p.document_code AS "documentCode", p.title, p.policy_type AS "policyType",
+           p.version, p.effective_date AS "effectiveDate", ${FILE_URL_EXPR} AS "fileUrl", p.status,
+           p.storage_key AS "storageKey", p.file_name AS "fileName",
+           p.file_size AS "fileSize", p.scan_status AS "scanStatus",
            NULL::timestamptz AS "acknowledgedAt"
-      FROM policy_documents WHERE id = ${id}::uuid
+      FROM policy_documents p WHERE p.id = ${id}::uuid
   `)) as unknown as { rows: PolicyRow[] };
   return res.rows?.[0] ?? null;
 }
@@ -79,11 +95,22 @@ export async function publishVersion(
     policyType: PolicyType;
     version: string;
     effectiveDate: string;
-    fileUrl: string;
+    fileUrl?: string;
     ownerDepartmentId?: string;
     supersedesId?: string;
+    storageKey?: string;
+    fileName?: string;
+    fileSize?: number;
+    checksumSha256?: string;
+    scanStatus?: 'CLEAN' | 'INFECTED' | 'SKIPPED';
+    scanEngine?: string;
+    pageCount?: number | null;
   },
 ): Promise<PolicyRow> {
+  if (!input.fileUrl && !input.storageKey) {
+    throw new BusinessRuleError('Sertakan berkas (unggahan) atau URL berkas.');
+  }
+
   if (input.supersedesId) {
     await db.execute(sql`
       UPDATE policy_documents SET status = 'OBSOLETE' WHERE id = ${input.supersedesId}::uuid
@@ -93,14 +120,22 @@ export async function publishVersion(
   const res = (await db.execute(sql`
     INSERT INTO policy_documents
       (document_code, title, policy_type, version, owner_department_id,
-       effective_date, file_url, status, supersedes_id)
+       effective_date, file_url, status, supersedes_id,
+       storage_key, file_name, file_size, checksum_sha256, scan_status, scan_engine, page_count)
     VALUES (${input.documentCode}, ${input.title}, ${input.policyType}::policy_type_enum,
             ${input.version}, ${input.ownerDepartmentId ?? null}::uuid,
-            ${input.effectiveDate}::date, ${input.fileUrl}, 'AKTIF',
-            ${input.supersedesId ?? null}::uuid)
+            ${input.effectiveDate}::date, ${input.fileUrl ?? null}, 'AKTIF',
+            ${input.supersedesId ?? null}::uuid,
+            ${input.storageKey ?? null}, ${input.fileName ?? null},
+            ${input.fileSize ?? null}, ${input.checksumSha256 ?? null},
+            ${input.scanStatus ?? 'SKIPPED'}, ${input.scanEngine ?? null},
+            ${input.pageCount ?? null})
     RETURNING id, document_code AS "documentCode", title,
               policy_type AS "policyType", version,
-              effective_date AS "effectiveDate", file_url AS "fileUrl", status,
+              effective_date AS "effectiveDate",
+              COALESCE(file_url, '/api/v1/policies/' || id || '/file') AS "fileUrl", status,
+              storage_key AS "storageKey", file_name AS "fileName",
+              file_size AS "fileSize", scan_status AS "scanStatus",
               NULL::timestamptz AS "acknowledgedAt"
   `)) as unknown as { rows: PolicyRow[] };
   return res.rows[0];
@@ -119,8 +154,10 @@ export async function listAllPolicies(db: Db): Promise<HrPolicyRow[]> {
   const res = (await db.execute(sql`
     SELECT p.id, p.document_code AS "documentCode", p.title,
            p.policy_type AS "policyType", p.version,
-           p.effective_date AS "effectiveDate", p.file_url AS "fileUrl", p.status,
+           p.effective_date AS "effectiveDate", ${FILE_URL_EXPR} AS "fileUrl", p.status,
            p.supersedes_id AS "supersedesId",
+           p.storage_key AS "storageKey", p.file_name AS "fileName",
+           p.file_size AS "fileSize", p.scan_status AS "scanStatus",
            (SELECT count(*)::int FROM policy_acknowledgments a
              WHERE a.policy_document_id = p.id) AS "acknowledgedCount"
       FROM policy_documents p
@@ -141,9 +178,16 @@ export async function publishByVersion(
     policyType: PolicyType;
     version: string;
     effectiveDate: string;
-    fileUrl: string;
+    fileUrl?: string;
     ownerDepartmentId?: string;
     supersedesVersion?: string;
+    storageKey?: string;
+    fileName?: string;
+    fileSize?: number;
+    checksumSha256?: string;
+    scanStatus?: 'CLEAN' | 'INFECTED' | 'SKIPPED';
+    scanEngine?: string;
+    pageCount?: number | null;
   },
 ): Promise<PolicyRow> {
   let supersedesId: string | undefined;

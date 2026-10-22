@@ -22,6 +22,16 @@ const STATUS_TONE: Record<HrPolicy['status'], string> = {
   OBSOLETE: 'bg-[#fce8e6] text-[#b91c1c]',
 };
 
+interface UploadedFile {
+  storageKey: string;
+  fileName: string;
+  size: number;
+  checksumSha256: string;
+  pageCount: number | null;
+  scanStatus: 'CLEAN' | 'INFECTED' | 'SKIPPED';
+  scanEngine: string;
+}
+
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
 export default function PolicyManagerPanel() {
@@ -39,6 +49,9 @@ export default function PolicyManagerPanel() {
     fileUrl: '',
     supersedesVersion: '',
   });
+
+  const [uploaded, setUploaded] = useState<UploadedFile | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +85,26 @@ export default function PolicyManagerPanel() {
     }));
   }, [policies]);
 
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    setNotice(null);
+    try {
+      const body = new FormData();
+      body.set('file', file);
+      const res = await fetch('/api/v1/policies/upload', { method: 'POST', body });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setUploaded(null);
+        setNotice(json?.detail ?? 'Gagal mengunggah berkas.');
+        return;
+      }
+      setUploaded(json.data as UploadedFile);
+      setNotice(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const publish = async () => {
     setBusy(true);
     setNotice(null);
@@ -85,14 +118,26 @@ export default function PolicyManagerPanel() {
           policyType: form.policyType,
           version: form.version,
           effectiveDate: form.effectiveDate,
-          fileUrl: form.fileUrl,
           supersedesVersion: form.supersedesVersion || undefined,
+          // Unggahan lebih diutamakan; URL hanya untuk dokumen lama.
+          ...(uploaded
+            ? {
+                storageKey: uploaded.storageKey,
+                fileName: uploaded.fileName,
+                fileSize: uploaded.size,
+                checksumSha256: uploaded.checksumSha256,
+                scanStatus: uploaded.scanStatus,
+                scanEngine: uploaded.scanEngine,
+                pageCount: uploaded.pageCount,
+              }
+            : { fileUrl: form.fileUrl || undefined }),
         }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setNotice(json?.detail ?? 'Gagal menerbitkan versi.'); return; }
       setNotice(`Versi ${form.version} untuk ${form.documentCode} diterbitkan.`);
       setForm((f) => ({ ...f, version: '', fileUrl: '', supersedesVersion: '' }));
+      setUploaded(null);
       await load();
     } finally {
       setBusy(false);
@@ -178,12 +223,40 @@ export default function PolicyManagerPanel() {
             />
           </label>
           <label className="text-[11px] text-[#475569] sm:col-span-2">
-            URL berkas (PDF)
+            Berkas PDF (maks 10 MB)
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadFile(file);
+              }}
+              className="mt-1 w-full rounded-lg border border-[#cbd5e1] px-2 py-1.5 text-xs text-[#0f172a] file:mr-2 file:rounded file:border-0 file:bg-[#e6f4ea] file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-[#007a5a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a]"
+            />
+          </label>
+
+          {uploading && <p className="text-[11px] text-[#0284c7] sm:col-span-2">Mengunggah berkas…</p>}
+
+          {uploaded && (
+            <div className="sm:col-span-2 rounded-lg border border-[#a7f3d0] bg-[#ecfdf5] px-2.5 py-2">
+              <p className="text-[11px] font-bold text-[#007a5a]">Berkas siap terbit</p>
+              <p className="text-[10px] text-[#475569]">
+                {uploaded.fileName}
+                {uploaded.pageCount ? ` · ${uploaded.pageCount} halaman` : ''}
+                {' · '}{Math.round(uploaded.size / 1024)} KB
+                {' · '}pemindaian: {uploaded.scanStatus === 'CLEAN' ? 'bersih' : 'tidak tersedia'}
+              </p>
+            </div>
+          )}
+
+          <label className="text-[11px] text-[#475569] sm:col-span-2">
+            atau URL berkas (untuk dokumen lama)
             <input
               value={form.fileUrl}
               onChange={(e) => setForm((f) => ({ ...f, fileUrl: e.target.value }))}
               placeholder="https://…/sop.pdf"
-              className="mt-1 w-full rounded-lg border border-[#cbd5e1] px-2 py-1.5 text-xs text-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a]"
+              disabled={Boolean(uploaded)}
+              className="mt-1 w-full rounded-lg border border-[#cbd5e1] px-2 py-1.5 text-xs text-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a] disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]"
             />
           </label>
           <label className="text-[11px] text-[#475569] sm:col-span-2">

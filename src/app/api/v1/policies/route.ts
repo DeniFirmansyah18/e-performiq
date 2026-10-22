@@ -13,11 +13,22 @@ const PublishSchema = z.object({
   policyType: z.enum(['SOP', 'PP', 'SK', 'IK']),
   version: z.string().min(1).max(20),
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Dokumen lama boleh memakai URL eksternal; dokumen baru memakai storageKey. */
   fileUrl: z.string().url().refine(isAllowedDocumentUrl, {
     message: 'Berkas harus PDF, JPG, atau PNG.',
-  }),
+  }).optional(),
+  storageKey: z.string().min(3).max(300).optional(),
+  fileName: z.string().max(255).optional(),
+  fileSize: z.number().int().positive().max(10 * 1024 * 1024).optional(),
+  checksumSha256: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
+  scanStatus: z.enum(['CLEAN', 'INFECTED', 'SKIPPED']).optional(),
+  scanEngine: z.string().max(40).optional(),
+  pageCount: z.number().int().positive().nullable().optional(),
   ownerDepartmentId: z.string().uuid().optional(),
   supersedesVersion: z.string().max(20).optional(),
+}).refine((v) => Boolean(v.fileUrl || v.storageKey), {
+  message: 'Sertakan berkas (unggahan) atau URL berkas.',
+  path: ['fileUrl'],
 });
 
 export async function GET(req: NextRequest) {

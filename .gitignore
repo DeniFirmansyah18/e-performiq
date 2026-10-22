@@ -17,3 +17,6 @@ tsc.txt
 # local artifacts
 cookies.txt
 docs/*.pdf
+
+# berkas tersimpan lokal
+.storage/
