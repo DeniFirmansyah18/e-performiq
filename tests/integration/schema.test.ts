@@ -34,6 +34,8 @@ const EXPECTED_TABLES = [
   // PRD v2.0 fase 2: self-service & jenjang karir
   'overtime_requests', 'employee_documents', 'employee_social_security',
   'disciplinary_actions', 'recognitions', 'career_ladder_steps',
+  // Lembur → payroll: kalender hari libur
+  'company_holidays',
 ].sort();
 
 describe('skema database', () => {
@@ -47,7 +49,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 101 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 102 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'

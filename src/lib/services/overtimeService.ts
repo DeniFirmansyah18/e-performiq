@@ -27,6 +27,20 @@ const SELECT = sql`
 const jakartaToday = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
+/** Sabtu/Minggu atau terdaftar di company_holidays. */
+export async function isRestDay(db: Db, workDate: string): Promise<boolean> {
+  const res = (await db.execute(sql`
+    SELECT (EXTRACT(DOW FROM ${workDate}::date) IN (0, 6)
+            OR EXISTS (SELECT 1 FROM company_holidays h WHERE h.holiday_date = ${workDate}::date)) AS "isRest"
+  `)) as unknown as { rows: Array<{ isRest: boolean }> };
+  return Boolean(res.rows?.[0]?.isRest);
+}
+
+/** Batas sah jam lembur: 4 jam hari kerja, 10 jam hari libur (UU). */
+export function maxOvertimeHours(restDay: boolean): number {
+  return restDay ? 10 : 4;
+}
+
 export async function requestOvertime(
   db: Db,
   input: { employeeId: string; workDate: string; plannedHours: number; reason: string },
@@ -34,8 +48,15 @@ export async function requestOvertime(
   if (input.workDate < jakartaToday()) {
     throw new BusinessRuleError('Lembur harus diajukan sebelum tanggal pelaksanaan.');
   }
-  if (!(input.plannedHours > 0 && input.plannedHours <= 4)) {
-    throw new BusinessRuleError('Jam lembur harus lebih dari 0 dan maksimal 4 jam per hari.');
+
+  const restDay = await isRestDay(db, input.workDate);
+  const limit = maxOvertimeHours(restDay);
+  if (!(input.plannedHours > 0 && input.plannedHours <= limit)) {
+    throw new BusinessRuleError(
+      restDay
+        ? 'Jam lembur hari libur harus lebih dari 0 dan maksimal 10 jam.'
+        : 'Jam lembur hari kerja harus lebih dari 0 dan maksimal 4 jam.',
+    );
   }
   if (input.reason.trim().length < 5) {
     throw new BusinessRuleError('Alasan lembur wajib diisi (minimal 5 karakter).');

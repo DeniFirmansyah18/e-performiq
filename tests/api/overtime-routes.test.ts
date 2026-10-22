@@ -17,6 +17,16 @@ const plusDays = (n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+/** Hari kerja berikutnya (Sen–Jum) — batas 4 jam hanya berlaku di hari kerja. */
+const nextWorkday = () => {
+  for (let i = 1; i <= 7; i++) {
+    const d = plusDays(i);
+    const dow = new Date(`${d}T00:00:00Z`).getUTCDay();
+    if (dow !== 0 && dow !== 6) return d;
+  }
+  return plusDays(1);
+};
+
 const jsonReq = (path: string, method: string, body: unknown, cookie: string) =>
   new NextRequest(`http://localhost:3000${path}`, {
     method,
@@ -58,9 +68,23 @@ describe('overtime routes', () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
-  it('menolak rencana lebih dari 4 jam', async () => {
+  it('menolak rencana lebih dari 4 jam pada hari kerja', async () => {
     const res = await postRequest(jsonReq('/api/v1/me/overtime-requests', 'POST', {
-      workDate: plusDays(1), plannedHours: 5, reason: 'penyelesaian laporan',
+      workDate: nextWorkday(), plannedHours: 5, reason: 'penyelesaian laporan',
+    }, empCookie));
+    expect(res.status).toBe(422);
+  });
+
+  it('menolak rencana lebih dari 10 jam pada hari libur', async () => {
+    // Cari hari Sabtu/Minggu terdekat.
+    let restDay = '';
+    for (let i = 1; i <= 7; i++) {
+      const d = plusDays(i);
+      const dow = new Date(`${d}T00:00:00Z`).getUTCDay();
+      if (dow === 0 || dow === 6) { restDay = d; break; }
+    }
+    const res = await postRequest(jsonReq('/api/v1/me/overtime-requests', 'POST', {
+      workDate: restDay, plannedHours: 11, reason: 'persiapan audit tahunan',
     }, empCookie));
     expect(res.status).toBe(400);
   });

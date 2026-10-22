@@ -84,11 +84,11 @@ export default function OvertimeModal({ open, onClose }: { open: boolean; onClos
             />
           </label>
           <label className="text-xs text-[#475569]">
-            Perkiraan jam (maks 4)
+            Perkiraan jam (maks 4 hari kerja / 10 hari libur)
             <input
               type="number"
               min={0.5}
-              max={4}
+              max={10}
               step={0.5}
               value={form.plannedHours}
               onChange={(e) => setForm((f) => ({ ...f, plannedHours: e.target.value }))}

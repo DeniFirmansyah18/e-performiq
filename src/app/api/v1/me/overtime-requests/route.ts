@@ -8,7 +8,7 @@ import { listOvertime, requestOvertime } from '@/lib/services/overtimeService';
 
 const BodySchema = z.object({
   workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  plannedHours: z.number().positive().max(4),
+  plannedHours: z.number().positive().max(10),
   reason: z.string().min(5).max(500),
 });
 

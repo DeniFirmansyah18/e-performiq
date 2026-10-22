@@ -105,17 +105,27 @@ export async function generatePayrollRun(db: Db, input: GenerateRunInput): Promi
   let totalNet = 0;
 
   for (const emp of employees) {
-    // Kehadiran & lembur dari WS-9.
+    // Kehadiran dari WS-9; lembur HANYA dari pengajuan yang disetujui (PRD v2 §5.6).
     let presentDays = workingDays;
-    let overtimeHours = 0;
+    let overtimeWorkdayHours = 0;
+    let overtimeRestDayHours = 0;
     try {
       const { getAttendanceSummary } = await import('@/lib/services/attendanceLogService');
       const att = await getAttendanceSummary(db, emp.employeeId, input.periodStart, input.periodEnd);
       if (att.presentDays > 0) presentDays = Math.min(workingDays, att.presentDays);
-      overtimeHours = att.overtimeHours;
     } catch {
       /* absensi opsional */
     }
+
+    try {
+      const { listPayableOvertime } = await import('@/lib/services/overtimePayService');
+      const payable = await listPayableOvertime(db, emp.employeeId, input.periodStart, input.periodEnd);
+      overtimeWorkdayHours = payable.workdayHours;
+      overtimeRestDayHours = payable.restDayHours;
+    } catch {
+      /* lembur opsional */
+    }
+    const overtimeHours = overtimeWorkdayHours + overtimeRestDayHours;
 
     const monthsOfService = emp.joinDate ? monthsBetween(emp.joinDate, input.periodEnd) : 12;
     const thr = (input.isThrMonth ?? false) ? computeThr(emp.baseSalary, monthsOfService) : 0;
@@ -123,7 +133,8 @@ export async function generatePayrollRun(db: Db, input: GenerateRunInput): Promi
     const result = computePayrollItem({
       baseSalary: emp.baseSalary,
       fixedAllowance: fixedAllowanceOf(emp.baseSalary),
-      overtimeHours,
+      overtimeHours: overtimeWorkdayHours,
+      overtimeRestDayHours,
       thr,
       presentDays,
       workingDays,

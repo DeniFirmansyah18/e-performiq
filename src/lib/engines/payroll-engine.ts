@@ -51,19 +51,45 @@ export function prorateBase(baseSalary: number, presentDays: number, workingDays
 }
 
 /**
- * Upah lembur per UU Ketenagakerjaan (hari kerja):
- *  - jam ke-1: 1,5 × upah/jam
- *  - jam ke-2 dst: 2 × upah/jam
+ * Upah lembur per UU Ketenagakerjaan.
+ *  - Hari kerja: jam ke-1 1,5×, jam ke-2 dst 2× (maks 4 jam/hari).
+ *  - Hari libur/istirahat mingguan: jam ke-1..7 2×, jam ke-8 3×, jam ke-9..10 4× (maks 10 jam).
  * Upah/jam = 1/173 × upah sebulan.
  */
-export function computeOvertimePay(baseSalary: number, overtimeHours: number): number {
+export type OvertimeDayType = 'WORKDAY' | 'REST_DAY';
+
+export function computeOvertimePay(
+  baseSalary: number,
+  overtimeHours: number,
+  dayType: OvertimeDayType = 'WORKDAY',
+): number {
   if (overtimeHours <= 0) return 0;
   const hourly = baseSalary / 173;
+
+  if (dayType === 'REST_DAY') {
+    const hours = Math.min(10, overtimeHours);
+    const first = Math.min(hours, 7) * 2;
+    const eighth = hours > 7 ? 1 * 3 : 0;
+    const ninthOn = hours > 8 ? (hours - 8) * 4 : 0;
+    return round0((first + eighth + ninthOn) * hourly);
+  }
+
   const hours = Math.min(4, overtimeHours); // batas sah per hari (diakumulasi & dibatasi saat generate)
   let pay = 0;
   if (hours >= 1) pay += 1.5 * hourly;
   if (hours > 1) pay += (hours - 1) * 2 * hourly;
   return round0(pay);
+}
+
+/** Upah lembur gabungan hari kerja + hari libur dalam satu periode. */
+export function computeOvertimePaySplit(
+  baseSalary: number,
+  hours: { workdayHours: number; restDayHours: number },
+): number {
+  return round0(
+    computeOvertimePay(baseSalary, hours.workdayHours, 'WORKDAY') +
+    computeOvertimePay(baseSalary, hours.restDayHours, 'REST_DAY'),
+  );
 }
 
 /** THR = 1× gaji pokok (proporsional masa kerja bila < 12 bulan; di sini 1× penuh). */
@@ -158,6 +184,8 @@ export interface PayrollItemInput {
   baseSalary: number;
   fixedAllowance?: number;
   overtimeHours?: number;
+  /** Jam lembur pada hari libur/istirahat mingguan (pengali 2×/3×/4×). */
+  overtimeRestDayHours?: number;
   bonus?: number;
   thr?: number;
   presentDays?: number;
@@ -191,7 +219,10 @@ export function computePayrollItem(input: PayrollItemInput): PayrollItemResult {
   const grossBaseSalary = round0(input.baseSalary);
   const baseSalary = prorateBase(grossBaseSalary, presentDays, workingDays);
   const fixedAllowance = round0(input.fixedAllowance ?? 0);
-  const overtimePay = computeOvertimePay(grossBaseSalary, input.overtimeHours ?? 0);
+  const overtimePay = computeOvertimePaySplit(grossBaseSalary, {
+    workdayHours: input.overtimeHours ?? 0,
+    restDayHours: input.overtimeRestDayHours ?? 0,
+  });
   const bonus = round0(input.bonus ?? 0);
   const thr = round0(input.thr ?? 0);
   const otherEarnings = input.otherEarnings ?? [];
