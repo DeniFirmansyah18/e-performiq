@@ -4,10 +4,12 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { scanBuffer, clamavConfigured } from '@/lib/storage/scanFile';
 
 const CLI = process.env.CLAMAV_CLI_PATH ?? 'C:\\Program Files\\ClamAV\\clamscan.exe';
-const DB = process.env.CLAMAV_DATABASE_DIR;
+const DB = process.env.CLAMAV_DATABASE_DIR
+  ?? join(process.env.LOCALAPPDATA ?? '', 'epq-clamav', 'database');
 
 const EICAR = 'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*';
 const available = existsSync(CLI) && Boolean(DB) && existsSync(DB as string);

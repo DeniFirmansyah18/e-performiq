@@ -34,6 +34,47 @@ Setelah `npm run db:reset`, gunakan akun seed berikut (halaman **/login** karyaw
 Kandidat mendaftar/login via **/careers/register** dan **/careers/login** (cookie terpisah).
 PIN slip gaji demo (semua karyawan): `123456`.
 
+### Layanan lokal: object storage (S3) + antivirus (ClamAV)
+
+Unggahan PDF SOP memakai driver penyimpanan berkas; tanpa konfigurasi ia menulis ke
+`.storage/` di disk. Untuk memakai object storage sungguhan secara lokal, jalankan
+S3 (SeaweedFS) dan ClamAV sebagai proses latar:
+
+```powershell
+npm run clamav:setup      # sekali saja: unduh ClamAV, siapkan config + database
+npm run services:start    # nyalakan S3 (127.0.0.1:8333) + ClamAV
+npm run services:status   # cek port, bucket, dan mode ClamAV
+npm run services:stop     # matikan keduanya
+npm run services:restart  # start ulang
+```
+
+Agar tetap hidup setelah restart Windows, daftarkan autostart per-user (tanpa admin):
+
+```powershell
+npm run services:autostart         # daftarkan Scheduled Task saat logon
+npm run services:autostart-status  # cek status task
+npm run services:no-autostart      # hapus task
+```
+
+Kredensial **tidak pernah** lewat command line: skrip PowerShell memanggil
+`node scripts/services-lib.mjs --config` sehingga nilai `S3_*`/`CLAMAV_*` dibaca
+langsung dari `.env`. Isi `.env` (lihat `.env.example`):
+
+| Variabel | Contoh lokal |
+| --- | --- |
+| `FILE_STORAGE_DRIVER` | `s3` (atau `local`) |
+| `S3_ENDPOINT` / `S3_REGION` | `http://127.0.0.1:8333` / `us-east-1` |
+| `S3_BUCKET` / `S3_FORCE_PATH_STYLE` | `sop-files` / `true` |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | kredensial SeaweedFS lokal |
+| `CLAMAV_MODE` | `cli` (Windows) atau `daemon` (clamd, Linux/produksi) |
+
+> **ClamAV di Windows:** `clamd` tidak bisa bertahan sebagai proses biasa tanpa
+> instalasi service (butuh admin), karena itu mode `cli` memakai `clamscan`
+> per berkas. `npm run clamav:setup` mengunduh definisi virus lewat `freshclam`;
+> bila jaringan memblokir `database.clamav.net` (403), skrip jatuh ke signature
+> EICAR minimal dan mencetak peringatan — jalur pemindaian terbukti bekerja, tetapi
+> **belum protektif** sampai definisi asli terunduh.
+
 ## Environments
 | Variabel | Fungsi |
 | --- | --- |
@@ -153,6 +194,9 @@ npm run db:seed     # seed data (idempoten)
 npm run db:reset    # hapus .pglite, migrasi ulang, seed ulang (lokal)
 npm run db:migrate:pg # migrasi ke PostgreSQL server (butuh DATABASE_URL)
 npm run db:seed:pg    # seed ke PostgreSQL server (butuh DATABASE_URL)
+npm run clamav:setup  # siapkan ClamAV lokal (binari, config, database)
+npm run services:start|stop|status|restart  # kelola S3 + ClamAV lokal
+npm run services:autostart|no-autostart|autostart-status  # autostart saat logon
 ```
 
 ## Catatan arsitektur

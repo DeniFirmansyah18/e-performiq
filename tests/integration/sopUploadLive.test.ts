@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { connect } from 'node:net';
 import { NextRequest } from 'next/server';
 import { runSeed } from '@/lib/db/seed';
@@ -16,7 +17,8 @@ import { GET as download } from '@/app/api/v1/policies/[id]/file/route';
 const HR_USER = 'e0000000-0000-4000-8000-000000000001';
 const EMP_USER = 'e0000000-0000-4000-8000-000000000004';
 const CLI = 'C:\\Program Files\\ClamAV\\clamscan.exe';
-const DB = process.env.CLAMAV_DATABASE_DIR ?? 'C:\\Users\\T450\\AppData\\Local\\epq-clamav\\database';
+const DB = process.env.CLAMAV_DATABASE_DIR
+  ?? join(process.env.LOCALAPPDATA ?? '', 'epq-clamav', 'database');
 
 function portOpen(host: string, port: number): Promise<boolean> {
   return new Promise((resolve) => {
