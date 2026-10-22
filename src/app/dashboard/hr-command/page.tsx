@@ -34,6 +34,10 @@ import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import CompanyActivityFeed from '@/components/governance/CompanyActivityFeed';
 import LetterManagerPanel from '@/components/governance/LetterManagerPanel';
 import PolicyManagerPanel from '@/components/governance/PolicyManagerPanel';
+import SocialSecurityManagerPanel from '@/components/governance/SocialSecurityManagerPanel';
+import DocumentVerificationPanel from '@/components/governance/DocumentVerificationPanel';
+import DisciplinaryManagerPanel from '@/components/governance/DisciplinaryManagerPanel';
+import CareerLadderManagerPanel from '@/components/governance/CareerLadderManagerPanel';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import PositionCourseMappingPanel from '@/components/governance/PositionCourseMappingPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
@@ -578,6 +582,19 @@ export default function HROperationsPage() {
       {/* Perpustakaan SOP & PP (PRD v2 §5.9) */}
       <div className="mt-5">
         <PolicyManagerPanel />
+      </div>
+      {/* Data kepegawaian: BPJS, berkas, sanksi, jenjang karir (PRD v2 fase 4) */}
+      <div className="mt-5">
+        <SocialSecurityManagerPanel />
+      </div>
+      <div className="mt-5">
+        <DocumentVerificationPanel />
+      </div>
+      <div className="mt-5">
+        <DisciplinaryManagerPanel />
+      </div>
+      <div className="mt-5">
+        <CareerLadderManagerPanel />
       </div>
       {/* Ringkasan SDM & Pasca-Kerja (agregasi lintas-modul) */}
       <div className="mt-5">
