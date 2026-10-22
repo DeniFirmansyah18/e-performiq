@@ -32,6 +32,8 @@ import {
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import CompanyActivityFeed from '@/components/governance/CompanyActivityFeed';
+import LetterManagerPanel from '@/components/governance/LetterManagerPanel';
+import PolicyManagerPanel from '@/components/governance/PolicyManagerPanel';
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import PositionCourseMappingPanel from '@/components/governance/PositionCourseMappingPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
@@ -568,6 +570,14 @@ export default function HROperationsPage() {
       {/* Payroll (komponen lengkap + AI advisory) */}
       <div className="mt-5">
         <PayrollPanel />
+      </div>
+      {/* e-Surat & disposisi (PRD v2 §5.8) */}
+      <div className="mt-5">
+        <LetterManagerPanel />
+      </div>
+      {/* Perpustakaan SOP & PP (PRD v2 §5.9) */}
+      <div className="mt-5">
+        <PolicyManagerPanel />
       </div>
       {/* Ringkasan SDM & Pasca-Kerja (agregasi lintas-modul) */}
       <div className="mt-5">
