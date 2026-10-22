@@ -33,6 +33,7 @@ Briefcase,
 UserCheck,
 Trophy,
 CalendarDays,
+BookOpen,
 } from 'lucide-react';
 import PaySlipModal from '@/components/employee/PaySlipModal';
 import CareerPathModal from '@/components/employee/CareerPathModal';
@@ -55,6 +56,11 @@ import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
 import DisciplinaryModal from '@/components/employee/DisciplinaryModal';
 import DocumentsCard from '@/components/employee/DocumentsCard';
 import CareerLadderPanel from '@/components/employee/CareerLadderPanel';
+import LetterInboxModal from '@/components/employee/LetterInboxModal';
+import PolicyLibraryModal from '@/components/employee/PolicyLibraryModal';
+import ChatDrawer from '@/components/employee/ChatDrawer';
+import ActivityFeedPanel from '@/components/employee/ActivityFeedPanel';
+import PerformanceCoachPanel from '@/components/employee/PerformanceCoachPanel';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
@@ -107,6 +113,9 @@ const [isProfileOpen, setIsProfileOpen] = useState(false);
 const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
 const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
 const [isDisciplinaryOpen, setIsDisciplinaryOpen] = useState(false);
+const [isLetterOpen, setIsLetterOpen] = useState(false);
+const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+const [isChatOpen, setIsChatOpen] = useState(false);
 const [isDownloadingKpi, setIsDownloadingKpi] = useState(false);
 // Modul Cuti / Leave (fase DURING–POST): pengajuan + riwayat.
 const [isLeaveOpen, setIsLeaveOpen] = useState(false);
@@ -867,6 +876,12 @@ return (
   </div>
   <CareerLadderPanel />
 
+  {/* 1c. Kolaborasi & kecerdasan (PRD v2 §5.10, §5.11) */}
+  <div className="grid gap-3 lg:grid-cols-2">
+    <PerformanceCoachPanel />
+    <ActivityFeedPanel />
+  </div>
+
   {/* 2. Feature Card Grid (click to open) */}
   <FeatureGrid>
     <FeatureCard
@@ -925,6 +940,30 @@ return (
         tag="Transparan"
         description="Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan."
         onClick={() => setIsDisciplinaryOpen(true)}
+      />
+      <ActionCard
+        icon={FileText}
+        tone="indigo"
+        title="e-Surat & Disposisi"
+        tag="Tanda terima"
+        description="Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya."
+        onClick={() => setIsLetterOpen(true)}
+      />
+      <ActionCard
+        icon={BookOpen}
+        tone="slate"
+        title="SOP & Peraturan"
+        tag="Wajib dibaca"
+        description="Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami."
+        onClick={() => setIsPolicyOpen(true)}
+      />
+      <ActionCard
+        icon={MessageSquare}
+        tone="teal"
+        title="Chat Pimpinan"
+        tag="Komunikasi"
+        description="Percakapan langsung atau grup dengan atasan, lengkap dengan riwayat yang tidak bisa dihapus sepihak."
+        onClick={() => setIsChatOpen(true)}
       />
       <ActionCard
         icon={Lock}
@@ -2140,6 +2179,9 @@ return (
 
     <OvertimeModal open={isOvertimeOpen} onClose={() => setIsOvertimeOpen(false)} />
     <DisciplinaryModal open={isDisciplinaryOpen} onClose={() => setIsDisciplinaryOpen(false)} />
+    <LetterInboxModal open={isLetterOpen} onClose={() => setIsLetterOpen(false)} />
+    <PolicyLibraryModal open={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} />
+    <ChatDrawer open={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
   <CareerPathModal
     isOpen={isCareerOpen}
