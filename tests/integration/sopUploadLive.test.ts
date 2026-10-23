@@ -92,13 +92,13 @@ describe('E2E unggah SOP — S3 + ClamAV aktif', () => {
     if (!available) return;
 
     const res = await upload(uploadReq(new File([new Uint8Array(pdf())], 'SOP Cuti.pdf', { type: 'application/pdf' }), hrCookie));
-    expect(res.status).toBe(200);
+    const body1 = await res.json();
+    expect(res.status, `upload gagal: ${JSON.stringify(body1)}`).toBe(200);
 
-    const json = await res.json();
-    expect(json.data.driver).toBe('s3');
-    expect(json.data.scanStatus).toBe('CLEAN');
-    expect(json.data.scanEngine).toBe('clamav');
-    expect(json.data.pageCount).toBe(2);
+    expect(body1.data.driver).toBe('s3');
+    expect(body1.data.scanStatus).toBe('CLEAN');
+    expect(body1.data.scanEngine).toBe('clamav');
+    expect(body1.data.pageCount).toBe(2);
   });
 
   it('berkas berisi EICAR mentah ditolak lebih dulu oleh validasi PDF (400)', async () => {
