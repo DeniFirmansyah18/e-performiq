@@ -56,13 +56,15 @@ const num = (value: unknown): number | null => {
 /**
  * Mengumpulkan sinyal risiko dari data operasional nyata. Tidak ada isian
  * manual: absensi, lembur, snapshot DPI, dan tanggal masuk karyawan.
+ * Cuti sakit dikecualikan dari ketidakhadiran agar sakit yang sah tidak
+ * dihitung sebagai sinyal risiko.
  */
 export async function collectSignals(db: Db, employeeId: string, asOf: string): Promise<RiskSignals> {
   const from = shiftDate(asOf, -(WINDOW_DAYS - 1));
 
   const attendance = (await db.execute(sql`
     SELECT
-      count(*) FILTER (WHERE is_present = FALSE)::int AS "absentDays",
+      count(*) FILTER (WHERE is_present = FALSE AND is_sick_leave = FALSE)::int AS "absentDays",
       count(*) FILTER (WHERE is_present = TRUE AND check_in > TIME '08:15')::int AS "lateDays"
     FROM attendance_records
     WHERE employee_id = ${employeeId}::uuid

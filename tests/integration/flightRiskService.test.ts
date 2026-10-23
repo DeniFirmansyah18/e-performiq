@@ -108,8 +108,23 @@ describe('flightRiskService', () => {
     expect(s.entryAdherence).toBeNull();
   });
 
-  it('membawa sinyal warisan: peer review bawaan dan sisa kontrak', async () => {
-    const s = await collectSignals(db, healthyId, AS_OF);
+  it('cuti sakit tidak dihitung sebagai ketidakhadiran berisiko', async () => {
+    const sickId = await addEmployee('SAKIT', '2023-05-01');
+    // 5 hari alpa murni + 5 hari alpa karena sakit.
+    for (let i = 0; i < 5; i++) {
+      await db.execute(`
+        INSERT INTO attendance_records (employee_id, work_date, check_in, check_out, is_present, is_sick_leave, total_work_hours)
+        VALUES ('${sickId}'::uuid, '${day(-i)}', '08:00', '17:00', FALSE, FALSE, 8.00)`);
+      await db.execute(`
+        INSERT INTO attendance_records (employee_id, work_date, check_in, check_out, is_present, is_sick_leave, total_work_hours)
+        VALUES ('${sickId}'::uuid, '${day(-10 - i)}', '08:00', '17:00', FALSE, TRUE, 8.00)`);
+    }
+
+    const s = await collectSignals(db, sickId, AS_OF);
+    expect(s.absentDays30).toBe(5);
+  });
+
+  it('membawa sinyal warisan: peer review bawaan dan sisa kontrak', async () => {    const s = await collectSignals(db, healthyId, AS_OF);
     // Belum ada penilaian 360 → nilai netral 4.2 (tidak dianggap berisiko).
     expect(s.peerReviewAvg).toBe(4.2);
     // Tanpa contract_end_date → 0 (bukan "kontrak hampir habis").

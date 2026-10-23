@@ -44,17 +44,30 @@ export default function AuditGovernancePage() {
   const [integrity, setIntegrity] = useState<{
     ok: boolean; checked: number; legacy: number; firstBrokenId: string | null;
   } | null>(null);
+    // null = belum diperiksa; 'DENIED' = peran ini tidak berhak memeriksa.
+    const [integrityState, setIntegrityState] = useState<'LOADING' | 'READY' | 'DENIED'>('LOADING');
 
-  const fetchIntegrity = useCallback(async () => {
-    try {
-      const res = await fetch('/api/v1/audit/integrity');
-      if (!res.ok) return;
-      const json = await res.json();
-      setIntegrity(json.data ?? null);
-    } catch {
-      setIntegrity(null);
-    }
-  }, []);
+    const fetchIntegrity = useCallback(async () => {
+      try {
+        const res = await fetch('/api/v1/audit/integrity');
+        if (res.status === 401 || res.status === 403) {
+          setIntegrity(null);
+          setIntegrityState('DENIED');
+          return;
+        }
+        if (!res.ok) {
+          setIntegrity(null);
+          setIntegrityState('DENIED');
+          return;
+        }
+        const json = await res.json();
+        setIntegrity(json.data ?? null);
+        setIntegrityState('READY');
+      } catch {
+        setIntegrity(null);
+        setIntegrityState('DENIED');
+      }
+    }, []);
 
   useEffect(() => {
     fetchIntegrity();
@@ -173,27 +186,31 @@ export default function AuditGovernancePage() {
             </h1>
             <span
               className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                integrity === null
-                  ? 'bg-[#f1f5f9] text-[#475569] border-[#cbd5e1]'
-                  : integrity.ok
+                integrityState === 'READY' && integrity
+                  ? integrity.ok
                     ? 'bg-[#e6f4ea] text-[#137333] border-[#b7e1cd]'
                     : 'bg-[#fce8e6] text-[#c5221f] border-[#f5c2bd]'
+                  : 'bg-[#f1f5f9] text-[#475569] border-[#cbd5e1]'
               }`}
               title={
-                integrity === null
-                  ? 'Status integritas rantai audit belum tersedia'
-                  : integrity.ok
-                    ? `${integrity.checked} entri ber-hash diverifikasi; ${integrity.legacy} entri warisan tanpa hash`
-                    : `Rantai rusak pada entri #${integrity.firstBrokenId}`
+                integrityState === 'DENIED'
+                  ? 'Verifikasi rantai audit hanya untuk Auditor dan Super Admin'
+                  : integrityState === 'LOADING'
+                    ? 'Status integritas rantai audit sedang diperiksa'
+                    : integrity && integrity.ok
+                      ? `${integrity.checked} entri ber-hash diverifikasi; ${integrity.legacy} entri warisan tanpa hash`
+                      : `Rantai rusak pada entri #${integrity?.firstBrokenId}`
               }
             >
               <Fingerprint className="h-3.5 w-3.5" />
               <span>
-                {integrity === null
+                {integrityState === 'LOADING'
                   ? 'Integritas Audit: Memeriksa…'
-                  : integrity.ok
-                    ? `Rantai Audit Utuh (${integrity.checked} entri)`
-                    : `Rantai Audit Rusak (#${integrity.firstBrokenId})`}
+                  : integrityState === 'DENIED' || !integrity
+                    ? 'Integritas Audit: Tidak Tersedia'
+                    : integrity.ok
+                      ? `Rantai Audit Utuh (${integrity.checked} entri)`
+                      : `Rantai Audit Rusak (#${integrity.firstBrokenId})`}
               </span>
             </span>
           </div>
