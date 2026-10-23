@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db/client';
 import type { Db } from '@/lib/db/client';
 import type { LeaveRequest } from '@/types';
 import { getAttendanceFactRows, computeBradfordFactor } from './attendanceService';
+import { computeFlightRisk } from '@/lib/engines/flightRiskEngine';
 
 /**
 
@@ -77,40 +78,39 @@ contractDaysRemaining: computeContractDaysRemaining(contract.rows[0]?.contractEn
 }
 
 /**
-
-Menghitung potensi risiko pengunduran diri talenta kunci (Kotak 4 Flight Risk Engine)
-*/
+ * Skor cepat satu karyawan (Kotak 4 Flight Risk) — **adaptor** atas
+ * `flightRiskEngine` agar hanya ada satu model risiko di produk ini.
+ *
+ * `level` memakai kosakata lama (LOW/MEDIUM/HIGH) untuk kompatibilitas
+ * `FlightRiskHeatmap`; pemetaannya: LOW→LOW, MODERATE→MEDIUM, HIGH/CRITICAL→HIGH.
+ */
 export function calculateFlightRisk(profile: EmployeeRiskProfile): FlightRiskResult {
-const { bradfordFactor, peerReviewAvg, overtimeHoursWeekly, contractDaysRemaining } = profile;
-let score = 10;
-const warnings: string[] = [];
-if (bradfordFactor > 45) {
-score += 35;
-warnings.push('Indeks Bradford absensi mengindikasikan ketidakhadiran berulang');
-}
+  const result = computeFlightRisk({
+    absentDays30: 0,
+    lateDays30: 0,
+    redDays30: 0,
+    overtimeHours30: 0,
+    longestWorkStreak: 0,
+    avgDpi30: null,
+    dpiTrend: null,
+    entryAdherence: null,
+    tenureMonths: 0,
+    bradfordFactor: profile.bradfordFactor,
+    peerReviewAvg: profile.peerReviewAvg,
+    contractDaysRemaining: profile.contractDaysRemaining,
+    overtimeHoursWeekly: profile.overtimeHoursWeekly,
+  });
 
-if (peerReviewAvg < 3.2) {
-score += 25;
-warnings.push('Penurunan indeks kepuasan interaksi tim & rekan kerja');
-}
+  const score = Math.min(Math.max(result.attrition.score, result.burnout.score), 100);
+  const level = score >= 50 ? 'HIGH' : score >= 25 ? 'MEDIUM' : 'LOW';
 
-if (overtimeHoursWeekly > 10) {
-score += 20;
-warnings.push('Beban lembur berlebih berisiko memicu kelelahan kerja (burnout)');
-}
+  const warnings: string[] = [];
+  const all = result.attrition.factors.concat(result.burnout.factors);
+  for (let i = 0; i < all.length; i++) {
+    if (all[i].points > 0 && all[i].warning) warnings.push(all[i].warning as string);
+  }
 
-if (contractDaysRemaining <= 60 && contractDaysRemaining > 0) {
-score += 15;
-warnings.push('Masa berlaku kontrak PKWT akan berakhir dalam 60 hari');
-}
-
-const level = score >= 60 ? 'HIGH' : score >= 35 ? 'MEDIUM' : 'LOW';
-
-return {
-score: Math.min(score, 100),
-level,
-warnings,
-};
+  return { score, level, warnings };
 }
 
 /**

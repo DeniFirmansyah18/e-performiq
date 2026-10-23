@@ -27,6 +27,7 @@ import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 
 type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession';
 
@@ -696,7 +697,10 @@ export default function ExecutiveBoardroomPage() {
         <AiAnalyzePanel feature="executive" />
       </ExpandablePanel>
 
-      {/* 5. Formal Legal Footer */}
+      {/* 5. Peringatan Dini Attrition & Burnout (PRD §5.4) */}
+      <FlightRiskHeatmap />
+
+      {/* 6. Formal Legal Footer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-[#e2e8f0] text-[11px] text-[#64748b]">
         <div className="flex items-center gap-2">
           <Lock className="h-3.5 w-3.5 text-[#94a3b8]" />

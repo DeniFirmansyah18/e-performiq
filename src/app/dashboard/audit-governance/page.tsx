@@ -41,6 +41,24 @@ export default function AuditGovernancePage() {
   const [filterAction, setFilterAction] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [integrity, setIntegrity] = useState<{
+    ok: boolean; checked: number; legacy: number; firstBrokenId: string | null;
+  } | null>(null);
+
+  const fetchIntegrity = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/audit/integrity');
+      if (!res.ok) return;
+      const json = await res.json();
+      setIntegrity(json.data ?? null);
+    } catch {
+      setIntegrity(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIntegrity();
+  }, [fetchIntegrity]);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -153,9 +171,30 @@ export default function AuditGovernancePage() {
             <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
               Tata Kelola Korporat (GCG) &amp; Pengawasan Audit
             </h1>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-              <Fingerprint className="h-3.5 w-3.5 text-[#137333]" />
-              <span>Anti-Tamper PostgreSQL Active</span>
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                integrity === null
+                  ? 'bg-[#f1f5f9] text-[#475569] border-[#cbd5e1]'
+                  : integrity.ok
+                    ? 'bg-[#e6f4ea] text-[#137333] border-[#b7e1cd]'
+                    : 'bg-[#fce8e6] text-[#c5221f] border-[#f5c2bd]'
+              }`}
+              title={
+                integrity === null
+                  ? 'Status integritas rantai audit belum tersedia'
+                  : integrity.ok
+                    ? `${integrity.checked} entri ber-hash diverifikasi; ${integrity.legacy} entri warisan tanpa hash`
+                    : `Rantai rusak pada entri #${integrity.firstBrokenId}`
+              }
+            >
+              <Fingerprint className="h-3.5 w-3.5" />
+              <span>
+                {integrity === null
+                  ? 'Integritas Audit: Memeriksa…'
+                  : integrity.ok
+                    ? `Rantai Audit Utuh (${integrity.checked} entri)`
+                    : `Rantai Audit Rusak (#${integrity.firstBrokenId})`}
+              </span>
             </span>
           </div>
           <p className="text-xs text-[#64748b] mt-1">

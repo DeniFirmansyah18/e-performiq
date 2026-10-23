@@ -39,7 +39,8 @@ const EXPECTED_TABLES = [
   // PRD v2.0 fase 3: e-Surat, chat, perpustakaan kebijakan
   'letters', 'letter_dispositions', 'conversations', 'conversation_members',
   'messages', 'policy_documents', 'policy_acknowledgments',
-].sort();
+    'employee_flight_risk_snapshots',
+  ].sort();
 
 describe('skema database', () => {
   let client: PGlite;
@@ -52,7 +53,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 109 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 110 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
