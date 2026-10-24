@@ -49,15 +49,20 @@ import ManagerAssignmentPanel from '@/components/governance/ManagerAssignmentPan
 import LeaveApprovalPanel from '@/components/governance/LeaveApprovalPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
+import WorkloadAnalysisPanel from '@/components/governance/WorkloadAnalysisPanel';
+import CareerAndActionsPanel from '@/components/governance/CareerAndActionsPanel';
+import PkwtDirectoryPanel from '@/components/governance/PkwtDirectoryPanel';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
+type MainTab = 'overview' | 'lifecycle' | 'workload' | 'career-actions' | 'directory';
 type HrFeature = 'mpp' | 'pipeline' | 'learning' | 'cost';
 
 export default function HROperationsPage() {
+  const [mainTab, setMainTab] = useState<MainTab>('overview');
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
   const [openFeature, setOpenFeature] = useState<HrFeature | null>(null);
   const [mppData, setMppData] = useState<any>(null);
@@ -343,7 +348,67 @@ export default function HROperationsPage() {
         </div>
       </div>
 
-      {/* 2. Feature Card Grid (click to open) */}
+                  {/* Navigasi Utama Tab Command Center Narasi 3 */}
+                  <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+                    <button
+                      onClick={() => setMainTab('overview')}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
+                        mainTab === 'overview'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      Overview & Analitik
+                    </button>
+                    <button
+                      onClick={() => setMainTab('lifecycle')}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
+                        mainTab === 'lifecycle'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      Kontrol Siklus 3-Fase
+                    </button>
+                    <button
+                      onClick={() => setMainTab('workload')}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
+                        mainTab === 'workload'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      Analisis Beban Kerja & Waktu
+                    </button>
+                    <button
+                      onClick={() => setMainTab('career-actions')}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
+                        mainTab === 'career-actions'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      Rekomendasi Aksi & Karir
+                    </button>
+                    <button
+                      onClick={() => setMainTab('directory')}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
+                        mainTab === 'directory'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      Direktori Pegawai & Status PKWT
+                    </button>
+                  </div>
+
+                  {mainTab === 'workload' && <WorkloadAnalysisPanel />}
+                  {mainTab === 'career-actions' && <CareerAndActionsPanel />}
+                  {mainTab === 'directory' && <PkwtDirectoryPanel />}
+
+                  {(mainTab === 'overview' || mainTab === 'lifecycle') && (
+                    <>
+                  {/* 2. Feature Card Grid (click to open) */}
       <FeatureGrid>
         <FeatureCard
           icon={UserPlus}
@@ -1007,6 +1072,8 @@ export default function HROperationsPage() {
         </div>
 
       </div>
+      </>
+      )}
         <AiAnalyzePanel feature="hr" />
       </ExpandablePanel>
 
