@@ -81,6 +81,33 @@ Audit ini dilakukan dengan membaca kode, bukan mengandalkan ingatan. Temuan awal
 
 ---
 
+## Verifikasi Langsung di Browser (2026-10-25, putaran 3)
+
+Panel diuji dengan sesi HR nyata pada dev server (login `siti.nurhaliza@eperformiq.co.id`), bukan hanya unit test dengan mock. Lima cacat ditemukan dan diperbaiki:
+
+| # | Cacat | Bukti | Perbaikan |
+|---|---|---|---|
+| 1 | `GaussianCurve` memakai `DEFAULT_RATINGS` hardcoded (4.2/16.8/58.5/20.5) | Komponen mengabaikan data nyata; melanggar Global Constraints "tanpa data dummy" | `ratingDistribution` dihitung dari `performance_appraisals.performance_rating` (appraisal terbaru per karyawan) dan dioper sebagai prop |
+| 2 | Label SVG hardcoded `D (4.2%)`, `C (16.8%)`, dst. | Data hanya berisi rating A, tetapi kurva menulis "B (58.5%)" | Label dirender dari `ratings[]` yang dioper |
+| 3 | Huruf rating salah: data A dilabeli "D" | Browser menampilkan "D (100%)" untuk rating A | Huruf diambil dari label bucket (`ratingLetter()`), bukan posisi indeks |
+| 4 | Klaim palsu "Distribusi Normal Kalibrasi Terpenuhi (No Grade Inflation)" | Ditampilkan tanpa perhitungan kalibrasi apa pun | Diganti keterangan faktual: total distribusi aktual & jumlah bucket |
+| 5 | `&bull;` tampil literal pada keterangan Pasca-Kerja | Teks `LWD 2026-12-01 &bull; ...` muncul apa adanya | Diganti karakter `•` karena nilainya dirender sebagai teks |
+| 6 | React duplicate key pada kartu offboarding | Console: "Encountered two children with the same key" | Key memakai `${label}-${idx}` |
+| 7 | Status kepegawaian kontradiktif | Tabel direktori `PERMANENT`, modal `PROBATION` untuk karyawan yang sama | Modal menampilkan status v2 **dan** kolom lama, dengan catatan "perlu disinkronkan" bila berbeda |
+
+### Hasil verifikasi langsung (semua berfungsi)
+
+- **Overview:** Headcount 96/97, GPA 3.67, Capaian KPI 22.4%, MPP 94.7%, kurva "A (100%)", 9-Box menampilkan Budi di Future Leader.
+- **Lifecycle:** Pra-Kerja (MPP 94.7%, QoH 86.6, Konversi Probation 25%), Saat-Kerja (log aktivitas), Pasca-Kerja (progres clearance, `•` benar).
+- **Beban Kerja, Karir, Direktori:** tab berpindah dan memuat data nyata; deep-link `?tab=career-actions&employeeId=...` langsung membuka panduan karir dengan skill gap "Belum diasesmen: TypeScript, PostgreSQL, System Design".
+- **Modal BSC:** 3 pilar nyata dengan capaian 92.5% / 102.5% / 83.3% dan bobot 25% masing-masing.
+
+Catatan operasional: `.pglite` dev perlu `npm run db:migrate` agar kolom `contract_start_date` tersedia; server dev harus di-restart setelah migrasi karena instance PGlite dipegang di memori.
+
+Verifikasi akhir: `tsc` bersih, `npm run lint` bersih, **68 test Narasi 3** + **43 test regresi** lulus.
+
+---
+
 ### Task 1: Layanan Analisis Beban Kerja & Satuan Waktu (`workloadService`)
 
 **Files:**

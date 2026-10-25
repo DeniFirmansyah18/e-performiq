@@ -17,8 +17,17 @@ interface WorkforceProfile {
   byAgeBand: Bucket[];
   byJobGrade: Bucket[];
   kpiAchievement: { averagePercentage: number; belowTargetCount: number; totalKpi: number };
+  ratingDistribution: Array<{ rating: string; count: number; percentage: number }>;
   mppFulfillment: { quota: number; hired: number; percentage: number };
 }
+
+/** Label & warna tiap rating, mengikuti skala performance_rating A/B/C/D. */
+const RATING_META: Record<string, { label: string; range: string; color: string; bg: string }> = {
+  A: { label: 'Rating A (Exceptional)', range: '>= 90%', color: 'text-emerald-400', bg: 'bg-emerald-500' },
+  B: { label: 'Rating B (Solid/Meets)', range: '80% - 89.9%', color: 'text-blue-400', bg: 'bg-blue-500' },
+  C: { label: 'Rating C (Acceptable)', range: '70% - 79.9%', color: 'text-amber-400', bg: 'bg-amber-500' },
+  D: { label: 'Rating D (Unsatisfactory)', range: '< 70%', color: 'text-rose-400', bg: 'bg-rose-500' },
+};
 
 interface ExecutiveSummary {
   headcount: { total: number; probation: number; resigned: number };
@@ -118,6 +127,19 @@ export default function HrOverviewAnalyticsPanel() {
   const mpp = profile?.mppFulfillment;
   const kpi = profile?.kpiAchievement;
 
+  // Kurva Gaussian hanya dirender dari distribusi rating nyata. Tanpa data,
+  // tampilkan keterangan jujur alih-alih angka contoh bawaan komponen.
+  const ratings = (profile?.ratingDistribution ?? [])
+    .filter((r) => RATING_META[r.rating])
+    .map((r) => ({
+      label: RATING_META[r.rating].label,
+      range: RATING_META[r.rating].range,
+      actual: r.percentage,
+      target: 0,
+      color: RATING_META[r.rating].color,
+      bg: RATING_META[r.rating].bg,
+    }));
+
   return (
     <div className="space-y-6">
       {/* Metrik utama */}
@@ -183,7 +205,13 @@ export default function HrOverviewAnalyticsPanel() {
           <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-slate-700">
             <TrendingUp className="w-4 h-4 text-blue-600" /> Distribusi Nilai Performa (Kurva Gaussian)
           </div>
-          <GaussianCurve />
+          {ratings.length === 0 ? (
+            <p className="text-xs text-slate-400">
+              Belum ada data appraisal untuk menggambarkan distribusi nilai.
+            </p>
+          ) : (
+            <GaussianCurve ratings={ratings} />
+          )}
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-slate-700">

@@ -28,6 +28,7 @@ interface BscContribution {
   positionTitle: string;
   jobGrade: string | null;
   employmentStatus: string | null;
+  legacyStatus: string | null;
   latestGpa: number | null;
   latestRating: string | null;
   nineBoxQuadrant: string | null;
@@ -211,10 +212,15 @@ export default function EmployeeDirectoryPanel({
                       <p className="font-semibold text-slate-800">{detail.employeeCode}</p>
                     </div>
                     <div>
-                      <span className="text-slate-500">Status Kepegawaian</span>
+                      <span className="text-slate-500">Status Kepegawaian (v2)</span>
                       <p className="font-semibold text-slate-800">
                         {detail.employmentStatus ?? '-'}
                       </p>
+                      {detail.legacyStatus && detail.legacyStatus !== detail.employmentStatus && (
+                        <p className="text-[10px] text-amber-600 mt-0.5">
+                          Kolom lama: {detail.legacyStatus} (perlu disinkronkan)
+                        </p>
+                      )}
                     </div>
                     <div>
                       <span className="text-slate-500">Departemen / Posisi</span>

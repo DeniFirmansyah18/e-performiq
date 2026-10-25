@@ -32,6 +32,11 @@ export interface WorkforceProfile {
     belowTargetCount: number;
     totalKpi: number;
   };
+  ratingDistribution: Array<{
+    rating: string;
+    count: number;
+    percentage: number;
+  }>;
   mppFulfillment: {
     quota: number;
     hired: number;
@@ -140,6 +145,30 @@ export async function getWorkforceProfile(db: Db): Promise<WorkforceProfile> {
   };
   const kpi = kpiRes.rows?.[0];
 
+  // Distribusi rating performa nyata dari appraisal terbaru per karyawan
+  // (bukan angka contoh): dipakai kurva Gaussian pada tab Overview.
+  const ratingRes = (await db.execute(sql`
+    WITH latest AS (
+      SELECT DISTINCT ON (pa.employee_id)
+             pa.employee_id,
+             pa.performance_rating
+        FROM performance_appraisals pa
+       ORDER BY pa.employee_id, pa.created_at DESC NULLS LAST
+    )
+    SELECT performance_rating AS rating, COUNT(*)::int AS count
+      FROM latest
+     GROUP BY performance_rating
+     ORDER BY performance_rating
+  `)) as unknown as {
+    rows: Array<{ rating: string; count: number }>;
+  };
+  const ratingTotal = (ratingRes.rows ?? []).reduce((s, r) => s + Number(r.count), 0);
+  const ratingDistribution = (ratingRes.rows ?? []).map((r) => ({
+    rating: r.rating,
+    count: Number(r.count),
+    percentage: ratingTotal > 0 ? Math.round((Number(r.count) / ratingTotal) * 1000) / 10 : 0,
+  }));
+
   const mppRes = (await db.execute(sql`
     SELECT COALESCE(SUM(approved_quota), 0)::int AS quota,
            COALESCE(SUM(hired_count), 0)::int AS hired
@@ -173,6 +202,7 @@ export async function getWorkforceProfile(db: Db): Promise<WorkforceProfile> {
       belowTargetCount: Number(kpi?.below_target ?? 0),
       totalKpi: Number(kpi?.total ?? 0),
     },
+    ratingDistribution,
     mppFulfillment: {
       quota,
       hired,

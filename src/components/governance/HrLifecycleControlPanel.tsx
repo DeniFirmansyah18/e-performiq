@@ -30,8 +30,8 @@ function StatGrid({ items }: { items: Counted[] }) {
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {items.map((item) => (
-        <div key={item.label} className="p-4 rounded-xl border border-slate-200 bg-white">
+      {items.map((item, idx) => (
+        <div key={`${item.label}-${idx}`} className="p-4 rounded-xl border border-slate-200 bg-white">
           <div className="text-[11px] font-semibold text-slate-500">{item.label}</div>
           <div className="text-xl font-bold text-slate-800 mt-0.5">{item.value}</div>
           {item.hint && <div className="text-[10px] text-slate-400 mt-1">{item.hint}</div>}
@@ -120,7 +120,8 @@ export default function HrLifecycleControlPanel() {
   const postItems: Counted[] = offboardings.slice(0, 6).map((off: any) => ({
     label: off.employeeName ?? 'Karyawan',
     value: `${off.handoverProgress ?? 0}%`,
-    hint: `LWD ${off.lastWorkingDay ?? '-'} &bull; ${off.department ?? '-'}`,
+    // Pakai karakter literal: nilai ini dirender sebagai teks, bukan HTML.
+    hint: `LWD ${off.lastWorkingDay ?? '-'} • ${off.department ?? '-'}`,
   }));
 
   return (
@@ -174,7 +175,7 @@ export default function HrLifecycleControlPanel() {
             ) : (
               <ul className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
                 {activity.map((item: any, idx: number) => (
-                  <li key={item.id ?? idx} className="p-3 text-[11px] text-slate-600 flex items-start gap-2">
+                  <li key={item.id ?? `act-${idx}`} className="p-3 text-[11px] text-slate-600 flex items-start gap-2">
                     <span className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0" />
                     <span>
                       <span className="font-semibold text-slate-800">

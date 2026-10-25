@@ -22,6 +22,10 @@ const profile = {
   ],
   byJobGrade: [{ label: 'G3', count: 7, percentage: 100 }],
   kpiAchievement: { averagePercentage: 94.5, belowTargetCount: 2, totalKpi: 4 },
+  ratingDistribution: [
+    { rating: 'A', count: 3, percentage: 75 },
+    { rating: 'B', count: 1, percentage: 25 },
+  ],
   mppFulfillment: { quota: 12, hired: 9, percentage: 75 },
 };
 
@@ -73,7 +77,7 @@ describe('HrOverviewAnalyticsPanel (pilar 2 & 3)', () => {
     expect(screen.getByText('7')).toBeTruthy();
     expect(screen.getByText('3.67')).toBeTruthy();
     expect(screen.getByText('94.5%')).toBeTruthy();
-    expect(screen.getByText('75%')).toBeTruthy();
+    expect(screen.getAllByText('75%').length).toBeGreaterThan(0);
   });
 
   it('menampilkan sebaran departemen, gender, usia, dan grade', async () => {
@@ -90,13 +94,55 @@ describe('HrOverviewAnalyticsPanel (pilar 2 & 3)', () => {
     render(<HrOverviewAnalyticsPanel />);
     await waitFor(() => expect(screen.getByText(/Gagal memuat analitik kepegawaian/)).toBeTruthy());
   });
+
+  it('kurva distribusi memakai angka nyata, bukan contoh bawaan komponen', async () => {
+    render(<HrOverviewAnalyticsPanel />);
+    await waitFor(() => expect(screen.getByText(/Distribusi Nilai Performa/)).toBeTruthy());
+
+    // Angka nyata dari ratingDistribution (75% dan 25%).
+    expect(screen.getAllByText(/75%/).length).toBeGreaterThan(0);
+    // Angka default komponen (58.5% / 16.8%) tidak boleh muncul.
+    expect(screen.queryByText(/58\.5%/)).toBeNull();
+    expect(screen.queryByText(/16\.8%/)).toBeNull();
+  });
+
+  it('label huruf pada kurva mengikuti rating sebenarnya (A bukan D)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes('workforce-profile')) {
+        return okJson({ ...profile, ratingDistribution: [{ rating: 'A', count: 3, percentage: 100 }] });
+      }
+      if (u.includes('executive-summary')) return okJson(summary);
+      return okJson({ talent_quadrants: [] });
+    }));
+
+    render(<HrOverviewAnalyticsPanel />);
+    await waitFor(() => expect(screen.getByText(/Distribusi Nilai Performa/)).toBeTruthy());
+
+    // Data hanya berisi rating A: label SVG harus "A (100%)", bukan "D (100%)".
+    expect(screen.getByText(/A \(100%\)/)).toBeTruthy();
+    expect(screen.queryByText(/D \(100%\)/)).toBeNull();
+  });
+
+  it('menyatakan belum ada data bila distribusi rating kosong', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes('workforce-profile')) return okJson({ ...profile, ratingDistribution: [] });
+      if (u.includes('executive-summary')) return okJson(summary);
+      return okJson({ talent_quadrants: [] });
+    }));
+    render(<HrOverviewAnalyticsPanel />);
+    await waitFor(() =>
+      expect(screen.getByText(/Belum ada data appraisal untuk menggambarkan distribusi/)).toBeTruthy()
+    );
+  });
 });
 
 describe('HrLifecycleControlPanel (pilar 1 & 6)', () => {
   it('menampilkan metrik pra-kerja secara default', async () => {
     render(<HrLifecycleControlPanel />);
     await waitFor(() => expect(screen.getByText(/Pemenuhan MPP/)).toBeTruthy());
-    expect(screen.getByText('75%')).toBeTruthy();
+    expect(screen.getAllByText('75%').length).toBeGreaterThan(0);
     expect(screen.getByText('88.5')).toBeTruthy();
     expect(screen.getByText('50%')).toBeTruthy();
   });
@@ -118,5 +164,46 @@ describe('HrLifecycleControlPanel (pilar 1 & 6)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Pasca-Kerja/ }));
     await waitFor(() => expect(screen.getByText(/Rizky Pratama/)).toBeTruthy());
     expect(screen.getByText('100%')).toBeTruthy();
+  });
+
+  it('tidak menampilkan entitas HTML mentah seperti &bull; pada keterangan', async () => {
+    render(<HrLifecycleControlPanel />);
+    await waitFor(() => expect(screen.getByText(/Pra-Kerja/)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Pasca-Kerja/ }));
+    await waitFor(() => expect(screen.getByText(/Rizky Pratama/)).toBeTruthy());
+
+    const body = document.body.textContent ?? '';
+    expect(body).not.toContain('&bull;');
+    expect(body).not.toContain('&amp;');
+  });
+
+  it('menangani nama karyawan duplikat tanpa error key React', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes('lifecycle-summary')) return okJson(lifecycle);
+      if (u.includes('offboarding/initiate')) {
+        return okJson([
+          { id: 'o1', employeeName: 'Hendra Gunawan', department: 'Dewan Direksi', lastWorkingDay: '2026-12-01', handoverProgress: 0 },
+          { id: 'o2', employeeName: 'Hendra Gunawan', department: 'Dewan Direksi', lastWorkingDay: '2026-12-01', handoverProgress: 0 },
+        ]);
+      }
+      if (u.includes('activity-feed/company')) return okJson(activity);
+      return okJson({});
+    }));
+
+    const errors: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((...args) => {
+      errors.push(String(args[0]));
+    });
+
+    render(<HrLifecycleControlPanel />);
+    await waitFor(() => expect(screen.getByText(/Pra-Kerja/)).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /Pasca-Kerja/ }));
+    await waitFor(() => expect(screen.getAllByText(/Hendra Gunawan/).length).toBe(2));
+
+    const duplicateKey = errors.filter((e) => e.includes('same key'));
+    expect(duplicateKey).toEqual([]);
+    spy.mockRestore();
   });
 });

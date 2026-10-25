@@ -20,6 +20,27 @@ const DEFAULT_RATINGS: RatingBucket[] = [
 
 export default function GaussianCurve({ ratings = DEFAULT_RATINGS }: { ratings?: RatingBucket[] } = {}) {
 
+  /**
+   * Mengambil huruf rating dari label bucket (mis. "Rating A (Exceptional)" -> "A").
+   * Bila label tidak memuat huruf rating, pakai inisial label agar tidak salah klaim.
+   */
+  function ratingLetter(label: string): string {
+    const match = label.match(/Rating\s+([A-Za-z])/i);
+    if (match) return match[1].toUpperCase();
+    return label.trim().charAt(0).toUpperCase();
+  }
+
+  // Posisi label di dalam kurva; huruf & nilai diambil dari data yang dioper,
+  // bukan konstanta, agar tidak salah label (mis. data A dilabeli "D").
+  const labelPositions = [
+    { x: 75, y: 100, size: 10 },
+    { x: 175, y: 70, size: 10 },
+    { x: 285, y: 35, size: 12 },
+    { x: 410, y: 70, size: 10 },
+  ].slice(0, ratings.length);
+
+  const totalActual = ratings.reduce((sum, r) => sum + Number(r.actual || 0), 0);
+
   return (
     <div className="w-full space-y-4">
       {/* SVG Bell Curve */}
@@ -49,17 +70,30 @@ export default function GaussianCurve({ ratings = DEFAULT_RATINGS }: { ratings?:
           {/* B / A */}
           <line x1="360" y1="20" x2="360" y2="110" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" className="opacity-60" />
 
-          {/* Labels inside SVG */}
-          <text x="75" y="100" fill="#f43f5e" fontSize="10" fontWeight="bold">D (4.2%)</text>
-          <text x="175" y="70" fill="#f59e0b" fontSize="10" fontWeight="bold">C (16.8%)</text>
-          <text x="285" y="35" fill="#60a5fa" fontSize="12" fontWeight="bold">B (58.5%)</text>
-          <text x="410" y="70" fill="#10b981" fontSize="10" fontWeight="bold">A (20.5%)</text>
+          {/* Labels inside SVG — mengikuti data yang dioper, bukan angka tetap */}
+          {labelPositions.map((pos, idx) => (
+            <text
+              key={idx}
+              x={pos.x}
+              y={pos.y}
+              fill={ratings[idx].color === 'text-rose-400' ? '#f43f5e'
+                : ratings[idx].color === 'text-amber-400' ? '#f59e0b'
+                : ratings[idx].color === 'text-blue-400' ? '#60a5fa'
+                : '#10b981'}
+              fontSize={pos.size}
+              fontWeight="bold"
+            >
+              {ratingLetter(ratings[idx].label)} ({ratings[idx].actual}%)
+            </text>
+          ))}
         </svg>
 
-        {/* Status notice */}
+        {/* Keterangan: jangan mengklaim kalibrasi terpenuhi tanpa dasar. */}
         <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1 px-1">
           <span>&larr; Deviasi Bawah</span>
-          <span className="text-emerald-400 font-medium">Distribusi Normal Kalibrasi Terpenuhi (No Grade Inflation)</span>
+          <span className="text-slate-400 font-medium">
+            Distribusi aktual {totalActual}% dari {ratings.length} bucket rating
+          </span>
           <span>Deviasi Atas &rarr;</span>
         </div>
       </div>

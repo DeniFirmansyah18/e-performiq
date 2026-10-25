@@ -5,6 +5,7 @@ import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import type { Db } from '@/lib/db/client';
 import { getWorkforceProfile } from '@/lib/services/workforceProfileService';
+import { sql } from 'drizzle-orm';
 
 describe('Workforce Profile - Manajemen Kepegawaian (Narasi 3 pilar 3)', () => {
   let client: PGlite;
@@ -57,5 +58,31 @@ describe('Workforce Profile - Manajemen Kepegawaian (Narasi 3 pilar 3)', () => {
     expect(profile.mppFulfillment.quota).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(profile.mppFulfillment.percentage)).toBe(true);
     expect(profile.mppFulfillment.percentage).toBeGreaterThanOrEqual(0);
+  });
+
+  it('distribusi rating berasal dari performance_appraisals, bukan angka contoh', async () => {
+    const profile = await getWorkforceProfile(db);
+    // Seed hanya punya 1 appraisal dengan rating A.
+    expect(profile.ratingDistribution).toEqual([
+      { rating: 'A', count: 1, percentage: 100 },
+    ]);
+  });
+
+  it('distribusi rating mengabaikan appraisal lama (ambil terbaru per karyawan)', async () => {
+    const BUDI = 'b0000000-0000-4000-8000-000000000004';
+    // Appraisal periode berikutnya dengan rating B; harus menggantikan rating A.
+    await db.execute(sql`
+      INSERT INTO performance_appraisals
+        (period_id, employee_id, kpi_composite_score, sop_compliance_score, competency_score,
+         core_values_score, total_percentage_score, composite_gpa, performance_rating,
+         potential_score, nine_box_quadrant, created_at)
+      VALUES ('d0000000-0000-4000-8000-000000000002'::uuid, ${BUDI}::uuid,
+              85, 85, 85, 85, 85, 3.40, 'B', 3.50, 'CORE_PLAYER', NOW() + INTERVAL '1 day')
+    `);
+
+    const profile = await getWorkforceProfile(db);
+    expect(profile.ratingDistribution).toEqual([
+      { rating: 'B', count: 1, percentage: 100 },
+    ]);
   });
 });

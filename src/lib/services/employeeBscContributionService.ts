@@ -29,6 +29,7 @@ export interface EmployeeBscContribution {
   positionTitle: string;
   jobGrade: string | null;
   employmentStatus: string | null;
+  legacyStatus: string | null;
   latestGpa: number | null;
   latestRating: string | null;
   nineBoxQuadrant: string | null;
@@ -48,6 +49,7 @@ export async function getEmployeeBscContribution(
       d.department_name,
       p.position_title,
       p.job_grade,
+      e.status::text AS legacy_status,
       e.employment_status::text AS employment_status,
       (
         SELECT pa.composite_gpa
@@ -82,6 +84,7 @@ export async function getEmployeeBscContribution(
       department_name: string;
       position_title: string;
       job_grade: string | null;
+      legacy_status: string | null;
       employment_status: string | null;
       latest_gpa: number | null;
       latest_rating: string | null;
@@ -142,6 +145,7 @@ export async function getEmployeeBscContribution(
     positionTitle: emp.position_title,
     jobGrade: emp.job_grade,
     employmentStatus: emp.employment_status,
+    legacyStatus: emp.legacy_status,
     latestGpa: emp.latest_gpa === null ? null : Number(emp.latest_gpa),
     latestRating: emp.latest_rating,
     nineBoxQuadrant: emp.nine_box_quadrant,
