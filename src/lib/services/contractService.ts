@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+﻿import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 
 export interface PkwtContractAlert {
@@ -13,11 +13,23 @@ export interface PkwtContractAlert {
 }
 
 export interface ContractsSummaryResult {
+  referenceDate: string;
   totalPkwt: number;
   expiringIn30Days: number;
   expiringIn60Days: number;
   expiredCount: number;
+  missingEndDateCount: number;
   alerts: PkwtContractAlert[];
+}
+
+/**
+ * Tanggal hari ini menurut zona waktu Indonesia Barat (UTC+7).
+ * `new Date().toISOString()` memakai UTC sehingga antara 00:00-06:59 WIB
+ * masih menghasilkan tanggal kemarin (Review Focus #2).
+ */
+export function todayInJakarta(now: Date = new Date()): string {
+  const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
+  return new Date(now.getTime() + JAKARTA_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 /**
@@ -33,7 +45,7 @@ function daysBetween(refDate: string, targetDate: string): number {
 
 export async function getContractsSummary(
   db: Db,
-  refDate: string = new Date().toISOString().slice(0, 10)
+  refDate: string = todayInJakarta()
 ): Promise<ContractsSummaryResult> {
   const res = (await db.execute(sql`
     SELECT
@@ -46,7 +58,10 @@ export async function getContractsSummary(
     FROM employees e
     JOIN departments d ON d.id = e.department_id
     JOIN job_positions p ON p.id = e.position_id
-    WHERE e.status = 'CONTRACT'
+    WHERE (
+      e.employment_status = 'PKWT'::employment_status_enum
+      OR (e.employment_status IS NULL AND e.status = 'CONTRACT'::employee_status_enum)
+    )
     ORDER BY e.contract_end_date ASC NULLS LAST
   `)) as unknown as {
     rows: Array<{
@@ -63,11 +78,17 @@ export async function getContractsSummary(
   let expiringIn30Days = 0;
   let expiringIn60Days = 0;
   let expiredCount = 0;
+  let missingEndDateCount = 0;
 
   const alerts: PkwtContractAlert[] = [];
 
   for (const r of rows) {
-    if (!r.contract_end_date) continue;
+    if (!r.contract_end_date) {
+      // PKWT tanpa tanggal akhir tidak bisa diberi peringatan, tetapi tetap
+      // harus terlihat oleh HRD agar datanya dilengkapi.
+      missingEndDateCount++;
+      continue;
+    }
     const endDate = String(r.contract_end_date).slice(0, 10);
     const daysRemaining = daysBetween(refDate, endDate);
 
@@ -98,10 +119,13 @@ export async function getContractsSummary(
   }
 
   return {
+    referenceDate: refDate,
     totalPkwt: rows.length,
     expiringIn30Days,
     expiringIn60Days,
     expiredCount,
+    missingEndDateCount,
     alerts,
   };
 }
+

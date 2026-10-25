@@ -11,6 +11,9 @@ describe('Workload Service - Satuan Waktu & Intensitas Beban Kerja (TDD)', () =>
   let client: PGlite;
   let db: Db;
 
+  const BUDI = 'b0000000-0000-4000-8000-000000000004';
+  const DANU = 'b0000000-0000-4000-8000-000000000003';
+
   beforeAll(async () => {
     ({ client } = await createTestDb());
     await runSeed(client);
@@ -27,6 +30,31 @@ describe('Workload Service - Satuan Waktu & Intensitas Beban Kerja (TDD)', () =>
     expect(summary.averageIntensity).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(summary.employees)).toBe(true);
     expect(summary.employees.length).toBeGreaterThan(0);
+  });
+
+  it('kapasitas mengikuti rentang tanggal, bukan selalu 160 jam', async () => {
+    // 21-24 Sep 2026 = 4 hari kerja -> kapasitas 32 jam, bukan 160 jam.
+    const summary = await calculateWorkloadSummary(db, {
+      fromDate: '2026-09-21',
+      toDate: '2026-09-24',
+    });
+    const budi = summary.employees.find((e) => e.employeeId === BUDI);
+    expect(budi?.totalHours).toBe(35.5);
+    expect(budi?.workloadIntensityPercentage).toBe(111);
+    expect(budi?.status).toBe('OVER_UTILIZED');
+  });
+
+  it('karyawan tanpa entri timesheet berstatus NO_DATA, bukan under-utilized', async () => {
+    const summary = await calculateWorkloadSummary(db, {
+      fromDate: '2026-09-21',
+      toDate: '2026-09-24',
+    });
+    const danu = summary.employees.find((e) => e.employeeId === DANU);
+    expect(danu?.workloadIntensityPercentage).toBe(0);
+    expect(danu?.status).toBe('NO_DATA');
+    expect(summary.noDataCount).toBeGreaterThan(0);
+    // Hanya Anisa (8 jam dari 32 jam) yang benar-benar under-utilized.
+    expect(summary.underUtilizedCount).toBe(1);
   });
 
   it('mengidentifikasi karyawan yang memiliki entri timesheet dan status utilisasi', async () => {

@@ -1,4 +1,4 @@
-# Command Center HRD (Revisi Narasi 3) Implementation Plan
+﻿# Command Center HRD (Revisi Narasi 3) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -24,6 +24,25 @@
 3. Karyawan berstatus selain 'PKWT' (misal: 'TETAP' atau 'PROBATION') harus diabaikan dari peringatan jatuh tempo PKWT.
 4. Navigasi pergantian tab di `/dashboard/hr-command` harus mempertahankan state filter pencarian pegawai.
 5. Rekomendasi jenjang karir harus menangani kasus posisi puncak (*top-level role*) yang belum memiliki target level lanjutan dalam `career_path_levels`.
+
+---
+
+## Catatan Implementasi (2026-10-25)
+
+Perbaikan yang menyertai penyelesaian rencana ini:
+
+1. **Build rusak diperbaiki.** Fragmen `<>` pada `page.tsx` ditutup sebelum `</ExpandablePanel>` yang dibuka di dalamnya, sehingga `tsc` gagal (TS1003/TS1381/TS17015). Kini typecheck bersih.
+2. **Kapasitas beban kerja mengikuti rentang tanggal.** Sebelumnya pembagi selalu 160 jam/bulan, sehingga 35,5 jam dalam 4 hari kerja terbaca 22% (under-utilized) padahal 111%. Sekarang kapasitas = hari kerja dalam rentang × 8 jam.
+3. **`NO_DATA` dipisahkan dari `UNDER_UTILIZED`.** Pegawai tanpa entri timesheet tidak lagi dilaporkan "kurang beban"; rata-rata hanya dihitung dari pegawai yang punya data (menutup risiko division-by-zero, Review Focus #1).
+4. **PKWT memakai status kanonik v2.** Filter memakai `employment_status = 'PKWT'` (fallback ke `status = 'CONTRACT'` untuk baris legacy), sehingga karyawan non-PKWT tidak lagi muncul dan PKWT yang kolom `status`-nya masih `PROBATION` tetap terdeteksi (Review Focus #3).
+5. **Tanggal acuan memakai WIB.** `todayInJakarta()` menggantikan `toISOString()` yang memakai UTC, agar antara 00:00–06:59 WIB tidak mundur sehari (Review Focus #2).
+6. **GPA tidak lagi hardcoded.** `currentGpa` dibaca dari `performance_appraisals.composite_gpa` terbaru; tanpa data appraisal syarat GPA dinyatakan belum terpenuhi, bukan diasumsikan 3.5.
+7. **Rule engine melengkapi 4 tipe rekomendasi.** `PROMOTION_READINESS` dan `DOCUMENT_PENDING` kini dihasilkan dari data nyata, dan hasil diurutkan berdasarkan prioritas.
+8. **Endpoint diautentikasi + RBAC + scope.** Keempat route Narasi 3 mengikuti konvensi `getAuthSession`/`assertCan`/`ok`-`fail` (sebelumnya tanpa auth dan memakai bentuk `{success:true}` yang tidak dipakai route lain). Panduan karir dibatasi `resolveVisibleEmployeeIds` sehingga karyawan tidak dapat membaca data pegawai lain.
+9. **Panel UI membaca `status: 'success'`.** Sebelumnya membaca `json.success` sehingga tidak pernah menampilkan data. Ditambah penanganan error, filter status, dan penampil kesiapan jenjang karir.
+10. **Deep-link berfungsi.** `?tab=`, `?employeeId=`, dan `?search=` dibaca halaman sehingga tautan dari rekomendasi HRD langsung membuka tab yang tepat (Review Focus #4).
+
+Verifikasi: `npx tsc --noEmit` bersih; 28 test Narasi 3 lulus (5 file).
 
 ---
 
@@ -55,7 +74,7 @@
   }
   ```
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Buat file `tests/unit/workloadService.test.ts`:
 ```ts
@@ -90,21 +109,21 @@ describe('Workload Service - Satuan Waktu & Intensitas Beban Kerja', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/unit/workloadService.test.ts`
 Expected: FAIL (Cannot find module `@/lib/services/workloadService`)
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Buat `src/lib/services/workloadService.ts` yang mengagregasi `daily_timesheets` berdasarkan rentang tanggal dan menghitung rasio jam kerja per karyawan.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/unit/workloadService.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/services/workloadService.ts tests/unit/workloadService.test.ts
@@ -141,25 +160,25 @@ git commit -m "feat(workload): implementasi perhitungan utilisasi beban kerja pe
   }
   ```
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Buat file `tests/unit/contractService.test.ts` untuk menguji deteksi sisa hari kontrak PKWT.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/unit/contractService.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Implementasikan logika query `employees` dengan `status = 'PKWT'` dan hitung selisih `contract_end_date` terhadap tanggal referensi.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/unit/contractService.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/services/contractService.ts tests/unit/contractService.test.ts
@@ -179,25 +198,25 @@ git commit -m "feat(contracts): deteksi dan ringkasan jatuh tempo kontrak PKWT"
   - `getActionRecommendations(db: Db): Promise<HrActionRecommendation[]>`
   - `getCareerGuidanceForEmployee(db: Db, employeeId: string): Promise<CareerGuidanceResult>`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Buat test unit untuk rekomendasi aksi (kontrak kritis, evaluasi promosi, intervensi beban kerja).
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/unit/hrActionRecommendationService.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Buat aturan rekomendasi berbasis data riil dari beban kerja, kontrak, dan matriks performa.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/unit/hrActionRecommendationService.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/services/hrActionRecommendationService.ts tests/unit/hrActionRecommendationService.test.ts
@@ -215,25 +234,25 @@ git commit -m "feat(hr-actions): rule engine rekomendasi tindakan HRD dan bimbin
 - Create: `src/app/api/v1/hr/career-guidance/[id]/route.ts`
 - Test: `tests/integration/hr-command-center-api.test.ts`
 
-- [ ] **Step 1: Write failing integration test**
+- [x] **Step 1: Write failing integration test**
 
 Buat test HTTP handler/route yang memanggil endpoint dan memeriksa struktur JSON response.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/integration/hr-command-center-api.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement API Routes**
+- [x] **Step 3: Implement API Routes**
 
 Hubungkan route handlers dengan layanan yang telah dibuat di Task 1, 2, dan 3.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/integration/hr-command-center-api.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/api/v1/hr tests/integration/hr-command-center-api.test.ts
@@ -251,11 +270,11 @@ git commit -m "feat(api): endpoint pendukung Command Center HRD Narasi 3"
 - Create: `src/components/governance/PkwtDirectoryPanel.tsx`
 - Test: `tests/integration/hr-command-ui.test.ts`
 
-- [ ] **Step 1: Write UI integration test**
+- [x] **Step 1: Write UI integration test**
 
 Validasi render komponen 5 tab terpadu di `/dashboard/hr-command`.
 
-- [ ] **Step 2: Implement Panels & Tabs**
+- [x] **Step 2: Implement Panels & Tabs**
 
 Integrasikan tab:
 1. `Overview & Analytics` (metrik, cost of workforce, flight risk, Gaussian curve)
@@ -264,14 +283,15 @@ Integrasikan tab:
 4. `Career & Action Guidance` (`CareerAndActionsPanel`)
 5. `Employee & PKWT Directory` (`PkwtDirectoryPanel`)
 
-- [ ] **Step 3: Run Vitest & Diagnostics**
+- [x] **Step 3: Run Vitest & Diagnostics**
 
 Run: `npx vitest run tests/integration/hr-command-ui.test.ts`
 Run: `npm run lint`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app/dashboard/hr-command/page.tsx src/components/governance tests/integration/hr-command-ui.test.ts
 git commit -m "feat(ui): Command Center HRD Narasi 3 terintegrasi Single Pane of Glass"
 ```
+

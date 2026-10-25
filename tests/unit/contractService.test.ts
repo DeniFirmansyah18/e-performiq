@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { createTestDb } from '../setup';
@@ -10,6 +10,7 @@ import { sql } from 'drizzle-orm';
 describe('Contract Service - Manajemen & Peringatan Jatuh Tempo PKWT (TDD)', () => {
   let client: PGlite;
   let db: Db;
+  const refDate = '2026-10-25';
 
   beforeAll(async () => {
     ({ client } = await createTestDb());
@@ -28,11 +29,10 @@ describe('Contract Service - Manajemen & Peringatan Jatuh Tempo PKWT (TDD)', () 
     `);
     const empId = (empRes.rows[0] as { id: string }).id;
 
-    const refDate = '2026-10-25';
     const targetDate = '2026-11-14'; // 20 hari dari 25 Okt
     await db.execute(sql`
       UPDATE employees
-      SET status = 'CONTRACT', contract_end_date = ${targetDate}::date
+      SET status = 'CONTRACT', employment_status = 'PKWT', contract_end_date = ${targetDate}::date
       WHERE id = ${empId}::uuid
     `);
 
@@ -45,4 +45,40 @@ describe('Contract Service - Manajemen & Peringatan Jatuh Tempo PKWT (TDD)', () 
     expect(alertItem?.urgency).toBe('CRITICAL_30');
     expect(alertItem?.daysRemaining).toBe(20);
   });
+
+  it('mengabaikan karyawan non-PKWT (TETAP/PKWTT/PROBATION) dari peringatan jatuh tempo', async () => {
+    const empRes = await db.execute(sql`
+      INSERT INTO employees (employee_code, full_name, email, department_id, position_id,
+                             status, employment_status, base_salary, join_date, contract_end_date)
+      VALUES ('TEST-TETAP-1', 'Pegawai Tetap Uji', 'tetap.uji@eperformiq.co.id',
+              'a0000000-0000-4000-8000-000000000101'::uuid,
+              'a0000000-0000-4000-8000-000000000204'::uuid,
+              'PERMANENT', 'TETAP', 9000000, CURRENT_DATE, '2026-11-01'::date)
+      RETURNING id
+    `);
+    const tetapId = (empRes.rows[0] as { id: string }).id;
+
+    const summary = await getContractsSummary(db, refDate);
+    expect(summary.alerts.some((a) => a.employeeId === tetapId)).toBe(false);
+  });
+
+  it('mendeteksi PKWT lewat employment_status v2 walau kolom status masih PROBATION', async () => {
+    const empRes = await db.execute(sql`
+      INSERT INTO employees (employee_code, full_name, email, department_id, position_id,
+                             status, employment_status, base_salary, join_date, contract_end_date)
+      VALUES ('TEST-PKWT-2', 'Pegawai PKWT Uji', 'pkwt.uji@eperformiq.co.id',
+              'a0000000-0000-4000-8000-000000000101'::uuid,
+              'a0000000-0000-4000-8000-000000000204'::uuid,
+              'PROBATION', 'PKWT', 9000000, CURRENT_DATE, '2026-11-04'::date)
+      RETURNING id
+    `);
+    const pkwtId = (empRes.rows[0] as { id: string }).id;
+
+    const summary = await getContractsSummary(db, refDate);
+    const alertItem = summary.alerts.find((a) => a.employeeId === pkwtId);
+    expect(alertItem).toBeDefined();
+    expect(alertItem?.daysRemaining).toBe(10);
+    expect(alertItem?.urgency).toBe('CRITICAL_30');
+  });
 });
+

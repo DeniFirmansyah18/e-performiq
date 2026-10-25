@@ -1,29 +1,124 @@
-'use client';
-import React, { useState, useEffect } from 'react';
-import { AlertCircle, ArrowUpRight, Award, Compass, Sparkles } from 'lucide-react';
+﻿'use client';
+import React, { useEffect, useState } from 'react';
+import { ArrowUpRight, Compass, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function CareerAndActionsPanel() {
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+interface HrActionRecommendation {
+  id: string;
+  type: 'CONTRACT_EXPIRY' | 'OVERWORK_INTERVENTION' | 'PROMOTION_READINESS' | 'DOCUMENT_PENDING';
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  title: string;
+  description: string;
+  targetEmployeeId?: string;
+  targetEmployeeName?: string;
+  actionUrl: string;
+  actionLabel: string;
+}
+
+interface CareerLadderStep {
+  targetPositionId: string;
+  targetPositionTitle: string;
+  targetJobGrade: string;
+  minServiceMonths: number;
+  currentServiceMonths: number;
+  isServiceMet: boolean;
+  minGpa: number;
+  currentGpa: number | null;
+  isGpaMet: boolean;
+  requiredSkills: string[];
+  missingSkills: string[];
+  readinessPercentage: number;
+  isEligibleForPromotion: boolean;
+}
+
+interface CareerGuidance {
+  employeeId: string;
+  fullName: string;
+  currentPositionTitle: string;
+  currentJobGrade: string;
+  serviceMonths: number;
+  currentGpa: number | null;
+  nextCareerPaths: CareerLadderStep[];
+}
+
+const TYPE_META: Record<HrActionRecommendation['type'], { label: string; className: string }> = {
+  CONTRACT_EXPIRY: { label: 'Kontrak PKWT', className: 'bg-red-100 text-red-700' },
+  OVERWORK_INTERVENTION: { label: 'Beban Kerja', className: 'bg-amber-100 text-amber-700' },
+  PROMOTION_READINESS: { label: 'Jenjang Karir', className: 'bg-emerald-100 text-emerald-700' },
+  DOCUMENT_PENDING: { label: 'Verifikasi Berkas', className: 'bg-indigo-100 text-indigo-700' },
+};
+
+const PRIORITY_META: Record<HrActionRecommendation['priority'], { label: string; className: string }> = {
+  HIGH: { label: 'Prioritas Tinggi', className: 'text-red-600' },
+  MEDIUM: { label: 'Prioritas Sedang', className: 'text-amber-600' },
+  LOW: { label: 'Prioritas Rendah', className: 'text-slate-500' },
+};
+
+async function fetchJson(url: string): Promise<any> {
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.detail ?? json?.message ?? 'Gagal memuat data');
+  return json;
+}
+
+export default function CareerAndActionsPanel({ employeeId }: { employeeId?: string }) {
+  const [recommendations, setRecommendations] = useState<HrActionRecommendation[]>([]);
+  const [guidance, setGuidance] = useState<CareerGuidance | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/v1/hr/action-recommendations')
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) setRecommendations(json.data || []);
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    const tasks: Promise<void>[] = [
+      fetchJson('/api/v1/hr/action-recommendations').then((json) => {
+        if (active && json?.status === 'success') setRecommendations(json.data ?? []);
+      }),
+    ];
+
+    if (employeeId) {
+      tasks.push(
+        fetchJson(`/api/v1/hr/career-guidance/${employeeId}`).then((json) => {
+          if (active && json?.status === 'success') setGuidance(json.data);
+        })
+      );
+    } else {
+      setGuidance(null);
+    }
+
+    Promise.all(tasks)
+      .catch((err: Error) => {
+        if (active) setError(err.message);
       })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [employeeId]);
 
   if (loading) {
-    return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat rekomendasi aksi dan panduan karir...</div>;
+    return (
+      <div className="p-6 text-sm text-slate-500 animate-pulse">
+        Memuat rekomendasi aksi dan panduan karir...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl">
+        Gagal memuat rekomendasi tindakan: {error}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Action Recommendation Section */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -55,14 +150,18 @@ export default function CareerAndActionsPanel() {
                 <div className="flex items-center justify-between mb-2">
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      rec.priority === 'HIGH'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-amber-100 text-amber-700'
+                      TYPE_META[rec.type]?.className ?? 'bg-slate-100 text-slate-700'
                     }`}
                   >
-                    {rec.type}
+                    {TYPE_META[rec.type]?.label ?? rec.type}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">{rec.priority}</span>
+                  <span
+                    className={`text-[10px] font-semibold ${
+                      PRIORITY_META[rec.priority]?.className ?? 'text-slate-500'
+                    }`}
+                  >
+                    {PRIORITY_META[rec.priority]?.label ?? rec.priority}
+                  </span>
                 </div>
                 <h4 className="font-semibold text-xs text-slate-900 mb-1">{rec.title}</h4>
                 <p className="text-[11px] text-slate-600 mb-3">{rec.description}</p>
@@ -79,7 +178,76 @@ export default function CareerAndActionsPanel() {
         )}
       </div>
 
-      {/* Career Ladder Guidance Info Card */}
+      {guidance && (
+        <div className="bg-white rounded-xl border border-indigo-100 p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h4 className="font-semibold text-sm text-slate-800">
+                Panduan Jenjang Karir: {guidance.fullName}
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Posisi saat ini {guidance.currentPositionTitle} ({guidance.currentJobGrade}) &bull;
+                masa kerja {guidance.serviceMonths} bulan &bull; GPA{' '}
+                {guidance.currentGpa ?? 'belum ada appraisal'}
+              </p>
+            </div>
+          </div>
+
+          {guidance.nextCareerPaths.length === 0 ? (
+            <div className="p-4 text-center text-xs text-slate-500">
+              Belum ada jenjang karir lanjutan terdaftar untuk posisi ini (kemungkinan posisi puncak).
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {guidance.nextCareerPaths.map((path) => (
+                <div key={path.targetPositionId} className="p-4 rounded-xl border border-slate-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div className="font-semibold text-xs text-slate-900">
+                      {path.targetPositionTitle}{' '}
+                      <span className="text-slate-400 font-normal">({path.targetJobGrade})</span>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        path.isEligibleForPromotion
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      Kesiapan {path.readinessPercentage}%
+                    </span>
+                  </div>
+
+                  <ul className="text-[11px] text-slate-600 space-y-1">
+                    <li className="flex items-center gap-1.5">
+                      {path.isServiceMet ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-red-500" />
+                      )}
+                      Masa kerja {path.currentServiceMonths} bulan (minimal {path.minServiceMonths})
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      {path.isGpaMet ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-red-500" />
+                      )}
+                      GPA {path.currentGpa ?? '-'} (minimal {path.minGpa})
+                    </li>
+                    {path.requiredSkills.length > 0 && (
+                      <li className="text-slate-500">
+                        Keterampilan wajib: {path.requiredSkills.join(', ')}
+                        {' '}(belum diverifikasi terhadap data pelatihan)
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-5">
         <div className="flex items-start gap-3">
           <Compass className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
@@ -88,9 +256,10 @@ export default function CareerAndActionsPanel() {
               Penuntun Jalur Jenjang Karir & Matriks Suksesi
             </h4>
             <p className="text-xs text-indigo-800 leading-relaxed">
-              HRD menuntun pegawai ke jenjang karir berikutnya dengan mencocokkan masa kerja minimal,
-              capaian nilai GPA/KPI, serta keterampilan wajib (`career_path_levels`). Evaluasi ini
-              otomatis disinkronkan ke 9-Box Talent Matrix untuk promosi berkeadilan.
+              Kesiapan promosi dihitung dari masa kerja dan GPA appraisal terakhir
+              (<code>performance_appraisals.composite_gpa</code>) terhadap syarat
+              <code> career_path_levels</code>. Rekomendasi jenjang karir muncul saat seluruh
+              syarat numerik terpenuhi; kesenjangan keterampilan dilaporkan terpisah.
             </p>
           </div>
         </div>

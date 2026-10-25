@@ -61,6 +61,15 @@ import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 type MainTab = 'overview' | 'lifecycle' | 'workload' | 'career-actions' | 'directory';
 type HrFeature = 'mpp' | 'pipeline' | 'learning' | 'cost';
 
+const MAIN_TABS: MainTab[] = ['overview', 'lifecycle', 'workload', 'career-actions', 'directory'];
+
+/** Membaca `?tab=` agar tautan dari rekomendasi HRD (mis. ?tab=directory) langsung terbuka. */
+function resolveInitialTab(): MainTab {
+  if (typeof window === 'undefined') return 'overview';
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  return (MAIN_TABS as string[]).includes(tab ?? '') ? (tab as MainTab) : 'overview';
+}
+
 export default function HROperationsPage() {
   const [mainTab, setMainTab] = useState<MainTab>('overview');
   const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
@@ -111,6 +120,18 @@ export default function HROperationsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Hormati deep-link `?tab=` setelah hidrasi agar tautan rekomendasi HRD tepat sasaran.
+  const [deepLinkEmployeeId, setDeepLinkEmployeeId] = useState<string | undefined>();
+  const [deepLinkSearch, setDeepLinkSearch] = useState<string | undefined>();
+
+  useEffect(() => {
+    setMainTab(resolveInitialTab());
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    setDeepLinkEmployeeId(params.get('employeeId') ?? undefined);
+    setDeepLinkSearch(params.get('search') ?? undefined);
+  }, []);
 
   // FPTK Modal State
   const [isFptkModalOpen, setIsFptkModalOpen] = useState(false);
@@ -403,8 +424,8 @@ export default function HROperationsPage() {
                   </div>
 
                   {mainTab === 'workload' && <WorkloadAnalysisPanel />}
-                  {mainTab === 'career-actions' && <CareerAndActionsPanel />}
-                  {mainTab === 'directory' && <PkwtDirectoryPanel />}
+                  {mainTab === 'career-actions' && <CareerAndActionsPanel employeeId={deepLinkEmployeeId} />}
+                  {mainTab === 'directory' && <PkwtDirectoryPanel initialSearch={deepLinkSearch} />}
 
                   {(mainTab === 'overview' || mainTab === 'lifecycle') && (
                     <>
@@ -1072,10 +1093,10 @@ export default function HROperationsPage() {
         </div>
 
       </div>
-      </>
-      )}
         <AiAnalyzePanel feature="hr" />
       </ExpandablePanel>
+                    </>
+                  )}
 
       {/* Modal Input FPTK Baru */}
       {isFptkModalOpen && typeof document !== 'undefined' && createPortal(
