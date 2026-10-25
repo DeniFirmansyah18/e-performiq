@@ -1,4 +1,4 @@
-﻿import { sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { getContractsSummary } from './contractService';
 import { calculateWorkloadSummary } from './workloadService';
@@ -26,7 +26,14 @@ export interface CareerLadderStep {
   currentGpa: number | null;
   isGpaMet: boolean;
   requiredSkills: string[];
+  /** Skill wajib yang punya bukti asesmen dan levelnya sudah memadai. */
+  verifiedSkills: string[];
+  /** Skill wajib yang sudah diasesmen tetapi levelnya masih di bawah syarat. */
   missingSkills: string[];
+  /** Skill wajib yang belum pernah diasesmen — bukan berarti kurang. */
+  unverifiedSkills: string[];
+  /** Rincian asesmen kompetensi terakhir untuk pegawai ini. */
+  assessedSkills: Array<{ skillName: string; actualLevel: number; requiredLevel: number }>;
   readinessPercentage: number;
   isEligibleForPromotion: boolean;
 }
@@ -39,6 +46,7 @@ export interface CareerGuidanceResult {
   currentJobGrade: string;
   serviceMonths: number;
   currentGpa: number | null;
+  assessedSkills: Array<{ skillName: string; actualLevel: number; requiredLevel: number }>;
   nextCareerPaths: CareerLadderStep[];
 }
 
@@ -237,6 +245,37 @@ export async function getCareerGuidanceForEmployee(
   const currentServiceMonths = monthsBetween(emp.join_date, new Date());
   const currentGpa = emp.current_gpa === null ? null : Number(emp.current_gpa);
 
+  // Bukti asesmen kompetensi terakhir: dipakai untuk memisahkan skill yang
+  // benar-benar kurang dari skill yang sekadar belum pernah dinilai.
+  const competencyRes = (await db.execute(sql`
+    SELECT
+      cs.skill_name,
+      cs.actual_level,
+      cs.required_level
+    FROM competency_scores cs
+    WHERE cs.employee_id = ${employeeId}::uuid
+      AND cs.period_id = (
+        SELECT cs2.period_id
+          FROM competency_scores cs2
+         WHERE cs2.employee_id = ${employeeId}::uuid
+         ORDER BY cs2.created_at DESC NULLS LAST
+         LIMIT 1
+      )
+    ORDER BY cs.skill_name
+  `)) as unknown as {
+    rows: Array<{ skill_name: string; actual_level: number; required_level: number }>;
+  };
+
+  const assessedSkills = (competencyRes.rows ?? []).map((row) => ({
+    skillName: row.skill_name,
+    actualLevel: Number(row.actual_level),
+    requiredLevel: Number(row.required_level),
+  }));
+
+  const assessedByName = new Map(
+    assessedSkills.map((a) => [a.skillName.trim().toLowerCase(), a])
+  );
+
   const careerRes = (await db.execute(sql`
     SELECT
       c.target_position_id,
@@ -270,6 +309,20 @@ export async function getCareerGuidanceForEmployee(
     const isGpaMet = currentGpa !== null && currentGpa >= minGpa;
     const requiredSkills = parseSkills(row.required_skills);
 
+    const verifiedSkills: string[] = [];
+    const missingSkills: string[] = [];
+    const unverifiedSkills: string[] = [];
+    for (const skill of requiredSkills) {
+      const assessed = assessedByName.get(skill.trim().toLowerCase());
+      if (!assessed) {
+        unverifiedSkills.push(skill);
+      } else if (assessed.actualLevel >= assessed.requiredLevel) {
+        verifiedSkills.push(skill);
+      } else {
+        missingSkills.push(skill);
+      }
+    }
+
     const requirementsMet = [isServiceMet, isGpaMet];
     const metCount = requirementsMet.filter(Boolean).length;
 
@@ -284,8 +337,10 @@ export async function getCareerGuidanceForEmployee(
       currentGpa,
       isGpaMet,
       requiredSkills,
-      // Skill gap hanya informatif: belum ada tabel pemetaan skill per pegawai.
-      missingSkills: requiredSkills,
+      verifiedSkills,
+      missingSkills,
+      unverifiedSkills,
+      assessedSkills,
       readinessPercentage: Math.round((metCount / requirementsMet.length) * 100),
       isEligibleForPromotion: isServiceMet && isGpaMet,
     };
@@ -299,6 +354,7 @@ export async function getCareerGuidanceForEmployee(
     currentJobGrade: emp.job_grade,
     serviceMonths: currentServiceMonths,
     currentGpa,
+    assessedSkills,
     nextCareerPaths,
   };
 }

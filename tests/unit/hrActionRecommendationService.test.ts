@@ -83,4 +83,41 @@ describe('HR Action Recommendation & Career Guidance (TDD)', () => {
     const guidance = await getCareerGuidanceForEmployee(db, CEO);
     expect(guidance.nextCareerPaths).toEqual([]);
   });
+
+  it('skill gap dihitung dari competency_scores, bukan disamakan dengan skill wajib', async () => {
+    // Seed: Budi punya 2 competency_scores (Cloud Native Architecture &
+    // Cross-Functional Collaboration), keduanya level 4 dari 4 -> tidak ada gap.
+    // Skill wajib ke Manager IT: TypeScript, PostgreSQL, System Design.
+    const guidance = await getCareerGuidanceForEmployee(db, BUDI);
+    const path = guidance.nextCareerPaths.find((p) => p.targetPositionId === MGR_POSITION);
+    expect(path).toBeDefined();
+    expect(path?.assessedSkills).toEqual(
+      expect.arrayContaining([
+        { skillName: 'Cloud Native Architecture', actualLevel: 4, requiredLevel: 4 },
+      ])
+    );
+    // Ketiga skill wajib tidak punya bukti asesmen -> dilaporkan sebagai belum
+    // terverifikasi, bukan diklaim "kurang".
+    expect(path?.missingSkills).toEqual([]);
+    expect(path?.verifiedSkills).toEqual([]);
+    expect(path?.unverifiedSkills).toEqual(
+      expect.arrayContaining(['TypeScript', 'PostgreSQL', 'System Design'])
+    );
+  });
+
+  it('skill yang sudah terpenuhi tidak masuk missingSkills', async () => {
+    // Tambah asesmen level memadai untuk TypeScript pada Budi.
+    await db.execute(sql`
+      INSERT INTO competency_scores
+        (period_id, employee_id, skill_name, skill_category, required_level, actual_level, score)
+      VALUES ('d0000000-0000-4000-8000-000000000001'::uuid, ${BUDI}::uuid,
+              'TypeScript', 'HARD', 4, 4, 88.00)
+    `);
+
+    const guidance = await getCareerGuidanceForEmployee(db, BUDI);
+    const path = guidance.nextCareerPaths.find((p) => p.targetPositionId === MGR_POSITION);
+    expect(path?.missingSkills).not.toContain('TypeScript');
+    expect(path?.unverifiedSkills).not.toContain('TypeScript');
+    expect(path?.verifiedSkills).toContain('TypeScript');
+  });
 });

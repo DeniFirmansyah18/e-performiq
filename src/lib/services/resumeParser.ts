@@ -499,7 +499,6 @@ function extractPdfTextOperators(content: string): string[] {
  */
 export function extractTextFromPdf(buffer: Buffer): string {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const zlib = require('node:zlib') as typeof import('node:zlib');
     const raw = buffer.toString('latin1');
     const chunks: string[] = [];

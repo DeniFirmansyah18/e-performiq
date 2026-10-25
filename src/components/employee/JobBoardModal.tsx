@@ -252,7 +252,7 @@ export default function JobBoardModal({ isOpen, onClose, onSuccess }: JobBoardMo
               <div>
                 <p className="text-sm font-bold text-slate-800">Lamaran Terkirim</p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Hasil screening CV Anda untuk "{selected.postingTitle}":
+                  Hasil screening CV Anda untuk &ldquo;{selected.postingTitle}&rdquo;:
                 </p>
               </div>
               <div className="inline-block px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200">

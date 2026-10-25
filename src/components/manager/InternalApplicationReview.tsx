@@ -124,7 +124,7 @@ export default function InternalApplicationReview() {
                 Skor: {it.screeningScore}
               </span>
             </div>
-            <p className="text-[11px] text-slate-600 italic">"{it.coverLetter}"</p>
+            <p className="text-[11px] text-slate-600 italic">&ldquo;{it.coverLetter}&rdquo;</p>
             <p className="text-[11px] text-slate-500">{it.screeningSummary}</p>
             <div className="flex gap-2 pt-1">
               <button

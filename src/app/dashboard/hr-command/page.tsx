@@ -52,6 +52,9 @@ import HrDashboardCards from '@/components/governance/HrDashboardCards';
 import WorkloadAnalysisPanel from '@/components/governance/WorkloadAnalysisPanel';
 import CareerAndActionsPanel from '@/components/governance/CareerAndActionsPanel';
 import PkwtDirectoryPanel from '@/components/governance/PkwtDirectoryPanel';
+import HrOverviewAnalyticsPanel from '@/components/governance/HrOverviewAnalyticsPanel';
+import HrLifecycleControlPanel from '@/components/governance/HrLifecycleControlPanel';
+import EmployeeDirectoryPanel from '@/components/governance/EmployeeDirectoryPanel';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
@@ -425,10 +428,27 @@ export default function HROperationsPage() {
 
                   {mainTab === 'workload' && <WorkloadAnalysisPanel />}
                   {mainTab === 'career-actions' && <CareerAndActionsPanel employeeId={deepLinkEmployeeId} />}
-                  {mainTab === 'directory' && <PkwtDirectoryPanel initialSearch={deepLinkSearch} />}
+                  {mainTab === 'directory' && (
+                    <div className="space-y-6">
+                      <PkwtDirectoryPanel initialSearch={deepLinkSearch} />
+                      <EmployeeDirectoryPanel initialSearch={deepLinkSearch} />
+                    </div>
+                  )}
 
-                  {(mainTab === 'overview' || mainTab === 'lifecycle') && (
+                  {mainTab === 'overview' && (
+                    <div className="space-y-6">
+                      <HrOverviewAnalyticsPanel />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <CostOfWorkforceCard />
+                        <FlightRiskHeatmap />
+                      </div>
+                      <CompanyActivityFeed />
+                    </div>
+                  )}
+
+                  {mainTab === 'lifecycle' && (
                     <>
+                  <HrLifecycleControlPanel />
                   {/* 2. Feature Card Grid (click to open) */}
       <FeatureGrid>
         <FeatureCard

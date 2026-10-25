@@ -1,4 +1,4 @@
-﻿import { sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 
 export interface PkwtContractAlert {
@@ -7,6 +7,7 @@ export interface PkwtContractAlert {
   fullName: string;
   departmentName: string;
   positionTitle: string;
+  contractStartDate: string | null;
   contractEndDate: string;
   daysRemaining: number;
   urgency: 'EXPIRED' | 'CRITICAL_30' | 'WARNING_60' | 'SAFE';
@@ -54,6 +55,7 @@ export async function getContractsSummary(
       e.full_name,
       d.department_name,
       p.position_title,
+      e.contract_start_date,
       e.contract_end_date
     FROM employees e
     JOIN departments d ON d.id = e.department_id
@@ -70,6 +72,7 @@ export async function getContractsSummary(
       full_name: string;
       department_name: string;
       position_title: string;
+      contract_start_date: string | null;
       contract_end_date: string | null;
     }>;
   };
@@ -112,6 +115,9 @@ export async function getContractsSummary(
       fullName: r.full_name,
       departmentName: r.department_name,
       positionTitle: r.position_title,
+      contractStartDate: r.contract_start_date
+        ? String(r.contract_start_date).slice(0, 10)
+        : null,
       contractEndDate: endDate,
       daysRemaining,
       urgency,

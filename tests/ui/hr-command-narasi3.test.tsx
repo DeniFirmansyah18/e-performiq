@@ -117,7 +117,7 @@ describe('CareerAndActionsPanel', () => {
             { targetPositionId: 'p2', targetPositionTitle: 'Manager IT', targetJobGrade: 'G5',
               minServiceMonths: 36, currentServiceMonths: 54, isServiceMet: true,
               minGpa: 3.25, currentGpa: 3.67, isGpaMet: true,
-              requiredSkills: ['Leadership'], missingSkills: ['Leadership'],
+              requiredSkills: ['Leadership'], verifiedSkills: [], missingSkills: [], unverifiedSkills: ['Leadership'],
               readinessPercentage: 100, isEligibleForPromotion: true },
           ],
         });
@@ -164,3 +164,4 @@ describe('PkwtDirectoryPanel', () => {
     expect(screen.getByText(/Dewi Lestari/)).toBeTruthy();
   });
 });
+

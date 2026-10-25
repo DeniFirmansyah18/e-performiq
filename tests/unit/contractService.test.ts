@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { createTestDb } from '../setup';
@@ -80,5 +80,23 @@ describe('Contract Service - Manajemen & Peringatan Jatuh Tempo PKWT (TDD)', () 
     expect(alertItem?.daysRemaining).toBe(10);
     expect(alertItem?.urgency).toBe('CRITICAL_30');
   });
-});
+  it('menyertakan tanggal mulai kontrak bila kolom contract_start_date tersedia', async () => {
+    const empRes = await db.execute(sql`
+      INSERT INTO employees (employee_code, full_name, email, department_id, position_id,
+                             status, employment_status, base_salary, join_date,
+                             contract_start_date, contract_end_date)
+      VALUES ('TEST-PKWT-3', 'Pegawai PKWT Mulai', 'pkwt.mulai@eperformiq.co.id',
+              'a0000000-0000-4000-8000-000000000101'::uuid,
+              'a0000000-0000-4000-8000-000000000204'::uuid,
+              'PROBATION', 'PKWT', 9000000, CURRENT_DATE,
+              '2026-01-01'::date, '2026-12-31'::date)
+      RETURNING id
+    `);
+    const pkwtId = (empRes.rows[0] as { id: string }).id;
 
+    const summary = await getContractsSummary(db, refDate);
+    const alertItem = summary.alerts.find((a) => a.employeeId === pkwtId);
+    expect(alertItem?.contractStartDate).toBe('2026-01-01');
+    expect(alertItem?.contractEndDate).toBe('2026-12-31');
+  });
+});

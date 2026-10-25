@@ -1,4 +1,4 @@
-﻿# Command Center HRD (Revisi Narasi 3) Implementation Plan
+# Command Center HRD (Revisi Narasi 3) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -43,6 +43,41 @@ Perbaikan yang menyertai penyelesaian rencana ini:
 10. **Deep-link berfungsi.** `?tab=`, `?employeeId=`, dan `?search=` dibaca halaman sehingga tautan dari rekomendasi HRD langsung membuka tab yang tepat (Review Focus #4).
 
 Verifikasi: `npx tsc --noEmit` bersih; 28 test Narasi 3 lulus (5 file).
+
+---
+
+## Audit Kesesuaian 7 Pilar (2026-10-25, putaran 2)
+
+Audit ini dilakukan dengan membaca kode, bukan mengandalkan ingatan. Temuan awal: **commit `6f5321b` belum memenuhi ketujuh pilar.** Tiga masalah pokok:
+
+| Pilar | Kondisi sebelum audit | Tindakan |
+|---|---|---|
+| 1. Aktivitas kepegawaian menyeluruh | Belum ada UI aktivitas; `CompanyActivityFeed` hanya di panel Cost & Risk yang harus dibuka manual | `HrLifecycleControlPanel` fase Saat-Kerja memuat log aktivitas lintas modul |
+| 2. Analitik komprehensif | `GaussianCurve` dan `NineBoxGrid` **ada tapi tidak dipakai di mana pun** | Keduanya dirender di tab Overview; ditambah GPA & potensi tinggi dari `executive-summary` |
+| 3. Manajemen kepegawaian | Tidak ada headcount/gender/usia/grade/KPI/MPP | Service + endpoint `workforce-profile` baru, ditampilkan di tab Overview |
+| 4. Beban kerja satuan waktu | Ada, tetapi kapasitas salah (lihat catatan 2) | Diperbaiki; kini mengikuti hari kerja pada rentang |
+| 5. Rekomendasi & jenjang karir | 2 dari 4 tipe rekomendasi belum ada; skill gap belum dihitung | 4 tipe lengkap; skill gap dari `competency_scores` |
+| 6. Kontrol siklus 3-fase | Tab `lifecycle` merender isi **identik** dengan `overview` | `HrLifecycleControlPanel` dengan fase Pra/Saat/Pasca yang benar-benar berbeda |
+| 7. Pencarian, detail, PKWT, kontribusi BSC | Tidak ada direktori & pemetaan ke pilar BSC | `EmployeeDirectoryPanel` + endpoint `bsc-contribution` |
+
+### Perbaikan tambahan pada putaran ini
+
+11. **Tab `overview` dan `lifecycle` dipisahkan.** Sebelumnya keduanya memakai kondisi `(mainTab === 'overview' || mainTab === 'lifecycle')` sehingga menampilkan grid yang sama.
+12. **`contract_start_date` ditambahkan** lewat migrasi `0056` (aditif + idempoten). Sebelumnya kolom ini tidak ada sehingga rentang kontrak tidak bisa ditampilkan.
+13. **Skill gap memakai data nyata.** Klaim lama "belum ada tabel pemetaan skill" **keliru**: `competency_scores` menyimpan `skill_name`, `required_level`, `actual_level`, `gap`. Kini skill dipisah menjadi `verifiedSkills` / `missingSkills` / `unverifiedSkills` agar skill yang belum diasesmen tidak disalahartikan sebagai kekurangan.
+14. **ESLint dikonfigurasi.** `eslint` + `eslint-config-next` dipasang, `.eslintrc.json` dibuat, dan 3 pelanggaran lama diperbaiki (`JobBoardModal`, `InternalApplicationReview`, `resumeParser`). `npm run lint` kini berjalan dan bersih.
+15. **BOM dihapus dari seluruh file** yang ditulis pada commit sebelumnya. `Set-Content -Encoding utf8` di PowerShell 5.1 menyisipkan BOM; akibatnya migrasi SQL gagal dengan `syntax error at or near "\ufeff"`.
+16. **Endpoint direktori terpisah.** `/api/v1/hr/employees` mensyaratkan `recruitment:manage` (BOD/AUDITOR ditolak), sehingga direktori memakai `/api/v1/hr/employee-directory` dengan `employment:read` dan penolakan eksplisit untuk peran `EMPLOYEE`.
+17. **File sisa dibersihkan:** `a.txt`, `c.txt`, `scripts/tmp-inspect*.mjs`.
+
+### Verifikasi putaran ini
+
+- `npx tsc --noEmit` → bersih.
+- `npm run lint` → **No ESLint warnings or errors**.
+- 61 test Narasi 3 lulus (10 file) + 47 test regresi lulus (6 file).
+- Verifikasi endpoint nyata dengan sesi HR pada dev server: `workforce-profile`, `employee-directory`, `contracts-summary`, `action-recommendations`, `bsc-contribution` → semuanya HTTP 200.
+- Verifikasi SSR `/dashboard/hr-command` dengan sesi HR → kelima label tab muncul.
+- **Catatan jujur:** verifikasi visual (screenshot) tidak dapat dilakukan karena tool browser sesi ini tidak mendukung penyetelan cookie httpOnly dan paket `playwright` tidak terpasang sebagai dependensi proyek. Yang diverifikasi adalah render server-side, struktur DOM via jsdom, dan respons API nyata.
 
 ---
 

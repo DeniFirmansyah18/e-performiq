@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import React, { useEffect, useState } from 'react';
 import { ArrowUpRight, Compass, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -26,7 +26,9 @@ interface CareerLadderStep {
   currentGpa: number | null;
   isGpaMet: boolean;
   requiredSkills: string[];
+  verifiedSkills: string[];
   missingSkills: string[];
+  unverifiedSkills: string[];
   readinessPercentage: number;
   isEligibleForPromotion: boolean;
 }
@@ -234,10 +236,19 @@ export default function CareerAndActionsPanel({ employeeId }: { employeeId?: str
                       )}
                       GPA {path.currentGpa ?? '-'} (minimal {path.minGpa})
                     </li>
-                    {path.requiredSkills.length > 0 && (
+                    {path.missingSkills.length > 0 && (
+                      <li className="text-red-600">
+                        Skill belum memenuhi syarat: {path.missingSkills.join(', ')}
+                      </li>
+                    )}
+                    {path.unverifiedSkills.length > 0 && (
                       <li className="text-slate-500">
-                        Keterampilan wajib: {path.requiredSkills.join(', ')}
-                        {' '}(belum diverifikasi terhadap data pelatihan)
+                        Belum diasesmen: {path.unverifiedSkills.join(', ')}
+                      </li>
+                    )}
+                    {path.verifiedSkills.length > 0 && (
+                      <li className="text-emerald-700">
+                        Skill terpenuhi: {path.verifiedSkills.join(', ')}
                       </li>
                     )}
                   </ul>
@@ -258,8 +269,10 @@ export default function CareerAndActionsPanel({ employeeId }: { employeeId?: str
             <p className="text-xs text-indigo-800 leading-relaxed">
               Kesiapan promosi dihitung dari masa kerja dan GPA appraisal terakhir
               (<code>performance_appraisals.composite_gpa</code>) terhadap syarat
-              <code> career_path_levels</code>. Rekomendasi jenjang karir muncul saat seluruh
-              syarat numerik terpenuhi; kesenjangan keterampilan dilaporkan terpisah.
+              <code> career_path_levels</code>. Kesenjangan keterampilan diambil dari
+              <code> competency_scores</code>: skill yang sudah dinilai tetapi belum memenuhi
+              level syarat dilaporkan sebagai gap, sedangkan skill yang belum pernah diasesmen
+              ditandai terpisah agar tidak disalahartikan sebagai kekurangan.
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-﻿import { sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 
 export interface EmployeeWorkload {
