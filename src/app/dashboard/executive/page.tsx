@@ -28,34 +28,63 @@ import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
+import BoardTabNav, { type BoardTab } from '@/components/executive/BoardTabNav';
+import BoardActivityPanel from '@/components/executive/BoardActivityPanel';
+import BoardVisionPanel from '@/components/executive/BoardVisionPanel';
+import BoardPositionFitPanel from '@/components/executive/BoardPositionFitPanel';
+import BoardCostPanel from '@/components/executive/BoardCostPanel';
 
 type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession';
+
+const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'activity', 'vision', 'position-fit', 'cost'];
+
+/** Membaca `?tab=` agar tautan langsung membuka tab yang tepat. */
+function resolveInitialTab(): BoardTab {
+  if (typeof window === 'undefined') return 'overview';
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  return (BOARD_TAB_KEYS as string[]).includes(tab ?? '') ? (tab as BoardTab) : 'overview';
+}
 
 export default function ExecutiveBoardroomPage() {
   const [resolution, setResolution] = useState<'Bulanan' | 'Kuartalan' | 'Semester'>('Bulanan');
   const [scorecard, setScorecard] = useState<any>(null);
   const [openFeature, setOpenFeature] = useState<ExecFeature | null>(null);
+  const [mainTab, setMainTab] = useState<BoardTab>('overview');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMainTab(resolveInitialTab());
+  }, []);
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
+      setLoadError(null);
       try {
         const res = await fetch('/api/v1/analytics/vmai-scorecard');
-        if (res.ok) {
-          const json = await res.json();
-          setScorecard(json.data);
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(json?.detail ?? json?.message ?? 'Gagal memuat scorecard');
         }
-      } catch {
-        // fallback
+        setScorecard(json?.data ?? null);
+      } catch (err) {
+        setScorecard(null);
+        setLoadError((err as Error).message);
+      } finally {
+        setLoading(false);
       }
     }
     load();
   }, []);
 
-  const vmai = scorecard?.vmai_score ?? 89.4;
-  const financialScore = scorecard?.balanced_scorecard_perspectives?.financial?.score ?? 92.4;
-  const customerScore = scorecard?.balanced_scorecard_perspectives?.customer_stakeholder?.score ?? 87.1;
-  const internalScore = scorecard?.balanced_scorecard_perspectives?.internal_business_process?.score ?? 94.8;
-  const learningScore = scorecard?.balanced_scorecard_perspectives?.learning_growth?.score ?? 83.3;
+  // Tanpa angka cadangan: nilai 0 hanya berarti data belum termuat, dan
+  // banner galat di bawah menjelaskan mengapa.
+  const vmai = scorecard?.vmai_score ?? 0;
+  const financialScore = scorecard?.balanced_scorecard_perspectives?.financial?.score ?? 0;
+  const customerScore = scorecard?.balanced_scorecard_perspectives?.customer_stakeholder?.score ?? 0;
+  const internalScore = scorecard?.balanced_scorecard_perspectives?.internal_business_process?.score ?? 0;
+  const learningScore = scorecard?.balanced_scorecard_perspectives?.learning_growth?.score ?? 0;
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
@@ -115,7 +144,7 @@ export default function ExecutiveBoardroomPage() {
           {/* Download Button */}
           <button 
             onClick={() => {
-              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
+              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
               const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
               const url = URL.createObjectURL(blob);
               const link = document.createElement('a');
@@ -132,14 +161,25 @@ export default function ExecutiveBoardroomPage() {
         </div>
       </div>
 
+      <BoardTabNav active={mainTab} onChange={setMainTab} />
+
+      {loadError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+          Gagal memuat scorecard eksekutif: {loadError}. Angka sengaja tidak ditampilkan agar
+          tidak menyesatkan.
+        </div>
+      )}
+
       {/* 2. Feature Card Grid (click to open) */}
+      {mainTab === 'overview' && !loadError && (
+        <>
       <FeatureGrid>
         <FeatureCard
           icon={ShieldCheck}
           title="VMAI Indeks Korporasi"
           metric={`${vmai}%`}
           tag="Terverifikasi"
-          description={`Vision & Mission Alignment Index. Tolok ukur industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%).`}
+          description={`Vision & Mission Alignment Index. Tolok ukur industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%).`}
           onOpen={() => setOpenFeature('vmai')}
         />
         <FeatureCard
@@ -190,7 +230,7 @@ export default function ExecutiveBoardroomPage() {
             tag="Laporan"
             description="Ekspor ringkasan VMAI & Balanced Scorecard dalam satu berkas."
             onClick={() => {
-              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
+              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
               const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
               const url = URL.createObjectURL(blob);
               const link = document.createElement('a');
@@ -237,7 +277,7 @@ export default function ExecutiveBoardroomPage() {
               {vmai}%
             </span>
             <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              +{scorecard?.industry_benchmark?.variance_percentage ?? 4.4}%
+              +{scorecard?.industry_benchmark?.variance_percentage ?? 0}%
             </span>
           </div>
           <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
@@ -699,6 +739,13 @@ export default function ExecutiveBoardroomPage() {
 
       {/* 5. Peringatan Dini Attrition & Burnout (PRD §5.4) */}
       <FlightRiskHeatmap />
+        </>
+      )}
+
+      {mainTab === 'activity' && <BoardActivityPanel />}
+      {mainTab === 'vision' && <BoardVisionPanel />}
+      {mainTab === 'position-fit' && <BoardPositionFitPanel />}
+      {mainTab === 'cost' && <BoardCostPanel />}
 
       {/* 6. Formal Legal Footer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-[#e2e8f0] text-[11px] text-[#64748b]">
