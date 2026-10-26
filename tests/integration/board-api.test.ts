@@ -10,6 +10,7 @@ import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { GET as getActivity } from '@/app/api/v1/analytics/board-activity/route';
 import { GET as getVision } from '@/app/api/v1/analytics/vision-achievement/route';
 import { GET as getPositionFit } from '@/app/api/v1/analytics/position-fit/route';
+import { GET as getCost } from '@/app/api/v1/analytics/board-cost/route';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -125,6 +126,41 @@ describe('Boardroom API', () => {
       expect(json.status).toBe('success');
       expect(json.data.employees.length).toBeGreaterThan(0);
       expect(json.data.analysis.highlights.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('GET /api/v1/analytics/board-cost', () => {
+    it('menolak tanpa sesi (401)', async () => {
+      const res = await getCost(req('/api/v1/analytics/board-cost'));
+      expect(res.status).toBe(401);
+    });
+
+    it('menolak EMPLOYEE karena payroll:read tidak dimiliki (403)', async () => {
+      const res = await getCost(req('/api/v1/analytics/board-cost', empCookie));
+      expect(res.status).toBe(403);
+    });
+
+    it('mengembalikan rincian biaya untuk BOD', async () => {
+      const res = await getCost(req('/api/v1/analytics/board-cost', bodCookie));
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.status).toBe('success');
+      expect(json.data.payroll.latest.periodCode).toBe('2026-09');
+      expect(json.data.employees.length).toBeGreaterThan(0);
+    });
+
+    it('tidak membocorkan nomor BPJS 16 digit', async () => {
+      const res = await getCost(req('/api/v1/analytics/board-cost', bodCookie));
+      const raw = await res.text();
+      expect(raw).not.toMatch(/\d{16}/);
+      expect(raw).toContain('•');
+    });
+
+    it('menolak pageSize di luar batas (400)', async () => {
+      const res = await getCost(
+        req('/api/v1/analytics/board-cost?pageSize=999', bodCookie)
+      );
+      expect(res.status).toBe(400);
     });
   });
 });
