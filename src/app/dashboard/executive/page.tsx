@@ -86,6 +86,28 @@ export default function ExecutiveBoardroomPage() {
   const internalScore = scorecard?.balanced_scorecard_perspectives?.internal_business_process?.score ?? 0;
   const learningScore = scorecard?.balanced_scorecard_perspectives?.learning_growth?.score ?? 0;
 
+  // Pil "Terverifikasi" dan tombol ekspor hanya bermakna bila scorecard termuat.
+  // Menampilkannya saat galat berarti mengklaim verifikasi tanpa data.
+  const scorecardReady = !!scorecard && !loadError;
+  const gcgFactor =
+    typeof scorecard?.gcg_governance_factor === 'number'
+      ? scorecard.gcg_governance_factor.toFixed(2)
+      : null;
+
+  /** Ekspor ringkasan; hanya tersedia saat scorecard termuat (tanpa angka cadangan). */
+  const downloadExecutiveSummary = () => {
+    if (!scorecardReady) return;
+    const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${gcgFactor ?? '-'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
+    const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Ringkasan_Eksekutif_BOD_VMAI_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
       
@@ -108,10 +130,12 @@ export default function ExecutiveBoardroomPage() {
             <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
               Executive Boardroom & GCG Cockpit
             </h1>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-              <span className="text-[10px] font-bold">GCG</span>
-              <span>Terverifikasi: Faktor {scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}</span>
-            </span>
+            {gcgFactor && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+                <span className="text-[10px] font-bold">GCG</span>
+                <span>Terverifikasi: Faktor {gcgFactor}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -141,27 +165,26 @@ export default function ExecutiveBoardroomPage() {
             <span>Cetak Risalah BOD</span>
           </button>
 
-          {/* Download Button */}
-          <button 
-            onClick={() => {
-              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
-              const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `Ringkasan_Eksekutif_BOD_VMAI_${new Date().toISOString().slice(0, 10)}.txt`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
-            <Download className="h-3.5 w-3.5 text-white" />
-            <span>Unduh Ringkasan Eksekutif</span>
-          </button>
+          {/* Download Button — hanya dirender bila scorecard benar-benar termuat,
+              agar berkas tidak pernah mengklaim verifikasi tanpa data. */}
+          {scorecardReady && (
+            <button 
+              onClick={downloadExecutiveSummary}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+              <Download className="h-3.5 w-3.5 text-white" />
+              <span>Unduh Ringkasan Eksekutif</span>
+            </button>
+          )}
         </div>
       </div>
 
       <BoardTabNav active={mainTab} onChange={setMainTab} />
+
+      {loading && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 animate-pulse">
+          Memuat scorecard eksekutif...
+        </div>
+      )}
 
       {loadError && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-700">
@@ -171,7 +194,7 @@ export default function ExecutiveBoardroomPage() {
       )}
 
       {/* 2. Feature Card Grid (click to open) */}
-      {mainTab === 'overview' && !loadError && (
+      {mainTab === 'overview' && !loadError && !loading && (
         <>
       <FeatureGrid>
         <FeatureCard
@@ -229,17 +252,7 @@ export default function ExecutiveBoardroomPage() {
             title="Unduh Ringkasan Eksekutif"
             tag="Laporan"
             description="Ekspor ringkasan VMAI & Balanced Scorecard dalam satu berkas."
-            onClick={() => {
-              const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${scorecard?.gcg_governance_factor?.toFixed(2) ?? '1.00'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
-              const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `Ringkasan_Eksekutif_BOD_VMAI_${new Date().toISOString().slice(0, 10)}.txt`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
+            onClick={downloadExecutiveSummary}
           />
           <ActionCard
             icon={Grid3X3}

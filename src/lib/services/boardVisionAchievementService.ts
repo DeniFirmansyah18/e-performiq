@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { resolvePeriodId } from './periodResolver';
 
 export type AchievementStatus = 'ACHIEVED' | 'BELOW_TARGET' | 'NO_DATA';
 
@@ -53,7 +54,7 @@ function statusOf(achievement: number, hasData: boolean): AchievementStatus {
 
 export async function getVisionAchievement(
   db: Db,
-  _periodCode?: string
+  periodCode?: string
 ): Promise<VisionAchievement> {
   const vmRes = (await db.execute(sql`
     SELECT vision, mission FROM company_vision_mission ORDER BY updated_at DESC LIMIT 1
@@ -64,6 +65,14 @@ export async function getVisionAchievement(
   const missions = missionText
     ? missionText.split(/\s*\|\s*|\n+/).map((m) => m.trim()).filter(Boolean)
     : [];
+
+  // Periode wajib dipilih: mencampur beberapa kuartal menghasilkan capaian
+  // yang tidak menggambarkan periode mana pun. Tanpa kode periode, dipakai
+  // periode ACTIVE terbaru; kode tak dikenal menghasilkan data kosong.
+  const periodId = await resolvePeriodId(db, periodCode);
+  const periodFilter = periodId === null
+    ? sql`FALSE`
+    : sql`ik.period_id = ${periodId}::uuid`;
 
   // Rata-rata tertimbang bobot KPI; SUM(kpi_weight)=0 menghasilkan 0, bukan NaN.
   const pillarRes = (await db.execute(sql`
@@ -80,7 +89,9 @@ export async function getVisionAchievement(
         ELSE 0
       END AS achievement
     FROM strategic_pillars sp
-    LEFT JOIN individual_kpis ik ON ik.strategic_pillar_id = sp.id
+    LEFT JOIN individual_kpis ik
+      ON ik.strategic_pillar_id = sp.id
+     AND ${periodFilter}
     WHERE sp.is_active = TRUE
     GROUP BY sp.id, sp.pillar_name, sp.perspective, sp.strategic_weight
     ORDER BY sp.strategic_weight DESC, sp.pillar_name ASC

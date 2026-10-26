@@ -6,10 +6,12 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
   const [insight, setInsight] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ provider: string | null; generatedAt: string | null; fromCache: boolean } | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const run = async (force: boolean) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/v1/ai/board-analysis', {
         method: 'POST',
@@ -28,9 +30,12 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
         fromCache: json?.data?.fromCache ?? false,
       });
     } catch (err) {
-      setInsight((err as Error).message);
-      setConfigured(false);
+      // Kegagalan transport/HTTP bukan berarti kunci provider belum diisi,
+      // jadi jangan tampilkan pesan "belum dikonfigurasi" untuk kasus ini.
+      setInsight(null);
+      setConfigured(null);
       setMeta(null);
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -86,7 +91,13 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
         </>
       )}
 
-      {!loading && !insight && (
+      {!loading && error && (
+        <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+          Gagal menjalankan analisis AI: {error}
+        </p>
+      )}
+
+      {!loading && !error && !insight && (
         <p className="text-[11px] text-slate-500">
           Tekan &ldquo;Analisis AI&rdquo; untuk merangkum capaian pilar, RJMP, kesesuaian posisi,
           dan aktivitas. Gaji serta data BPJS tidak pernah dikirim ke model.

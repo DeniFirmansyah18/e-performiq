@@ -96,6 +96,29 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
     expect(ids1.some((id) => ids2.includes(id))).toBe(false);
   });
 
+  it('menghormati runId di luar 12 run terbaru tanpa mengaku belum ada payroll', async () => {
+    // Tambah 12 run yang lebih baru sehingga run 2026-08 keluar dari jendela 12.
+    for (let i = 0; i < 12; i++) {
+      await client.exec(`
+        INSERT INTO payroll_runs (id, period_code, period_start, period_end, status, total_gross, total_deductions, total_net)
+        VALUES ('${`9a000000-0000-4000-8000-0000000000${String(i).padStart(2, '0')}`}'::uuid,
+                '2027-${String(i + 1).padStart(2, '0')}', '2027-${String(i + 1).padStart(2, '0')}-01',
+                '2027-${String(i + 1).padStart(2, '0')}-28', 'DRAFT', 0, 0, 0)
+        ON CONFLICT DO NOTHING
+      `);
+    }
+
+    const result = await getBoardCostOverview(db, {
+      runId: '87000000-0000-4000-8000-000000000002',
+    });
+
+    // Run yang diminta harus tetap dihormati, bukan dilaporkan sebagai tidak ada.
+    expect(result.payroll.latest?.periodCode).toBe('2026-08');
+    expect(result.payroll.latest?.totalNet).toBe(134960000);
+    expect(result.employees).toHaveLength(4);
+    expect(result.analysis.highlights.join(' ')).not.toMatch(/Belum ada run payroll/);
+  });
+
   it('aman saat belum ada run payroll sama sekali', async () => {
     await client.exec('DELETE FROM payroll_items; DELETE FROM payroll_runs;');
     const result = await getBoardCostOverview(db);

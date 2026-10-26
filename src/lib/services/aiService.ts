@@ -337,7 +337,7 @@ export async function analyzeWithContext(
   context: Record<string, unknown>,
   feature: string,
   role: string
-): Promise<{ insight: string; configured: boolean }> {
+): Promise<{ insight: string; configured: boolean; failed: boolean }> {
   const prompt =
     `Peran pengguna: ${ROLE_HINT[role] ?? role}.\n` +
     `Fitur yang dianalisis: ${feature}.\n` +
@@ -349,7 +349,9 @@ export async function analyzeWithContext(
     `**Rekomendasi Tindakan:**\n1. (rekomendasi 1)\n2. (rekomendasi 2)\n` +
     `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
   const res = await generateContent(prompt, { maxOutputTokens: 2048, temperature: 0.25 });
-  return { insight: res.text, configured: res.configured };
+  // `error` terisi saat SEMUA provider gagal (rate limit/5xx/network). Keluaran
+  // seperti itu bukan analisis, sehingga pemanggil tidak boleh menyimpannya.
+  return { insight: res.text, configured: res.configured, failed: !!res.error };
 }
 
 /** Analisis AI untuk satu fitur, memakai ringkasan data nyata dari DB. */
@@ -357,7 +359,7 @@ export async function analyzeFeature(
   db: Db,
   feature: string,
   role: string
-): Promise<{ insight: string; configured: boolean }> {
+): Promise<{ insight: string; configured: boolean; failed: boolean }> {
   const context = await buildFeatureContext(db, feature);
   return analyzeWithContext(context, feature, role);
 }

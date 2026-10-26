@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { resolvePeriodId } from './periodResolver';
 
 export type FitStatus = 'COMPLIANT' | 'PARTIAL' | 'NOT_COMPLIANT' | 'NO_TEMPLATE';
 
@@ -65,9 +66,16 @@ function statusOf(templateCount: number, coverage: number, achievement: number):
   return 'NOT_COMPLIANT';
 }
 
-export async function getPositionFit(db: Db, _periodCode?: string): Promise<PositionFit> {
+export async function getPositionFit(db: Db, periodCode?: string): Promise<PositionFit> {
   // Kecocokan KPI memakai judul yang dinormalkan (huruf kecil + trim).
   // KPI ganda pada judul yang sama diambil capaian tertinggi agar tidak ambigu.
+  // Periode wajib dipilih: tanpa itu satu judul KPI yang ada di dua kuartal
+  // akan dilaporkan sebagai capaian periode yang lebih baik.
+  const periodId = await resolvePeriodId(db, periodCode);
+  const periodFilter = periodId === null
+    ? sql`FALSE`
+    : sql`ik.period_id = ${periodId}::uuid`;
+
   const res = (await db.execute(sql`
     WITH tpl AS (
       SELECT t.position_id AS position_id,
@@ -96,6 +104,7 @@ export async function getPositionFit(db: Db, _periodCode?: string): Promise<Posi
              LOWER(TRIM(ik.kpi_title)) AS title_lc,
              MAX(ik.achievement_percentage)::float8 AS ach
         FROM individual_kpis ik
+       WHERE ${periodFilter}
        GROUP BY ik.employee_id, LOWER(TRIM(ik.kpi_title))
     ),
     matched AS (

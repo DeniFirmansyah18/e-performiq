@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
+import { sql } from 'drizzle-orm';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import type { Db } from '@/lib/db/client';
@@ -85,5 +86,31 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
     const result = await getVisionAchievement(db);
     expect(result.vision).toBeNull();
     expect(result.missions).toEqual([]);
+  });
+
+  it('hanya mengagregasi KPI periode yang diminta', async () => {
+    // KPI Q4 pada pilar FINANCIAL tidak boleh mengubah capaian Q3.
+    const pillar = await db.execute(
+      sql`SELECT id FROM strategic_pillars WHERE perspective = 'FINANCIAL' LIMIT 1`
+    );
+    const pillarId = String((pillar.rows[0] as { id: string }).id);
+
+    await db.execute(sql`
+      INSERT INTO individual_kpis
+        (period_id, employee_id, strategic_pillar_id, kpi_title, target_value, actual_value, kpi_weight)
+      VALUES ('d0000000-0000-4000-8000-000000000002'::uuid,
+              'b0000000-0000-4000-8000-000000000004'::uuid,
+              ${pillarId}::uuid, 'KPI Kuartal Empat', 100, 10, 50)
+    `);
+
+    const q3 = await getVisionAchievement(db, '2026-Q3');
+    const finQ3 = q3.pillars.find((p) => p.perspective === 'FINANCIAL');
+    expect(finQ3?.achievementPercentage).toBe(92.5);
+    expect(q3.sampleSize).toBe(4);
+
+    const q4 = await getVisionAchievement(db, '2026-Q4');
+    const finQ4 = q4.pillars.find((p) => p.perspective === 'FINANCIAL');
+    expect(finQ4?.achievementPercentage).toBe(10);
+    expect(q4.sampleSize).toBe(1);
   });
 });

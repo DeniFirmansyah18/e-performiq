@@ -46,11 +46,16 @@ export async function POST(req: NextRequest) {
         generatedAt: existing.generatedAt,
         fromCache: true,
         configured: true,
+        failed: false,
       });
     }
 
     const context = await buildFeatureContext(db, 'board');
-    const { insight, configured } = await analyzeWithContext(context, 'board', session.role);
+    const { insight, configured, failed } = await analyzeWithContext(
+      context,
+      'board',
+      session.role
+    );
 
     if (!configured) {
       // Tanpa kunci provider bukan kegagalan server: beri pesan ramah.
@@ -60,6 +65,22 @@ export async function POST(req: NextRequest) {
         generatedAt: null,
         fromCache: false,
         configured: false,
+        failed: false,
+      });
+    }
+
+    if (failed) {
+      // Provider gagal sementara (rate limit/5xx/network). Jangan simpan: satu
+      // 429 saat rapat BOD tidak boleh menjadi narasi permanen di cache.
+      return ok({
+        insight:
+          'Analisis AI sedang tidak tersedia karena penyedia layanan menolak permintaan. ' +
+          'Angka pada tab lain tetap menjadi sumber kebenaran; silakan coba lagi.',
+        provider: null,
+        generatedAt: null,
+        fromCache: false,
+        configured: true,
+        failed: true,
       });
     }
 
@@ -86,6 +107,7 @@ export async function POST(req: NextRequest) {
       generatedAt: new Date().toISOString(),
       fromCache: false,
       configured: true,
+      failed: false,
     });
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;

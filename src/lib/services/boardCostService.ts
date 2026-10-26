@@ -110,10 +110,29 @@ export async function getBoardCostOverview(
     approvedAt: unknown;
   }>;
 
-  const selectedRunId = options.runId ?? (runs.length > 0 ? String(runs[0].id) : null);
-  const selectedRun = selectedRunId
-    ? runs.find((r) => String(r.id) === selectedRunId) ?? null
-    : null;
+  // `runId` eksplisit bisa menunjuk run di luar 12 terbaru; ambil langsung dari
+  // DB agar tidak dilaporkan sebagai "belum ada payroll" padahal itemnya ada.
+  let selectedRunId: string | null = null;
+  let selectedRun = null as (typeof runs)[number] | null;
+
+  if (options.runId) {
+    const direct = (await db.execute(sql`
+      SELECT id, period_code AS "periodCode", status,
+             total_gross::float8 AS "totalGross",
+             total_deductions::float8 AS "totalDeductions",
+             total_net::float8 AS "totalNet",
+             approved_at AS "approvedAt"
+        FROM payroll_runs
+       WHERE id = ${options.runId}::uuid
+       LIMIT 1
+    `)) as unknown as { rows: typeof runs };
+
+    selectedRun = direct.rows?.[0] ?? null;
+    selectedRunId = selectedRun ? String(selectedRun.id) : null;
+  } else if (runs.length > 0) {
+    selectedRun = runs[0];
+    selectedRunId = String(runs[0].id);
+  }
 
   // Jumlah item per run dihitung sekali, bukan ditebak atau diisi 0.
   const runCountsRes = (await db.execute(sql`

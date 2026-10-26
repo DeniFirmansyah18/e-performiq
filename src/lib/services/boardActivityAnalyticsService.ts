@@ -42,7 +42,10 @@ const RECENT_LIMIT = 50;
 
 function percentage(part: number, total: number): number {
   if (total <= 0) return 0;
-  return Math.round((part / total) * 1000) / 10;
+  // Clamp: pembilang dan penyebut berasal dari populasi berbeda (event milik
+  // pegawai non-aktif tetap dihitung pada totalEvents), jadi jangan pernah
+  // melaporkan lebih dari 100% kepada BOD.
+  return Math.min(100, Math.round((part / total) * 1000) / 10);
 }
 
 export async function getBoardActivityAnalytics(
@@ -114,12 +117,14 @@ export async function getBoardActivityAnalytics(
       `),
       db.execute(sql`
         SELECT COUNT(*)::int AS total
-          FROM employees
-         WHERE status NOT IN ('RESIGNED', 'RETIRED')
+          FROM employees e
+         WHERE e.status NOT IN ('RESIGNED', 'RETIRED')
+           ${options.departmentId ? sql`AND e.department_id = ${options.departmentId}::uuid` : sql``}
       `),
       db.execute(sql`
         SELECT COUNT(DISTINCT a.employee_id)::int AS covered
         ${base}
+           AND e.status NOT IN ('RESIGNED', 'RETIRED')
       `),
     ]);
 

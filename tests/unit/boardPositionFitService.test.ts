@@ -133,4 +133,28 @@ describe('Position Fit (Kesesuaian Posisi & RJMP)', () => {
     expect(result.analysis.positionsWithoutTemplate).toBeGreaterThanOrEqual(1);
     expect(result.analysis.highlights.length).toBeGreaterThan(0);
   });
+
+  it('hanya mencocokkan KPI pada periode yang diminta', async () => {
+    // KPI Q4 bernilai buruk tidak boleh menimpa capaian Q3 yang baik.
+    const q4 = 'd0000000-0000-4000-8000-000000000002';
+    await db.execute(sql`
+      INSERT INTO individual_kpis
+        (period_id, employee_id, strategic_pillar_id, kpi_title, target_value, actual_value, kpi_weight)
+      VALUES (${q4}::uuid, ${ANISA}::uuid, ${pillarId}::uuid,
+              'Defect Density (Bug per KLOC)', 100, 40, 35)
+    `);
+
+    const q3 = await getPositionFit(db, '2026-Q3');
+    const anisaQ3 = q3.employees.find((e) => e.employeeId === ANISA);
+    expect(anisaQ3?.achievementPercentage).toBe(104.8);
+    expect(anisaQ3?.status).toBe('COMPLIANT');
+
+    const q4Fit = await getPositionFit(db, '2026-Q4');
+    const anisaQ4 = q4Fit.employees.find((e) => e.employeeId === ANISA);
+    expect(anisaQ4?.matchedKpiCount).toBe(1);
+    expect(anisaQ4?.coveragePercentage).toBe(35);
+    expect(anisaQ4?.achievementPercentage).toBe(40);
+    // Coverage 35% < ambang 50% -> belum patuh, bukan PARTIAL.
+    expect(anisaQ4?.status).toBe('NOT_COMPLIANT');
+  });
 });

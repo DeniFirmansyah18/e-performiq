@@ -266,8 +266,11 @@ describe('Executive Boardroom page', () => {
     await waitFor(() =>
       expect(screen.getByText(/Gagal memuat scorecard eksekutif: Scorecard mati/)).toBeTruthy()
     );
-    // Konten VMAI tidak dirender sama sekali saat gagal (tidak ada 89.4/92.4).
-    expect(screen.queryByText(/89\.4/)).toBeNull();
-    expect(screen.queryByText(/92\.4/)).toBeNull();
+    // Tidak ada angka apa pun yang dirender saat gagal — termasuk pil GCG
+    // "Faktor 1.00" yang dulu bertahan di luar guard.
+    expect(screen.queryByText(/Faktor 1\.00/)).toBeNull();
+    expect(screen.queryByText(/Terverifikasi/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Unduh Ringkasan Eksekutif/ })).toBeNull();
+    expect(document.body.textContent ?? '').not.toMatch(/\d+([.,]\d+)?%/);
   });
 });

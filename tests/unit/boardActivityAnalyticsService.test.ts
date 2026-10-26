@@ -95,4 +95,20 @@ describe('Board Activity Analytics', () => {
     expect(result.recent.length).toBeGreaterThan(0);
     expect(result.recent.every((r) => r.employeeName.includes('Budi'))).toBe(true);
   });
+
+  it('tidak pernah melaporkan coverage di atas 100% saat pegawai non-aktif punya event', async () => {
+    // b…010 berstatus RESIGNED. Event-nya boleh tetap terhitung pada totalEvents,
+    // tetapi tidak boleh membuat pembilang melebihi penyebut pegawai aktif.
+    await client.exec(`
+      INSERT INTO activity_events (id, employee_id, event_type, summary, visibility, occurred_at)
+      VALUES ('86000000-0000-4000-8000-0000000000ff','b0000000-0000-4000-8000-000000000010',
+              'ATTENDANCE','Check-in pegawai yang sudah resign','INTERNAL','2026-09-23T01:00:00Z')
+    `);
+
+    const result = await getBoardActivityAnalytics(db, RANGE);
+    expect(result.analysis.activeEmployees).toBe(10);
+    expect(result.analysis.coveragePercentage).toBeLessThanOrEqual(100);
+    expect(result.analysis.coveragePercentage).toBe(50);
+    expect(result.analysis.highlights.join(' ')).not.toMatch(/1[1-9]\d%/);
+  });
 });

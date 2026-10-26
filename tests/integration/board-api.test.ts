@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
@@ -12,7 +12,7 @@ import { GET as getVision } from '@/app/api/v1/analytics/vision-achievement/rout
 import { GET as getPositionFit } from '@/app/api/v1/analytics/position-fit/route';
 import { GET as getCost } from '@/app/api/v1/analytics/board-cost/route';
 import { POST as postBoardAnalysis } from '@/app/api/v1/ai/board-analysis/route';
-import { saveInsight, hashPayload } from '@/lib/services/aiInsightCacheService';
+import { saveInsight, hashPayload, getCachedInsight } from '@/lib/services/aiInsightCacheService';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -84,6 +84,22 @@ describe('Boardroom API', () => {
     it('menolak tipe event tak dikenal (400)', async () => {
       const res = await getActivity(
         req('/api/v1/analytics/board-activity?eventType=BUKAN_TIPE', bodCookie)
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it('menolak tanggal yang tidak ada di kalender (400, bukan 500)', async () => {
+      const res = await getActivity(
+        req('/api/v1/analytics/board-activity?fromDate=2026-02-31&toDate=2026-03-05', bodCookie)
+      );
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.detail).not.toMatch(/date\/time field value out of range/i);
+    });
+
+    it('menolak rentang yang terlalu panjang (400)', async () => {
+      const res = await getActivity(
+        req('/api/v1/analytics/board-activity?fromDate=1900-01-01&toDate=2100-12-31', bodCookie)
       );
       expect(res.status).toBe(400);
     });
@@ -224,6 +240,53 @@ describe('Boardroom API', () => {
         expect(json.data.fromCache).toBe(false);
       } finally {
         for (const [k, v] of Object.entries(saved)) {
+          if (v === undefined) delete process.env[k];
+          else process.env[k] = v;
+        }
+      }
+    });
+
+    it('tidak menyimpan kegagalan provider ke cache atau audit', async () => {
+      // Provider "terkonfigurasi" tetapi selalu gagal 429 (rate limit).
+      const savedFetch = globalThis.fetch;
+      const savedEnv = {
+        GROQ_API_KEY: process.env.GROQ_API_KEY,
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+        OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+        AI_PROVIDER: process.env.AI_PROVIDER,
+      };
+      process.env.GROQ_API_KEY = 'test-key';
+      process.env.AI_PROVIDER = 'groq';
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.OPENROUTER_API_KEY;
+
+      vi.stubGlobal('fetch', vi.fn(async () => ({
+        ok: false,
+        status: 429,
+        text: async () => 'rate limited',
+        json: async () => ({}),
+      })));
+
+      try {
+        const res = await postBoardAnalysis(
+          postReq({ periodCode: '2088-Q1', force: true }, bodCookie)
+        );
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.data.failed).toBe(true);
+        expect(json.data.insight).not.toMatch(/Maaf, analisis AI gagal/);
+
+        // Kegagalan sementara tidak boleh menjadi narasi permanen di cache.
+        const cached = await getCachedInsight(db, {
+          feature: 'board',
+          periodCode: '2088-Q1',
+          role: 'BOD',
+        });
+        expect(cached).toBeNull();
+      } finally {
+        vi.stubGlobal('fetch', savedFetch);
+        vi.unstubAllGlobals();
+        for (const [k, v] of Object.entries(savedEnv)) {
           if (v === undefined) delete process.env[k];
           else process.env[k] = v;
         }
