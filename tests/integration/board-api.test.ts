@@ -9,6 +9,7 @@ import { db } from '@/lib/db/client';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { GET as getActivity } from '@/app/api/v1/analytics/board-activity/route';
 import { GET as getVision } from '@/app/api/v1/analytics/vision-achievement/route';
+import { GET as getPositionFit } from '@/app/api/v1/analytics/position-fit/route';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -108,6 +109,22 @@ describe('Boardroom API', () => {
       const raw = await res.text();
       expect(raw).not.toContain('NaN');
       expect(raw).not.toContain('Infinity');
+    });
+  });
+
+  describe('GET /api/v1/analytics/position-fit', () => {
+    it('menolak tanpa sesi (401)', async () => {
+      const res = await getPositionFit(req('/api/v1/analytics/position-fit'));
+      expect(res.status).toBe(401);
+    });
+
+    it('mengembalikan evaluasi posisi untuk BOD', async () => {
+      const res = await getPositionFit(req('/api/v1/analytics/position-fit', bodCookie));
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.status).toBe('success');
+      expect(json.data.employees.length).toBeGreaterThan(0);
+      expect(json.data.analysis.highlights.length).toBeGreaterThan(0);
     });
   });
 });
