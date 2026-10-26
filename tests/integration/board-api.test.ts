@@ -8,6 +8,7 @@ import type { Db } from '@/lib/db/client';
 import { db } from '@/lib/db/client';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { GET as getActivity } from '@/app/api/v1/analytics/board-activity/route';
+import { GET as getVision } from '@/app/api/v1/analytics/vision-achievement/route';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -81,6 +82,32 @@ describe('Boardroom API', () => {
         req('/api/v1/analytics/board-activity?eventType=BUKAN_TIPE', bodCookie)
       );
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /api/v1/analytics/vision-achievement', () => {
+    it('menolak tanpa sesi (401)', async () => {
+      const res = await getVision(req('/api/v1/analytics/vision-achievement'));
+      expect(res.status).toBe(401);
+    });
+
+    it('mengembalikan capaian pilar dan RJMP untuk BOD', async () => {
+      const res = await getVision(
+        req('/api/v1/analytics/vision-achievement?periodCode=2026-Q3', bodCookie)
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.status).toBe('success');
+      expect(json.data.pillars).toHaveLength(4);
+      expect(json.data.rjmp).toHaveLength(4);
+      expect(json.data.vision).toContain('kelas dunia');
+    });
+
+    it('tidak mengembalikan NaN pada payload', async () => {
+      const res = await getVision(req('/api/v1/analytics/vision-achievement', bodCookie));
+      const raw = await res.text();
+      expect(raw).not.toContain('NaN');
+      expect(raw).not.toContain('Infinity');
     });
   });
 });
