@@ -3,6 +3,13 @@ import { getVmaiScorecardData } from '@/lib/services/analyticsService';
 import { getExecutiveSummary, getLifecycleSummary, getBenchmarkGap } from '@/lib/services/analyticsSummaryService';
 import { listCourses } from '@/lib/services/learningLmsService';
 import { listCandidates } from '@/lib/services/candidateService';
+import { getVisionAchievement } from './boardVisionAchievementService';
+import { getPositionFit } from './boardPositionFitService';
+import { getBoardActivityAnalytics } from './boardActivityAnalyticsService';
+import { addDays, todayInJakarta } from '@/lib/utils/wibDate';
+
+/** Jendela aktivitas untuk konteks AI: satu kuartal terakhir. */
+const BOARD_CONTEXT_ACTIVITY_DAYS = 90;
 
 /**
  * Merakit ringkasan data NYATA per fitur untuk konteks prompt Gemini.
@@ -48,6 +55,51 @@ export async function buildFeatureContext(db: Db, feature: string): Promise<Reco
       case 'careers': {
         const candidates = await listCandidates(db);
         return { feature: 'careers', applicants: candidates.length };
+      }
+      case 'board': {
+        // Allowlist eksplisit: hanya agregat non-RESTRICTED. Gaji, komponen
+        // payroll, dan nomor BPJS sengaja TIDAK diambil sama sekali.
+        const today = todayInJakarta();
+        const [vision, fit, activity] = await Promise.all([
+          getVisionAchievement(db),
+          getPositionFit(db),
+          getBoardActivityAnalytics(db, {
+            fromDate: addDays(today, -(BOARD_CONTEXT_ACTIVITY_DAYS - 1)),
+            toDate: today,
+          }),
+        ]);
+        return {
+          feature: 'board',
+          vision: vision.vision,
+          missions: vision.missions,
+          overallAchievement: vision.overallAchievementPercentage,
+          pillars: vision.pillars.map((p) => ({
+            name: p.pillarName,
+            perspective: p.perspective,
+            weight: p.strategicWeight,
+            achievement: p.achievementPercentage,
+            status: p.status,
+          })),
+          rjmp: vision.rjmp.map((r) => ({
+            code: r.kpiCode,
+            name: r.kpiName,
+            target: r.targetValue,
+            derivedAchievement: r.derivedAchievementPercentage,
+            status: r.status,
+          })),
+          positionFit: {
+            sampleSize: fit.sampleSize,
+            compliantPositions: fit.analysis.compliantPositions,
+            positionsWithoutTemplate: fit.analysis.positionsWithoutTemplate,
+            averageCoverage: fit.analysis.averageCoveragePercentage,
+          },
+          activity: {
+            totalEvents: activity.totalEvents,
+            coveragePercentage: activity.analysis.coveragePercentage,
+            busiestDepartment: activity.analysis.busiestDepartment,
+            busiestEventType: activity.analysis.busiestEventType,
+          },
+        };
       }
       case 'audit':
         return { feature: 'audit', note: 'Jejak audit anti-manipulasi & prinsip TARIF; lihat log audit.' };

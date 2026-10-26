@@ -332,13 +332,12 @@ const ROLE_HINT: Record<string, string> = {
   AUDITOR: 'Auditor Internal (fokus kepatuhan)',
 };
 
-/** Analisis AI untuk satu fitur, memakai ringkasan data nyata dari DB. */
-export async function analyzeFeature(
-  db: Db,
+/** Menganalisis konteks yang sudah dirakit pemanggil (dipakai endpoint ber-cache). */
+export async function analyzeWithContext(
+  context: Record<string, unknown>,
   feature: string,
   role: string
 ): Promise<{ insight: string; configured: boolean }> {
-  const context = await buildFeatureContext(db, feature);
   const prompt =
     `Peran pengguna: ${ROLE_HINT[role] ?? role}.\n` +
     `Fitur yang dianalisis: ${feature}.\n` +
@@ -351,6 +350,16 @@ export async function analyzeFeature(
     `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
   const res = await generateContent(prompt, { maxOutputTokens: 2048, temperature: 0.25 });
   return { insight: res.text, configured: res.configured };
+}
+
+/** Analisis AI untuk satu fitur, memakai ringkasan data nyata dari DB. */
+export async function analyzeFeature(
+  db: Db,
+  feature: string,
+  role: string
+): Promise<{ insight: string; configured: boolean }> {
+  const context = await buildFeatureContext(db, feature);
+  return analyzeWithContext(context, feature, role);
 }
 
 /** Chat agent: menjawab pertanyaan seputar aplikasi dengan konteks agregat. */

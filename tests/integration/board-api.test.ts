@@ -11,6 +11,8 @@ import { GET as getActivity } from '@/app/api/v1/analytics/board-activity/route'
 import { GET as getVision } from '@/app/api/v1/analytics/vision-achievement/route';
 import { GET as getPositionFit } from '@/app/api/v1/analytics/position-fit/route';
 import { GET as getCost } from '@/app/api/v1/analytics/board-cost/route';
+import { POST as postBoardAnalysis } from '@/app/api/v1/ai/board-analysis/route';
+import { saveInsight, hashPayload } from '@/lib/services/aiInsightCacheService';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -161,6 +163,71 @@ describe('Boardroom API', () => {
         req('/api/v1/analytics/board-cost?pageSize=999', bodCookie)
       );
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /api/v1/ai/board-analysis', () => {
+    const postReq = (body: unknown, cookie?: string) =>
+      new NextRequest('http://localhost:3000/api/v1/ai/board-analysis', {
+        method: 'POST',
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          ...(cookie ? { cookie } : {}),
+        }),
+        body: JSON.stringify(body),
+      });
+
+    it('menolak tanpa sesi (401)', async () => {
+      const res = await postBoardAnalysis(postReq({}));
+      expect(res.status).toBe(401);
+    });
+
+    it('mengembalikan cache bila tersedia tanpa memanggil provider', async () => {
+      await saveInsight(db, {
+        feature: 'board',
+        periodCode: '2026-Q3',
+        role: 'BOD',
+        insight: 'Analisis tersimpan.',
+        provider: 'groq',
+        payloadHash: hashPayload({ cached: true }),
+      });
+
+      const res = await postBoardAnalysis(
+        postReq({ periodCode: '2026-Q3' }, bodCookie)
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.fromCache).toBe(true);
+      expect(json.data.insight).toBe('Analisis tersimpan.');
+    });
+
+    it('mengembalikan configured:false dengan HTTP 200 saat provider tidak dikonfigurasi', async () => {
+      const saved = {
+        GROQ_API_KEY: process.env.GROQ_API_KEY,
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+        OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+        AI_PROVIDER: process.env.AI_PROVIDER,
+      };
+      delete process.env.GROQ_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.OPENROUTER_API_KEY;
+      delete process.env.AI_PROVIDER;
+
+      try {
+        const res = await postBoardAnalysis(
+          postReq({ periodCode: '2099-Q1', force: true }, bodCookie)
+        );
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.data.configured).toBe(false);
+        expect(typeof json.data.insight).toBe('string');
+        expect(json.data.fromCache).toBe(false);
+      } finally {
+        for (const [k, v] of Object.entries(saved)) {
+          if (v === undefined) delete process.env[k];
+          else process.env[k] = v;
+        }
+      }
     });
   });
 });
