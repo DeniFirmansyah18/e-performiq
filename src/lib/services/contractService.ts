@@ -1,5 +1,8 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { todayInJakarta } from '@/lib/utils/wibDate';
+
+export { todayInJakarta };
 
 export interface PkwtContractAlert {
   employeeId: string;
@@ -21,16 +24,6 @@ export interface ContractsSummaryResult {
   expiredCount: number;
   missingEndDateCount: number;
   alerts: PkwtContractAlert[];
-}
-
-/**
- * Tanggal hari ini menurut zona waktu Indonesia Barat (UTC+7).
- * `new Date().toISOString()` memakai UTC sehingga antara 00:00-06:59 WIB
- * masih menghasilkan tanggal kemarin (Review Focus #2).
- */
-export function todayInJakarta(now: Date = new Date()): string {
-  const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
-  return new Date(now.getTime() + JAKARTA_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 /**
