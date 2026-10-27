@@ -96,40 +96,68 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
     expect(ids1.some((id) => ids2.includes(id))).toBe(false);
   });
 
-  it('menghormati runId di luar 12 run terbaru tanpa mengaku belum ada payroll', async () => {
-    // Tambah 12 run yang lebih baru sehingga run 2026-08 keluar dari jendela 12.
-    for (let i = 0; i < 12; i++) {
-      await client.exec(`
-        INSERT INTO payroll_runs (id, period_code, period_start, period_end, status, total_gross, total_deductions, total_net)
-        VALUES ('${`9a000000-0000-4000-8000-0000000000${String(i).padStart(2, '0')}`}'::uuid,
-                '2027-${String(i + 1).padStart(2, '0')}', '2027-${String(i + 1).padStart(2, '0')}-01',
-                '2027-${String(i + 1).padStart(2, '0')}-28', 'DRAFT', 0, 0, 0)
-        ON CONFLICT DO NOTHING
-      `);
-    }
+  it('menyebut jumlah pegawai termahal secara akurat, bukan selalu "10%"', async () => {
+    const result = await getBoardCostOverview(db);
+    // 4 pegawai -> desil teratas = 1 orang (25% dari staf), bukan 10%.
+    expect(result.analysis.topDecileEmployeeCount).toBe(1);
+    expect(result.analysis.topDecileStaffPercentage).toBe(25);
+    const highlight = result.analysis.highlights.find((h) => h.includes('menyerap'));
+    expect(highlight).toContain('1 pegawai termahal');
+    expect(highlight).toContain('25%');
+    expect(highlight).not.toContain('10% pegawai');
+  });
 
-    const result = await getBoardCostOverview(db, {
-      runId: '87000000-0000-4000-8000-000000000002',
+  it('menghormati runId di luar 12 run terbaru tanpa mengaku belum ada payroll', async () => {
+      // DB terisolasi: test ini menambah 12 run agar run lama keluar dari jendela.
+      const iso = await createTestDb();
+      try {
+        await runSeed(iso.client);
+        const isoDb = drizzle(iso.client) as unknown as Db;
+
+        for (let i = 0; i < 12; i++) {
+          const mm = String(i + 1).padStart(2, '0');
+          await iso.client.exec(`
+            INSERT INTO payroll_runs (id, period_code, period_start, period_end, status, total_gross, total_deductions, total_net)
+            VALUES ('9a000000-0000-4000-8000-0000000000${String(i).padStart(2, '0')}'::uuid,
+                    '2027-${mm}', '2027-${mm}-01', '2027-${mm}-28', 'DRAFT', 0, 0, 0)
+            ON CONFLICT DO NOTHING
+          `);
+        }
+
+        const result = await getBoardCostOverview(isoDb, {
+          runId: '87000000-0000-4000-8000-000000000002',
+        });
+
+        // Run yang diminta harus tetap dihormati, bukan dilaporkan sebagai tidak ada.
+        expect(result.payroll.latest?.periodCode).toBe('2026-08');
+        expect(result.payroll.latest?.totalNet).toBe(134960000);
+        expect(result.employees).toHaveLength(4);
+        expect(result.analysis.highlights.join(' ')).not.toMatch(/Belum ada run payroll/);
+      } finally {
+        await iso.client.close();
+      }
     });
 
-    // Run yang diminta harus tetap dihormati, bukan dilaporkan sebagai tidak ada.
-    expect(result.payroll.latest?.periodCode).toBe('2026-08');
-    expect(result.payroll.latest?.totalNet).toBe(134960000);
-    expect(result.employees).toHaveLength(4);
-    expect(result.analysis.highlights.join(' ')).not.toMatch(/Belum ada run payroll/);
-  });
-
   it('aman saat belum ada run payroll sama sekali', async () => {
-    await client.exec('DELETE FROM payroll_items; DELETE FROM payroll_runs;');
-    const result = await getBoardCostOverview(db);
+      // DB terisolasi: test ini menghapus seluruh payroll dan tidak boleh
+      // memengaruhi test lain (dulu hanya lulus bila dijalankan paling akhir).
+      const iso = await createTestDb();
+      try {
+        await runSeed(iso.client);
+        const isoDb = drizzle(iso.client) as unknown as Db;
+        await iso.client.exec('DELETE FROM payroll_items; DELETE FROM payroll_runs;');
 
-    expect(result.payroll.latest).toBeNull();
-    expect(result.payroll.runs).toEqual([]);
-    expect(result.employees).toEqual([]);
-    expect(result.sampleSize).toBe(0);
-    expect(result.analysis.costPerEmployee).toBe(0);
-    expect(result.analysis.topDecileCostShare).toBe(0);
-    expect(result.analysis.payrollGrowthPercentage).toBeNull();
-    expect(result.analysis.highlights.length).toBeGreaterThan(0);
+        const result = await getBoardCostOverview(isoDb);
+        expect(result.payroll.latest).toBeNull();
+        expect(result.payroll.runs).toEqual([]);
+        expect(result.employees).toEqual([]);
+        expect(result.sampleSize).toBe(0);
+        expect(result.analysis.costPerEmployee).toBe(0);
+        expect(result.analysis.topDecileCostShare).toBe(0);
+        expect(result.analysis.payrollGrowthPercentage).toBeNull();
+        expect(result.analysis.highlights.length).toBeGreaterThan(0);
+      } finally {
+        await iso.client.close();
+      }
+    });
   });
-});

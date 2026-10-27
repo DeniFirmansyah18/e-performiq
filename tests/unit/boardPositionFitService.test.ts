@@ -118,21 +118,40 @@ describe('Position Fit (Kesesuaian Posisi & RJMP)', () => {
   });
 
   it('menyusun analisis jumlah posisi patuh dan tanpa template', async () => {
-    // Jadikan posisi CEO patuh: seluruh pemegangnya memenuhi template.
-    // Template CEO: Pertumbuhan Pendapatan vs RKAP 40, EBITDA Margin 30, Indeks Kepuasan 30.
-    await insertKpi(CEO, 'Pertumbuhan Pendapatan vs RKAP', 40, 110);
-    await insertKpi(CEO, 'EBITDA Margin Korporasi', 30, 105);
-    await insertKpi(CEO, 'Indeks Kepuasan Stakeholder', 30, 100);
+      // Fixture milik test ini sendiri: posisi tanpa template, agar tidak
+      // bergantung pada test lain yang kebetulan berjalan lebih dulu.
+      const dept = await db.execute(sql`SELECT id FROM departments LIMIT 1`);
+      const deptId = String((dept.rows[0] as { id: string }).id);
+      const pos = await db.execute(sql`
+        INSERT INTO job_positions (id, department_id, position_title, job_grade)
+        VALUES ('ff000000-0000-4000-8000-0000000000aa'::uuid, ${deptId}::uuid,
+                'Posisi Tanpa Template (analisis)', 'G2')
+        RETURNING id
+      `);
+      const posId = String((pos.rows[0] as { id: string }).id);
+      await db.execute(sql`
+        INSERT INTO employees (employee_code, full_name, email, department_id, position_id,
+                               status, base_salary, join_date)
+        VALUES ('TEST-ANALYSIS-1', 'Pegawai Tanpa Template Analisis',
+                'tanpa.template.analisis@eperformiq.co.id',
+                ${deptId}::uuid, ${posId}::uuid, 'PERMANENT', 8000000, CURRENT_DATE)
+      `);
 
-    const result = await getPositionFit(db);
-    const ceoPosition = result.byPosition.find((p) => p.positionTitle.includes('Chief Executive'));
-    expect(ceoPosition?.status).toBe('COMPLIANT');
-    expect(ceoPosition?.compliantHolders).toBe(1);
+      // Jadikan posisi CEO patuh: seluruh pemegangnya memenuhi template.
+      // Template CEO: Pertumbuhan Pendapatan vs RKAP 40, EBITDA Margin 30, Indeks Kepuasan 30.
+      await insertKpi(CEO, 'Pertumbuhan Pendapatan vs RKAP', 40, 110);
+      await insertKpi(CEO, 'EBITDA Margin Korporasi', 30, 105);
+      await insertKpi(CEO, 'Indeks Kepuasan Stakeholder', 30, 100);
 
-    expect(result.analysis.compliantPositions).toBeGreaterThanOrEqual(1);
-    expect(result.analysis.positionsWithoutTemplate).toBeGreaterThanOrEqual(1);
-    expect(result.analysis.highlights.length).toBeGreaterThan(0);
-  });
+      const result = await getPositionFit(db);
+      const ceoPosition = result.byPosition.find((p) => p.positionTitle.includes('Chief Executive'));
+      expect(ceoPosition?.status).toBe('COMPLIANT');
+      expect(ceoPosition?.compliantHolders).toBe(1);
+
+      expect(result.analysis.compliantPositions).toBeGreaterThanOrEqual(1);
+      expect(result.analysis.positionsWithoutTemplate).toBeGreaterThanOrEqual(1);
+      expect(result.analysis.highlights.length).toBeGreaterThan(0);
+    });
 
   it('hanya mencocokkan KPI pada periode yang diminta', async () => {
     // KPI Q4 bernilai buruk tidak boleh menimpa capaian Q3 yang baik.

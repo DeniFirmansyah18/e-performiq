@@ -81,9 +81,13 @@ export interface BoardCostOverview {
   analysis: {
     costPerEmployee: number;
     topDecileCostShare: number;
-    payrollGrowthPercentage: number | null;
-    highlights: string[];
-  };
+      /** Jumlah pegawai termahal yang membentuk desil teratas (>= 1). */
+      topDecileEmployeeCount: number;
+      /** Porsi staf yang diwakili desil teratas; 25 berarti 25%, bukan 10%. */
+      topDecileStaffPercentage: number;
+      payrollGrowthPercentage: number | null;
+      highlights: string[];
+    };
 }
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -191,20 +195,24 @@ export async function getBoardCostOverview(
   }));
 
   // Konsentrasi biaya: porsi total net yang dipegang 10% pegawai termahal.
-  const decileRes = (await db.execute(sql`
-    WITH ranked AS (
-      SELECT net::float8 AS net,
-             NTILE(10) OVER (ORDER BY net DESC) AS decile
-        FROM payroll_items
-       WHERE ${selectedRunId ? sql`run_id = ${selectedRunId}::uuid` : sql`FALSE`}
-    )
-    SELECT COALESCE(SUM(net), 0)::float8 AS total,
-           COALESCE(SUM(CASE WHEN decile = 1 THEN net ELSE 0 END), 0)::float8 AS top
-      FROM ranked
-  `)) as unknown as { rows: Array<{ total: number; top: number }> };
-  const decile = decileRes.rows?.[0];
-  const totalNetAll = Number(decile?.total ?? 0);
-  const topNet = Number(decile?.top ?? 0);
+    // NTILE(10) memaksa 10 ember walau pegawai < 10, jadi jumlah pegawai pada
+    // ember teratas dihitung eksplisit agar labelnya akurat.
+    const decileRes = (await db.execute(sql`
+      WITH ranked AS (
+        SELECT net::float8 AS net,
+               NTILE(10) OVER (ORDER BY net DESC) AS decile
+          FROM payroll_items
+         WHERE ${selectedRunId ? sql`run_id = ${selectedRunId}::uuid` : sql`FALSE`}
+      )
+      SELECT COALESCE(SUM(net), 0)::float8 AS total,
+             COALESCE(SUM(CASE WHEN decile = 1 THEN net ELSE 0 END), 0)::float8 AS top,
+             COUNT(*) FILTER (WHERE decile = 1)::int AS "topCount"
+        FROM ranked
+    `)) as unknown as { rows: Array<{ total: number; top: number; topCount: number }> };
+    const decile = decileRes.rows?.[0];
+    const totalNetAll = Number(decile?.total ?? 0);
+    const topNet = Number(decile?.top ?? 0);
+    const topDecileEmployeeCount = Number(decile?.topCount ?? 0);
 
   // Trend diurutkan lama -> baru agar delta mudah dibaca.
   const chronological = [...runs].reverse();
@@ -268,6 +276,8 @@ export async function getBoardCostOverview(
   const costPerEmployee = totalEmployees > 0 ? round2(totalNetAll / totalEmployees) : 0;
   const topDecileCostShare =
     totalNetAll > 0 ? Math.round((topNet / totalNetAll) * 1000) / 10 : 0;
+    const topDecileStaffPercentage =
+      totalEmployees > 0 ? Math.round((topDecileEmployeeCount / totalEmployees) * 1000) / 10 : 0;
 
   const pendingApprovals = Number(pendingRes.rows?.[0]?.total ?? 0);
 
@@ -279,8 +289,12 @@ export async function getBoardCostOverview(
       `Payroll ${selectedRun.periodCode}: net ${totalNetAll.toLocaleString('id-ID')} untuk ${totalEmployees} pegawai.`
     );
     if (topDecileCostShare > 0) {
-      highlights.push(`10% pegawai termahal menyerap ${topDecileCostShare}% total biaya.`);
-    }
+          highlights.push(
+            `${topDecileEmployeeCount} pegawai termahal ` +
+              `(${topDecileStaffPercentage}% dari ${totalEmployees} pegawai) ` +
+              `menyerap ${topDecileCostShare}% total biaya.`
+          );
+        }
     if (payrollGrowthPercentage !== null) {
       const direction = payrollGrowthPercentage >= 0 ? 'naik' : 'turun';
       highlights.push(
@@ -361,8 +375,10 @@ export async function getBoardCostOverview(
     analysis: {
       costPerEmployee,
       topDecileCostShare,
-      payrollGrowthPercentage,
-      highlights,
-    },
+          topDecileEmployeeCount,
+          topDecileStaffPercentage,
+          payrollGrowthPercentage,
+          highlights,
+        },
   };
 }

@@ -54,10 +54,20 @@ describe('Konteks AI Boardroom', () => {
   });
 
   it('tetap aman bila data kosong', async () => {
-    await client.exec('DELETE FROM individual_kpis');
-    const ctx: any = await buildFeatureContext(db, 'board');
-    expect(ctx.pillars).toHaveLength(4);
-    expect(ctx.overallAchievement).toBe(0);
-    expect(JSON.stringify(ctx)).not.toContain('NaN');
-  });
+      // DB terisolasi: test ini mengosongkan individual_kpis sehingga tidak boleh
+      // mengubah hasil test lain dalam berkas yang sama.
+      const iso = await createTestDb();
+      try {
+        await runSeed(iso.client);
+        const isoDb = drizzle(iso.client) as unknown as Db;
+        await iso.client.exec('DELETE FROM individual_kpis');
+
+        const ctx: any = await buildFeatureContext(isoDb, 'board');
+        expect(ctx.pillars).toHaveLength(4);
+        expect(ctx.overallAchievement).toBe(0);
+        expect(JSON.stringify(ctx)).not.toContain('NaN');
+      } finally {
+        await iso.client.close();
+      }
+    });
 });

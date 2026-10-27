@@ -13,6 +13,8 @@ import { GET as getPositionFit } from '@/app/api/v1/analytics/position-fit/route
 import { GET as getCost } from '@/app/api/v1/analytics/board-cost/route';
 import { POST as postBoardAnalysis } from '@/app/api/v1/ai/board-analysis/route';
 import { saveInsight, hashPayload, getCachedInsight } from '@/lib/services/aiInsightCacheService';
+import { resetRateLimit } from '@/lib/api/rateLimit';
+import { buildFeatureContext } from '@/lib/services/aiContext';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -54,7 +56,11 @@ describe('Boardroom API', () => {
     it('menolak tanpa sesi (401)', async () => {
       const res = await getActivity(req('/api/v1/analytics/board-activity'));
       expect(res.status).toBe(401);
-    });
+          const json = await res.json();
+          // Klien yang bercabang pada `code` harus melihat UNAUTHORIZED, bukan
+          // INTERNAL_ERROR (getAuthSession melempar AuthError, bukan null).
+          expect(json.code).toBe('UNAUTHORIZED');
+        });
 
     it('menolak peran tanpa analytics:read (403)', async () => {
       const res = await getActivity(req('/api/v1/analytics/board-activity', empCookie));
@@ -77,9 +83,24 @@ describe('Boardroom API', () => {
         req('/api/v1/analytics/board-activity?fromDate=2026-09-19&toDate=2026-09-24', bodCookie)
       );
       const json = await res.json();
-      expect(JSON.stringify(json)).not.toContain('rahasia');
-      expect(JSON.stringify(json)).not.toContain('RESTRICTED');
-    });
+          const restrictedId = '86000000-0000-4000-8000-00000000000c';
+          expect(JSON.stringify(json)).not.toContain('rahasia');
+          expect((json.data.recent as Array<{ id: string }>).some((r) => r.id === restrictedId)).toBe(
+            false
+          );
+
+          // Satu-satunya event DISCIPLINARY di seed bersifat RESTRICTED; bila filter
+          // SQL hilang, filter tipe ini akan mengembalikan 1 event.
+          const onlyRestricted = await getActivity(
+            req(
+              '/api/v1/analytics/board-activity?fromDate=2026-09-01&toDate=2026-09-30&eventType=DISCIPLINARY',
+              bodCookie
+            )
+          );
+          const restrictedJson = await onlyRestricted.json();
+          expect(restrictedJson.data.totalEvents).toBe(0);
+          expect(restrictedJson.data.recent).toHaveLength(0);
+        });
 
     it('menolak tipe event tak dikenal (400)', async () => {
       const res = await getActivity(
@@ -198,26 +219,94 @@ describe('Boardroom API', () => {
       expect(res.status).toBe(401);
     });
 
-    it('mengembalikan cache bila tersedia tanpa memanggil provider', async () => {
-      await saveInsight(db, {
-        feature: 'board',
-        periodCode: '2026-Q3',
-        role: 'BOD',
-        insight: 'Analisis tersimpan.',
-        provider: 'groq',
-        payloadHash: hashPayload({ cached: true }),
-      });
+    it('menyajikan cache tanpa memanggil provider saat data belum berubah', async () => {
+          const context = await buildFeatureContext(db, 'board');
+          await saveInsight(db, {
+            feature: 'board',
+            periodCode: '2088-Q2',
+            role: 'BOD',
+            insight: 'Analisis tersimpan.',
+            provider: 'groq',
+            payloadHash: hashPayload(context),
+          });
 
-      const res = await postBoardAnalysis(
-        postReq({ periodCode: '2026-Q3' }, bodCookie)
-      );
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(json.data.fromCache).toBe(true);
-      expect(json.data.insight).toBe('Analisis tersimpan.');
-    });
+          const spy = vi.fn(async () => ({
+            ok: false,
+            status: 429,
+            text: async () => 'rate limited',
+            json: async () => ({}),
+          }));
+          const savedFetch = globalThis.fetch;
+          const savedEnv = {
+            GROQ_API_KEY: process.env.GROQ_API_KEY,
+            AI_PROVIDER: process.env.AI_PROVIDER,
+          };
+          process.env.GROQ_API_KEY = 'test-key';
+          process.env.AI_PROVIDER = 'groq';
+          vi.stubGlobal('fetch', spy);
 
-    it('mengembalikan configured:false dengan HTTP 200 saat provider tidak dikonfigurasi', async () => {
+          try {
+            const res = await postBoardAnalysis(
+              postReq({ periodCode: '2088-Q2' }, bodCookie)
+            );
+            expect(res.status).toBe(200);
+            const json = await res.json();
+            expect(json.data.fromCache).toBe(true);
+            expect(json.data.insight).toBe('Analisis tersimpan.');
+            // Tidak ada panggilan ke provider LLM.
+            expect(spy).not.toHaveBeenCalled();
+          } finally {
+            vi.stubGlobal('fetch', savedFetch);
+            vi.unstubAllGlobals();
+            for (const [k, v] of Object.entries(savedEnv)) {
+              if (v === undefined) delete process.env[k];
+              else process.env[k] = v;
+            }
+          }
+        });
+
+        it('menganggap cache basi bila payload data berubah (payload_hash)', async () => {
+          // Hash sengaja tidak cocok dengan konteks saat ini -> cache harus dianggap
+          // basi dan tidak disajikan sebagai kebenaran.
+          await saveInsight(db, {
+            feature: 'board',
+            periodCode: '2088-Q3',
+            role: 'BOD',
+            insight: 'Narasi lama dari data usang.',
+            provider: 'groq',
+            payloadHash: hashPayload({ stale: true }),
+          });
+
+          const savedEnv = {
+            GROQ_API_KEY: process.env.GROQ_API_KEY,
+            GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+            OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+            AI_PROVIDER: process.env.AI_PROVIDER,
+          };
+          delete process.env.GROQ_API_KEY;
+          delete process.env.GEMINI_API_KEY;
+          delete process.env.OPENROUTER_API_KEY;
+          delete process.env.AI_PROVIDER;
+
+          try {
+            const res = await postBoardAnalysis(
+              postReq({ periodCode: '2088-Q3' }, bodCookie)
+            );
+            expect(res.status).toBe(200);
+            const json = await res.json();
+            // Cache basi tidak boleh disajikan sebagai hasil terkini.
+            expect(json.data.fromCache).toBe(false);
+            expect(json.data.staleCacheDiscarded).toBe(true);
+            expect(json.data.insight).not.toBe('Narasi lama dari data usang.');
+          } finally {
+            for (const [k, v] of Object.entries(savedEnv)) {
+              if (v === undefined) delete process.env[k];
+              else process.env[k] = v;
+            }
+          }
+        });
+
+        it('mengembalikan configured:false dengan HTTP 200 saat provider tidak dikonfigurasi', async () => {
       const saved = {
         GROQ_API_KEY: process.env.GROQ_API_KEY,
         GEMINI_API_KEY: process.env.GEMINI_API_KEY,
@@ -292,5 +381,39 @@ describe('Boardroom API', () => {
         }
       }
     });
+  it('menolak permintaan beruntun dengan 429 (panggilan LLM berbiaya)', async () => {
+        const saved = {
+          GROQ_API_KEY: process.env.GROQ_API_KEY,
+          GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+          OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+          AI_PROVIDER: process.env.AI_PROVIDER,
+        };
+        delete process.env.GROQ_API_KEY;
+        delete process.env.GEMINI_API_KEY;
+        delete process.env.OPENROUTER_API_KEY;
+        delete process.env.AI_PROVIDER;
+        resetRateLimit();
+
+        try {
+          let sawLimit = false;
+          for (let i = 0; i < 25; i++) {
+            const res = await postBoardAnalysis(
+              postReq({ periodCode: `2077-Q${(i % 4) + 1}`, force: true }, bodCookie)
+            );
+            if (res.status === 429) {
+              sawLimit = true;
+              expect(res.headers.get('Retry-After')).toBeTruthy();
+              break;
+            }
+          }
+          expect(sawLimit).toBe(true);
+        } finally {
+          resetRateLimit();
+          for (const [k, v] of Object.entries(saved)) {
+            if (v === undefined) delete process.env[k];
+            else process.env[k] = v;
+          }
+        }
+      });
+    });
   });
-});

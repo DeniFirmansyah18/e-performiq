@@ -51,13 +51,14 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
     expect(customer?.status).toBe('NO_DATA');
   });
 
-  it('capaian keseluruhan hanya memakai pilar yang punya data', async () => {
+  it('capaian keseluruhan memakai seluruh pilar sesuai spec §4', async () => {
     const result = await getVisionAchievement(db);
     expect(Number.isFinite(result.overallAchievementPercentage)).toBe(true);
-    // (92.5 + 102.5 + 83.3) / 3 ≈ 92.8 — pilar tanpa data tidak dihitung sebagai 0.
-    expect(result.overallAchievementPercentage).toBeGreaterThan(92);
-    expect(result.overallAchievementPercentage).toBeLessThan(94);
-  });
+      // Spec §4: "rata-rata tertimbang seluruh pilar". Pilar tanpa KPI bernilai 0%
+      // pada bobotnya sendiri, sehingga:
+      //   (92.5*25 + 102.5*25 + 83.3*25 + 0*25) / 100 = 69.6
+      expect(result.overallAchievementPercentage).toBe(69.6);
+    });
 
   it('menurunkan capaian RJMP dari pilar terkait', async () => {
     const result = await getVisionAchievement(db);
@@ -82,11 +83,21 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
   });
 
   it('menyatakan visi belum ditetapkan bila tabel kosong, tanpa mengarang teks', async () => {
-    await client.exec('DELETE FROM company_vision_mission');
-    const result = await getVisionAchievement(db);
-    expect(result.vision).toBeNull();
-    expect(result.missions).toEqual([]);
-  });
+      // DB terisolasi: test ini menghapus company_vision_mission sehingga tidak
+      // boleh merusak test lain (dulu hanya lulus bila dijalankan lebih dulu).
+      const iso = await createTestDb();
+      try {
+        await runSeed(iso.client);
+        const isoDb = drizzle(iso.client) as unknown as Db;
+        await iso.client.exec('DELETE FROM company_vision_mission');
+
+        const result = await getVisionAchievement(isoDb);
+        expect(result.vision).toBeNull();
+        expect(result.missions).toEqual([]);
+      } finally {
+        await iso.client.close();
+      }
+    });
 
   it('hanya mengagregasi KPI periode yang diminta', async () => {
     // KPI Q4 pada pilar FINANCIAL tidak boleh mengubah capaian Q3.

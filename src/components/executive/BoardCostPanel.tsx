@@ -6,6 +6,11 @@ async function fetchJson(url: string): Promise<any> {
   const res = await fetch(url);
   const json = await res.json().catch(() => null);
   if (!res.ok) throw new Error(json?.detail ?? json?.message ?? 'Gagal memuat data');
+  // Envelope tak terduga (mis. 200 tapi bukan JSON sukses) juga kegagalan:
+  // menampilkan 0 akan membuat BOD membaca angka yang tidak pernah diukur.
+  if (json?.status !== 'success' || !json?.data) {
+    throw new Error(json?.detail ?? json?.message ?? 'Respons data tidak dikenali');
+  }
   return json;
 }
 
@@ -16,15 +21,20 @@ export default function BoardCostPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let active = true;
-    fetchJson('/api/v1/analytics/board-cost')
+    setError(null);
+    fetchJson(`/api/v1/analytics/board-cost?page=${page}`)
       .then((json) => {
-        if (active && json?.status === 'success') setData(json.data);
+        if (active) setData(json.data);
       })
       .catch((err: Error) => {
-        if (active) setError(err.message);
+        if (active) {
+          setData(null);
+          setError(err.message);
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -32,9 +42,16 @@ export default function BoardCostPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [page]);
 
-  if (loading) {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(
+        (data?.employeesPagination?.total ?? 0) / (data?.employeesPagination?.pageSize ?? 50)
+      )
+    );
+
+    if (loading) {
     return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat rincian biaya...</div>;
   }
   if (error) {
@@ -85,8 +102,10 @@ export default function BoardCostPanel() {
             {rupiah(data?.operational?.totalAmount)}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">
-            Konsentrasi top-decil {data?.analysis?.topDecileCostShare ?? 0}%
-          </div>
+                      {data?.analysis?.topDecileEmployeeCount
+                        ? `${data.analysis.topDecileEmployeeCount} pegawai termahal (${data.analysis.topDecileStaffPercentage}% staf) = ${data.analysis.topDecileCostShare}% biaya`
+                        : 'Belum ada rincian biaya per pegawai'}
+                    </div>
         </div>
       </div>
 
@@ -103,16 +122,28 @@ export default function BoardCostPanel() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700">
-          Rincian Payroll per Pegawai ({data?.employeesPagination?.page ?? 1}/
-          {Math.max(
-            1,
-            Math.ceil(
-              (data?.employeesPagination?.total ?? 0) / (data?.employeesPagination?.pageSize ?? 50)
-            )
-          )}
-          )
-        </div>
+              <div className="p-3 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold text-slate-700">
+                  Rincian Payroll per Pegawai (Halaman {data?.employeesPagination?.page ?? page} dari{' '}
+                  {totalPages})
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                  >
+                    Sebelumnya
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
+              </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">

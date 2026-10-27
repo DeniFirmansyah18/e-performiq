@@ -1,7 +1,7 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
-import { ok, fail } from '@/lib/api/response';
+import { ok, fail, failFromError } from '@/lib/api/response';
 import { db } from '@/lib/db/client';
 import { getBoardActivityAnalytics } from '@/lib/services/boardActivityAnalyticsService';
 
@@ -77,16 +77,6 @@ export async function GET(req: NextRequest) {
     });
     return ok(data);
   } catch (err: any) {
-    const status = typeof err?.status === 'number' ? err.status : 500;
-    return fail(
-      status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',
-      // Pesan domain boleh diteruskan; pesan internal tidak (bisa memuat detail SQL).
-      status === 403 || status === 401
-        ? err?.message ?? 'Akses ditolak'
-        : status >= 400 && status < 500
-        ? err?.message ?? 'Permintaan tidak valid'
-        : 'Gagal memuat aktivitas Boardroom',
-      status
-    );
-  }
+      return failFromError(err, 'Gagal memuat aktivitas Boardroom');
+    }
 }

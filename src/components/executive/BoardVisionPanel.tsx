@@ -7,6 +7,11 @@ async function fetchJson(url: string): Promise<any> {
   const res = await fetch(url);
   const json = await res.json().catch(() => null);
   if (!res.ok) throw new Error(json?.detail ?? json?.message ?? 'Gagal memuat data');
+  // Envelope tak terduga (mis. 200 tapi bukan JSON sukses) juga kegagalan:
+  // menampilkan 0 akan membuat BOD membaca angka yang tidak pernah diukur.
+  if (json?.status !== 'success' || !json?.data) {
+    throw new Error(json?.detail ?? json?.message ?? 'Respons data tidak dikenali');
+  }
   return json;
 }
 

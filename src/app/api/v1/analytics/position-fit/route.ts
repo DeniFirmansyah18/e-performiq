@@ -1,7 +1,7 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
-import { ok, fail } from '@/lib/api/response';
+import { ok, fail, failFromError } from '@/lib/api/response';
 import { db } from '@/lib/db/client';
 import { getPositionFit } from '@/lib/services/boardPositionFitService';
 
@@ -18,11 +18,6 @@ export async function GET(req: NextRequest) {
     const data = await getPositionFit(db, periodCode);
     return ok(data);
   } catch (err: any) {
-    const status = typeof err?.status === 'number' ? err.status : 500;
-    return fail(
-      status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',
-      err?.message ?? 'Gagal memuat kesesuaian posisi',
-      status
-    );
-  }
+      return failFromError(err, 'Gagal memuat kesesuaian posisi');
+    }
 }

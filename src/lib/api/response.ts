@@ -13,6 +13,38 @@ export function fail(code: string, message: string, status: number = 400): NextR
   return NextResponse.json({ status: 'error', code, detail: message, message }, { status });
 }
 
+const ERROR_CODE_BY_STATUS: Record<number, string> = {
+  400: 'VALIDATION_ERROR',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  422: 'BUSINESS_RULE_VIOLATION',
+  429: 'RATE_LIMITED',
+};
+
+/**
+ * Menerjemahkan error yang dilempar ke respons `fail` dengan kode yang benar.
+ *
+ * `getAuthSession` MELEMPAR `AuthError` (bukan mengembalikan null), sehingga
+ * tanpa pemetaan ini 401 akan berlabel `INTERNAL_ERROR`. Pesan domain (4xx)
+ * diteruskan; error tak dikenal menjadi pesan generik agar detail SQL/internal
+ * tidak bocor ke klien.
+ */
+export function failFromError(err: unknown, fallbackMessage: string): NextResponse {
+  const status = typeof (err as { status?: unknown })?.status === 'number'
+    ? ((err as { status: number }).status)
+    : 500;
+
+  if (status >= 500 || !ERROR_CODE_BY_STATUS[status]) {
+    if (status >= 500) console.error('[api]', err);
+    return fail('INTERNAL_ERROR', fallbackMessage, status >= 400 ? status : 500);
+  }
+
+  const message = (err as Error)?.message ?? fallbackMessage;
+  return fail(ERROR_CODE_BY_STATUS[status], message, status);
+}
+
 const TYPE_SLUG: Record<number, string> = {
   400: 'bad-request',
   401: 'unauthorized',

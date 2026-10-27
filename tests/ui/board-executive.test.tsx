@@ -76,7 +76,8 @@ const cost = {
     byCategory: [{ category: 'TRAVEL', count: 1, amount: 1250000 }],
     byStatus: [{ status: 'APPROVED', count: 1, amount: 1250000 }] },
   analysis: { costPerEmployee: 33927500, topDecileCostShare: 47.7,
-    payrollGrowthPercentage: 0.56,
+      topDecileEmployeeCount: 1, topDecileStaffPercentage: 25,
+      payrollGrowthPercentage: 0.56,
     highlights: ['Payroll 2026-09 net 135.710.000 untuk 4 pegawai.',
       '10% pegawai termahal menyerap 47.7% total biaya.',
       '2 pengajuan lembur menunggu persetujuan.'] },
@@ -137,6 +138,17 @@ describe('BoardActivityPanel', () => {
     await waitFor(() => expect(screen.getByText(/Gagal memuat aktivitas/)).toBeTruthy());
     expect(screen.queryByText(/11 aktivitas tercatat/)).toBeNull();
   });
+
+    it('tidak menampilkan nol saat respons 200 berenvelope tak terduga', async () => {
+      // 200 tetapi bukan JSON/envelope sukses (mis. proxy mengembalikan HTML).
+      vi.stubGlobal('fetch', vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ unexpected: true }),
+      })));
+      render(<BoardActivityPanel />);
+      await waitFor(() => expect(screen.getByText(/Gagal memuat aktivitas/)).toBeTruthy());
+      expect(document.body.textContent ?? '').not.toMatch(/Total Aktivitas\s*0/);
+    });
 });
 
 describe('BoardVisionPanel', () => {
@@ -216,6 +228,8 @@ describe('BoardCostPanel', () => {
     expect(screen.getAllByText('••••••••••••0123').length).toBe(2);
     expect(screen.getByText(/TRAVEL/)).toBeTruthy();
     expect(screen.getByText(/2 pengajuan lembur menunggu/)).toBeTruthy();
+        // Label konsentrasi biaya menyebut jumlah pegawai, bukan selalu "10%".
+        expect(screen.getByText(/1 pegawai termahal \(25% staf\) = 47\.7% biaya/)).toBeTruthy();
   });
 
   it('tidak pernah menampilkan nomor BPJS 16 digit', async () => {
@@ -226,7 +240,41 @@ describe('BoardCostPanel', () => {
     const body = document.body.textContent ?? '';
     expect(body).not.toMatch(/\d{16}/);
   });
-});
+
+    it('memuat halaman rincian berikutnya lewat kontrol paginasi', async () => {
+      const urls: string[] = [];
+      vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+        urls.push(String(url));
+        const page = new URL(String(url), 'http://localhost').searchParams.get('page');
+        if (String(url).includes('board-cost')) {
+          return okJson({
+            ...cost,
+            employees: [
+              {
+                ...cost.employees[0],
+                employeeId: `e-page-${page ?? 1}`,
+                fullName: page === '2' ? 'Karyawan Halaman Dua' : 'Budi Pratama',
+              },
+            ],
+            employeesPagination: { page: Number(page ?? 1), pageSize: 50, total: 120 },
+          });
+        }
+        return okJson({});
+      }));
+
+      render(<BoardCostPanel />);
+      await waitFor(() => expect(screen.getByText(/Halaman 1 dari 3/)).toBeTruthy());
+
+      fireEvent.click(screen.getByRole('button', { name: /Berikutnya/ }));
+      await waitFor(() => expect(screen.getByText(/Karyawan Halaman Dua/)).toBeTruthy());
+      expect(urls.some((u) => u.includes('page=2'))).toBe(true);
+      expect(screen.getByText(/Halaman 2 dari 3/)).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: /Sebelumnya/ }));
+      await waitFor(() => expect(screen.getByText(/Halaman 1 dari 3/)).toBeTruthy());
+      expect(urls.some((u) => u.includes('page=1'))).toBe(true);
+    });
+  });
 
 describe('Executive Boardroom page', () => {
   const pageUrl = 'http://localhost:3000/dashboard/executive';

@@ -125,14 +125,27 @@ export async function getVisionAchievement(
   });
 
   const withData = pillars.filter((p) => p.status !== 'NO_DATA');
-  const weightSum = withData.reduce((s, p) => s + p.strategicWeight, 0);
-  const overallAchievementPercentage =
-    weightSum > 0
-      ? round1(
-          withData.reduce((s, p) => s + p.achievementPercentage * p.strategicWeight, 0) /
-            weightSum
-        )
-      : 0;
+    // Spec §4: "rata-rata tertimbang seluruh pilar". Pilar NO_DATA bernilai 0%
+    // pada bobotnya sendiri (bukan dikeluarkan dari penyebut), agar angka BOD
+    // mencerminkan pilar yang belum terukur. Nilai khusus pilar terukur tetap
+    // dilaporkan pada highlights sebagai konteks, bukan sebagai angka utama.
+    const allWeightSum = pillars.reduce((s, p) => s + p.strategicWeight, 0);
+    const overallAchievementPercentage =
+      allWeightSum > 0
+        ? round1(
+            pillars.reduce((s, p) => s + p.achievementPercentage * p.strategicWeight, 0) /
+              allWeightSum
+          )
+        : 0;
+
+    const measuredWeightSum = withData.reduce((s, p) => s + p.strategicWeight, 0);
+    const measuredOnlyAchievementPercentage =
+      measuredWeightSum > 0
+        ? round1(
+            withData.reduce((s, p) => s + p.achievementPercentage * p.strategicWeight, 0) /
+              measuredWeightSum
+          )
+        : 0;
 
   const rjmpRes = (await db.execute(sql`
     SELECT ck.id AS "corporateKpiId", ck.kpi_code AS "kpiCode", ck.kpi_name AS "kpiName",
@@ -181,19 +194,22 @@ export async function getVisionAchievement(
 
   const highlights: string[] = [];
   if (pillars.length === 0) {
-    highlights.push('Belum ada pilar strategis aktif untuk diukur.');
-  } else {
-    highlights.push(
-      `Capaian keseluruhan ${overallAchievementPercentage}% dari ${withData.length} pilar yang memiliki data.`
-    );
-    if (weakestPillar && sorted.length > 1) {
-      const gap = round1(sorted[0].achievementPercentage - sorted[sorted.length - 1].achievementPercentage);
-      highlights.push(`Pilar terlemah: ${weakestPillar}, tertinggal ${gap} poin dari pilar terkuat.`);
+      highlights.push('Belum ada pilar strategis aktif untuk diukur.');
+    } else {
+      highlights.push(
+        `Capaian keseluruhan ${overallAchievementPercentage}% dari ${pillars.length} pilar.`
+      );
+      if (weakestPillar && sorted.length > 1) {
+        const gap = round1(sorted[0].achievementPercentage - sorted[sorted.length - 1].achievementPercentage);
+        highlights.push(`Pilar terlemah: ${weakestPillar}, tertinggal ${gap} poin dari pilar terkuat.`);
+      }
+      if (noDataPillarCount > 0) {
+        highlights.push(
+          `${noDataPillarCount} pilar belum memiliki KPI sehingga dihitung 0% ` +
+            `(bila hanya ${withData.length} pilar terukur: ${measuredOnlyAchievementPercentage}%).`
+        );
+      }
     }
-    if (noDataPillarCount > 0) {
-      highlights.push(`${noDataPillarCount} pilar belum memiliki KPI sehingga tidak dapat dinilai.`);
-    }
-  }
 
   return {
     vision,
