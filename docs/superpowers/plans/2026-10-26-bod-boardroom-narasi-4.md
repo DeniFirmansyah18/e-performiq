@@ -1108,13 +1108,17 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
     expect(customer?.status).toBe('NO_DATA');
   });
 
-  it('capaian keseluruhan hanya memakai pilar yang punya data', async () => {
+  it('capaian keseluruhan memakai seluruh pilar sesuai spec §4', async () => {
     const result = await getVisionAchievement(db);
     expect(Number.isFinite(result.overallAchievementPercentage)).toBe(true);
-    // (92.5 + 102.5 + 83.3) / 3 ≈ 92.8 — pilar tanpa data tidak dihitung sebagai 0.
-    expect(result.overallAchievementPercentage).toBeGreaterThan(92);
-    expect(result.overallAchievementPercentage).toBeLessThan(94);
-  });
+      // Spec §4: "rata-rata tertimbang seluruh pilar". Pilar NO_DATA bernilai 0%
+      // pada bobotnya sendiri, sehingga (92.5+102.5+83.3+0)/4 = 69.6.
+      // Catatan pelaksanaan: rencana awal menulis 92.8 (menormalisasi ulang,
+      // pilar tanpa data dikeluarkan dari penyebut). Spec adalah otoritas, jadi
+      // perilaku yang diuji adalah 69.6 dan nilai pilar terukur dilaporkan pada
+      // highlights sebagai konteks.
+      expect(result.overallAchievementPercentage).toBe(69.6);
+    });
 
   it('menurunkan capaian RJMP dari pilar terkait', async () => {
     const result = await getVisionAchievement(db);
