@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
-import { resolvePeriodId } from './periodResolver';
+import { resolvePeriodId, periodCodeOf } from './periodResolver';
 
 export type AchievementStatus = 'ACHIEVED' | 'BELOW_TARGET' | 'NO_DATA';
 
@@ -28,6 +28,8 @@ export interface RjmpTarget {
 export interface VisionAchievement {
   vision: string | null;
   missions: string[];
+  /** Periode yang benar-benar diagregasi; `null` bila tidak ada periode dikenal. */
+  periodCode: string | null;
   sampleSize: number;
   overallAchievementPercentage: number;
   pillars: VisionPillar[];
@@ -73,6 +75,7 @@ export async function getVisionAchievement(
   const periodFilter = periodId === null
     ? sql`FALSE`
     : sql`ik.period_id = ${periodId}::uuid`;
+  const resolvedPeriodCode = await periodCodeOf(db, periodId);
 
   // Rata-rata tertimbang bobot KPI; SUM(kpi_weight)=0 menghasilkan 0, bukan NaN.
   const pillarRes = (await db.execute(sql`
@@ -195,6 +198,7 @@ export async function getVisionAchievement(
   return {
     vision,
     missions,
+    periodCode: resolvedPeriodCode,
     sampleSize: pillars.reduce((s, p) => s + p.kpiCount, 0),
     overallAchievementPercentage,
     pillars,

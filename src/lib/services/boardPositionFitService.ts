@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
-import { resolvePeriodId } from './periodResolver';
+import { resolvePeriodId, periodCodeOf } from './periodResolver';
 
 export type FitStatus = 'COMPLIANT' | 'PARTIAL' | 'NOT_COMPLIANT' | 'NO_TEMPLATE';
 
@@ -23,6 +23,8 @@ export interface EmployeeFit {
 
 export interface PositionFit {
   sampleSize: number;
+  /** Periode yang benar-benar dicocokkan; `null` bila tidak ada periode dikenal. */
+  periodCode: string | null;
   byPosition: Array<{
     positionId: string;
     positionTitle: string;
@@ -75,6 +77,7 @@ export async function getPositionFit(db: Db, periodCode?: string): Promise<Posit
   const periodFilter = periodId === null
     ? sql`FALSE`
     : sql`ik.period_id = ${periodId}::uuid`;
+  const resolvedPeriodCode = await periodCodeOf(db, periodId);
 
   const res = (await db.execute(sql`
     WITH tpl AS (
@@ -261,6 +264,7 @@ export async function getPositionFit(db: Db, periodCode?: string): Promise<Posit
 
   return {
     sampleSize: employees.length,
+    periodCode: resolvedPeriodCode,
     byPosition,
     employees,
     analysis: {

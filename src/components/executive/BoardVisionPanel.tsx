@@ -80,6 +80,7 @@ export default function BoardVisionPanel() {
             </p>
             <p className="text-[10px] text-slate-500">
               {data?.sampleSize ?? 0} KPI individual
+              {data?.periodCode ? ` · periode ${data.periodCode}` : ''}
             </p>
           </div>
         </div>
