@@ -120,6 +120,106 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
     expect(result.analysis.highlights.length).toBeGreaterThan(0);
   });
 
+  it('mendaftar corporate KPI yang belum punya KPI individual (register cascade)', async () => {
+    const result = await getVisionAchievement(db);
+
+    // Seed: keempat corporate KPI belum diturunkan ke KPI individual mana pun.
+    expect(result.cascadeGaps.map((g) => g.kpiCode).sort()).toEqual([
+      'CORP-CUS-01',
+      'CORP-FIN-01',
+      'CORP-INT-01',
+      'CORP-LRN-01',
+    ]);
+
+    const cus = result.cascadeGaps.find((g) => g.kpiCode === 'CORP-CUS-01');
+    expect(cus?.pillarPerspective).toBe('CUSTOMER');
+    expect(cus?.templateCount).toBeGreaterThan(0);
+    expect(cus?.coveredTemplateCount).toBe(0);
+    // Register harus menuduh pekerjaan yang bisa ditugaskan, bukan sekadar gejala.
+    expect(cus?.positionsMissingKpi.length).toBeGreaterThan(0);
+    expect(cus?.positionsMissingKpi.join(' ')).toMatch(/Chief Executive/);
+  });
+
+  it('menutup gap setelah KPI individual yang cocok ditetapkan', async () => {
+    const iso = await createTestDb();
+    try {
+      await runSeed(iso.client);
+      const isoDb = drizzle(iso.client) as unknown as Db;
+      const pillar = await isoDb.execute(
+        sql`SELECT id FROM strategic_pillars WHERE perspective = 'CUSTOMER' LIMIT 1`
+      );
+      const customerPillar = String((pillar.rows[0] as { id: string }).id);
+
+      // Tindakan HR: tetapkan KPI pemilik template CEO pada pilar pelanggan.
+      await isoDb.execute(sql`
+        INSERT INTO individual_kpis
+          (period_id, employee_id, strategic_pillar_id, kpi_title, target_value, actual_value, kpi_weight)
+        VALUES ('d0000000-0000-4000-8000-000000000001'::uuid,
+                'b0000000-0000-4000-8000-000000000001'::uuid,
+                ${customerPillar}::uuid, 'Indeks Kepuasan Stakeholder', 90, 94, 30)
+      `);
+
+      const after = await getVisionAchievement(isoDb, '2026-Q3');
+      expect(after.cascadeGaps.some((g) => g.kpiCode === 'CORP-CUS-01')).toBe(false);
+      expect(after.measurementCoveragePercentage).toBe(100);
+      expect(after.pillars.find((p) => p.perspective === 'CUSTOMER')?.measured).toBe(true);
+    } finally {
+      await iso.client.close();
+    }
+  });
+
+  it('satu periode tanpa KPI belum menjadi temuan tata kelola', async () => {
+    const result = await getVisionAchievement(db);
+    expect(result.analysis.previousPeriodCode).toBeNull();
+    expect(result.analysis.governanceFindings).toEqual([]);
+  });
+
+  it('menandai pilar tanpa KPI dua periode berturut-turut sebagai temuan', async () => {
+    const iso = await createTestDb();
+    try {
+      await runSeed(iso.client);
+      const isoDb = drizzle(iso.client) as unknown as Db;
+      const pillar = await isoDb.execute(
+        sql`SELECT id FROM strategic_pillars WHERE perspective = 'FINANCIAL' LIMIT 1`
+      );
+      const financialPillar = String((pillar.rows[0] as { id: string }).id);
+
+      // Periode sebelumnya (Q2) hanya punya KPI pada FINANCIAL.
+      await isoDb.execute(sql`
+        INSERT INTO appraisal_periods (id, period_code, start_date, end_date, status)
+        VALUES ('d0000000-0000-4000-8000-000000000009'::uuid, '2026-Q2',
+                '2026-04-01', '2026-06-30', 'LOCKED')
+      `);
+      await isoDb.execute(sql`
+        INSERT INTO individual_kpis
+          (period_id, employee_id, strategic_pillar_id, kpi_title, target_value, actual_value, kpi_weight)
+        VALUES ('d0000000-0000-4000-8000-000000000009'::uuid,
+                'b0000000-0000-4000-8000-000000000004'::uuid,
+                ${financialPillar}::uuid, 'KPI Finansial Kuartal Dua', 100, 90, 40)
+      `);
+
+      const result = await getVisionAchievement(isoDb, '2026-Q3');
+      expect(result.analysis.previousPeriodCode).toBe('2026-Q2');
+
+      const finding = result.analysis.governanceFindings.find((f) =>
+        f.pillarName.includes('Kepuasan')
+      );
+      expect(finding?.code).toBe('UNMEASURED_CONSECUTIVE_PERIODS');
+      expect(finding?.severity).toBe('GOVERNANCE');
+      expect(finding?.periods).toEqual(['2026-Q2', '2026-Q3']);
+
+      // FINANCIAL punya KPI di Q2, jadi tidak boleh ikut ditandai.
+      expect(
+        result.analysis.governanceFindings.some((f) => f.pillarName.includes('Pendapatan'))
+      ).toBe(false);
+
+      // Temuan wajib muncul di highlight agar masuk risalah BOD.
+      expect(result.analysis.highlights.join(' ')).toMatch(/temuan tata kelola/i);
+    } finally {
+      await iso.client.close();
+    }
+  });
+
   it('menyatakan visi belum ditetapkan bila tabel kosong, tanpa mengarang teks', async () => {
       // DB terisolasi: test ini menghapus company_vision_mission sehingga tidak
       // boleh merusak test lain (dulu hanya lulus bila dijalankan lebih dulu).

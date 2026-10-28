@@ -183,6 +183,45 @@ describe('BoardVisionPanel', () => {
       expect(screen.getByText('92.8%')).toBeTruthy();
     });
 
+  it('menampilkan temuan tata kelola dan register cascade', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('vision-achievement')) {
+        return okJson({
+          ...vision,
+          cascadeGaps: [
+            {
+              corporateKpiId: 'c2', kpiCode: 'CORP-CUS-01', kpiName: 'Internal CSAT',
+              pillarId: 'p2', pillarName: 'Pelanggan', pillarPerspective: 'CUSTOMER',
+              templateCount: 4, coveredTemplateCount: 0,
+              positionsMissingKpi: ['Chief Executive Officer', 'Head of Engineering & Ops'],
+            },
+          ],
+          analysis: {
+            ...vision.analysis,
+            previousPeriodCode: '2026-Q2',
+            governanceFindings: [
+              {
+                code: 'UNMEASURED_CONSECUTIVE_PERIODS', severity: 'GOVERNANCE',
+                pillarId: 'p2', pillarName: 'Pelanggan', perspective: 'CUSTOMER',
+                periods: ['2026-Q2', '2026-Q3'],
+                message: 'Pilar Pelanggan tanpa KPI pada 2026-Q2 dan 2026-Q3.',
+              },
+            ],
+          },
+        });
+      }
+      return okJson({});
+    }));
+
+    render(<BoardVisionPanel />);
+    await waitFor(() => expect(screen.getByText(/kelas dunia/)).toBeTruthy());
+
+    expect(screen.getByText(/Temuan Tata Kelola/)).toBeTruthy();
+    expect(screen.getByText(/tanpa KPI pada 2026-Q2 dan 2026-Q3/)).toBeTruthy();
+    expect(screen.getByText(/CORP-CUS-01/)).toBeTruthy();
+    expect(screen.getByText(/Chief Executive Officer/)).toBeTruthy();
+  });
+
   it('tidak memanggil AI secara otomatis saat mount', async () => {
     const spy = vi.fn(async (url: string) => {
       const u = String(url);

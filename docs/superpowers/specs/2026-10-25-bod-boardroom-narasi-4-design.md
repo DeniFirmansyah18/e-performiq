@@ -124,6 +124,13 @@ export interface VisionAchievement {
   measurementCoveragePercentage: number;   // % bobot yang punya KPI
   measuredWeight: number;                  // bobot terukur (mis. 75)
   totalWeight: number;                     // total bobot pilar aktif (mis. 100)
+    formulaVersion: string;                  // versi rumus terkunci (ADR 021)
+    cascadeGaps: Array<{                     // register kerja HR/PMO
+      corporateKpiId: string; kpiCode: string; kpiName: string;
+      pillarId: string; pillarName: string; pillarPerspective: string;
+      templateCount: number; coveredTemplateCount: number;
+      positionsMissingKpi: string[];         // posisi yang wajib diberi KPI
+    }>;
   pillars: Array<{
     pillarId: string; pillarName: string; perspective: string;
     strategicWeight: number;               // bobot pilar (%)
@@ -144,8 +151,15 @@ export interface VisionAchievement {
     noDataPillarCount: number;
     weakestPillar: string | null;
     strongestPillar: string | null;
-    highlights: string[];
-  };
+      previousPeriodCode: string | null;     // pembanding aturan dua periode
+      governanceFindings: Array<{            // temuan formal, bukan catatan kaki
+        code: 'UNMEASURED_CONSECUTIVE_PERIODS';
+        severity: 'GOVERNANCE';
+        pillarId: string; pillarName: string; perspective: string;
+        periods: string[]; message: string;
+      }>;
+      highlights: string[];
+    };
 }
 ```
 
@@ -154,6 +168,9 @@ export interface VisionAchievement {
 - Capaian keseluruhan = rata-rata tertimbang **seluruh** pilar; pilar `NO_DATA` bernilai 0% pada bobotnya sendiri dan **tidak** dikeluarkan dari penyebut. Normalisasi ulang dilarang karena membuat skor naik hanya dengan tidak menyusun KPI (kelalaian administratif berubah menjadi perbaikan kinerja) dan mengubah basis perhitungan yang dipakai menilai Direksi.
 - **Satu angka tidak boleh memikul dua arti.** Karena itu `measurementCoveragePercentage`, `measuredWeight`, dan `measuredAchievementPercentage` dilaporkan terpisah: "capaian" menjawab *seberapa baik kinerja*, "cakupan" menjawab *seberapa besar strategi yang terukur*. Kolom `measured` pada pilar membedakan *belum dinilai* dari *di bawah target*. Ini juga memenuhi tuntutan disclosure cakupan data ISO 30414.
 - Narasi AI wajib menerima `measurementCoverage` agar pilar belum dinilai tidak dinarasikan sebagai kegagalan (lubang cascade ≠ kinerja buruk).
+- Rumus dikunci pada `src/lib/strategy/achievementFormula.ts` dengan versi `RJMP-2026-v1`; perubahan rumus wajib lewat ADR 021 (`docs/decisions/021-rjmp-achievement-formula-lock.md`) dan kenaikan versi. `tests/unit/achievementFormula.test.ts` membandingkan versi kode dengan dokumen.
+- `cascadeGaps` adalah register kerja: setiap KPI korporat yang belum punya KPI individual cocok wajib menyertakan daftar posisi yang perlu diberi KPI.
+- Aturan dua periode: pilar tanpa KPI pada **dua periode berturut-turut** menjadi `governanceFindings` (`UNMEASURED_CONSECUTIVE_PERIODS`, severity `GOVERNANCE`), tampil sebagai blok "Temuan Tata Kelola" dan diteruskan ke konteks AI. Satu periode tanpa KPI baru sekadar informasi.
 - Status: `ACHIEVED` bila ≥ 100, `BELOW_TARGET` bila < 100 dan ada data, `NO_DATA` bila pilar tanpa KPI.
 - Capaian RJMP diturunkan dari pilar terkait (bukan angka baru), dan diberi label "diturunkan dari roll-up pilar" agar jelas asalnya.
 - Visi/misi dibaca dari `company_vision_mission` terbaru. Misi dipecah dengan pemisah `|` atau baris baru (pola yang sudah dipakai `getCascadingTree`). Bila kosong → `null`/array kosong, dan UI menyatakan belum ditetapkan (bukan teks karangan).

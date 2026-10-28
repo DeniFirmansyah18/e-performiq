@@ -349,6 +349,8 @@ export async function analyzeWithContext(
     `**Rekomendasi Tindakan:**\n1. (rekomendasi 1)\n2. (rekomendasi 2)\n` +
         `Bila sebuah item berstatus NO_DATA atau measured:false, sebut "belum dinilai/belum diukur" ` +
         `dan jelaskan bahwa KPI-nya belum diturunkan — jangan menyebutnya gagal atau capaian 0%. ` +
+        `Bila ada governanceFindings, sebut sebagai temuan tata kelola dan sertakan rekomendasi ` +
+        `penetapan KPI pada posisi yang tercantum di cascadeGaps. ` +
         `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
   const res = await generateContent(prompt, { maxOutputTokens: 2048, temperature: 0.25 });
   // `error` terisi saat SEMUA provider gagal (rate limit/5xx/network). Keluaran

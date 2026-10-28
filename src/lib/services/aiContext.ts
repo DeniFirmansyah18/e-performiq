@@ -78,6 +78,24 @@ export async function buildFeatureContext(db: Db, feature: string): Promise<Reco
                   // kegagalan, padahal itu lubang cascade.
                   measurementCoverage: vision.measurementCoveragePercentage,
                   measuredAchievement: vision.measuredAchievementPercentage,
+                  formulaVersion: vision.formulaVersion,
+                  // Register cascade + temuan tata kelola ikut, agar narasi BOD
+                  // mengeskalasi lubang cascade (bukan menyebutnya kinerja buruk) dan
+                  // menyebutkan posisi mana yang wajib diberi KPI.
+                  cascadeGaps: vision.cascadeGaps.map((g) => ({
+                    kpiCode: g.kpiCode,
+                    kpiName: g.kpiName,
+                    perspective: g.pillarPerspective,
+                    templateCount: g.templateCount,
+                    coveredTemplateCount: g.coveredTemplateCount,
+                    positionsMissingKpi: g.positionsMissingKpi,
+                  })),
+                  governanceFindings: vision.analysis.governanceFindings.map((f) => ({
+                    code: f.code,
+                    severity: f.severity,
+                    pillarName: f.pillarName,
+                    periods: f.periods,
+                  })),
                   pillars: vision.pillars.map((p) => ({
                     name: p.pillarName,
                     perspective: p.perspective,

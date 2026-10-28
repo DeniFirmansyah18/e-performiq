@@ -69,6 +69,17 @@ describe('Konteks AI Boardroom', () => {
     expect(JSON.stringify(ctx)).not.toContain('rahasia');
   });
 
+  it('meneruskan register cascade dan temuan tata kelola ke konteks AI', async () => {
+    const ctx: any = await buildFeatureContext(db, 'board');
+
+    expect(ctx.formulaVersion).toBe('RJMP-2026-v1');
+    expect(Array.isArray(ctx.cascadeGaps)).toBe(true);
+    expect(ctx.cascadeGaps.length).toBeGreaterThan(0);
+    expect(ctx.cascadeGaps[0].kpiCode).toMatch(/^CORP-/);
+    expect(Array.isArray(ctx.cascadeGaps[0].positionsMissingKpi)).toBe(true);
+    expect(Array.isArray(ctx.governanceFindings)).toBe(true);
+  });
+
   it('tetap aman bila data kosong', async () => {
       // DB terisolasi: test ini mengosongkan individual_kpis sehingga tidak boleh
       // mengubah hasil test lain dalam berkas yang sama.

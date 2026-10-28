@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Compass, Target } from 'lucide-react';
+import { Compass, Target, ShieldAlert, ListChecks } from 'lucide-react';
 import BoardAiInsight from './BoardAiInsight';
 
 async function fetchJson(url: string): Promise<any> {
@@ -197,7 +197,66 @@ export default function BoardVisionPanel() {
         </div>
       </div>
 
-      <BoardAiInsight />
+            {(data?.analysis?.governanceFindings ?? []).length > 0 && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-2">
+                <h3 className="text-xs font-bold text-red-800 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4" /> Temuan Tata Kelola
+                </h3>
+                <p className="text-[11px] text-red-700">
+                  Pilar tanpa KPI dua periode berturut-turut wajib masuk risalah BOD dan
+                  ditindaklanjuti sebagai perbaikan cascade, bukan penyesuaian rumus.
+                </p>
+                <ul className="space-y-1">
+                  {(data.analysis.governanceFindings ?? []).map((f: any) => (
+                    <li key={f.pillarId} className="text-[11px] text-red-800 flex gap-2">
+                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                      <span>
+                        <span className="font-semibold">{f.pillarName}</span> — tanpa KPI pada{' '}
+                        {f.periods.join(' dan ')}.
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(data?.cascadeGaps ?? []).length > 0 && (
+              <div className="bg-white rounded-xl border border-amber-200 overflow-hidden">
+                <div className="p-3 border-b border-amber-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
+                  <ListChecks className="w-3.5 h-3.5 text-amber-600" />
+                  Register Cascade — KPI Korporat tanpa KPI Individual
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {(data.cascadeGaps ?? []).map((g: any) => (
+                    <div key={g.corporateKpiId} className="p-3 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800">
+                            <span className="font-mono text-[11px] text-slate-500 mr-2">{g.kpiCode}</span>
+                            {g.kpiName}
+                          </p>
+                          <p className="text-[10px] text-slate-500">
+                            {g.pillarPerspective} &bull; {g.templateCount} template jabatan,{' '}
+                            {g.coveredTemplateCount} sudah punya KPI cocok
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap">
+                          Belum diturunkan
+                        </span>
+                      </div>
+                      {(g.positionsMissingKpi ?? []).length > 0 && (
+                        <p className="text-[11px] text-slate-600">
+                          <span className="font-semibold">Posisi yang perlu diberi KPI:</span>{' '}
+                          {g.positionsMissingKpi.join('; ')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <BoardAiInsight />
     </div>
   );
 }
