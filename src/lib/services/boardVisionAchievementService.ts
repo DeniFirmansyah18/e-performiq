@@ -12,6 +12,12 @@ export interface VisionPillar {
   kpiCount: number;
   achievementPercentage: number;
   status: AchievementStatus;
+  /**
+   * `false` bila pilar belum punya KPI. Dibedakan dari `BELOW_TARGET` agar
+   * pembaca tidak menyimpulkan kegagalan kinerja padahal yang terjadi adalah
+   * lubang cascade (KPI korporat belum diturunkan ke KPI individual).
+   */
+  measured: boolean;
 }
 
 export interface RjmpTarget {
@@ -31,7 +37,28 @@ export interface VisionAchievement {
   /** Periode yang benar-benar diagregasi; `null` bila tidak ada periode dikenal. */
   periodCode: string | null;
   sampleSize: number;
+  /**
+   * ANGKA RESMI capaian korporat: rata-rata tertimbang SELURUH pilar (spec §4).
+   *
+   * Pilar tanpa KPI bernilai 0% pada bobotnya sendiri, bukan dikeluarkan dari
+   * penyebut. Alasannya bukan semata kepatuhan spec: normalisasi ulang membuat
+   * skor NAIK hanya dengan tidak menyusun KPI, sehingga kelalaian administratif
+   * berubah menjadi perbaikan kinerja. Karena itu angka ini dipertahankan
+   * sebagai satu-satunya capaian resmi.
+   */
   overallAchievementPercentage: number;
+  /**
+   * Capaian pada pilar yang BENAR-BENAR terukur. Hanya untuk konteks pelaporan
+   * (mis. "92,8% pada 75% bobot terukur") — jangan dipakai sebagai headline,
+   * jangan dipakai menilai Direksi.
+   */
+  measuredAchievementPercentage: number;
+  /** Porsi bobot strategis yang punya data KPI, dalam persen (0-100). */
+  measurementCoveragePercentage: number;
+  /** Bobot pilar yang terukur (mis. 75 dari 100). */
+  measuredWeight: number;
+  /** Total bobot seluruh pilar aktif (biasanya 100). */
+  totalWeight: number;
   pillars: VisionPillar[];
   rjmp: RjmpTarget[];
   analysis: {
@@ -121,8 +148,9 @@ export async function getVisionAchievement(
       kpiCount: Number(r.kpiCount),
       achievementPercentage: achievement,
       status: statusOf(achievement, hasData),
-    };
-  });
+            measured: hasData,
+          };
+        });
 
   const withData = pillars.filter((p) => p.status !== 'NO_DATA');
     // Spec §4: "rata-rata tertimbang seluruh pilar". Pilar NO_DATA bernilai 0%
@@ -146,6 +174,14 @@ export async function getVisionAchievement(
               measuredWeightSum
           )
         : 0;
+
+        // Cakupan pengukuran dilaporkan terpisah dari capaian: satu angka capaian
+        // tidak bisa memikul dua arti ("gagal" vs "belum diukur"), dan ISO 30414
+        // menuntut disclosure cakupan data, bukan hanya nilainya.
+        const measurementCoveragePercentage =
+          allWeightSum > 0
+            ? Math.min(100, Math.round((measuredWeightSum / allWeightSum) * 1000) / 10)
+            : 0;
 
   const rjmpRes = (await db.execute(sql`
     SELECT ck.id AS "corporateKpiId", ck.kpi_code AS "kpiCode", ck.kpi_name AS "kpiName",
@@ -197,16 +233,26 @@ export async function getVisionAchievement(
       highlights.push('Belum ada pilar strategis aktif untuk diukur.');
     } else {
       highlights.push(
-        `Capaian keseluruhan ${overallAchievementPercentage}% dari ${pillars.length} pilar.`
+        `Capaian resmi ${overallAchievementPercentage}% dari ${pillars.length} pilar ` +
+          `(seluruh bobot ${allWeightSum}%).`
       );
+      if (measuredWeightSum < allWeightSum) {
+        highlights.push(
+          `Cakupan pengukuran ${measurementCoveragePercentage}% bobot ` +
+            `(${measuredWeightSum} dari ${allWeightSum}); ` +
+            `pada bagian yang terukur capaiannya ${measuredOnlyAchievementPercentage}%.`
+        );
+      }
       if (weakestPillar && sorted.length > 1) {
         const gap = round1(sorted[0].achievementPercentage - sorted[sorted.length - 1].achievementPercentage);
         highlights.push(`Pilar terlemah: ${weakestPillar}, tertinggal ${gap} poin dari pilar terkuat.`);
       }
       if (noDataPillarCount > 0) {
+        const names = pillars.filter((p) => !p.measured).map((p) => p.pillarName).join(', ');
         highlights.push(
-          `${noDataPillarCount} pilar belum memiliki KPI sehingga dihitung 0% ` +
-            `(bila hanya ${withData.length} pilar terukur: ${measuredOnlyAchievementPercentage}%).`
+          `${noDataPillarCount} pilar belum dinilai karena belum memiliki KPI: ${names}. ` +
+            `Ini lubang cascade, bukan kegagalan kinerja — turunkan KPI korporat terkait ` +
+            `ke KPI individual agar dapat dinilai pada periode berikutnya.`
         );
       }
     }
@@ -217,8 +263,12 @@ export async function getVisionAchievement(
     periodCode: resolvedPeriodCode,
     sampleSize: pillars.reduce((s, p) => s + p.kpiCount, 0),
     overallAchievementPercentage,
-    pillars,
-    rjmp,
+      measuredAchievementPercentage: measuredOnlyAchievementPercentage,
+      measurementCoveragePercentage,
+      measuredWeight: measuredWeightSum,
+      totalWeight: allWeightSum,
+      pillars,
+      rjmp,
     analysis: {
       achievedPillarCount,
       belowTargetPillarCount,

@@ -73,13 +73,19 @@ export async function buildFeatureContext(db: Db, feature: string): Promise<Reco
           vision: vision.vision,
           missions: vision.missions,
           overallAchievement: vision.overallAchievementPercentage,
-          pillars: vision.pillars.map((p) => ({
-            name: p.pillarName,
-            perspective: p.perspective,
-            weight: p.strategicWeight,
-            achievement: p.achievementPercentage,
-            status: p.status,
-          })),
+                  // Cakupan pengukuran wajib ikut: tanpa ini model membaca pilar
+                  // "belum dinilai" sebagai kinerja 0% dan menarasikannya sebagai
+                  // kegagalan, padahal itu lubang cascade.
+                  measurementCoverage: vision.measurementCoveragePercentage,
+                  measuredAchievement: vision.measuredAchievementPercentage,
+                  pillars: vision.pillars.map((p) => ({
+                    name: p.pillarName,
+                    perspective: p.perspective,
+                    weight: p.strategicWeight,
+                    achievement: p.achievementPercentage,
+                    status: p.status,
+                    measured: p.measured,
+                  })),
           rjmp: vision.rjmp.map((r) => ({
             code: r.kpiCode,
             name: r.kpiName,

@@ -18,7 +18,9 @@ async function fetchJson(url: string): Promise<any> {
 const STATUS_LABEL: Record<string, string> = {
   ACHIEVED: 'Tercapai',
   BELOW_TARGET: 'Di bawah target',
-  NO_DATA: 'Belum ada KPI',
+  // "Belum dinilai" (bukan "gagal"): pilar tanpa KPI adalah lubang cascade,
+  // bukan kinerja buruk — pembaca BOD harus bisa membedakan keduanya.
+  NO_DATA: 'Belum dinilai',
 };
 
 export default function BoardVisionPanel() {
@@ -79,15 +81,38 @@ export default function BoardVisionPanel() {
             </div>
           </div>
           <div className="ml-auto text-right">
-            <p className="text-[10px] font-semibold text-slate-500">Capaian Keseluruhan</p>
-            <p className="text-3xl font-extrabold text-emerald-700">
-              {data?.overallAchievementPercentage ?? 0}%
-            </p>
-            <p className="text-[10px] text-slate-500">
-              {data?.sampleSize ?? 0} KPI individual
-              {data?.periodCode ? ` · periode ${data.periodCode}` : ''}
-            </p>
-          </div>
+                      <p className="text-[10px] font-semibold text-slate-500">
+                        Capaian Resmi (seluruh pilar)
+                      </p>
+                      <p className="text-3xl font-extrabold text-emerald-700">
+                        {data?.overallAchievementPercentage ?? 0}%
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {data?.sampleSize ?? 0} KPI individual
+                        {data?.periodCode ? ` · periode ${data.periodCode}` : ''}
+                      </p>
+                      {/* Dua angka ini sengaja dipisah: satu capaian tidak boleh
+                          memikul dua arti ("gagal" vs "belum diukur"). */}
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Cakupan pengukuran{' '}
+                        <span className="font-semibold text-slate-700">
+                          {data?.measurementCoveragePercentage ?? 0}%
+                        </span>{' '}
+                        bobot
+                        {typeof data?.measuredWeight === 'number' && typeof data?.totalWeight === 'number'
+                          ? ` (${data.measuredWeight}/${data.totalWeight})`
+                          : ''}
+                      </p>
+                      {data?.measurementCoveragePercentage < 100 && (
+                        <p className="text-[10px] text-slate-500">
+                          Pada bagian terukur:{' '}
+                          <span className="font-semibold text-slate-700">
+                            {data?.measuredAchievementPercentage ?? 0}%
+                          </span>{' '}
+                          — bukan angka resmi
+                        </p>
+                      )}
+                    </div>
         </div>
       </div>
 
@@ -115,14 +140,24 @@ export default function BoardVisionPanel() {
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-500 rounded-full"
-                style={{ width: `${Math.min(100, p.achievementPercentage)}%` }}
-              />
-            </div>
-            <p className="text-[11px] font-semibold text-slate-700 mt-1">
-              {p.achievementPercentage}% &bull; {p.kpiCount} KPI
-            </p>
-          </div>
+                            className={`h-full rounded-full ${
+                              p.measured === false ? 'bg-slate-300' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${p.measured === false ? 0 : Math.min(100, p.achievementPercentage)}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] font-semibold text-slate-700 mt-1">
+                          {p.measured === false ? (
+                            <span className="text-slate-500">
+                              Belum dinilai &bull; 0 dari {p.strategicWeight}% bobot terukur
+                            </span>
+                          ) : (
+                            <>
+                              {p.achievementPercentage}% &bull; {p.kpiCount} KPI
+                            </>
+                          )}
+                        </p>
+                      </div>
         ))}
       </div>
 

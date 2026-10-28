@@ -60,7 +60,45 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
       expect(result.overallAchievementPercentage).toBe(69.6);
     });
 
-  it('menurunkan capaian RJMP dari pilar terkait', async () => {
+    it('melaporkan cakupan pengukuran berbobot terpisah dari capaian', async () => {
+      const result = await getVisionAchievement(db);
+
+      // 3 dari 4 pilar (bobot 25% masing-masing) punya KPI -> cakupan 75%.
+      expect(result.measurementCoveragePercentage).toBe(75);
+      expect(result.measuredWeight).toBe(75);
+      expect(result.totalWeight).toBe(100);
+
+      // Capaian pada bagian yang benar-benar dinilai, sebagai konteks — BUKAN
+      // angka resmi. Angka resmi tetap overallAchievementPercentage (69.6).
+      expect(result.measuredAchievementPercentage).toBe(92.8);
+      expect(result.overallAchievementPercentage).toBe(69.6);
+
+      // Cakupan + capaian tidak boleh tertukar: bila keduanya sama, laporan
+      // kehilangan makna karena pembaca tidak bisa memisahkan "gagal" dari
+      // "belum diukur".
+      expect(result.measurementCoveragePercentage).not.toBe(
+        result.overallAchievementPercentage
+      );
+    });
+
+    it('menyebut pilar belum dinilai secara eksplisit, bukan sebagai kegagalan', async () => {
+      const result = await getVisionAchievement(db);
+      const customer = result.pillars.find((p) => p.perspective === 'CUSTOMER');
+
+      // Status tetap NO_DATA (kontrak API), tetapi UI/pembaca harus mendapat
+      // kalimat yang membedakannya dari "di bawah target".
+      expect(customer?.status).toBe('NO_DATA');
+      expect(customer?.measured).toBe(false);
+
+      const measured = result.pillars.find((p) => p.perspective === 'FINANCIAL');
+      expect(measured?.measured).toBe(true);
+
+      const highlight = result.analysis.highlights.join(' ');
+      expect(highlight).toContain('75%');
+      expect(highlight).toMatch(/belum dinilai|belum memiliki KPI/i);
+    });
+
+    it('menurunkan capaian RJMP dari pilar terkait', async () => {
     const result = await getVisionAchievement(db);
     expect(result.rjmp).toHaveLength(4);
 

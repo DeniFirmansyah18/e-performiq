@@ -347,7 +347,9 @@ export async function analyzeWithContext(
     `**Ringkasan:** (2 kalimat tentang kondisi saat ini)\n` +
     `**Temuan Penting:**\n- (temuan 1)\n- (temuan 2)\n- (temuan 3)\n` +
     `**Rekomendasi Tindakan:**\n1. (rekomendasi 1)\n2. (rekomendasi 2)\n` +
-    `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
+        `Bila sebuah item berstatus NO_DATA atau measured:false, sebut "belum dinilai/belum diukur" ` +
+        `dan jelaskan bahwa KPI-nya belum diturunkan — jangan menyebutnya gagal atau capaian 0%. ` +
+        `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
   const res = await generateContent(prompt, { maxOutputTokens: 2048, temperature: 0.25 });
   // `error` terisi saat SEMUA provider gagal (rate limit/5xx/network). Keluaran
   // seperti itu bukan analisis, sehingga pemanggil tidak boleh menyimpannya.

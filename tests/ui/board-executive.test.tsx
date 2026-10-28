@@ -24,12 +24,17 @@ const activity = {
 
 const vision = {
   vision: 'Menjadi perusahaan kelas dunia.', missions: ['Misi satu', 'Misi dua'],
-  sampleSize: 4, overallAchievementPercentage: 92.8,
+  sampleSize: 4, overallAchievementPercentage: 69.6,
+  measuredAchievementPercentage: 92.8,
+  measurementCoveragePercentage: 75,
+  measuredWeight: 75, totalWeight: 100,
   pillars: [
     { pillarId: 'p1', pillarName: 'Finansial', perspective: 'FINANCIAL',
-      strategicWeight: 25, kpiCount: 1, achievementPercentage: 92.5, status: 'BELOW_TARGET' },
+      strategicWeight: 25, kpiCount: 1, achievementPercentage: 92.5,
+      status: 'BELOW_TARGET', measured: true },
     { pillarId: 'p2', pillarName: 'Pelanggan', perspective: 'CUSTOMER',
-      strategicWeight: 25, kpiCount: 0, achievementPercentage: 0, status: 'NO_DATA' },
+      strategicWeight: 25, kpiCount: 0, achievementPercentage: 0,
+      status: 'NO_DATA', measured: false },
   ],
   rjmp: [{ corporateKpiId: 'c1', kpiCode: 'CORP-FIN-01', kpiName: 'Revenue Growth',
     periodYear: 2026, targetValue: 15, unit: '%', derivedAchievementPercentage: 92.5,
@@ -157,8 +162,26 @@ describe('BoardVisionPanel', () => {
     await waitFor(() => expect(screen.getByText(/kelas dunia/)).toBeTruthy());
     expect(screen.getByText(/Misi satu/)).toBeTruthy();
     expect(screen.getByText(/CORP-FIN-01/)).toBeTruthy();
-    expect(screen.getByText(/Belum ada KPI/)).toBeTruthy();
-  });
+      // Muncul di badge status sekaligus di keterangan bobot pilar terkait.
+      expect(screen.getAllByText(/Belum dinilai/).length).toBeGreaterThanOrEqual(1);
+      // Pilar yang belum dinilai tidak boleh ditampilkan seolah capaian 0%.
+      expect(screen.queryByText(/^0% • 0 KPI$/)).toBeNull();
+      });
+
+    it('memisahkan capaian resmi dari cakupan pengukuran', async () => {
+      render(<BoardVisionPanel />);
+      await waitFor(() => expect(screen.getByText(/kelas dunia/)).toBeTruthy());
+
+      // Angka resmi tetap seluruh pilar (69,6), bukan renormalisasi (92,8).
+      expect(screen.getByText(/Capaian Resmi/)).toBeTruthy();
+      expect(screen.getByText('69.6%')).toBeTruthy();
+
+      // Cakupan dan capaian terukur tampil terpisah agar tidak tertukar.
+      expect(screen.getByText(/Cakupan pengukuran/)).toBeTruthy();
+      expect(screen.getByText('75%')).toBeTruthy();
+      expect(screen.getByText(/Pada bagian terukur/)).toBeTruthy();
+      expect(screen.getByText('92.8%')).toBeTruthy();
+    });
 
   it('tidak memanggil AI secara otomatis saat mount', async () => {
     const spy = vi.fn(async (url: string) => {

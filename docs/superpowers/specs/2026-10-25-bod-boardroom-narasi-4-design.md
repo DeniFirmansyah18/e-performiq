@@ -120,12 +120,17 @@ export interface VisionAchievement {
   missions: string[];
   sampleSize: number;                      // jumlah individual_kpis terpakai
   overallAchievementPercentage: number;    // rata-rata tertimbang seluruh pilar
+  measuredAchievementPercentage: number;   // capaian pada pilar yang terukur (konteks)
+  measurementCoveragePercentage: number;   // % bobot yang punya KPI
+  measuredWeight: number;                  // bobot terukur (mis. 75)
+  totalWeight: number;                     // total bobot pilar aktif (mis. 100)
   pillars: Array<{
     pillarId: string; pillarName: string; perspective: string;
     strategicWeight: number;               // bobot pilar (%)
     kpiCount: number;
     achievementPercentage: number;         // tertimbang bobot KPI
     status: 'ACHIEVED' | 'BELOW_TARGET' | 'NO_DATA';
+    measured: boolean;                     // false = belum dinilai (bukan gagal)
   }>;
   rjmp: Array<{
     corporateKpiId: string; kpiCode: string; kpiName: string;
@@ -136,6 +141,7 @@ export interface VisionAchievement {
   analysis: {
     achievedPillarCount: number;
     belowTargetPillarCount: number;
+    noDataPillarCount: number;
     weakestPillar: string | null;
     strongestPillar: string | null;
     highlights: string[];
@@ -145,6 +151,9 @@ export interface VisionAchievement {
 
 **Aturan perhitungan:**
 - Capaian pilar = `SUM(achievement_percentage * kpi_weight) / SUM(kpi_weight)`. Bila `SUM(kpi_weight) = 0` → `achievementPercentage = 0` dan `status = 'NO_DATA'` (**tidak boleh** membagi nol).
+- Capaian keseluruhan = rata-rata tertimbang **seluruh** pilar; pilar `NO_DATA` bernilai 0% pada bobotnya sendiri dan **tidak** dikeluarkan dari penyebut. Normalisasi ulang dilarang karena membuat skor naik hanya dengan tidak menyusun KPI (kelalaian administratif berubah menjadi perbaikan kinerja) dan mengubah basis perhitungan yang dipakai menilai Direksi.
+- **Satu angka tidak boleh memikul dua arti.** Karena itu `measurementCoveragePercentage`, `measuredWeight`, dan `measuredAchievementPercentage` dilaporkan terpisah: "capaian" menjawab *seberapa baik kinerja*, "cakupan" menjawab *seberapa besar strategi yang terukur*. Kolom `measured` pada pilar membedakan *belum dinilai* dari *di bawah target*. Ini juga memenuhi tuntutan disclosure cakupan data ISO 30414.
+- Narasi AI wajib menerima `measurementCoverage` agar pilar belum dinilai tidak dinarasikan sebagai kegagalan (lubang cascade ≠ kinerja buruk).
 - Status: `ACHIEVED` bila ≥ 100, `BELOW_TARGET` bila < 100 dan ada data, `NO_DATA` bila pilar tanpa KPI.
 - Capaian RJMP diturunkan dari pilar terkait (bukan angka baru), dan diberi label "diturunkan dari roll-up pilar" agar jelas asalnya.
 - Visi/misi dibaca dari `company_vision_mission` terbaru. Misi dipecah dengan pemisah `|` atau baris baru (pola yang sudah dipakai `getCascadingTree`). Bila kosong → `null`/array kosong, dan UI menyatakan belum ditetapkan (bukan teks karangan).

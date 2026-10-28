@@ -37,6 +37,22 @@ describe('Konteks AI Boardroom', () => {
     expect(ctx.activity.totalEvents).toBeGreaterThan(0);
   });
 
+    it('menyertakan cakupan pengukuran agar pilar belum dinilai tidak disebut gagal', async () => {
+      const ctx: any = await buildFeatureContext(db, 'board');
+
+      expect(ctx.overallAchievement).toBe(69.6);
+      expect(ctx.measurementCoverage).toBe(75);
+      expect(ctx.measuredAchievement).toBe(92.8);
+
+      const customer = ctx.pillars.find((p: any) => p.perspective === 'CUSTOMER');
+      expect(customer.measured).toBe(false);
+      const financial = ctx.pillars.find((p: any) => p.perspective === 'FINANCIAL');
+      expect(financial.measured).toBe(true);
+
+      // Cakupan bukan label kosmetik: tanpa ini model menyimpulkan 0% = gagal.
+      expect(JSON.stringify(ctx)).toContain('measurementCoverage');
+    });
+
   it('tidak memuat satu pun kunci payroll atau BPJS', async () => {
     const ctx: any = await buildFeatureContext(db, 'board');
     const flat = JSON.stringify(ctx);
