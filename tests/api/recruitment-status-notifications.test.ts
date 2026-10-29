@@ -65,12 +65,20 @@ describe('WS-6 F6 notifikasi tiap transisi status HR', () => {
   });
 
   it('HIRED (tahap sama DECISION) tetap membuat notifikasi baru', async () => {
-    const before = await notifCount();
-    const res = await patchStatus(req('/x', 'PATCH', { status: 'HIRED' }, cookie), { params: { id: applicationId } });
-    expect(res.status).toBe(200);
-    // Gap lama: OFFERED→HIRED sama-sama DECISION → tidak ada notifikasi. Kini harus ada.
-    expect(await notifCount()).toBeGreaterThan(before);
-  });
+      // ADR 023: transisi ke HIRED membutuhkan penawaran dengan gaji tercatat.
+      const client = await getDb();
+      await client.query(
+        `INSERT INTO job_offers (application_id, offered_by, status, base_salary, response_deadline)
+         VALUES ($1::uuid, NULL, 'SENT', 28500000, NOW() + INTERVAL '7 days')
+         ON CONFLICT (application_id) DO UPDATE SET status = 'SENT', base_salary = 28500000`,
+        [applicationId],
+      );
+      const before = await notifCount();
+      const res = await patchStatus(req('/x', 'PATCH', { status: 'HIRED' }, cookie), { params: { id: applicationId } });
+      expect(res.status).toBe(200);
+      // Gap lama: OFFERED→HIRED sama-sama DECISION → tidak ada notifikasi. Kini harus ada.
+      expect(await notifCount()).toBeGreaterThan(before);
+    });
 
   it('keputusan REJECTED membuat notifikasi', async () => {
     const other = `a9000000-0000-4000-8000-${Date.now().toString(16).padEnd(12, '0').slice(0, 12)}`;

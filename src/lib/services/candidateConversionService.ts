@@ -13,9 +13,29 @@
  */
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { BusinessRuleError } from '@/lib/auth/errors';
 
 function randomCode(prefix: string): string {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+/**
+ * Kode karyawan berformat baku EMP-TAHUN-NNNN (ADR 023).
+ *
+ * `randomCode` menghasilkan kode acak yang tidak bisa diurutkan per tahun masuk
+ * dan sulit dicari. Nomor urut diambil dari urutan terbesar tahun berjalan,
+ * dihitung di SQL agar aman terhadap dua konversi bersamaan.
+ */
+async function nextEmployeeCode(db: Db): Promise<string> {
+  const year = new Date().getFullYear();
+  const res = (await db.execute(sql`
+    SELECT COALESCE(MAX((split_part(employee_code, '-', 3))::int), 0) + 1 AS next_seq
+      FROM employees
+     WHERE employee_code LIKE ${`EMP-${year}-%`}
+       AND employee_code ~ ${`^EMP-${year}-[0-9]{4}$`}
+  `)) as unknown as { rows: Array<{ next_seq: number }> };
+  const seq = Number(res.rows?.[0]?.next_seq ?? 1);
+  return `EMP-${year}-${String(seq).padStart(4, '0')}`;
 }
 
 /**
@@ -128,11 +148,27 @@ export async function convertHiredCandidate(
     passwordHash = hashRow.rows[0]?.hash ?? '';
   }
 
+  // Gaji wajib berasal dari penawaran (ADR 023). Tanpa ini karyawan baru masuk
+  // payroll dengan gaji 0 dan slip gaji tidak sah.
+  const offerRes = (await db.execute(sql`
+    SELECT base_salary::float8 AS "baseSalary"
+      FROM job_offers WHERE application_id = ${input.applicationId}::uuid
+  `)) as unknown as { rows: Array<{ baseSalary: number }> };
+  const offeredSalary = Number(offerRes.rows?.[0]?.baseSalary ?? 0);
+  if (!(offeredSalary > 0)) {
+    throw new BusinessRuleError(
+      'Konversi kandidat membutuhkan penawaran dengan gaji tercatat. ' +
+        'Terbitkan penawaran (extendOffer) sebelum menaikkan status ke HIRED.'
+    );
+  }
+
+  const employeeCode = await nextEmployeeCode(db);
+
   const empRes = (await db.execute(sql`
     INSERT INTO employees (employee_code, full_name, email, phone_number, department_id, position_id, status, base_salary, join_date,
                            gender, nik, address, date_of_birth)
-    VALUES (${randomCode('EMP')}, ${row.fullName}, ${email}, ${row.phone ?? null},
-            ${row.departmentId}::uuid, ${row.positionId}::uuid, 'PERMANENT'::employee_status_enum, 0, CURRENT_DATE,
+    VALUES (${employeeCode}, ${row.fullName}, ${email}, ${row.phone ?? null},
+            ${row.departmentId}::uuid, ${row.positionId}::uuid, 'PERMANENT'::employee_status_enum, ${offeredSalary}, CURRENT_DATE,
             ${row.gender ?? null}, ${row.nik ?? null}, ${row.address ?? null}, ${row.birthDate ?? null}::date)
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };

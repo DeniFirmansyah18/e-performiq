@@ -42,7 +42,9 @@ const EXPECTED_TABLES = [
     'employee_flight_risk_snapshots',
   // Narasi 4: cache analisis AI per fitur-periode-peran
   'ai_insights',
-  ].sort();
+    // ADR 023: register penawaran kerja (offer register)
+    'job_offers',
+    ].sort();
 
 describe('skema database', () => {
   let client: PGlite;
@@ -55,7 +57,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 111 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 112 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -66,13 +68,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 51 enum', async () => {
+  it('membuat 52 enum', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-    expect(Number(res.rows[0].count)).toBe(51);
+      expect(Number(res.rows[0].count)).toBe(52);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {

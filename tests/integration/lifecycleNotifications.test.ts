@@ -6,6 +6,7 @@ import { runSeed } from '@/lib/db/seed';
 import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { convertHiredCandidate } from '@/lib/services/candidateConversionService';
+import { extendOffer } from '@/lib/services/offerService';
 import { evaluateProbationMilestone } from '@/lib/services/preEmploymentService';
 import {
   createOffboardingRequest,
@@ -56,8 +57,15 @@ describe('Stage 6 — notifikasi siklus hidup karyawan (best-effort)', () => {
       `INSERT INTO job_applications (application_no, candidate_id, job_posting_id, status)
        VALUES ($1, $2, $3, 'INTERVIEW'::application_status_enum) RETURNING id`,
       [`APP-NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, cand.rows[0].id, postingId]);
-    return app.rows[0].id;
-  }
+        // ADR 023: konversi HIRED membutuhkan penawaran dengan gaji tercatat.
+        await extendOffer(db, {
+          applicationId: app.rows[0].id,
+          offeredByUserId: null,
+          baseSalary: 28500000,
+          responseDays: 7,
+        });
+        return app.rows[0].id;
+      }
 
   it('konversi HIRED → notifikasi HIRED_ONBOARDING', async () => {
     const email = `notif.hired.${Date.now()}@example.com`;

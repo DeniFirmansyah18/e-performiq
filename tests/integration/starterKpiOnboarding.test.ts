@@ -3,6 +3,7 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import { convertHiredCandidate } from '@/lib/services/candidateConversionService';
+import { extendOffer } from '@/lib/services/offerService';
 import { ensureActiveAppraisalPeriod } from '@/lib/services/appraisalService';
 import { hashPassword } from '@/lib/auth/password';
 
@@ -44,7 +45,14 @@ describe('WS-7 auto-assign KPI pembuka + periode penilaian aktif saat onboarding
   it('konversi kandidat menanam KPI pembuka sesuai template jabatan (bobot total 100%)', async () => {
     const email = `kpi.${Date.now()}@example.com`;
     const applicationId = await makeCandidate(email);
-    const res = await convertHiredCandidate(db, { applicationId });
+      // ADR 023: konversi hanya sah bila ada penawaran dengan gaji tercatat.
+      await extendOffer(db, {
+        applicationId,
+        offeredByUserId: null,
+        baseSalary: 28500000,
+        responseDays: 7,
+      });
+      const res = await convertHiredCandidate(db, { applicationId });
 
     const kpis = await client.query<{ kpi_title: string; kpi_weight: string; status: string }>(
       `SELECT kpi_title, kpi_weight::text AS kpi_weight, status::text AS status
@@ -66,7 +74,13 @@ describe('WS-7 auto-assign KPI pembuka + periode penilaian aktif saat onboarding
   it('idempoten: konversi ulang tidak menggandakan KPI', async () => {
     const email = `kpi.idem.${Date.now()}@example.com`;
     const applicationId = await makeCandidate(email);
-    const first = await convertHiredCandidate(db, { applicationId });
+      await extendOffer(db, {
+        applicationId,
+        offeredByUserId: null,
+        baseSalary: 28500000,
+        responseDays: 7,
+      });
+      const first = await convertHiredCandidate(db, { applicationId });
     const baseline = await client.query<{ n: string }>(
       `SELECT COUNT(*)::text AS n FROM individual_kpis WHERE employee_id = $1::uuid`, [first.employeeId]);
     await convertHiredCandidate(db, { applicationId });

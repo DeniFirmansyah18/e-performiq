@@ -164,7 +164,15 @@ describe('WS-7 review HR + keputusan', () => {
     });
 
     it('OFFERED → HIRED memicu konversi karyawan + program onboarding', async () => {
-      await updateApplicationStatus(db, applicationId, 'HIRED');
+          // ADR 023: transisi ke HIRED membutuhkan penawaran dengan gaji tercatat.
+          const { extendOffer } = await import('@/lib/services/offerService');
+          await extendOffer(db, {
+            applicationId,
+            offeredByUserId: null,
+            baseSalary: 28500000,
+            responseDays: 7,
+          });
+          await updateApplicationStatus(db, applicationId, 'HIRED');
 
       const app = await client.query<{ status: string }>(
         `SELECT status FROM job_applications WHERE id = $1::uuid`, [applicationId],

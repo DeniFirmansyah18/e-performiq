@@ -3,6 +3,7 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import { convertHiredCandidate } from '@/lib/services/candidateConversionService';
+import { extendOffer } from '@/lib/services/offerService';
 import { updateApplicationStatus } from '@/lib/services/candidateService';
 import { hashPassword } from '@/lib/auth/password';
 
@@ -33,8 +34,15 @@ describe('WS-7 konversi kandidat HIRED → karyawan', () => {
       `INSERT INTO job_applications (application_no, candidate_id, job_posting_id, status)
        VALUES ($1, $2, $3, 'INTERVIEW'::application_status_enum) RETURNING id`,
       [`APP-KONV-${Date.now()}`, candidateId, postingId]);
-    return { accountId, candidateId, applicationId: app.rows[0].id };
-  }
+        // ADR 023: konversi HIRED membutuhkan penawaran dengan gaji tercatat.
+        await extendOffer(db, {
+          applicationId: app.rows[0].id,
+          offeredByUserId: null,
+          baseSalary: 28500000,
+          responseDays: 7,
+        });
+        return { accountId, candidateId, applicationId: app.rows[0].id };
+      }
 
   it('membuat employees + users, nonaktifkan akun kandidat', async () => {
     const email = `konversi.${Date.now()}@example.com`;
