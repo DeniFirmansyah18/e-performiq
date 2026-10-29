@@ -288,6 +288,10 @@ const APP_STATUS_COPY: Record<string, { title: string; body: (ctx: { application
     title: 'Penawaran Kerja',
     body: (c) => `Selamat! Anda menerima penawaran untuk posisi ${c.postingTitle}. HR akan menghubungi Anda untuk detail selanjutnya.`,
   },
+    OFFER_DECLINED: {
+      title: 'Penawaran Ditutup',
+      body: (c) => `Penawaran untuk posisi ${c.postingTitle} telah ditutup sesuai konfirmasi Anda. Terima kasih — data Anda kami simpan untuk peluang berikutnya.`,
+    },
   HIRED: {
     title: 'Selamat, Anda Diterima',
     body: (c) => `Selamat! Lamaran ${c.applicationNo} (${c.postingTitle}) dinyatakan DITERIMA. Selamat bergabung!`,

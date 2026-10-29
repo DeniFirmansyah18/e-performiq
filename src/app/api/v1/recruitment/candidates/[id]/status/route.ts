@@ -10,7 +10,15 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const StatusSchema = z.object({
-  status: z.enum(['SUBMITTED', 'SCREENING', 'INTERVIEW', 'OFFERED', 'HIRED', 'REJECTED']),
+  status: z.enum([
+    'SUBMITTED',
+    'SCREENING',
+    'INTERVIEW',
+    'OFFERED',
+    'OFFER_DECLINED',
+    'HIRED',
+    'REJECTED',
+  ]),
 });
 
 // PATCH /api/v1/recruitment/candidates/:id/status  (HR)

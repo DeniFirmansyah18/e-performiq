@@ -8,6 +8,7 @@ import { ok, problem, parseBody } from '@/lib/api/response';
 import {
   applyToPosting,
   approveApplication,
+  declineInternalOffer,
   rejectApplication,
   listApplicationsForReview,
 } from '@/lib/services/talentAcquisitionService';
@@ -23,7 +24,8 @@ const ApplySchema = z.object({
 
 const ReviewSchema = z.object({
   applicationId: z.string().uuid(),
-  action: z.enum(['APPROVE', 'REJECT']),
+  // DECLINE: kandidat internal menolak tawaran → status WITHDRAWN + kuota MPP kembali.
+  action: z.enum(['APPROVE', 'REJECT', 'DECLINE']),
 });
 
 /** GET — daftar lamaran menunggu peninjauan (manajer). */
@@ -81,11 +83,16 @@ export async function PATCH(req: NextRequest) {
     const result =
       body.action === 'APPROVE'
         ? await approveApplication(db, body.applicationId, session.userId)
-        : await rejectApplication(db, body.applicationId, session.userId);
-    return ok(
-      result,
-      body.action === 'APPROVE' ? 'Lamaran disetujui.' : 'Lamaran ditolak.'
-    );
+        : body.action === 'REJECT'
+        ? await rejectApplication(db, body.applicationId, session.userId)
+        : await declineInternalOffer(db, body.applicationId, session.userId);
+    const message =
+      body.action === 'APPROVE'
+        ? 'Lamaran disetujui.'
+        : body.action === 'REJECT'
+        ? 'Lamaran ditolak.'
+        : 'Tawaran ditolak kandidat; kuota formasi dikembalikan.';
+    return ok(result, message);
   } catch (err) {
     return problem(err, 'applications');
   }

@@ -50,7 +50,13 @@ describe('WS-4 HR technical-test routes', () => {
   beforeAll(async () => {
     const client = await getDb();
     await runSeed(client);
-    const q = await client.query<{ id: string }>(
+      // DB dev dipakai bersama: sisa soal/template AI dari run yang terhenti harus
+      // dibersihkan di awal, bukan hanya di akhir, agar tes ini deterministik.
+      await client.query(`DELETE FROM assessment_questions WHERE source = 'AI'`);
+      await client.query(
+        `DELETE FROM assessment_templates WHERE type = 'TECHNICAL'::assessment_type_enum AND position_id IS NOT NULL AND code ~ '^TECH-[0-9A-F]{8}$'`,
+      );
+      const q = await client.query<{ id: string }>(
       `SELECT id FROM job_postings WHERE required_skills IS NOT NULL AND jsonb_array_length(required_skills) > 0 LIMIT 1`,
     );
     postingId = q.rows[0].id;

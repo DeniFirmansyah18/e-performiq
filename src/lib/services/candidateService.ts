@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { withNormalizedExecute } from '@/lib/db/client';
+import { BusinessRuleError } from '@/lib/auth/errors';
 
 export interface PublicPosting {
   id: string;
@@ -390,18 +392,48 @@ export async function listCandidates(db: Db) {
 
 /** Ubah status lamaran (HR) + sinkronkan timeline. */
 export async function updateApplicationStatus(db: Db, applicationId: string, status: string) {
-  // Status sebelumnya untuk deteksi notifikasi (bila tahap timeline tak berubah).
   const prevRes = (await db.execute(sql`
     SELECT status::text AS status FROM job_applications WHERE id = ${applicationId}::uuid
   `)) as unknown as { rows: Array<{ status: string }> };
   const prevStatus = prevRes.rows?.[0]?.status ?? null;
 
-  const res = (await db.execute(sql`
-    UPDATE job_applications SET status = ${status}::application_status_enum
-     WHERE id = ${applicationId}::uuid
-     RETURNING id, application_no AS "applicationNo", status
-  `)) as unknown as { rows: any[] };
-  const row = res.rows[0] ?? null;
+  let row: any = null;
+  let employeeId: string | null = null;
+
+  try {
+    // Transisi status + konversi kandidat→karyawan berjalan dalam SATU transaksi.
+    // Tanpa ini, kegagalan konversi meninggalkan lamaran berstatus HIRED tanpa
+    // record `employees`/`users` (kandidat menerima notifikasi DITERIMA tetapi
+    // tidak bisa login). Kegagalan apa pun membatalkan keduanya.
+    await db.transaction(async (tx) => {
+          // `tx` tidak mewarisi normalisasi `{ rows }` milik `db`; tanpa pembungkus
+          // ini, seluruh query di dalam transaksi gagal pada driver PostgreSQL.
+          const tdb = withNormalizedExecute(tx) as unknown as Db;
+
+      const updated = (await tdb.execute(sql`
+        UPDATE job_applications SET status = ${status}::application_status_enum
+         WHERE id = ${applicationId}::uuid
+         RETURNING id, application_no AS "applicationNo", status
+      `)) as unknown as { rows: any[] };
+      row = updated.rows[0] ?? null;
+      if (!row) return;
+
+      if (status === 'HIRED') {
+        const { convertHiredCandidate } = await import('@/lib/services/candidateConversionService');
+        const conv = await convertHiredCandidate(tdb, { applicationId });
+        employeeId = conv.employeeId;
+      }
+    });
+  } catch (err) {
+    console.error('[candidateService] transisi status gagal:', err);
+    throw new BusinessRuleError(
+      status === 'HIRED'
+        ? 'Konversi kandidat menjadi karyawan gagal, sehingga status lamaran TIDAK diubah. ' +
+            'Periksa data kandidat (email sudah dipakai karyawan lain atau data wajib kosong) lalu coba lagi.'
+        : 'Perubahan status gagal disimpan. Silakan coba lagi.'
+    );
+  }
+
   if (row) {
     try {
       const { syncApplicationTimeline } = await import('@/lib/services/timelineService');
@@ -420,22 +452,16 @@ export async function updateApplicationStatus(db: Db, applicationId: string, sta
       } catch { /* notifikasi best-effort */ }
     }
 
-    // Kandidat HIRED → provision otomatis sebagai karyawan + program onboarding
-    // (idempoten, best-effort). Inilah titik transisi kandidat→karyawan:
-    // sebelumnya kandidat hanya berstatus OFFERED (penawaran dikirim).
-    if (status === 'HIRED') {
+    // Pengayaan onboarding dijalankan SETELAH commit: idempoten, dan kegagalannya
+    // (termasuk panggilan AI penyusun kurikulum) tidak boleh membatalkan
+    // kepegawaian yang sudah sah. Status onboarding sendiri bisa di-refresh ulang.
+    if (status === 'HIRED' && employeeId) {
       try {
-        const { convertHiredCandidate } = await import('@/lib/services/candidateConversionService');
-        const conv = await convertHiredCandidate(db, { applicationId });
-        try {
-          const { generateOnboardingProgram, refreshOnboardingStatus } = await import('@/lib/services/onboardingService');
-          await generateOnboardingProgram(db, { employeeId: conv.employeeId, applicationId });
-          await refreshOnboardingStatus(db, conv.employeeId);
-        } catch (err) {
-          console.warn('[candidateService] generate onboarding gagal:', (err as Error)?.message);
-        }
+        const { generateOnboardingProgram, refreshOnboardingStatus } = await import('@/lib/services/onboardingService');
+        await generateOnboardingProgram(db, { employeeId, applicationId });
+        await refreshOnboardingStatus(db, employeeId);
       } catch (err) {
-        console.warn('[candidateService] konversi HIRED gagal:', (err as Error)?.message);
+        console.warn('[candidateService] generate onboarding gagal:', (err as Error)?.message);
       }
     }
   }
@@ -449,7 +475,8 @@ function statusToStageMapping(status: string): string {
     case 'SCREENING': return 'ATS_REVIEW:IN_PROGRESS';
     case 'INTERVIEW': return 'INTERVIEW:IN_PROGRESS';
     case 'OFFERED': return 'DECISION:IN_PROGRESS';
-    case 'HIRED': return 'DECISION:PASSED';
+        case 'OFFER_DECLINED': return 'DECISION:FAILED';
+        case 'HIRED': return 'DECISION:PASSED';
     case 'REJECTED': return 'DECISION:FAILED';
     default: return 'APPLIED:IN_PROGRESS';
   }

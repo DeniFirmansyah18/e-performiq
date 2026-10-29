@@ -242,6 +242,46 @@ export async function approveApplication(
   return { applicationId, status: 'OFFERED' };
 }
 
+/**
+ * Kandidat internal MENOLAK tawaran (status OFFERED → WITHDRAWN).
+ *
+ * `approveApplication` sudah memakai satu kuota MPP saat menaikkan status ke
+ * OFFERED. Tanpa fungsi ini, penolakan kandidat membuat formasi tetap tampak
+ * terisi dan rekrutmen berikutnya ikut terblokir. Kuota dikembalikan dalam
+ * transaksi yang sama dengan perubahan status, dan tidak pernah negatif.
+ */
+export async function declineInternalOffer(
+  db: Db,
+  applicationId: string,
+  reviewerUserId: string | null = null
+): Promise<{ applicationId: string; status: string }> {
+  const app = await getApplicationWithQuota(db, applicationId);
+
+  if (app.status !== 'OFFERED') {
+    throw new BusinessRuleError(
+      `Hanya lamaran berstatus OFFERED yang dapat ditolak kandidat (status saat ini ${app.status}).`
+    );
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`
+      UPDATE internal_applications
+         SET status = 'WITHDRAWN',
+             reviewed_by = COALESCE(${reviewerUserId}::uuid, reviewed_by),
+             reviewed_at = CURRENT_TIMESTAMP
+       WHERE id = ${applicationId}::uuid
+    `);
+    // GREATEST melindungi dari data lama yang hired_count-nya sudah tidak sinkron.
+    await tx.execute(sql`
+      UPDATE manpower_plans
+         SET hired_count = GREATEST(hired_count - 1, 0)
+       WHERE id = ${app.manpowerPlanId}::uuid
+    `);
+  });
+
+  return { applicationId, status: 'WITHDRAWN' };
+}
+
 /** Menolak lamaran; tidak menyentuh kuota manpower plan. */
 export async function rejectApplication(
   db: Db,

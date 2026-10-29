@@ -34,7 +34,17 @@ interface InterviewEvaluationDto {
   updatedAt: string | null;
 }
 
-const STATUSES = ['SUBMITTED', 'SCREENING', 'INTERVIEW', 'OFFERED', 'HIRED', 'REJECTED'];
+// OFFER_DECLINED dipisahkan dari REJECTED: kandidat lolos seleksi tetapi
+// menolak penawaran, sehingga statistik seleksi tidak terkontaminasi.
+const STATUSES = [
+  'SUBMITTED',
+  'SCREENING',
+  'INTERVIEW',
+  'OFFERED',
+  'OFFER_DECLINED',
+  'HIRED',
+  'REJECTED',
+];
 
 const RECO_STYLE: Record<string, string> = {
   STRONG_HIRE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -143,8 +153,9 @@ export default function RecruitmentPanel() {
         : decision === 'REJECTED' ? 'Ditolak'
         : 'Talent Pool';
       const next = decision === 'ACCEPTED'
-        ? ' Naikkan status ke HIRED setelah kandidat menerima tawaran untuk mengonversinya menjadi karyawan + membuat program onboarding.'
-        : '';
+              ? ' Naikkan status ke HIRED setelah kandidat menerima tawaran untuk mengonversinya menjadi karyawan + membuat program onboarding.' +
+                ' Bila kandidat menolak, pilih OFFER_DECLINED agar kuota formasi dilepas kembali.'
+              : '';
       setSuccess({
         title: 'Keputusan tersimpan',
         body: `Kandidat ${detail?.candidateName ?? ''} ditandai: ${label}.${next}`,

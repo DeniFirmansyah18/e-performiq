@@ -94,8 +94,12 @@ export type AppDb = ReturnType<typeof drizzlePglite>;
  * untuk kedua driver. `drizzle-orm/pglite` mengembalikan `{ rows }`,
  * sedangkan `drizzle-orm/postgres-js` mengembalikan array polos — perbedaan
  * ini dulu membuat `result.rows[0]` undefined di produksi (PostgreSQL).
+ *
+ * Diekspor agar objek transaksi (`tx`) juga dapat dinormalisasi: transaksi
+ * tidak diambil dari `db` ter-normalisasi, sehingga tanpa ini seluruh query
+ * di dalam transaksi kehilangan bentuk `{ rows }` pada driver PostgreSQL.
  */
-function withNormalizedExecute<T extends object>(instance: T): T {
+export function withNormalizedExecute<T extends object>(instance: T): T {
   const original = (instance as any).execute.bind(instance);
   (instance as any).execute = async (query: any) => {
     const result = await original(query);

@@ -1,0 +1,11 @@
+-- 0058: Status lamaran publik untuk kandidat yang MENOLAK penawaran.
+--
+-- Dipisahkan dari REJECTED agar statistik seleksi tidak terkontaminasi:
+-- kandidat ini LOLOS seleksi tetapi memilih tidak bergabung, sehingga
+-- "rejected" hanya berisi kandidat yang tidak lolos. Nilai ini juga membuat
+-- kuota lowongan otomatis dilepas, karena kuota publik dihitung dari status
+-- HIRED/OFFERED (lihat candidateService.listPublicPostings).
+--
+-- Aditif & idempoten (ADR 003). Nilai enum tidak dipakai pada migrasi ini,
+-- hanya ditambahkan, sehingga aman dijalankan pada PostgreSQL 12+ / PGlite.
+ALTER TYPE application_status_enum ADD VALUE IF NOT EXISTS 'OFFER_DECLINED';

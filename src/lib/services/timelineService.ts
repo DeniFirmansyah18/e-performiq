@@ -90,7 +90,9 @@ function statusToStage(status: string): { stage: TimelineStage; state: TimelineS
       return { stage: 'INTERVIEW', state: 'IN_PROGRESS' };
     case 'OFFERED':
       return { stage: 'DECISION', state: 'IN_PROGRESS' };
-    case 'HIRED':
+        case 'OFFER_DECLINED':
+          return { stage: 'DECISION', state: 'FAILED' };
+        case 'HIRED':
       return { stage: 'DECISION', state: 'PASSED' };
     case 'REJECTED':
       return { stage: 'DECISION', state: 'FAILED' };

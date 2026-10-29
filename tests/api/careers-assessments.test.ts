@@ -43,12 +43,21 @@ describe('WS-6 endpoint asesmen kandidat', () => {
     // teknis untuk posisi lowongan uji + salin 8 soal generik sebagai soal aktifnya.
     // Route memakai DB dev persisten → tulis lewat getDb(), bukan client in-memory.
     const dev = await getDb();
-    await dev.exec(`
-      INSERT INTO assessment_templates (code, title, type, weight, is_active, position_id)
-      SELECT 'TECH-TESTPOS', 'Tes Teknis (Uji Posisi)', 'TECHNICAL'::assessment_type_enum, 40, TRUE, jp.position_id
-        FROM job_postings jp WHERE jp.id = '${postingId}'
-      ON CONFLICT (code) DO NOTHING;
-    `);
+        // Determinisme: `getTemplateForType` memilih template posisi yang PALING AWAL
+        // dibuat. Sisa template posisi yang sama dari run/berkas lain akan menang dan
+        // membuat tes ini membaca template tanpa soal aktif. Bersihkan dulu.
+        await dev.exec(`
+          DELETE FROM assessment_templates
+           WHERE type = 'TECHNICAL'::assessment_type_enum
+             AND position_id = (SELECT position_id FROM job_postings WHERE id = '${postingId}')
+             AND code <> 'TECH-TESTPOS';
+        `);
+        await dev.exec(`
+          INSERT INTO assessment_templates (code, title, type, weight, is_active, position_id)
+          SELECT 'TECH-TESTPOS', 'Tes Teknis (Uji Posisi)', 'TECHNICAL'::assessment_type_enum, 40, TRUE, jp.position_id
+            FROM job_postings jp WHERE jp.id = '${postingId}'
+          ON CONFLICT (code) DO NOTHING;
+        `);
     await dev.exec(`
       INSERT INTO assessment_questions (template_id, order_index, type, prompt, options, correct_key, is_active)
       SELECT t2.id, q.order_index, q.type, q.prompt, q.options, q.correct_key, TRUE
