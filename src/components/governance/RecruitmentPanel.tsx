@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Sparkles, CheckCircle2, Users } from 'lucide-react';
+import { X, Sparkles, CheckCircle2, Users, Send } from 'lucide-react';
 import JobPostingManager from '@/components/governance/JobPostingManager';
+import OfferModal from '@/components/governance/OfferModal';
 
 interface CandidateRow {
   id: string; applicationNo: string; status: string; appliedAt: string;
@@ -73,6 +74,14 @@ export default function RecruitmentPanel() {
   const [profileId, setProfileId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+
+    // Modal penawaran (ADR 023): mode offer = terbitkan; respond = catat respons.
+    const [offerModal, setOfferModal] = useState<{
+      applicationId: string;
+      candidateName: string;
+      postingTitle: string;
+      mode: 'offer' | 'respond';
+    } | null>(null);
 
   // Modal notifikasi sukses (status / keputusan). Data selalu di-refresh otomatis
   // setelah aksi berhasil agar HR tidak perlu memuat ulang peramban.
@@ -223,8 +232,23 @@ export default function RecruitmentPanel() {
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0f172a] text-white text-[11px] font-semibold hover:bg-[#1e293b]">
                         <Sparkles className="h-3 w-3" /> Review
                       </button>
-                    </div>
-                  </td>
+                                        {/* Penawaran: saat OFFERED → respons; selain itu → terbitkan. */}
+                                        <button
+                                          onClick={() =>
+                                            setOfferModal({
+                                              applicationId: r.id,
+                                              candidateName: r.fullName,
+                                              postingTitle: r.postingTitle,
+                                              mode: r.status === 'OFFERED' ? 'respond' : 'offer',
+                                            })
+                                          }
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold hover:bg-[#00684a]"
+                                        >
+                                          <Send className="h-3 w-3" />
+                                          {r.status === 'OFFERED' ? 'Respons' : 'Penawaran'}
+                                        </button>
+                                      </div>
+                                    </td>
                 </tr>
               ))}
             </tbody>
@@ -283,6 +307,22 @@ export default function RecruitmentPanel() {
             </button>
           </div>
         </div>,
+        document.body
+      )}
+
+      {offerModal && typeof document !== 'undefined' && createPortal(
+        <OfferModal
+          applicationId={offerModal.applicationId}
+          candidateName={offerModal.candidateName}
+          postingTitle={offerModal.postingTitle}
+          mode={offerModal.mode}
+          onClose={() => setOfferModal(null)}
+          onDone={() => {
+            setOfferModal(null);
+            load();
+            window.dispatchEvent(new CustomEvent('recruitment:candidates-changed'));
+          }}
+        />,
         document.body
       )}
 
