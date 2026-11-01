@@ -195,7 +195,7 @@ export default function PaySlipModal({ isOpen, onClose }: PaySlipModalProps) {
 
               {/* Take Home Pay */}
               <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between font-bold">
-                <span className="text-xs text-slate-800">Total Gaji Bersih (Take Home Pay):</span>
+                <span className="text-xs text-slate-800">Total Gaji Bersih (Gaji Diterima):</span>
                 <span className="text-sm font-mono text-emerald-600">{formatIDR(payslipData.net)}</span>
               </div>
             </div>

@@ -46,7 +46,7 @@ export default function LearningCertificationPanel() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">Total Training Hours</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">Total Jam Pelatihan</span>
               <div className="text-2xl font-black text-[#0f172a] mt-1">{summary.totalTrainingHours}</div>
             </div>
             <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white">

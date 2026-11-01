@@ -1417,7 +1417,7 @@ return (
                   kpi.status === 'APPROVED' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
                 }`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${kpi.status === 'APPROVED' ? 'bg-[#137333]' : 'bg-[#d97706]'}`} />
-                  {kpi.status === 'APPROVED' ? 'Disetujui Atasan' : 'Menunggu Approval'}
+                  {kpi.status === 'APPROVED' ? 'Disetujui Atasan' : 'Menunggu Persetujuan'}
                 </span>
                 <button
                   onClick={() => {

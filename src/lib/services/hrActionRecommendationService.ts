@@ -192,7 +192,7 @@ export async function getActionRecommendations(db: Db): Promise<HrActionRecommen
       description: `${doc.pending_count} berkas menunggu verifikasi lebih dari ${DOCUMENT_PENDING_WORKDAYS} hari. Segera tinjau agar kelengkapan dokumen kepegawaian tidak menghambat proses lain.`,
       targetEmployeeId: doc.employee_id,
       targetEmployeeName: doc.full_name,
-      actionUrl: '/dashboard/hr-command?tab=lifecycle',
+      actionUrl: '/dashboard/hr-command?tab=lifecycle&phase=PRE&feature=document-verification',
       actionLabel: 'Buka Verifikasi Berkas',
     });
   }

@@ -259,7 +259,7 @@ export default function PayrollPanel() {
 
       <div className="space-y-2 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
         <p className="text-[11px] font-bold text-[#0f172a]">Final Settlement (Pesangon → Payroll)</p>
-        <p className="text-[10px] text-[#64748b]">Buat run payroll bertipe FINAL_SETTLEMENT dari offboarding yang pesangonnya sudah disahkan. Gate clearance 100% berlaku.</p>
+        <p className="text-[10px] text-[#64748b]">Buat proses payroll bertipe FINAL_SETTLEMENT dari offboarding yang pesangonnya sudah disahkan. Gate clearance 100% berlaku.</p>
         {offboardings.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <select value={fsRequestId} onChange={(e) => setFsRequestId(e.target.value)}

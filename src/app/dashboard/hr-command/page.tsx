@@ -84,9 +84,9 @@ const MAIN_TABS: MainTab[] = ['overview', 'lifecycle', 'workload', 'career-actio
 
 /** Label tab lifecycle pipeline; istilah teknis dipertahankan sebagai konteks. */
 const PIPELINE_TAB_LABEL: Record<WorkPhase, string> = {
-  PRE: 'Pre-Employment (MPP & QoH)',
-  DURING: 'During (GPA & 360)',
-  POST: 'Post (Clearance & Severance)',
+  PRE: 'Pra-Kerja (MPP & QoH)',
+  DURING: 'Saat Kerja (GPA & 360)',
+  POST: 'Pasca-Kerja (Clearance & Pesangon)',
 };
 
 const PHASE_STYLE: Record<WorkPhase, { frame: string; header: string; badge: string; icon: string }> = {
@@ -278,10 +278,10 @@ const MPP_PANELS: ReadonlyArray<{
   {
     feature: 'pipeline',
     title: 'Lifecycle Pipeline',
-    description: 'Pemantauan SLA transisi karyawan: Pre-Employment, During (GPA & 360), dan Post (Clearance).',
+    description: 'Pemantauan SLA transisi karyawan: pra-kerja, saat kerja (GPA & 360), dan pasca-kerja (clearance).',
     Panel: () => null,
     icon: Activity,
-    metric: '24 Active',
+    metric: '24 Aktif',
     tag: 'Milestone',
   },
   {
@@ -433,19 +433,51 @@ export default function HROperationsPage() {
   const [deepLinkEmployeeId, setDeepLinkEmployeeId] = useState<string | undefined>();
   const [deepLinkSearch, setDeepLinkSearch] = useState<string | undefined>();
 
+  // Berjalan ulang setiap kali query berubah supaya tautan "Tinjau" di tab yang
+  // sama tetap berpindah (navigasi client-side tidak me-remount halaman ini).
   useEffect(() => {
-    setMainTab(resolveInitialTab());
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    setDeepLinkEmployeeId(params.get('employeeId') ?? undefined);
-    setDeepLinkSearch(params.get('search') ?? undefined);
-    // `?phase=` membuka fase lifecycle tertentu langsung (mis. Offboarding → POST).
-    const phase = params.get('phase');
-    if (phase) {
-      const resolved = normalizePhase(phase, 'PRE');
-      setPipelineTab(resolved);
-      setActivePhase(resolved);
-    }
+    const applyDeepLink = () => {
+      setMainTab(resolveInitialTab());
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      setDeepLinkEmployeeId(params.get('employeeId') ?? undefined);
+      setDeepLinkSearch(params.get('search') ?? undefined);
+      // `?feature=` membuka panel fitur tertentu; hanya fitur yang benar-benar ada
+      // yang diterima supaya panel kosong tidak pernah terbuka.
+      const feature = params.get('feature');
+      setOpenFeature(feature && MPP_PANELS.some((p) => p.feature === feature) ? feature : null);
+      // `?phase=` membuka fase lifecycle tertentu langsung (mis. Offboarding → POST).
+      const phase = params.get('phase');
+      if (phase) {
+        const resolved = normalizePhase(phase, 'PRE');
+        setPipelineTab(resolved);
+        setActivePhase(resolved);
+      }
+    };
+
+    applyDeepLink();
+    window.addEventListener('popstate', applyDeepLink);
+
+    const originalPush = window.history.pushState;
+    const originalReplace = window.history.replaceState;
+
+    window.history.pushState = function pushState(...args: Parameters<History['pushState']>) {
+      const ret = originalPush.apply(this, args);
+      applyDeepLink();
+      return ret;
+    };
+    window.history.replaceState = function replaceState(...args: Parameters<History['replaceState']>) {
+      const ret = originalReplace.apply(this, args);
+      // `replaceState` juga dipakai Next.js saat hidrasi; hindari loop tak berujung.
+      return ret;
+    };
+
+    return () => {
+      window.removeEventListener('popstate', applyDeepLink);
+      window.history.pushState = originalPush;
+      window.history.replaceState = originalReplace;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // FPTK Modal State
@@ -771,7 +803,7 @@ export default function HROperationsPage() {
                           : 'bg-white text-[#475569] hover:bg-[#f8fafc] border border-[#e2e8f0]'
                       }`}
                     >
-                      Overview & Analitik
+                      Ringkasan &amp; Analitik
                     </button>
                     <button
                       onClick={() => setMainTab('lifecycle')}
@@ -923,9 +955,10 @@ export default function HROperationsPage() {
                   )}
                   <div className="space-y-3">
 
-                  {/* Satu panel per fitur fase. Membuka satu kartu hanya menampilkan
-                      panel fitur tersebut, dan hanya bila fitur itu milik fase aktif. */}
-                  {activePhase !== null &&
+                  {/* Panel fitur hanya hidup di tab Siklus Karyawan: begitu pengguna
+                      pindah tab, panel otomatis tidak dirender sehingga tidak
+                      terbawa ke tab lain. */}
+                  {mainTab === 'lifecycle' && activePhase !== null &&
                     phasePanels
                       .filter((panel) => !panel.action)
                       .map((panel) => (
@@ -955,7 +988,7 @@ export default function HROperationsPage() {
                       ))}
 
       {/* Panel: Lifecycle Pipeline */}
-      <ExpandablePanel open={openFeature === 'pipeline'} title="Lifecycle Milestone & Pipeline" onClose={() => setOpenFeature(null)}>
+      <ExpandablePanel open={mainTab === 'lifecycle' && openFeature === 'pipeline'} title="Tahapan Siklus & Pipeline Operasional" onClose={() => setOpenFeature(null)}>
       {phaseOf('pipeline') !== activePhase ? (
         <p className="text-xs text-[#64748b]">Pilih fase siklus karyawan terlebih dahulu.</p>
       ) : (
@@ -975,14 +1008,14 @@ export default function HROperationsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-extrabold text-[#0f172a]">
-                  Lifecycle Milestone & Operational Pipeline
+                  Tahapan Siklus & Pipeline Operasional
                 </h2>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
-                  24 Active Requests
+                  24 Permintaan Aktif
                 </span>
               </div>
               <p className="text-xs text-[#64748b] mt-0.5">
-                Pemantauan SLA real-time karyawan dalam transisi fase lifecycle.
+                Pemantauan SLA karyawan secara langsung selama transisi fase siklus kerja.
               </p>
             </div>
           </div>
@@ -1059,7 +1092,7 @@ export default function HROperationsPage() {
                           </span>
                         </div>
                         <span className="text-[10px] font-bold text-[#137333] bg-white px-2 py-1 rounded-lg border border-[#b7e1cd]">
-                          {off.isSeverancePaid ? 'Telah Ditransfer' : 'Siap Dicairkan (SLA â‰¤ 7 Hari)'}
+                          {off.isSeverancePaid ? 'Telah Ditransfer' : 'Siap Dicairkan (SLA ≤ 7 Hari)'}
                         </span>
                       </div>
                     )}
@@ -1094,7 +1127,7 @@ export default function HROperationsPage() {
                     <th className="py-2.5 px-3">Departemen</th>
                     <th className="py-2.5 px-3">Fase Transisi</th>
                     <th className="py-2.5 px-3 text-center">Skor QoH / GPA</th>
-                    <th className="py-2.5 px-3 text-right">SLA Status</th>
+                    <th className="py-2.5 px-3 text-right">Status SLA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f1f5f9]">
@@ -1225,7 +1258,7 @@ export default function HROperationsPage() {
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                 <h3 className="text-sm font-extrabold text-[#0f172a]">
-                  Offboarding Clearance Pending
+                  Pembereskan Serah Terima Tertunda
                 </h3>
               </div>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#fce8e6] text-[#c5221f]">
@@ -1234,7 +1267,7 @@ export default function HROperationsPage() {
             </div>
 
             <p className="text-xs text-[#64748b] leading-relaxed">
-              Dokumen Berita Acara Serah Terima (BAST), pengembalian token SSO, & audit clearance inventaris menunggu approval HR Director sebelum tanggal LWD.
+              Dokumen Berita Acara Serah Terima (BAST), pengembalian token SSO, & audit kelengkapan inventaris menunggu persetujuan HR Director sebelum tanggal LWD.
             </p>
 
             {/* List */}
@@ -1248,7 +1281,7 @@ export default function HROperationsPage() {
                   </div>
                 </div>
                 <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">
-                  IT Clearance OK
+                  Pembersihan Aset TI Selesai
                 </span>
               </div>
 
@@ -1261,7 +1294,7 @@ export default function HROperationsPage() {
                   </div>
                 </div>
                 <span className="text-[11px] font-bold text-[#c5221f] bg-[#fce8e6] px-2 py-0.5 rounded">
-                  Audit NDA Pending
+                  NDA Audit Tertunda
                 </span>
               </div>
             </div>
@@ -1269,7 +1302,7 @@ export default function HROperationsPage() {
             {/* Button */}
             <button className="w-full py-2.5 px-4 rounded-xl bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
               <FileCheck className="h-4 w-4" />
-              <span>Review Dokumen LWD & BAST</span>
+              <span>Tinjau Dokumen LWD & BAST</span>
             </button>
           </div>
         </div>

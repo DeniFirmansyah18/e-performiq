@@ -495,12 +495,12 @@ export default function ManagerCockpitPage() {
           title="Roster Tim"
           metric={`${teamRoster.length} Anggota`}
           tag="People Manager"
-          description="Metrik ringkasan tim: rata-rata skor, kesiapan evaluasi, dan status approval dalam cakupan langsung."
+          description="Metrik ringkasan tim: rata-rata skor, kesiapan evaluasi, dan status persetujuan dalam cakupan langsung."
           onOpen={() => setOpenFeature('roster')}
         />
         <FeatureCard
           icon={ClipboardCheck}
-          title="Approval KPI"
+          title="Persetujuan KPI"
           metric="Tabel Evaluasi"
           tag="Target & Nilai"
           description="Tabel penilaian anggota tim: Target Kerja, Kepatuhan Prosedur, Penilaian Rekan (360°), Nilai Kinerja, dan posisi 9-Box."
@@ -528,14 +528,14 @@ export default function ManagerCockpitPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Manajerial</h2>
-          <span className="text-[11px] text-[#64748b]">Approval, evaluasi & ekspor</span>
+          <span className="text-[11px] text-[#64748b]">Persetujuan, evaluasi &amp; ekspor</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <ActionCard
             icon={CheckSquare}
             tone="emerald"
-            title={isApproving ? 'Menyetujui...' : 'Approve Semua Nilai Tim'}
-            tag="Approval"
+            title={isApproving ? 'Menyetujui...' : 'Setujui Semua Nilai Tim'}
+            tag="Persetujuan"
             description="Setujui seluruh nilai evaluasi anggota tim sekaligus."
             onClick={handleApproveAll}
             disabled={isApproving}

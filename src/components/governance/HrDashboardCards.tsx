@@ -79,7 +79,7 @@ export default function HrDashboardCards() {
       {pe && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 border-t border-[#f1f5f9] pt-3">
           <div>
-            <p className="text-[11px] font-bold text-[#334155] mb-2">Exit Clearance &amp; Offboarding</p>
+            <p className="text-[11px] font-bold text-[#334155] mb-2">Pembereskan Serah Terima &amp; Offboarding</p>
             {pe.offboardings.length === 0 ? (
               <p className="text-[11px] text-[#64748b]">Tidak ada proses offboarding aktif.</p>
             ) : (

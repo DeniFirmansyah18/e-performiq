@@ -227,7 +227,7 @@ export default function JobPostingManager() {
               <div className="flex items-center gap-4 flex-wrap">
                 <label className="text-[11px] text-[#334155]"><span className="font-semibold mr-2">Status</span>
                   <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs">
-                    <option value="DRAFT">Draft</option><option value="OPEN">Buka</option><option value="CLOSED">Tutup</option><option value="FILLED">Terisi</option>
+                    <option value="DRAFT">Draf</option><option value="OPEN">Buka</option><option value="CLOSED">Tutup</option><option value="FILLED">Terisi</option>
                   </select></label>
                 <label className="flex items-center gap-1.5 text-[11px] text-[#334155]">
                   <input type="checkbox" checked={form.isPublic} onChange={(e) => setForm({ ...form, isPublic: e.target.checked })} className="accent-[#007a5a]" /> Tampilkan di portal publik

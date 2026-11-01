@@ -129,7 +129,7 @@ export default function SeveranceCalculatorModal({ isOpen, onClose }: Props) {
           </div>
 
           <div className="flex justify-between items-center text-sm pt-2">
-            <span className="font-bold text-white">Total Hak Diterima (Disbursement)</span>
+            <span className="font-bold text-white">Total Hak Diterima (Pencairan)</span>
             <span className="text-base font-extrabold text-emerald-400 font-mono">
               {formatIDR(result.totalDisbursement)}
             </span>
