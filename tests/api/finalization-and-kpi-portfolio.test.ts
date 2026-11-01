@@ -38,17 +38,20 @@ describe('WS: finalisasi Q3 & portofolio KPI PDF', () => {
    */
   async function freshCookie(): Promise<string> {
     const client = await getDb();
-    const res = await client.query<{ id: string; user_id: string }>(
+    const code = `FIN-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const email = `${code.toLowerCase()}@eperformiq.co.id`;
+    const res = await client.query<{ id: string }>(
       `INSERT INTO employees (employee_code, full_name, email, department_id, position_id,
                               status, base_salary, join_date)
-       VALUES ('FIN-TEST', 'Finalisasi Uji', 'finalisasi.uji@eperformiq.co.id',
+       VALUES ($1, 'Finalisasi Uji', $2,
                'a0000000-0000-4000-8000-000000000101'::uuid,
                'a0000000-0000-4000-8000-000000000206'::uuid,
                'PERMANENT', 8000000, CURRENT_DATE - INTERVAL '1 year')
-       RETURNING id::text AS id, gen_random_uuid()::text AS user_id`
+       RETURNING id::text AS id`,
+      [code, email]
     );
-    const { id, user_id } = res.rows[0];
-    return `${SESSION_COOKIE_NAME}=${await signSession({ userId: user_id, employeeId: id, role: 'EMPLOYEE', email: 'finalisasi.uji@eperformiq.co.id' })}`;
+    const { id } = res.rows[0];
+    return `${SESSION_COOKIE_NAME}=${await signSession({ userId: id, employeeId: id, role: 'EMPLOYEE', email })}`;
   }
 
   it('GET finalization tanpa sesi → 401', async () => {
