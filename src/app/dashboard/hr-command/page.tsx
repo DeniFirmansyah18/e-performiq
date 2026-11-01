@@ -374,7 +374,8 @@ export default function HROperationsPage() {
     if (typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
         const node = phaseBlockRef.current;
-        if (node) {
+        // Beberapa lingkungan (jsdom pada tes) tidak menyediakan scrollIntoView.
+        if (node && typeof node.scrollIntoView === 'function') {
           node.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
           window.scrollTo({ top: 0, behavior: 'smooth' });
