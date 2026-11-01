@@ -95,6 +95,7 @@ export async function getWorkforceProfile(db: Db): Promise<WorkforceProfile> {
       LEFT JOIN employees e
         ON e.department_id = d.id
        AND e.status NOT IN ('RESIGNED', 'RETIRED')
+       AND COALESCE(e.employment_status::text, '') NOT IN ('RESIGNED', 'RETIRED')
      GROUP BY d.department_name
      ORDER BY count DESC, d.department_name ASC
   `)) as unknown as { rows: Array<{ label: string | null; count: number }> };
@@ -104,6 +105,7 @@ export async function getWorkforceProfile(db: Db): Promise<WorkforceProfile> {
            COUNT(*)::int AS count
       FROM employees e
      WHERE e.status NOT IN ('RESIGNED', 'RETIRED')
+       AND COALESCE(e.employment_status::text, '') NOT IN ('RESIGNED', 'RETIRED')
      GROUP BY 1
      ORDER BY count DESC
   `)) as unknown as { rows: Array<{ label: string | null; count: number }> };
@@ -121,6 +123,7 @@ export async function getWorkforceProfile(db: Db): Promise<WorkforceProfile> {
       COUNT(*)::int AS count
     FROM employees e
     WHERE e.status NOT IN ('RESIGNED', 'RETIRED')
+      AND COALESCE(e.employment_status::text, '') NOT IN ('RESIGNED', 'RETIRED')
     GROUP BY 1
   `)) as unknown as { rows: Array<{ label: string | null; count: number }> };
 
@@ -130,6 +133,7 @@ export async function getWorkforceProfile(db: Db): Promise<WorkforceProfile> {
       FROM employees e
       LEFT JOIN job_positions jp ON jp.id = e.position_id
      WHERE e.status NOT IN ('RESIGNED', 'RETIRED')
+       AND COALESCE(e.employment_status::text, '') NOT IN ('RESIGNED', 'RETIRED')
      GROUP BY 1
      ORDER BY 1
   `)) as unknown as { rows: Array<{ label: string | null; count: number }> };

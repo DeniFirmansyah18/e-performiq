@@ -119,12 +119,14 @@ export async function getBoardActivityAnalytics(
         SELECT COUNT(*)::int AS total
           FROM employees e
          WHERE e.status NOT IN ('RESIGNED', 'RETIRED')
+           AND COALESCE(e.employment_status::text, '') NOT IN ('RESIGNED', 'RETIRED')
            ${options.departmentId ? sql`AND e.department_id = ${options.departmentId}::uuid` : sql``}
       `),
       db.execute(sql`
         SELECT COUNT(DISTINCT a.employee_id)::int AS covered
         ${base}
            AND e.status NOT IN ('RESIGNED', 'RETIRED')
+           AND COALESCE(e.employment_status::text, '') NOT IN ('RESIGNED', 'RETIRED')
       `),
     ]);
 

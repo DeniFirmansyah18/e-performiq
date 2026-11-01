@@ -26,7 +26,9 @@ describe('courseContentService', () => {
     const mods = await listModules(db, await courseId('ONB-101'), BUDI);
     expect(mods.length).toBeGreaterThanOrEqual(3);
     expect(mods.every((m) => !!m.contentType)).toBe(true);
-    expect(mods.every((m) => m.completed === false)).toBe(true);
+    // Seeder menandai modul pertama ONB-101 sudah selesai untuk Budi.
+    expect(mods[0].completed).toBe(true);
+    expect(mods.slice(1).every((m) => m.completed === false)).toBe(true);
   });
 
   it('getLesson mengembalikan isi modul', async () => {

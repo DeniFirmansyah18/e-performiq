@@ -31,30 +31,64 @@ describe('WS: finalisasi Q3 & portofolio KPI PDF', () => {
     budiCookie = `${SESSION_COOKIE_NAME}=${await signSession({ userId: BUDI_USER, employeeId: BUDI, role: 'EMPLOYEE', email: 'budi.pratama@eperformiq.co.id' })}`;
   });
 
+  /**
+   * Karyawan baru tanpa baris finalisasi. Seeder sudah menyetujui finalisasi Q3
+   * milik Budi, sedangkan service sengaja mempertahankan status APPROVED saat
+   * diajukan ulang — jadi jalur PENDING hanya bisa diuji pada karyawan bersih.
+   */
+  async function freshCookie(): Promise<string> {
+    const client = await getDb();
+    const res = await client.query<{ id: string; user_id: string }>(
+      `INSERT INTO employees (employee_code, full_name, email, department_id, position_id,
+                              status, base_salary, join_date)
+       VALUES ('FIN-TEST', 'Finalisasi Uji', 'finalisasi.uji@eperformiq.co.id',
+               'a0000000-0000-4000-8000-000000000101'::uuid,
+               'a0000000-0000-4000-8000-000000000206'::uuid,
+               'PERMANENT', 8000000, CURRENT_DATE - INTERVAL '1 year')
+       RETURNING id::text AS id, gen_random_uuid()::text AS user_id`
+    );
+    const { id, user_id } = res.rows[0];
+    return `${SESSION_COOKIE_NAME}=${await signSession({ userId: user_id, employeeId: id, role: 'EMPLOYEE', email: 'finalisasi.uji@eperformiq.co.id' })}`;
+  }
+
   it('GET finalization tanpa sesi → 401', async () => {
     const res = await getFinal(getReq(`/api/v1/performance/finalization?period_id=${Q3}`));
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
   it('POST finalization membuat pengajuan PENDING (idempoten)', async () => {
-    const first = await postFinal(req('/x', 'POST', { period_id: Q3, note: 'Seluruh KPI Q3 tercapai.' }, budiCookie));
+    const cookie = await freshCookie();
+    const first = await postFinal(req('/x', 'POST', { period_id: Q3, note: 'Seluruh KPI Q3 tercapai.' }, cookie));
     expect(first.status).toBe(201);
     const j1 = await first.json();
     expect(j1.data.status).toBe('PENDING');
     expect(j1.data.periodCode).toBe('2026-Q3');
 
     // pengajuan ulang tidak menduplikasi → tetap satu baris PENDING
-    const again = await postFinal(req('/x', 'POST', { period_id: Q3, note: 'Update catatan.' }, budiCookie));
+    const again = await postFinal(req('/x', 'POST', { period_id: Q3, note: 'Update catatan.' }, cookie));
     expect(again.status).toBe(201);
     const j2 = await again.json();
     expect(j2.data.status).toBe('PENDING');
     expect(j2.data.id).toBe(j1.data.id);
 
-    const get = await getFinal(getReq(`/api/v1/performance/finalization?period_id=${Q3}`, budiCookie));
+    const get = await getFinal(getReq(`/api/v1/performance/finalization?period_id=${Q3}`, cookie));
     expect(get.status).toBe(200);
     const jg = await get.json();
     expect(jg.data.request.id).toBe(j1.data.id);
     expect(jg.data.request.note).toBe('Update catatan.');
+  });
+
+  it('pengajuan ulang tidak menurunkan status yang sudah APPROVED', async () => {
+    // Seeder sudah menyetujui finalisasi Budi untuk Q3; mengajukan ulang harus
+    // mempertahankan keputusan itu, bukan mengembalikannya ke PENDING.
+    const res = await postFinal(req('/x', 'POST', { period_id: Q3, note: 'Catatan baru.' }, budiCookie));
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.data.status).toBe('APPROVED');
+    expect(body.data.note).toBe('Catatan baru.');
+
+    const get = await getFinal(getReq(`/api/v1/performance/finalization?period_id=${Q3}`, budiCookie));
+    expect((await get.json()).data.request.status).toBe('APPROVED');
   });
 
   it('POST finalization body catatan > 1000 char → 422', async () => {

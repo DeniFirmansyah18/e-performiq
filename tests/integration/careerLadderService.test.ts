@@ -17,7 +17,7 @@ describe('careerLadderService', () => {
     const emp = (await db.execute(`
       INSERT INTO employees (id, employee_code, full_name, email, department_id, position_id, status, base_salary, join_date)
       VALUES (gen_random_uuid(), 'CARR-${stamp}', 'Karir Uji', 'carr.${stamp}@eperformiq.co.id',
-              'a0000000-0000-4000-8000-000000000101'::uuid, 'a0000000-0000-4000-8000-000000000204'::uuid,
+              'a0000000-0000-4000-8000-000000000101'::uuid, 'a0000000-0000-4000-8000-000000000206'::uuid,
               'PERMANENT', 8000000, CURRENT_DATE - INTERVAL '2 years')
       RETURNING id`)) as unknown as { rows: Array<{ id: string }> };
     employeeId = emp.rows[0].id;
@@ -55,6 +55,8 @@ describe('careerLadderService', () => {
 
   it('readiness = tahapan terpenuhi / total, dibulatkan', async () => {
     const res = await readiness(db, employeeId);
+    // Hanya TENURE (2 tahun) yang terpenuhi; CERTIFICATION dan TRAINING_HOURS
+    // belum punya data sumber untuk karyawan baru ini.
     expect(res.total).toBe(3);
     expect(res.met).toBe(1);
     expect(res.percent).toBe(33);

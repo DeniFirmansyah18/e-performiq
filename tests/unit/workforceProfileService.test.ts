@@ -62,9 +62,10 @@ describe('Workforce Profile - Manajemen Kepegawaian (Narasi 3 pilar 3)', () => {
 
   it('distribusi rating berasal dari performance_appraisals, bukan angka contoh', async () => {
     const profile = await getWorkforceProfile(db);
-    // Seed hanya punya 1 appraisal dengan rating A.
+    // Seed berisi 8 appraisal (satu per karyawan): 5 rating A dan 3 rating B.
     expect(profile.ratingDistribution).toEqual([
-      { rating: 'A', count: 1, percentage: 100 },
+      { rating: 'A', count: 5, percentage: 62.5 },
+      { rating: 'B', count: 3, percentage: 37.5 },
     ]);
   });
 
@@ -81,8 +82,10 @@ describe('Workforce Profile - Manajemen Kepegawaian (Narasi 3 pilar 3)', () => {
     `);
 
     const profile = await getWorkforceProfile(db);
+    // Rating A milik Budi berganti ke B: A tinggal 4, B menjadi 4.
     expect(profile.ratingDistribution).toEqual([
-      { rating: 'B', count: 1, percentage: 100 },
+      { rating: 'A', count: 4, percentage: 50 },
+      { rating: 'B', count: 4, percentage: 50 },
     ]);
   });
 });

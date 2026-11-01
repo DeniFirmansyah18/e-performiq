@@ -5,6 +5,12 @@ import SocialSecurityManagerPanel from '@/components/governance/SocialSecurityMa
 import DocumentVerificationPanel from '@/components/governance/DocumentVerificationPanel';
 import DisciplinaryManagerPanel from '@/components/governance/DisciplinaryManagerPanel';
 import CareerLadderManagerPanel from '@/components/governance/CareerLadderManagerPanel';
+import { AuthProvider } from '@/lib/context/AuthContext';
+import type { ReactElement } from 'react';
+
+// Panel BPJS & sanksi memakai `useAuth()` untuk menentukan hak tulis, jadi
+// render harus dibungkus `AuthProvider` agar sesi HR terbaca.
+const asHr = (ui: ReactElement) => render(<AuthProvider>{ui}</AuthProvider>);
 
 const bpjs = {
   ok: true,
@@ -73,6 +79,11 @@ beforeEach(() => {
   calls = [];
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: any) => {
     calls.push(`${init?.method ?? 'GET'} ${url}`);
+    if (url.includes('/auth/me')) {
+      return { ok: true, json: async () => ({ data: { user: {
+        id: 'u-hr', email: 'siti.nurhaliza@eperformiq.co.id', name: 'Siti Nurhaliza', role: 'HR_MANAGER',
+      } } }) } as any;
+    }
     if (url.includes('/hr/social-security')) return bpjs as any;
     if (url.includes('/hr/documents')) return docs as any;
     if (url.includes('/hr/disciplinary-actions')) return actions as any;
@@ -90,7 +101,7 @@ afterEach(() => {
 
 describe('SocialSecurityManagerPanel', () => {
   it('menampilkan peserta ter-masking dan yang belum terdaftar', async () => {
-    render(<SocialSecurityManagerPanel />);
+    asHr(<SocialSecurityManagerPanel />);
     await waitFor(() => expect(screen.getByText('Budi Pratama')).toBeTruthy());
     expect(screen.getByText(/••••••••••••3334/)).toBeTruthy();
     expect(screen.getByText(/Belum terdaftar/)).toBeTruthy();
@@ -98,13 +109,13 @@ describe('SocialSecurityManagerPanel', () => {
   });
 
   it('menyediakan tombol kelola per karyawan', async () => {
-    render(<SocialSecurityManagerPanel />);
+    asHr(<SocialSecurityManagerPanel />);
     await waitFor(() => expect(screen.getByText('Budi Pratama')).toBeTruthy());
     expect(screen.getAllByRole('button', { name: /Kelola/i }).length).toBe(2);
   });
 
   it('membuka form edit dengan field nomor BPJS', async () => {
-    render(<SocialSecurityManagerPanel />);
+    asHr(<SocialSecurityManagerPanel />);
     await waitFor(() => expect(screen.getByText('Budi Pratama')).toBeTruthy());
     fireEvent.click(screen.getAllByRole('button', { name: /Kelola/i })[0]);
     await waitFor(() => expect(screen.getByLabelText(/Nomor BPJS Ketenagakerjaan/i)).toBeTruthy());
@@ -137,22 +148,23 @@ describe('DocumentVerificationPanel', () => {
 
 describe('DisciplinaryManagerPanel', () => {
   it('menampilkan sanksi dan status keberatan', async () => {
-    render(<DisciplinaryManagerPanel />);
+    asHr(<DisciplinaryManagerPanel />);
     await waitFor(() => expect(screen.getByText(/Terlambat berulang/)).toBeTruthy());
     expect(screen.getByText(/Menunggu keputusan/)).toBeTruthy();
     expect(screen.getByText(/Belum diajukan/)).toBeTruthy();
   });
 
   it('menampilkan tombol keputusan hanya untuk keberatan yang menunggu', async () => {
-    render(<DisciplinaryManagerPanel />);
+    asHr(<DisciplinaryManagerPanel />);
     await waitFor(() => expect(screen.getByText(/Terlambat berulang/)).toBeTruthy());
     expect(screen.getAllByRole('button', { name: /Terima keberatan/i }).length).toBe(1);
     expect(screen.getAllByRole('button', { name: /Tolak keberatan/i }).length).toBe(1);
   });
 
-  it('menyediakan form penerbitan sanksi', () => {
-    render(<DisciplinaryManagerPanel />);
-    expect(screen.getByLabelText(/Karyawan/i)).toBeTruthy();
+  it('menyediakan form penerbitan sanksi', async () => {
+    asHr(<DisciplinaryManagerPanel />);
+    // Form hanya muncul setelah sesi HR terbaca dan daftar karyawan selesai dimuat.
+    await waitFor(() => expect(screen.getByLabelText(/Karyawan/i)).toBeTruthy());
     expect(screen.getByLabelText(/Jenis sanksi/i)).toBeTruthy();
     expect(screen.getByLabelText(/^Alasan/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Terbitkan sanksi/i })).toBeTruthy();
