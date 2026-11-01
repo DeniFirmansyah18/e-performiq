@@ -65,7 +65,7 @@ export default function CertificateVerifyPage({ params }: { params: { code: stri
           <ShieldCheck className="h-5 w-5 text-emerald-400" />
           <div>
             <h1 className="text-base font-extrabold leading-tight">Verifikasi Sertifikat</h1>
-            <p className="text-[11px] text-slate-300">E-PerformIQ — pemeriksaan keaslian sertifikat pelatihan.</p>
+            <p className="text-[11px] text-slate-300">HR Command Center — pemeriksaan keaslian sertifikat pelatihan.</p>
           </div>
         </div>
       </header>
@@ -89,7 +89,7 @@ export default function CertificateVerifyPage({ params }: { params: { code: stri
               </div>
               <div>
                 <p className="text-sm font-extrabold text-emerald-800">Sertifikat Valid</p>
-                <p className="text-[11px] text-emerald-700">Sertifikat ini terverifikasi & diterbitkan E-PerformIQ.</p>
+                <p className="text-[11px] text-emerald-700">Sertifikat ini terverifikasi & diterbitkan HR Command Center.</p>
               </div>
             </div>
             <dl className="divide-y divide-[#f1f5f9]">

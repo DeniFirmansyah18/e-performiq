@@ -30,7 +30,7 @@ export const PHASE_TITLE: Record<WorkPhase, string> = {
 export const PHASE_SUBTITLE: Record<WorkPhase, string> = {
   PRE: 'Rekrutmen & MPP sebelum karyawan mulai bekerja',
   DURING: 'Pemantauan performa, pengembangan, dan transisi aktif',
-  POST: 'Clearance offboarding, biaya, risiko & pelaporan',
+  POST: 'Serah terima, pesangon, pensiun, alumni & pelaporan',
 };
 
 /** Transisi fase yang sah (state machine): PRE → DURING → POST, tanpa mundur. */
@@ -87,8 +87,14 @@ export const FEATURE_PHASE: Readonly<Record<string, WorkPhase>> = Object.freeze(
   'activity-feed': 'DURING', // Umpan aktivitas operasional harian
 
   // ===== Pasca-Kerja: keluar, clearance, & agregasi =====
-  offboarding: 'POST',
-  clearance: 'POST',
+  offboarding: 'POST', // Proses keluar & exit interview
+  clearance: 'POST', // Serah terima pekerjaan & pengembalian aset
+  'severance': 'POST', // Kalibrasi pesangon, DPLK & potongan pajak
+  'exit-analytics': 'POST', // Analitik atrisi & biaya keluar
+  'alumni': 'POST', // Direktori alumni & peluang rekrut ulang
+  'retirement': 'POST', // Manajemen pensiun & kaderisasi pengganti
+  'offboarding-compliance': 'POST', // Kepatuhan pasca-kerja (BPJS, pajak, surat)
+  'service-letter': 'POST', // Surat pengalaman kerja & sertifikat
   cost: 'POST', // Kartu biaya & risiko pasca-kerja
   'iso-30414': 'POST', // Ekspor metrik human capital ISO 30414
   'hr-dashboard': 'POST', // Ringkasan SDM & Pasca-Kerja

@@ -1,6 +1,6 @@
 import AccountManagementPanel from '@/components/admin/AccountManagementPanel';
 
-export const metadata = { title: 'Manajemen Akun — E-PerformIQ' };
+export const metadata = { title: 'Manajemen Akun — HR Command Center' };
 
 export default function AccountManagementPage() {
   return (

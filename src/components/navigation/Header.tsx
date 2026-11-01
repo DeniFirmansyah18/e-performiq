@@ -35,7 +35,7 @@ export default function Header() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold tracking-tight text-white">
-              E-PerformIQ
+              HR Command Center
             </span>
             <span className="rounded-md bg-[#161f30] border border-slate-700/60 px-2 py-0.5 text-[10px] font-medium text-slate-300">
               Enterprise v1.0
@@ -102,8 +102,14 @@ export default function Header() {
         {/* Notification Bell (live, lintas-role) */}
         <NotificationBell />
 
-        {/* Shield Icon */}
-        <button className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+        {/* Panduan Pengguna */}
+        <button
+          type="button"
+          onClick={() => setIsGuideOpen(true)}
+          aria-label="Buka panduan pengguna"
+          title="Panduan Pengguna"
+          className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+        >
           <ShieldCheck className="h-4 w-4" />
         </button>
 

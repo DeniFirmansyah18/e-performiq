@@ -373,6 +373,33 @@ export default function ManagerCockpitPage() {
     }
   };
 
+  const handleExportRecap = () => {
+    const header = ['Nama', 'Jabatan', 'KPI (%)', 'SOP', 'Kompetensi', 'Nilai Inti 360', 'Potensi', 'GPA', 'Kuadran', 'Status'];
+    const rows = teamRoster.map((m) => [
+      m.name,
+      m.role,
+      m.kpi,
+      String(m.sopScore ?? ''),
+      String(m.competencyScore ?? ''),
+      String(m.coreValuesScore ?? ''),
+      String(m.potentialScore ?? ''),
+      m.gpa,
+      m.box,
+      m.status,
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+      .join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rekapitulasi-kinerja-tim-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setApprovalMsg('Rekapitulasi kinerja tim berhasil diekspor ke format CSV.');
+  };
+
   const handleApproveAll = async () => {
     setIsApproving(true);
     setApprovalMsg(null);
@@ -461,7 +488,11 @@ export default function ManagerCockpitPage() {
 
         {/* Right Buttons */}
         <div className="flex items-center gap-2.5">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+          <button
+            type="button"
+            onClick={handleExportRecap}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+          >
             <Download className="h-3.5 w-3.5 text-[#64748b]" />
             <span>Ekspor Rekapitulasi</span>
           </button>
@@ -702,10 +733,10 @@ export default function ManagerCockpitPage() {
             </div>
 
             {/* Pillar Dropdown */}
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] hover:bg-[#f8fafc]">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
               <Filter className="h-3 w-3 text-[#64748b]" />
               <span>Semua Pilar BSC</span>
-            </button>
+            </span>
           </div>
         </div>
 
@@ -851,13 +882,10 @@ export default function ManagerCockpitPage() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Footer */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#f1f5f9] text-xs text-[#64748b]">
-          <span>Menampilkan {teamRoster.length} bawahan langsung dalam cakupan evaluasi People Manager</span>
-          <div className="flex gap-2">
-            <button className="px-3 py-1 rounded-lg border border-[#cbd5e1] text-xs hover:bg-[#f8fafc]">Sebelumnya</button>
-            <button className="px-3 py-1 rounded-lg border border-[#cbd5e1] text-xs hover:bg-[#f8fafc]">Selanjutnya</button>
-          </div>
+          <span>Menampilkan seluruh {teamRoster.length} bawahan langsung dalam cakupan evaluasi People Manager</span>
+          <span className="font-semibold text-[#334155]">Semua baris sudah ditampilkan</span>
         </div>
       </div>
         <AiAnalyzePanel feature="manager" />
@@ -900,7 +928,12 @@ export default function ManagerCockpitPage() {
 
             <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
               <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Lihat Log Bukti</span>
-              <button className="px-3.5 py-1.5 rounded-lg bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-semibold shadow-xs">
+              <button
+                type="button"
+                onClick={() => handleOpenEval(teamRoster.find((m) => m.name === 'Andika Wijaya') ?? teamRoster[0])}
+                disabled={teamRoster.length === 0}
+                className="px-3.5 py-1.5 rounded-lg bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+              >
                 Review Justifikasi
               </button>
             </div>

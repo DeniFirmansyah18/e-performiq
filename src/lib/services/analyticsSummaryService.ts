@@ -36,7 +36,7 @@ export async function getBenchmarkGap(db: Db, periodCode?: string) {
   const metrics: BenchmarkMetric[] = [
     {
       code: 'VMAI_TARGET',
-      name: 'Vision & Mission Alignment Index',
+      name: 'Indeks Keselarasan Visi & Misi',
       actual: 0,
       benchmark: benchmarks.VMAI_TARGET ?? 85,
       unit: 'percent',
@@ -69,7 +69,7 @@ export async function getBenchmarkGap(db: Db, periodCode?: string) {
 
   return {
     period_code: periodCode ?? null,
-    company_name: 'PT E-PerformIQ Nusantara',
+    company_name: 'PT HR Command Center Nusantara',
     total_evaluated_employees: totalEmployees,
     metrics,
     generated_at: new Date().toISOString(),

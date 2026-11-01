@@ -305,7 +305,7 @@ export async function seedLifecycle(client: SqlClient, opts: LifecycleSeedOption
   await client.exec(`INSERT INTO email_outbox
     (id, recipient, subject, body, status, provider, error, related_application_id, sent_at, created_at) VALUES
     ('11000000-0000-4000-8000-000000000181', 'anggita.pratiwi@mail.com', 'Undangan Wawancara Panel — Senior Software Engineer', 'Halo Anggita, kami mengundang Anda untuk wawancara panel.', 'SENT', 'SMTP', NULL, ${q(ID.app1)}, ${ts('2026-09-18T02:02:00Z')}, ${ts('2026-09-18T02:02:00Z')}),
-    ('11000000-0000-4000-8000-000000000182', 'bagus.nugroho@mail.com', 'Tes Teknis E-PerformIQ', 'Silakan masuk ke portal kandidat untuk mengerjakan tes teknis.', 'QUEUED', 'SMTP', NULL, ${q(ID.app2)}, NULL, ${ts('2026-09-10T02:03:00Z')}),
+    ('11000000-0000-4000-8000-000000000182', 'bagus.nugroho@mail.com', 'Tes Teknis HR Command Center', 'Silakan masuk ke portal kandidat untuk mengerjakan tes teknis.', 'QUEUED', 'SMTP', NULL, ${q(ID.app2)}, NULL, ${ts('2026-09-10T02:03:00Z')}),
     ('11000000-0000-4000-8000-000000000183', 'citra.dewi@mail.com', 'Konfirmasi Email Portal Kandidat', 'Klik tautan verifikasi untuk mengaktifkan akun portal kandidat.', 'FAILED', 'SMTP', 'SMTP 550: mailbox unavailable', ${q(ID.app3)}, NULL, ${ts('2026-09-11T04:46:00Z')})
     ON CONFLICT (id) DO NOTHING;`);
 

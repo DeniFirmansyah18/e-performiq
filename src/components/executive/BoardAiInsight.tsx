@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { renderRichText } from '@/components/ai/RichText';
 
 export default function BoardAiInsight({ periodCode }: { periodCode?: string }) {
   const [insight, setInsight] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
               Analisis AI belum tersedia karena kunci provider belum dikonfigurasi.
             </p>
           )}
-          <p className="text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap">{insight}</p>
+          <p className="text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap">{renderRichText(insight)}</p>
           {meta?.generatedAt && (
             <p className="text-[10px] text-slate-400">
               {meta.fromCache ? 'Dari cache' : 'Baru dibuat'} &bull; {meta.provider ?? '-'} &bull;{' '}

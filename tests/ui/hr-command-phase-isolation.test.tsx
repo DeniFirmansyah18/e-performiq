@@ -97,7 +97,7 @@ describe('HR Command Center — isolasi fase siklus kerja', () => {
     });
 
     // Pindah tab: panel fase harus hilang, bukan ikut terbawa ke tab lain.
-    fireEvent.click(tabButton(/Direktori/i));
+    fireEvent.click(tabButton(/^Direktori Pegawai/i));
     await waitFor(() => {
       expect(screen.queryByRole('heading', { name: 'Ringkasan SDM & Pasca-Kerja' })).toBeNull();
     });

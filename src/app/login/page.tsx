@@ -190,7 +190,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <div className="max-w-6xl w-full mx-auto text-center border-t border-[#e2e8f0] pt-6 text-xs text-[#94a3b8]">
-        Enterprise Employee Performance &amp; Lifecycle Analytics (E-PerformIQ) &copy; 2026. Confidential Internal Enterprise Standard.
+        Enterprise Employee Performance &amp; Lifecycle Analytics (HR Command Center) &copy; 2026. Confidential Internal Enterprise Standard.
       </div>
 
       <UserGuideModal

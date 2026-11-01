@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Wallet, Plus, Sparkles, CheckCircle2, Download, RefreshCw, Save } from 'lucide-react';
+import { renderRichText } from '@/components/ai/RichText';
 
 interface PayrollRun {
   id: string;
@@ -322,7 +323,7 @@ export default function PayrollPanel() {
           </div>
 
           {insight && (
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 text-[11px] text-[#334155] whitespace-pre-wrap">{insight}</div>
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 text-[11px] text-[#334155] whitespace-pre-wrap">{renderRichText(insight)}</div>
           )}
 
           <div className="overflow-x-auto">

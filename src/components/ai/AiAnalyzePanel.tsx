@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Sparkles, RefreshCw, Loader2, Info } from 'lucide-react';
+import { renderRichText } from './RichText';
 
 export default function AiAnalyzePanel({ feature }: { feature: string }) {
   const [insight, setInsight] = useState<string>('');
@@ -58,7 +59,7 @@ export default function AiAnalyzePanel({ feature }: { feature: string }) {
             <span>{insight}</span>
           </span>
         ) : (
-          insight
+          renderRichText(insight)
         )}
       </div>
     </div>

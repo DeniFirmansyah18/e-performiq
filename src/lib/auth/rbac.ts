@@ -53,7 +53,11 @@ export type Permission =
 | 'analytics:manage'
 | 'system:health'
 | 'user:read'
-| 'user:manage';
+| 'user:manage'
+| 'postemployment:read'
+| 'postemployment:manage'
+| 'postemployment:alumni'
+| 'postemployment:analytics';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
 
@@ -116,6 +120,12 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 // mengubah otorisasi, sehingga HR pun tidak boleh.
 'user:read': ['SUPER_ADMIN'],
 'user:manage': ['SUPER_ADMIN'],
+// Pasca-kerja dipisah dari `offboarding:*` agar karyawan tetap bisa membaca data
+// pribadinya (checklist aset, kewajiban, surat) tetapi tidak mengubah apa pun.
+'postemployment:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR', 'EMPLOYEE'],
+'postemployment:manage': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
+'postemployment:alumni': ['SUPER_ADMIN', 'HR_MANAGER'],
+'postemployment:analytics': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR'],
 };
 export function can(role: UserRole, permission: Permission): boolean {
 return MATRIX[permission].includes(role);

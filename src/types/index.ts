@@ -1,4 +1,4 @@
-// Domain Types based on PRD E-PerformIQ & PostgreSQL ERD (Section 10)
+// Domain Types based on PRD HR Command Center & PostgreSQL ERD (Section 10)
 
 export type UserRole = 'SUPER_ADMIN' | 'BOD' | 'HR_MANAGER' | 'PEOPLE_MANAGER' | 'EMPLOYEE' | 'AUDITOR';
 

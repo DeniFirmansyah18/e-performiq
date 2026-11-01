@@ -175,7 +175,7 @@ describe('CareerLadderManagerPanel', () => {
   it('menampilkan tahapan beserta posisi asal dan tujuan', async () => {
     render(<CareerLadderManagerPanel />);
     await waitFor(() => expect(screen.getByText(/Sertifikasi manajemen proyek/)).toBeTruthy());
-    expect(screen.getByText(/Staff IT → Senior Staff IT/)).toBeTruthy();
+    expect(screen.getByText(/Staff IT\s+ke\s+Senior Staff IT/)).toBeTruthy();
   });
 
   it('menyediakan form tambah tahapan', () => {

@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       const link = `${baseUrl(req)}/employee/verified?token=${result.verifyToken}`;
       await sendEmail(db, {
         to: input.email.toLowerCase(),
-        subject: 'Verifikasi email akun karyawan E-PerformIQ',
-        body: `Halo ${input.fullName},\n\nTerima kasih telah mendaftar akun karyawan E-PerformIQ.\n\nKlik tautan berikut dalam 24 jam untuk memverifikasi email Anda:\n${link}\n\nSetelah verifikasi, akun Anda menunggu persetujuan HR sebelum dapat digunakan untuk login.`,
+        subject: 'Verifikasi email akun karyawan HR Command Center',
+        body: `Halo ${input.fullName},\n\nTerima kasih telah mendaftar akun karyawan HR Command Center.\n\nKlik tautan berikut dalam 24 jam untuk memverifikasi email Anda:\n${link}\n\nSetelah verifikasi, akun Anda menunggu persetujuan HR sebelum dapat digunakan untuk login.`,
       });
     } catch {
       /* abaikan — outbox QUEUED sudah dicatat sendEmail */

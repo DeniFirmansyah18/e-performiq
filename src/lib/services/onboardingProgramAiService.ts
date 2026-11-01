@@ -166,7 +166,7 @@ function buildPrompt(ctx: PositionContext, count: number): string {
     acuanProfessionalLearningModulePerusahaan: plmReference,
   };
   return (
-    'Anda menyusun kurikulum onboarding pra-kerja (fase Sebelum Kerja) untuk karyawan baru E-PerformIQ. Data (JSON):\n' +
+    'Anda menyusun kurikulum onboarding pra-kerja (fase Sebelum Kerja) untuk karyawan baru HR Command Center. Data (JSON):\n' +
     JSON.stringify(data) +
     `\n\nGunakan "acuanProfessionalLearningModulePerusahaan" di atas sebagai RUJUKAN WAJIB agar modul selaras dengan jalur pembelajaran profesional perusahaan, bukan topik mengada-ada. ` +
     `\n\nBuat TEPAT ${count} modul onboarding berurutan. Keluaran HARUS berupa JSON ARRAY valid tanpa teks lain, ` +

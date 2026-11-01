@@ -1,6 +1,6 @@
 /**
  * Company Professional Learning Module (PLM) Reference — acuan kurikulum
- * pembelajaran profesional perusahaan E-PerformIQ.
+ * pembelajaran profesional perusahaan HR Command Center.
  *
  * Katalog ini adalah "rujukan" (grounding) yang dipakai oleh fitur berbantuan
  * AI: (a) generate kurikulum onboarding per-posisi, dan (b) pencarian materi

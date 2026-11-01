@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'E-PerformIQ | Enterprise Employee Performance & Lifecycle Analytics',
+  title: 'HR Command Center | Enterprise Employee Performance & Lifecycle Analytics',
   description:
     'Sistem Manajemen Kinerja Karyawan Terintegrasi Berbasis GCG & Employee Lifecycle Standard ISO 9001/30414 & PP 35/2021',
 };

@@ -31,7 +31,7 @@ export interface EmailMessage {
 }
 
 function fromAddress(): string {
-  return process.env.EMAIL_FROM || 'E-PerformIQ <onboarding@resend.dev>';
+  return process.env.EMAIL_FROM || 'HR Command Center <onboarding@resend.dev>';
 }
 
 /** Provider email aktif berdasarkan env. */
@@ -94,7 +94,7 @@ export function toEmailHtml(
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
           <tr><td style="height:5px;background:${accent.bar}"></td></tr>
           <tr><td style="padding:22px 24px 0">
-            <span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${accent.bar};background:${accent.badge};border-radius:999px;padding:4px 10px">E-PerformIQ · ${accent.label}</span>
+            <span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${accent.bar};background:${accent.badge};border-radius:999px;padding:4px 10px">HR Command Center · ${accent.label}</span>
             <h2 style="font-size:17px;margin:14px 0 14px;color:#0f172a">${esc(subject)}</h2>
           </td></tr>
           <tr><td style="padding:0 24px">
@@ -103,7 +103,7 @@ export function toEmailHtml(
           </td></tr>
           <tr><td style="padding:18px 24px 22px">
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
-            <p style="font-size:11px;color:#94a3b8;margin:0">Email otomatis dari E-PerformIQ — platform penilaian kinerja &amp; human capital. Mohon tidak membalas email ini.</p>
+            <p style="font-size:11px;color:#94a3b8;margin:0">Email otomatis dari HR Command Center — platform penilaian kinerja &amp; human capital. Mohon tidak membalas email ini.</p>
           </td></tr>
         </table>
       </td></tr>
@@ -213,12 +213,12 @@ export async function notifyApplicationSubmitted(
   const body = `Halo ${p.name}, lamaran Anda dengan nomor ${p.applicationNo} telah kami terima. ` +
     `Pantau progres melalui halaman status lamaran. Kami akan mengirimkan notifikasi pada setiap tahap.`;
   await createNotification(db, { candidateId: p.candidateId, accountId: p.accountId, applicationId: p.applicationId, title, body, stage: 'APPLIED' });
-  const emailRes = await sendEmail(db, { to: p.email, subject: `[E-PerformIQ] Lamaran ${p.applicationNo} diterima`, body, applicationId: p.applicationId });
+  const emailRes = await sendEmail(db, { to: p.email, subject: `[HR Command Center] Lamaran ${p.applicationNo} diterima`, body, applicationId: p.applicationId });
   let whatsapp = 'SKIPPED';
   if (p.phone) {
     try {
       const { sendWhatsApp } = await import('@/lib/services/whatsappService');
-      const waRes = await sendWhatsApp(db, { to: p.phone, message: `*E-PerformIQ*\n${title}\n\n${body}`, applicationId: p.applicationId });
+      const waRes = await sendWhatsApp(db, { to: p.phone, message: `*HR Command Center*\n${title}\n\n${body}`, applicationId: p.applicationId });
       whatsapp = waRes?.status ?? 'UNKNOWN';
     } catch (err) {
       whatsapp = 'FAILED';
@@ -262,14 +262,14 @@ export async function notifyStageChange(
     });
     await sendEmail(db, {
       to: row.email,
-      subject: `[E-PerformIQ] ${title} — ${row.applicationNo}`,
+      subject: `[HR Command Center] ${title} — ${row.applicationNo}`,
       body,
       applicationId: p.applicationId,
     });
     if (row.phone) {
       try {
         const { sendWhatsApp } = await import('@/lib/services/whatsappService');
-        await sendWhatsApp(db, { to: row.phone, message: `*E-PerformIQ — ${title}*\n\n${body}`, applicationId: p.applicationId });
+        await sendWhatsApp(db, { to: row.phone, message: `*HR Command Center — ${title}*\n\n${body}`, applicationId: p.applicationId });
       } catch { /* WhatsApp opsional */ }
     }
   } catch { /* abaikan */ }
@@ -329,11 +329,11 @@ export async function notifyApplicationStatus(
     await createNotification(db, {
       candidateId: row.candidateId, accountId: row.accountId, applicationId: p.applicationId, title: copy.title, body, stage: 'APPLIED',
     });
-    await sendEmail(db, { to: row.email, subject: `[E-PerformIQ] ${copy.title} — ${row.applicationNo}`, body, applicationId: p.applicationId });
+    await sendEmail(db, { to: row.email, subject: `[HR Command Center] ${copy.title} — ${row.applicationNo}`, body, applicationId: p.applicationId });
     if (row.phone) {
       try {
         const { sendWhatsApp } = await import('@/lib/services/whatsappService');
-        await sendWhatsApp(db, { to: row.phone, message: `*E-PerformIQ — ${copy.title}*\n\n${body}`, applicationId: p.applicationId });
+        await sendWhatsApp(db, { to: row.phone, message: `*HR Command Center — ${copy.title}*\n\n${body}`, applicationId: p.applicationId });
       } catch { /* WhatsApp opsional */ }
     }
   } catch { /* abaikan */ }
@@ -503,7 +503,7 @@ export async function notifyEmployeeLifecycle(
   if (email) {
     const sent = await sendEmail(db, {
       to: email,
-      subject: `[E-PerformIQ] ${p.title}`,
+      subject: `[HR Command Center] ${p.title}`,
       body: p.body,
       severity,
       category: meta?.category,

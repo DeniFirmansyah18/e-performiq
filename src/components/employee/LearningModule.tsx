@@ -108,7 +108,7 @@ export default function LearningModule() {
             {badges.map((b) => (
               <span key={b.code} title={b.name}
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${b.earned ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#f1f5f9] text-[#94a3b8]'}`}>
-                {b.earned ? '★' : '☆'} {b.name}
+                {b.earned ? 'Diraih' : 'Belum'} · {b.name}
               </span>
             ))}
           </div>

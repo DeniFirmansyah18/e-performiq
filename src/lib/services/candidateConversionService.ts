@@ -80,7 +80,7 @@ async function notifyHired(db: Db, employeeId: string, name: string): Promise<vo
     await notifyEmployeeLifecycle(db, {
       employeeId,
       eventType: 'HIRED_ONBOARDING',
-      title: 'Selamat Bergabung di E-PerformIQ',
+      title: 'Selamat Bergabung di HR Command Center',
       body: `Halo ${name}, selamat bergabung! Program orientasi 30-60-90 hari Anda telah dibuka. ` +
         `Silakan lengkapi checklist onboarding dan sasaran KPI pembuka di portal karyawan.`,
     });

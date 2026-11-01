@@ -32,8 +32,8 @@ describe('courseContentService', () => {
   });
 
   it('getLesson mengembalikan isi modul', async () => {
-    const lesson = await getLesson(db, await moduleId('Selamat Datang di E-PerformIQ'));
-    expect(lesson.title).toBe('Selamat Datang di E-PerformIQ');
+    const lesson = await getLesson(db, await moduleId('Selamat Datang di HR Command Center'));
+    expect(lesson.title).toBe('Selamat Datang di HR Command Center');
   });
 
   it('submitQuiz menilai benar/salah', async () => {
@@ -43,7 +43,7 @@ describe('courseContentService', () => {
   });
 
   it('completeModule menandai modul selesai (idempoten)', async () => {
-    const mid = await moduleId('Selamat Datang di E-PerformIQ');
+    const mid = await moduleId('Selamat Datang di HR Command Center');
     const r1 = await completeModule(db, BUDI, mid);
     expect(r1.completed).toBe(true);
     await completeModule(db, BUDI, mid);

@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     const cfg = emailConfigStatus();
     const res = await sendEmail(db, {
       to: parsed.data.to,
-      subject: '[E-PerformIQ] Uji Pengiriman Email',
-      body: `Ini email uji dari sistem E-PerformIQ.\n\nProvider aktif: ${cfg.provider}\nPengirim: ${cfg.from}\n\n` +
+      subject: '[HR Command Center] Uji Pengiriman Email',
+      body: `Ini email uji dari sistem HR Command Center.\n\nProvider aktif: ${cfg.provider}\nPengirim: ${cfg.from}\n\n` +
         `Bila Anda menerima email ini, konfigurasi email sudah benar.`,
     });
     return ok({ provider: cfg.provider, status: res.status, outboxId: res.id, config: cfg },

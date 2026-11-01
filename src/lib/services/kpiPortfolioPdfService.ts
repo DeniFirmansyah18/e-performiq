@@ -78,7 +78,7 @@ export async function buildKpiPortfolioPdf(input: KpiPortfolioPdfInput): Promise
 
   // ── Header band ──────────────────────────────────────────────
   page.drawRectangle({ x: 0, y: height - 96, width, height: 96, color: GREEN });
-  draw(page, 'E-PERFORMIQ', MARGIN, height - 44, 18, helvBold, WHITE);
+  draw(page, 'HR COMMAND CENTER', MARGIN, height - 44, 18, helvBold, WHITE);
   draw(page, 'Rekapitulasi Portofolio KPI Karyawan', MARGIN, height - 66, 12, helv, GREEN_LIGHT);
   const gen = `Dicetak: ${fmtDate(input.generatedAt ?? new Date())}`;
   draw(page, gen, width - MARGIN - helv.widthOfTextAtSize(safe(gen), 9), height - 44, 9, helv, GREEN_LIGHT);
@@ -227,7 +227,7 @@ export async function buildKpiPortfolioPdf(input: KpiPortfolioPdfInput): Promise
 
 function drawFooter(doc: PDFDocument, page: PDFPage, helv: PDFFont, periodCode: string) {
   const { width } = page.getSize();
-  const note = `Dokumen ini dihasilkan otomatis oleh E-PerformIQ dari basis data kepegawaian. Periode ${safe(periodCode)}.`;
+  const note = `Dokumen ini dihasilkan otomatis oleh HR Command Center dari basis data kepegawaian. Periode ${safe(periodCode)}.`;
   const size = 7;
   const tw = helv.widthOfTextAtSize(safe(note), size);
   page.drawLine({ start: { x: MARGIN, y: 34 }, end: { x: width - MARGIN, y: 34 }, thickness: 0.4, color: LINE });

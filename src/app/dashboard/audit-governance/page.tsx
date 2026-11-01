@@ -105,6 +105,12 @@ export default function AuditGovernancePage() {
     fetchLogs();
   }, [fetchLogs]);
 
+  const periodLabel = 'Tahun Buku 2026 (Q3)';
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
   const filteredLogs = auditLogs.filter((log) => {
     const matchesAction = filterAction === 'ALL' || log.actionType === filterAction;
     const matchesQuery =
@@ -114,6 +120,29 @@ export default function AuditGovernancePage() {
       log.recordId.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesAction && matchesQuery;
   });
+
+  const handleExportReport = useCallback(() => {
+    const rows = [
+      ['Waktu', 'Aksi', 'Pengguna', 'Objek', 'ID', 'Keterangan'],
+      ...filteredLogs.map((log) => [
+        String(log.createdAt ?? ''),
+        String(log.actionType ?? ''),
+        String(log.userName ?? ''),
+        String(log.entityName ?? ''),
+        String(log.recordId ?? ''),
+        String(log.description ?? ''),
+      ]),
+    ];
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `laporan-gcg-${periodLabel.replace(/[^A-Za-z0-9]+/g, '-').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredLogs, periodLabel]);
 
   const tarifPrinciples = [
     {
@@ -222,11 +251,10 @@ export default function AuditGovernancePage() {
         {/* Right Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
               <Calendar className="h-3.5 w-3.5 text-[#64748b]" />
-              <span>Tahun Buku 2026 (Q3)</span>
-              <ChevronDown className="h-3.5 w-3.5 text-[#64748b]" />
-            </button>
+              <span>{periodLabel}</span>
+            </span>
           </div>
 
           <button
@@ -238,12 +266,22 @@ export default function AuditGovernancePage() {
             <span>Segarkan Log</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+          <button
+            type="button"
+            onClick={handlePrint}
+            title={`Cetak halaman risalah SPI periode ${periodLabel}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+          >
             <Printer className="h-3.5 w-3.5 text-[#64748b]" />
             <span>Cetak Risalah SPI</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors">
+          <button
+            type="button"
+            onClick={handleExportReport}
+            title={`Unduh ${filteredLogs.length} entri jejak audit sebagai berkas CSV`}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors"
+          >
             <Download className="h-3.5 w-3.5 text-white" />
             <span>Ekspor Laporan GCG</span>
           </button>

@@ -244,7 +244,7 @@ export default function CareerLadderManagerPanel() {
               </button>
             </div>
             <p className="mt-0.5 text-[11px] text-[#475569]">
-              {s.fromPositionTitle} → {s.toPositionTitle}
+              {s.fromPositionTitle} ke {s.toPositionTitle}
             </p>
             <p className="text-[10px] text-[#64748b]">
               {REQUIREMENT_LABEL[s.requirementType] ?? s.requirementType}

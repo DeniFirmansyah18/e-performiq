@@ -200,7 +200,7 @@ export default function UserGuideModal({
                 Pusat Bantuan &amp; Panduan Penggunaan
               </span>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#2A2A2A] border border-[#3D3D3D] text-[#8C9196]">
-                E-PerformIQ v1.0
+                HR Command Center v1.0
               </span>
               <span className="hidden lg:inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#008060]/20 border border-[#008060]/50 text-[#A3E5C2]">
                 Panduan Pengguna Baru

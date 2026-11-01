@@ -29,7 +29,7 @@ const pinHash = await hashPassword(DEMO_PAYSLIP_PIN);
 
 await client.exec(`
 INSERT INTO companies (id, company_name, legal_entity_code) VALUES
-('a0000000-0000-4000-8000-000000000001','PT E-PerformIQ Nusantara','EPQ')
+('a0000000-0000-4000-8000-000000000001','PT HR Command Center Nusantara','EPQ')
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -192,7 +192,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Initial Audit Log
 INSERT INTO audit_logs (user_id, action_type, entity_name, record_id, description) VALUES
-  ('e0000000-0000-4000-8000-000000000006','CREATE','system','init','Seed inisialisasi basis data sistem E-PerformIQ v1.0.0')
+  ('e0000000-0000-4000-8000-000000000006','CREATE','system','init','Seed inisialisasi basis data sistem HR Command Center v1.0.0')
 ON CONFLICT DO NOTHING;
 
 -- ================= 9 TABEL TAMBAHAN (Pre-Emp, Post-Emp, VMAI) =================
@@ -230,7 +230,7 @@ ON CONFLICT (id) DO NOTHING;
 -- 6. Knowledge & Asset Handovers
 INSERT INTO knowledge_handovers (id, offboarding_request_id, handover_item_name, category, handover_to_employee_id, is_verified, verified_by, verified_at) VALUES
   ('61000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','Arsitektur & Kredensial AWS Cloud Production (KMS & Root Access)','ACCESS_KEY','b0000000-0000-4000-8000-000000000004',TRUE,'b0000000-0000-4000-8000-000000000003','2026-09-18T16:00:00Z'),
-  ('61000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000001','Dokumentasi Blueprint Sistem Enterprise E-PerformIQ v1.0','DOCUMENTATION','b0000000-0000-4000-8000-000000000004',TRUE,'b0000000-0000-4000-8000-000000000003','2026-09-19T09:30:00Z'),
+  ('61000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000001','Dokumentasi Blueprint Sistem Enterprise HR Command Center v1.0','DOCUMENTATION','b0000000-0000-4000-8000-000000000004',TRUE,'b0000000-0000-4000-8000-000000000003','2026-09-19T09:30:00Z'),
   ('61000000-0000-4000-8000-000000000003','60000000-0000-4000-8000-000000000001','Pengembalian Laptop MacBook Pro M3 Max & ID Card Akses Gedung','PHYSICAL_ASSET','b0000000-0000-4000-8000-000000000006',FALSE,NULL,NULL)
 ON CONFLICT (id) DO NOTHING;
 
@@ -351,7 +351,7 @@ INSERT INTO industry_benchmarks (id, metric_code, metric_name, benchmark_value, 
   ('90000000-0000-4000-8000-000000000012','LRN_BOTTOM_Q','Learning & Growth - Bottom Quartile',58.00,'score'),
   ('90000000-0000-4000-8000-000000000013','VMAI_BEST_PRACTICE','Overall VMAI - Industry Best Practice',85.00,'percent'),
   ('90000000-0000-4000-8000-000000000014','VMAI_BUMN_AVG','Overall VMAI - BUMN Average',78.50,'percent'),
-  ('90000000-0000-4000-8000-000000000015','VMAI_TARGET','Vision & Mission Alignment Target',85.00,'percent'),
+  ('90000000-0000-4000-8000-000000000015','VMAI_TARGET','Target Indeks Keselarasan Visi & Misi',85.00,'percent'),
   ('90000000-0000-4000-8000-000000000016','TURNOVER_MAX','Regrettable Attrition Maximum',3.00,'percent'),
   ('90000000-0000-4000-8000-000000000017','SLA_MIN','Operational SOP/SLA Minimum',98.00,'percent'),
   ('90000000-0000-4000-8000-000000000018','QOH_MIN','Quality of Hire Minimum',85.00,'score'),
@@ -452,8 +452,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 28. Course Modules / Materials (Task 2) — termasuk QUIZ untuk kursus onboarding wajib
 INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
-SELECT 'b1000000-0000-4000-8000-000000000001', c.id, 'Selamat Datang di E-PerformIQ', 1, 'TEXT', NULL,
-  'Pengenalan budaya perusahaan, tata kelola GCG, dan sistem kerja E-PerformIQ.', NULL
+SELECT 'b1000000-0000-4000-8000-000000000001', c.id, 'Selamat Datang di HR Command Center', 1, 'TEXT', NULL,
+  'Pengenalan budaya perusahaan, tata kelola GCG, dan sistem kerja HR Command Center.', NULL
   FROM moodle_courses c WHERE c.course_code='ONB-101' ON CONFLICT (id) DO NOTHING;
 INSERT INTO course_modules (id, course_id, title, order_index, content_type, content_url, content_body, quiz_key)
 SELECT 'b1000000-0000-4000-8000-000000000002', c.id, 'Video: Tur Kantor & Budaya Kerja', 2, 'VIDEO',

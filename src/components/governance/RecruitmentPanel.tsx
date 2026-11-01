@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Sparkles, CheckCircle2, Users, Send } from 'lucide-react';
 import JobPostingManager from '@/components/governance/JobPostingManager';
 import OfferModal from '@/components/governance/OfferModal';
+import { renderRichText } from '@/components/ai/RichText';
 
 interface CandidateRow {
   id: string; applicationNo: string; status: string; appliedAt: string;
@@ -408,7 +409,7 @@ function ReviewBody({ detailLoading, detail, decisionBusy, onDecision, scorePill
               <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
               <span className="text-[11px] font-bold text-indigo-700">Analisis AI {detail.aiConfigured === false ? '(fallback)' : ''}</span>
             </div>
-            <div className="text-[11px] text-[#334155] whitespace-pre-wrap leading-relaxed">{detail.aiSummary}</div>
+            <div className="text-[11px] text-[#334155] whitespace-pre-wrap leading-relaxed">{renderRichText(detail.aiSummary ?? '')}</div>
           </div>
 
           {detail.decision !== 'PENDING' && (

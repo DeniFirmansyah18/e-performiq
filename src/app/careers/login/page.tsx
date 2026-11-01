@@ -45,7 +45,7 @@ export default function CandidateLoginPage() {
           </div>
           <div>
             <p className="text-base font-bold text-[#0f172a] leading-tight">Portal Kandidat</p>
-            <p className="text-[11px] text-[#64748b]">E-PerformIQ Careers</p>
+            <p className="text-[11px] text-[#64748b]">HR Command Center Careers</p>
           </div>
         </div>
 

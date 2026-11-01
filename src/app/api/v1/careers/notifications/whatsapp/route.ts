@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const cfg = whatsappConfigStatus();
     const res = await sendWhatsApp(db, {
       to: parsed.data.to,
-      message: parsed.data.message || '*E-PerformIQ*\nIni pesan uji WhatsApp. Bila Anda menerima pesan ini, konfigurasi WhatsApp sudah benar.',
+      message: parsed.data.message || '*HR Command Center*\nIni pesan uji WhatsApp. Bila Anda menerima pesan ini, konfigurasi WhatsApp sudah benar.',
     });
     return ok({ provider: cfg.provider, status: res.status, outboxId: res.id, config: cfg },
       res.status === 'SENT' ? 'Pesan WhatsApp uji terkirim.' : 'Pesan dicatat di whatsapp_outbox (provider belum aktif).');

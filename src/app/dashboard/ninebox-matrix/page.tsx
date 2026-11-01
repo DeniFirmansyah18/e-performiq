@@ -307,22 +307,20 @@ export default function NineBoxMatrixPage() {
 
         {/* Right Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Directorate Dropdown */}
+          {/* Directorate Filter */}
           <div className="relative">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
               <Building2 className="w-3.5 h-3.5 text-[#64748b]" />
               <span>{activeDirectorate}</span>
-              <ChevronDown className="w-3 h-3 text-[#94a3b8]" />
-            </button>
+            </span>
           </div>
 
-          {/* Department Dropdown */}
+          {/* Department Filter */}
           <div className="relative">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
               <Filter className="w-3.5 h-3.5 text-[#64748b]" />
               <span>{activeDepartment}</span>
-              <ChevronDown className="w-3 h-3 text-[#94a3b8]" />
-            </button>
+            </span>
           </div>
 
           {/* Period Badge */}
@@ -817,7 +815,7 @@ export default function NineBoxMatrixPage() {
             </div>
             {aiSuccessMsg && (
               <p className="text-[10px] text-[#166534] font-semibold bg-[#dcfce7] rounded-md px-2 py-1 mt-2 text-center animate-fade-in">
-                ✓ Simulasi selesai: 12 kursi terpetakan dengan rasio koverasi suksesi 3.2 : 1!
+                Simulasi selesai: 12 kursi terpetakan dengan rasio koverasi suksesi 3.2 : 1!
               </p>
             )}
           </div>

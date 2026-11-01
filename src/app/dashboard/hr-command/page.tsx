@@ -39,6 +39,9 @@ import {
   GitBranch,
   FileSpreadsheet,
   ChevronLeft,
+  CalendarClock,
+  PackageCheck,
+  Users2,
 } from 'lucide-react';
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
@@ -67,6 +70,12 @@ import PkwtDirectoryPanel from '@/components/governance/PkwtDirectoryPanel';
 import HrOverviewAnalyticsPanel from '@/components/governance/HrOverviewAnalyticsPanel';
 import HrLifecycleControlPanel from '@/components/governance/HrLifecycleControlPanel';
 import EmployeeDirectoryPanel from '@/components/governance/EmployeeDirectoryPanel';
+import RetirementPlanPanel from '@/components/governance/RetirementPlanPanel';
+import ClearanceAssetPanel from '@/components/governance/ClearanceAssetPanel';
+import ServiceLetterPanel from '@/components/governance/ServiceLetterPanel';
+import PostEmploymentCompliancePanel from '@/components/governance/PostEmploymentCompliancePanel';
+import AlumniDirectoryPanel from '@/components/governance/AlumniDirectoryPanel';
+import ExitAnalyticsPanel from '@/components/governance/ExitAnalyticsPanel';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
@@ -328,6 +337,60 @@ const MPP_PANELS: ReadonlyArray<{
     Panel: HrDashboardCards,
     icon: Briefcase,
     metric: 'Agregat',
+    tag: 'Pasca-Kerja',
+  },
+  {
+    feature: 'retirement',
+    title: 'Manajemen Pensiun & Kaderisasi',
+    description: 'Proyeksi usia pensiun, penetapan pengganti, dan status alih pengetahuan.',
+    Panel: RetirementPlanPanel,
+    icon: CalendarClock,
+    metric: 'Pensiun 58 th',
+    tag: 'Pasca-Kerja',
+  },
+  {
+    feature: 'clearance',
+    title: 'Serah Terima Aset & Clearance',
+    description: 'Checklist pengembalian aset dan persetujuan bebas tanggungan per unit kerja.',
+    Panel: ClearanceAssetPanel,
+    icon: PackageCheck,
+    metric: 'Clearance',
+    tag: 'Pasca-Kerja',
+  },
+  {
+    feature: 'service-letter',
+    title: 'Surat Keterangan Kerja',
+    description: 'Terbitkan paklaring bernomor unik yang bisa diverifikasi pihak luar.',
+    Panel: ServiceLetterPanel,
+    icon: FileSignature,
+    metric: 'Paklaring',
+    tag: 'Pasca-Kerja',
+  },
+  {
+    feature: 'offboarding-compliance',
+    title: 'Kepatuhan Pasca-Kerja',
+    description: 'Penonaktifan BPJS, 1721-A1, DPLK, dan penutupan berkas karyawan keluar.',
+    Panel: PostEmploymentCompliancePanel,
+    icon: ShieldCheck,
+    metric: 'Kewajiban',
+    tag: 'Pasca-Kerja',
+  },
+  {
+    feature: 'alumni',
+    title: 'Direktori Alumni',
+    description: 'Mantan karyawan yang layak dipertimbangkan kembali dan bersedia dihubungi.',
+    Panel: AlumniDirectoryPanel,
+    icon: Users2,
+    metric: 'Alumni',
+    tag: 'Pasca-Kerja',
+  },
+  {
+    feature: 'exit-analytics',
+    title: 'Analitik Keluar & Biaya',
+    description: 'Pola pengunduran diri, unit dengan atrisi tertinggi, dan nilai pesangon terbayar.',
+    Panel: ExitAnalyticsPanel,
+    icon: TrendingDown,
+    metric: 'Atrisi',
     tag: 'Pasca-Kerja',
   },
 ];
@@ -755,11 +818,12 @@ export default function HROperationsPage() {
 
         {/* Right Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
-            <Calendar className="h-3.5 w-3.5 text-[#64748b]" />
-            <span>2026-Q3 (Jul - Sep 2026)</span>
-            <ChevronDown className="h-3.5 w-3.5 text-[#64748b]" />
-          </button>
+          <div className="relative">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
+              <Calendar className="h-3.5 w-3.5 text-[#64748b]" />
+              <span>2026-Q3 (Jul - Sep 2026)</span>
+            </span>
+          </div>
 
           <button 
             onClick={handleExportIso}
@@ -768,7 +832,11 @@ export default function HROperationsPage() {
             <span>Ekspor ISO 30414</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+          <button
+            type="button"
+            onClick={() => openPanelAtTop('appraisal-calibration')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+          >
             <Scale className="h-3.5 w-3.5 text-[#64748b]" />
             <span>Kalibrasi Nilai Semester</span>
           </button>
@@ -1301,7 +1369,11 @@ export default function HROperationsPage() {
             </div>
 
             {/* Button */}
-            <button className="w-full py-2.5 px-4 rounded-xl bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+            <button
+              type="button"
+              onClick={() => openPanelAtTop('clearance')}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
               <FileCheck className="h-4 w-4" />
               <span>Tinjau Dokumen LWD & BAST</span>
             </button>

@@ -142,20 +142,19 @@ export default function ExecutiveBoardroomPage() {
 
         {/* Right Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Filter Dropdown 1 */}
+          {/* Filter Tahunan (statis: periode buku aktif) */}
           <div className="relative">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
               <span>Semua Pilar Korporat (4 Pilar BSC)</span>
-              <ChevronDown className="h-3.5 w-3.5 text-[#64748b]" />
-            </button>
+            </span>
           </div>
 
-          {/* Filter Dropdown 2 */}
+          {/* Periode Buku */}
           <div className="relative">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
               <span>Tahun Buku 2026 (YTD)</span>
               <Calendar className="h-3.5 w-3.5 text-[#64748b]" />
-            </button>
+            </span>
           </div>
 
           {/* Print Button */}
@@ -203,7 +202,7 @@ export default function ExecutiveBoardroomPage() {
           title="VMAI Indeks Korporasi"
           metric={`${vmai}%`}
           tag="Terverifikasi"
-          description={`Vision & Mission Alignment Index. Tolok ukur industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%).`}
+          description={`Indeks Keselarasan Visi & Misi. Tolok ukur industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%).`}
           onOpen={() => setOpenFeature('vmai')}
         />
         <FeatureCard
@@ -308,7 +307,7 @@ export default function ExecutiveBoardroomPage() {
         </div>
 
         {/* Card 2: Finansial */}
-        <div className="stitch-metric-card">
+        <div className="stitch-metric-card scroll-mt-24" id="diklat-anggaran">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#64748b]">
               Perspektif Finansial
@@ -333,8 +332,7 @@ export default function ExecutiveBoardroomPage() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#64748b]">
               Pelanggan & Stakeholder
-            </span>
-            <Users className="h-4 w-4 text-[#64748b]" />
+            </span>            <Users className="h-4 w-4 text-[#64748b]" />
           </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-black text-[#0f172a] font-sans">
@@ -424,7 +422,7 @@ export default function ExecutiveBoardroomPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
           <div>
             <h2 className="text-base font-extrabold text-[#0f172a]">
-              Tren Komparasi Vision & Mission Alignment Index (VMAI)
+              Tren Komparasi Indeks Keselarasan Visi & Misi (VMAI)
             </h2>
             <p className="text-xs text-[#64748b] mt-0.5">
               Analisis 6 bulan berjalan terhadap ambang batas kepatuhan Good Corporate Governance (GCG) dan Benchmark Industri
@@ -630,7 +628,15 @@ export default function ExecutiveBoardroomPage() {
             </div>
           </div>
 
-          <button className="w-full py-2.5 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors">
+          <button
+            type="button"
+            onClick={() => {
+              document
+                .getElementById('diklat-anggaran')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="w-full py-2.5 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors"
+          >
             <span>Tinjau Anggaran & Kuota Diklat</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
@@ -782,7 +788,7 @@ export default function ExecutiveBoardroomPage() {
         <div className="flex items-center gap-2">
           <Lock className="h-3.5 w-3.5 text-[#94a3b8]" />
           <span>
-            Dokumen Rahasia & Terbatas (BOD/BOC E-PerformIQ). Diaudit secara kriptografis pada 30 September 2026 23:59 WIB.
+            Dokumen Rahasia & Terbatas (BOD/BOC HR Command Center). Diaudit secara kriptografis pada 30 September 2026 23:59 WIB.
           </span>
         </div>
 

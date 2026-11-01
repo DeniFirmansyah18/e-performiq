@@ -53,7 +53,7 @@ export async function buildCertificatePdf(input: CertificatePdfInput): Promise<U
   let y = height - 110;
 
   // Header penerbit.
-  const header = 'E-PERFORMIQ';
+  const header = 'HR COMMAND CENTER';
   page.drawText(header, { x: centerX(header, helvBold, 20), y, size: 20, font: helvBold, color: GREEN });
   y -= 22;
   const sub = 'Sistem Penilaian & Pengembangan Karyawan';
@@ -105,7 +105,7 @@ export async function buildCertificatePdf(input: CertificatePdfInput): Promise<U
     const url = `${input.verifyBaseUrl.replace(/\/$/, '')}/certificates/verify/${input.verificationCode}`;
     page.drawText(`Verifikasi keaslian: ${safe(url)}`, { x: margin + 40, y: margin + 30, size: 8, font: helv, color: MUTED });
   }
-  const note = 'Dokumen ini diterbitkan secara digital oleh E-PerformIQ dan dapat diverifikasi keasliannya.';
+  const note = 'Dokumen ini diterbitkan secara digital oleh HR Command Center dan dapat diverifikasi keasliannya.';
   page.drawText(note, { x: margin + 40, y: margin + 18, size: 8, font: helvObl, color: MUTED });
 
   return doc.save();

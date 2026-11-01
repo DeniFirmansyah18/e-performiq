@@ -51,11 +51,11 @@ export const FAQ_DATA: FaqItem[] = [
     categoryLabel: 'Panduan Awal',
     categoryColor: 'bg-[#E3F1DF] text-[#008060] border-[#B4E3B2]',
     roleTag: 'Khusus Pemula',
-    question: 'Saya baru pertama kali login ke E-PerformIQ, dari mana saya harus memulai?',
+    question: 'Saya baru pertama kali login ke HR Command Center, dari mana saya harus memulai?',
     summary: 'Cukup ikuti 3 langkah mudah: lihat nilai rapor di profil Anda, periksa sasaran kerja (KPI), dan perbarui capaian kerja Anda.',
     detail: {
       background:
-        'Selamat datang di aplikasi E-PerformIQ! Aplikasi ini dibuat agar setiap karyawan dapat melihat hasil kerjanya secara transparan, adil, dan tanpa rasa cemas di akhir tahun.',
+        'Selamat datang di aplikasi HR Command Center! Aplikasi ini dibuat agar setiap karyawan dapat melihat hasil kerjanya secara transparan, adil, dan tanpa rasa cemas di akhir tahun.',
       explanation: [
         'Sebagai pengguna baru, Anda tidak perlu khawatir atau bingung. Sistem ini bukan alat pemantau yang kaku, melainkan asisten kerja harian Anda.',
         'Di sini, Anda dapat memantau capaian target kerja, mengajukan sasaran baru, memberikan masukan rahasia kepada rekan satu tim, serta melihat nilai rapor kinerja (Composite GPA) secara langsung kapan saja.',
@@ -82,7 +82,7 @@ export const FAQ_DATA: FaqItem[] = [
     summary: 'Mulai dari penetapan target, pencatatan hasil kerja, penilaian atasan, sidang kalibrasi adil, hingga rapor akhir resmi.',
     detail: {
       background:
-        'Pada sistem lama, penilaian sering kali baru dibahas di akhir tahun secara tergesa-gesa. Di E-PerformIQ, seluruh proses berjalan teratur dan bertahap sehingga tidak ada kejutan.',
+        'Pada sistem lama, penilaian sering kali baru dibahas di akhir tahun secara tergesa-gesa. Di HR Command Center, seluruh proses berjalan teratur dan bertahap sehingga tidak ada kejutan.',
       explanation: [
         'Ada 5 tahapan utama penilaian kinerja yang berlangsung sepanjang periode:',
         '1. Penetapan Target (Awal Periode): Karyawan dan atasan menyepakati target kerja (KPI). Total bobot seluruh target wajib tepat 100%.',
@@ -114,7 +114,7 @@ export const FAQ_DATA: FaqItem[] = [
     summary: 'Karyawan (isi capaian), Atasan (nilai tim), People Manager (kalibrasi adil), HR (kelola pegawai), Direksi (pantau strategi), Auditor (awasi keabsahan).',
     detail: {
       explanation: [
-        'Setiap peran di E-PerformIQ memiliki menu dan tombol yang disesuaikan dengan tanggung jawab resminya:',
+        'Setiap peran di HR Command Center memiliki menu dan tombol yang disesuaikan dengan tanggung jawab resminya:',
         '1. Karyawan (Individual Talent - Budi Pratama): Mengakses portal pribadi untuk melihat rapor nilai, menambah target KPI baru, mengupdate capaian, dan mengirim ulasan 360° anonim.',
         '2. Atasan Langsung (People Lead - Raden Mas Danu): Menyetujui target anggota tim, menilai kinerja 4 pilar bawahan, dan melihat simulasi penempatan kuadran 9-Box tim.',
         '3. People Manager / Komite Kalibrasi (Dr. Aris Wicaksono): Menyelenggarakan sidang moderasi nilai dan mengesahkan penempatan talenta pada Matriks 9-Box suksesi.',
@@ -133,13 +133,13 @@ export const FAQ_DATA: FaqItem[] = [
     category: 'konsep',
     categoryLabel: 'Konsep Dasar',
     categoryColor: 'bg-[#E3F1DF] text-[#008060] border-[#B4E3B2]',
-    question: 'Apa sebenarnya sistem E-PerformIQ dan apa perbedaannya dengan evaluasi kinerja konvensional?',
+    question: 'Apa sebenarnya sistem HR Command Center dan apa perbedaannya dengan evaluasi kinerja konvensional?',
     summary: 'Sistem komprehensif 3-fase yang mengukur siklus karyawan secara matematis, transparan, dan terlindungi regulasi hukum.',
     detail: {
       background:
         'Penilaian kinerja konvensional pada banyak perusahaan sering kali dikritik karena rentan terhadap "bias subjektif" (seperti halo effect, kedekatan personal, bias akhir tahun/recency bias) dan baru dilakukan setahun sekali secara tergesa-gesa tanpa data rekam jejak harian yang valid.',
       explanation: [
-        'E-PerformIQ (Enterprise Employee Performance & Lifecycle Analytics) adalah platform manajemen talenta korporat terintegrasi berbasis standar internasional ISO 30414:2019 dan hukum ketenagakerjaan RI.',
+        'HR Command Center (Enterprise Employee Performance & Lifecycle Analytics) adalah platform manajemen talenta korporat terintegrasi berbasis standar internasional ISO 30414:2019 dan hukum ketenagakerjaan RI.',
         'Platform ini mendampingi karyawan sepanjang 3 fase perjalanan karir (Employee Lifecycle): Pre-Employment (rekrutmen & seleksi mutu QoH), During-Employment (pencapaian sasaran kerja, kepatuhan SOP, kompetensi teknis, dan budaya AKHLAK 360°), hingga Post-Employment (pengakhiran tugas, audit clearance inventaris BAST, dan pencairan pesangon PP 35/2021).',
         'Semua angka dihitung menggunakan formula matematis terbuka tanpa "black box", sehingga karyawan mengetahui dengan pasti dari mana setiap poin nilainya berasal.',
       ],
@@ -147,7 +147,7 @@ export const FAQ_DATA: FaqItem[] = [
         title: 'Perbandingan Nyata di Lapangan',
         content: [
           'Pada sistem lama: Seorang karyawan yang bekerja sangat keras selama 11 bulan bisa mendapatkan nilai buruk hanya karena membuat satu kesalahan kecil di bulan Desember (Recency Bias).',
-          'Pada E-PerformIQ: Skor dihitung secara kumulatif dari data riil sepanjang kuartal (50% KPI tercatat + 20% log SOP harian + 15% asesmen kompetensi terstandar + 15% umpan balik rekan kerja), sehingga penilaian terbebas dari persepsi emosional sesaat atasan.',
+          'Pada HR Command Center: Skor dihitung secara kumulatif dari data riil sepanjang kuartal (50% KPI tercatat + 20% log SOP harian + 15% asesmen kompetensi terstandar + 15% umpan balik rekan kerja), sehingga penilaian terbebas dari persepsi emosional sesaat atasan.',
         ],
       },
       legalBasis: 'Pedoman Tata Kelola Perusahaan yang Baik (KNKG RI 2021).',
@@ -188,11 +188,11 @@ export const FAQ_DATA: FaqItem[] = [
     category: 'regulasi',
     categoryLabel: 'Regulasi RI & ISO',
     categoryColor: 'bg-[#FFF4F2] text-[#D72C0D] border-[#FED3D1]',
-    question: 'Apa dasar hukum perhitungan uang pesangon di E-PerformIQ dan bagaimana rumusnya sesuai PP No. 35 Tahun 2021?',
+    question: 'Apa dasar hukum perhitungan uang pesangon di HR Command Center dan bagaimana rumusnya sesuai PP No. 35 Tahun 2021?',
     summary: 'Mengacu resmi pada Pasal 40–59 PP No. 35 Tahun 2021 dengan rincian UP, UPMK, dan UPH.',
     detail: {
       background:
-        'Sering terjadi sengketa ketenagakerjaan akibat perbedaan tafsir hitungan uang pesangon antara perusahaan dan pekerja saat terjadi pemutusan hubungan kerja (PHK). E-PerformIQ mengunci rumus baku pemerintah secara otomatis sehingga hasil perhitungan memiliki kekuatan hukum yang sah dan adil.',
+        'Sering terjadi sengketa ketenagakerjaan akibat perbedaan tafsir hitungan uang pesangon antara perusahaan dan pekerja saat terjadi pemutusan hubungan kerja (PHK). HR Command Center mengunci rumus baku pemerintah secara otomatis sehingga hasil perhitungan memiliki kekuatan hukum yang sah dan adil.',
       explanation: [
         'Dasar hukum yang digunakan adalah Peraturan Pemerintah (PP) Republik Indonesia Nomor 35 Tahun 2021 tentang Perjanjian Kerja Waktu Tertentu, Alih Daya, Waktu Kerja dan Waktu Istirahat, dan Pemutusan Hubungan Kerja (turunan dari UU Cipta Kerja).',
         'Kompensasi pesangon terdiri atas 3 komponen utama:',
@@ -228,14 +228,14 @@ export const FAQ_DATA: FaqItem[] = [
     category: 'regulasi',
     categoryLabel: 'Regulasi RI & ISO',
     categoryColor: 'bg-[#FFF4F2] text-[#D72C0D] border-[#FED3D1]',
-    question: 'Apa itu standar internasional ISO 30414:2019 dan mengapa modul SDM E-PerformIQ wajib mematuhinya?',
+    question: 'Apa itu standar internasional ISO 30414:2019 dan mengapa modul SDM HR Command Center wajib mematuhinya?',
     summary: 'Pedoman global transparansi pelaporan modal manusia (Human Capital Reporting) bagi stakeholder & investor.',
     detail: {
       background:
         'Di pasar global dan perusahaan terbuka (Tbk/BUMN), pemegang saham dan investor tidak hanya mengaudit keuangan, tetapi juga menuntut audit modal manusia untuk memastikan kepatuhan tata kelola, efisiensi anggaran rekrutmen, dan mitigasi risiko kepegawaian.',
       explanation: [
         'ISO 30414:2019 (Human Resource Management — Guidelines for Internal and External Human Capital Reporting) adalah standar global resmi pertama untuk mengukur nilai nyata dari modal manusia sebuah organisasi.',
-        'E-PerformIQ mengimplementasikan klausul inti ISO 30414, antara lain:',
+        'HR Command Center mengimplementasikan klausul inti ISO 30414, antara lain:',
         '1. Metrik Kualitas Rekrutmen (Quality of Hire / QoH): Mengukur apakah proses rekrutmen menghasilkan karyawan berkinerja tinggi atau justru salah rekrut.',
         '2. Efisiensi Biaya & Waktu (Cost-per-Hire & Time-to-Fill): Melacak rata-rata biaya seleksi dan berapa hari yang dibutuhkan untuk mengisi formasi kosong.',
         '3. Kepatuhan Kuota Formasi Kerja (Manpower Planning / MPP): Memastikan jumlah karyawan yang dipekerjakan tidak melampaui kuota dan anggaran resmi yang telah disahkan direksi.',
@@ -310,7 +310,7 @@ export const FAQ_DATA: FaqItem[] = [
       background:
         'Tanpa distribusi terarah (forced distribution), departemen yang memiliki atasan santai akan mendapat nilai A semua, sementara departemen dengan atasan keras akan mendapat nilai C semua. Hal ini menimbulkan kecemburuan sosial dan ketidakadilan saat pembagian bonus korporasi.',
       explanation: [
-        'E-PerformIQ menggunakan model distribusi terkendali Kurva Gaussian standar Kementerian BUMN RI untuk menjaga proporsi penilaian yang wajar:',
+        'HR Command Center menggunakan model distribusi terkendali Kurva Gaussian standar Kementerian BUMN RI untuk menjaga proporsi penilaian yang wajar:',
         '• Predikat A (Sangat Baik / Istimewa): Ditargetkan pada 15% - 20% populasi karyawan.',
         '• Predikat B (Baik / Memenuhi Standar Kuat): Ditargetkan pada 60% - 70% populasi karyawan (mayoritas).',
         '• Predikat C (Cukup / Perlu Bimbingan): Ditargetkan pada 10% - 15% populasi karyawan.',
@@ -528,7 +528,7 @@ export const FAQ_DATA: FaqItem[] = [
     summary: 'Total Score = (0.50 × KPI) + (0.20 × SOP) + (0.15 × Kompetensi) + (0.15 × Core Values 360°), lalu dikonversi ke skala 4.00.',
     detail: {
       background:
-        'Sistem E-PerformIQ tidak menggunakan asumsi abstrak. Seluruh nilai dirumuskan berdasarkan 4 variabel terbobot yang mencakup hasil kerja, kepatuhan, keahlian, dan akhlak.',
+        'Sistem HR Command Center tidak menggunakan asumsi abstrak. Seluruh nilai dirumuskan berdasarkan 4 variabel terbobot yang mencakup hasil kerja, kepatuhan, keahlian, dan akhlak.',
       explanation: [
         'Formula Perhitungan Skor Persentase:',
         'Total Score = (50% × Skor Capaian KPI) + (20% × Skor Kepatuhan SOP) + (15% × Skor Uji Kompetensi) + (15% × Skor Perilaku Core Values 360°).',
@@ -647,11 +647,11 @@ export const FAQ_DATA: FaqItem[] = [
     category: 'keamanan',
     categoryLabel: 'Keamanan & GCG',
     categoryColor: 'bg-[#FFF8E5] text-[#5C4500] border-[#FEDB87]',
-    question: 'Apa yang dimaksud dengan status "Terkunci Permanen" dan bagaimana E-PerformIQ melindungi nilai dari manipulasi?',
+    question: 'Apa yang dimaksud dengan status "Terkunci Permanen" dan bagaimana HR Command Center melindungi nilai dari manipulasi?',
     summary: 'Sistem penguncian otomatis yang menjaga agar nilai tidak dapat diedit atau dihapus sepihak setelah disahkan oleh komite.',
     detail: {
       background:
-        'Pada cara kerja konvensional, nilai rawan diubah diam-diam oleh pihak tertentu setelah masa evaluasi selesai. Di E-PerformIQ, hal tersebut dicegah melalui sistem penguncian otomatis berstandar audit perbankan dan tata kelola GCG.',
+        'Pada cara kerja konvensional, nilai rawan diubah diam-diam oleh pihak tertentu setelah masa evaluasi selesai. Di HR Command Center, hal tersebut dicegah melalui sistem penguncian otomatis berstandar audit perbankan dan tata kelola GCG.',
       explanation: [
         'Ketika Komite Kalibrasi mengesahkan penilaian seorang karyawan, sistem langsung mengaktifkan kunci pengaman resmi (status Terkalibrasi / Sah).',
         'Setelah berstatus terkunci, sistem secara otomatis menolak segala upaya pengeditan maupun penghapusan nilai dari pihak mana pun tanpa kecuali.',
@@ -672,7 +672,7 @@ export const FAQ_DATA: FaqItem[] = [
       background:
         'Karyawan sering merasa sungkan atau khawatir memberikan penilaian jujur kepada rekan kerja karena takut menimbulkan ketegangan di lingkungan kantor.',
       explanation: [
-        'E-PerformIQ menerapkan sistem evaluasi rekan kerja tertutup (rahasia):',
+        'HR Command Center menerapkan sistem evaluasi rekan kerja tertutup (rahasia):',
         '• Saat Anda mengisi evaluasi pada formulir Ulasan 360°, sistem hanya menyimpan masukan dan skor budaya kerja secara terpisah dari nama Anda.',
         '• Rekan yang dinilai hanya akan melihat skor rata-rata gabungan dari semua penilai (misalnya: Nilai Kerja Sama Tim = 4.5 / 5.0) dan rangkuman masukan positif tanpa pernah mengetahui siapa yang memberikan nilai tersebut.',
         '• Langkah ini memastikan setiap karyawan dapat memberikan masukan yang jujur, objektif, dan membangun demi kemajuan bersama tanpa rasa sungkan atau khawatir.',

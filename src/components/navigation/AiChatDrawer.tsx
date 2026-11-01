@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Loader2 } from 'lucide-react';
+import { renderRichText } from '@/components/ai/RichText';
 
 type Msg = { role: 'user' | 'model'; content: string };
 
@@ -68,7 +69,7 @@ export default function AiChatDrawer({ open, onClose }: { open: boolean; onClose
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">Asisten AI E-PerformIQ</p>
+              <p className="text-sm font-bold text-white leading-tight">Asisten AI HR Command Center</p>
               <p className="text-[10px] text-slate-400">Analisis berbasis data aplikasi</p>
             </div>
           </div>
@@ -110,7 +111,7 @@ export default function AiChatDrawer({ open, onClose }: { open: boolean; onClose
                     : 'bg-white border border-[#e2e8f0] text-[#0f172a] rounded-bl-sm'
                 }`}
               >
-                {m.content}
+                {m.role === 'user' ? m.content : renderRichText(m.content)}
               </div>
             </div>
           ))}

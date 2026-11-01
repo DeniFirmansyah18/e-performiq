@@ -78,7 +78,7 @@ export default function EmployeeVerifiedPage() {
           </div>
           <div>
             <p className="text-base font-bold text-[#0f172a] leading-tight">Portal Karyawan</p>
-            <p className="text-[11px] text-[#64748b]">E-PerformIQ Employee</p>
+            <p className="text-[11px] text-[#64748b]">HR Command Center Employee</p>
           </div>
         </div>
         <Suspense fallback={<div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 text-center text-sm text-[#64748b]">Memuat…</div>}>

@@ -62,7 +62,7 @@ export default function ActionCard({
       <div aria-hidden className="mt-3 min-h-[2rem]" />
       <p className="mt-2 text-xs leading-relaxed text-[#64748b]">{description}</p>
       <p className="mt-auto pt-3 text-[11px] font-semibold text-[#007a5a] opacity-0 transition-opacity group-hover:opacity-100">
-        Klik untuk membuka →
+        Klik untuk membuka
       </p>
     </button>
   );

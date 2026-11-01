@@ -62,7 +62,7 @@ export default function CareersPage() {
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans">
       <CandidateTopBar />
       <header className="bg-[#0f172a] text-white px-6 py-4">
-        <h1 className="text-lg font-extrabold">Karier di E-PerformIQ</h1>
+        <h1 className="text-lg font-extrabold">Karier di HR Command Center</h1>
         <p className="text-xs text-slate-300">Bergabunglah membangun ekosistem kinerja SDM kelas dunia.</p>
       </header>
 

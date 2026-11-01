@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       recordId: user.id,
       description: `User login berhasil via enterprise auth: ${user.email} (${user.role})`,
       ipAddress: req.ip || req.headers.get('x-forwarded-for') || '127.0.0.1',
-      userAgent: req.headers.get('user-agent') || 'E-PerformIQ Client',
+      userAgent: req.headers.get('user-agent') || 'HR Command Center Client',
     });
 
     const response = ok({

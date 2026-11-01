@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bot, Send, X, Sparkles, User, ChevronRight } from 'lucide-react';
+import { renderRichText } from '@/components/ai/RichText';
 
 interface HelpdeskChatbotDrawerProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export default function HelpdeskChatbotDrawer({ isOpen, onClose }: HelpdeskChatb
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       sender: 'bot',
-      text: 'Halo! Saya Asisten HR Virtual E-PerformIQ. Ada yang bisa saya bantu seputar Peraturan Perusahaan, cuti, klaim, atau alur kerja penilaian?',
+      text: 'Halo! Saya Asisten HR Virtual HR Command Center. Ada yang bisa saya bantu seputar Peraturan Perusahaan, cuti, klaim, atau alur kerja penilaian?',
       source: 'POLICY',
     },
   ]);
@@ -119,7 +120,7 @@ export default function HelpdeskChatbotDrawer({ isOpen, onClose }: HelpdeskChatb
                     : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-bl-none'
                 }`}
               >
-                {m.text}
+                {m.sender === 'user' ? m.text : renderRichText(m.text)}
               </div>
               {m.source && m.sender === 'bot' && (
                 <span className="mt-1 inline-flex w-fit items-center gap-1 text-[9px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">

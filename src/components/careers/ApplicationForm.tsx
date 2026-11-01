@@ -214,7 +214,7 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
           className="block w-full text-[11px] text-[#334155] file:mr-2 file:rounded-lg file:border-0 file:bg-[#007a5a] file:px-3 file:py-1.5 file:text-[11px] file:font-bold file:text-white" />
         {uploading && <p className="text-[11px] text-[#64748b]">Menganalisis berkas…</p>}
         {uploadError && <p className="text-[11px] font-semibold text-rose-600">{uploadError}</p>}
-        {autoFilled.length > 0 && <p className="text-[11px] font-semibold text-emerald-700">✓ Terisi otomatis: {autoFilled.join(', ')}</p>}
+        {autoFilled.length > 0 && <p className="text-[11px] font-semibold text-emerald-700">Terisi otomatis: {autoFilled.join(', ')}</p>}
         {upload?.detectedSkills?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {upload.detectedSkills.slice(0, 18).map((s: string) => (
@@ -405,7 +405,7 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
               <input type="file" accept=".pdf,.png,.jpg,.jpeg"
                 onChange={async (e) => { const f = e.target.files?.[0]; if (f) { const url = await fileToDataUrl(f); setCertifications((a) => a.map((x, j) => j === i ? { ...x, proofUrl: url, proofName: f.name } : x)); } }}
                 className="mt-1 block w-full text-[10px] text-[#334155]" />
-              {c.proofName && <span className="text-[10px] text-emerald-700">✓ {c.proofName}</span>}
+              {c.proofName && <span className="text-[10px] text-emerald-700">Lampiran: {c.proofName}</span>}
             </label>
             <button type="button" onClick={() => setCertifications((a) => a.filter((_, j) => j !== i))}
               className="text-[10px] font-semibold text-rose-600 justify-self-end">Hapus</button>
@@ -419,7 +419,7 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
         <input type="file" accept=".pdf,.docx,.png,.jpg,.jpeg"
           onChange={async (e) => { const f = e.target.files?.[0]; if (f) setCoverLetterFile({ url: await fileToDataUrl(f), name: f.name }); }}
           className="block w-full text-[11px] text-[#334155] file:mr-2 file:rounded-lg file:border-0 file:bg-[#0f172a] file:px-3 file:py-1.5 file:text-[11px] file:font-bold file:text-white" />
-        {coverLetterFile && <p className="text-[10px] text-emerald-700">✓ {coverLetterFile.name}</p>}
+        {coverLetterFile && <p className="text-[10px] text-emerald-700">Lampiran: {coverLetterFile.name}</p>}
       </div>
 
       {/* Honeypot anti-bot */}

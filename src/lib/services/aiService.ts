@@ -61,13 +61,19 @@ interface ProviderResult {
  * tetap konsisten (khususnya pada model reasoning seperti qwen3 / gpt-oss).
  */
 const SYSTEM_PROMPT =
-  'Anda adalah analis SDM korporat untuk aplikasi E-PerformIQ. ' +
-  'ATURAN WAJIB: (1) Jawab HANYA dalam Bahasa Indonesia baku dan profesional. ' +
+  'Anda adalah rekan analis SDM yang berpengalaman di aplikasi HR Command Center. ' +
+  'ATURAN WAJIB: (1) Jawab HANYA dalam Bahasa Indonesia yang mengalir, ramah, dan mudah dipahami. ' +
+  'Tulis seperti sedang menjelaskan kepada rekan kerja, bukan seperti dokumen resmi. ' +
   '(2) Jangan pernah menampilkan proses berpikir, analisis internal, terjemahan, ' +
   'atau tag seperti  thinking. Langsung berikan hasil akhir. ' +
-  '(3) Ringkas, terstruktur, dan hanya berdasarkan data yang diberikan; ' +
+  '(3) Ringkas dan hanya berdasarkan data yang diberikan; ' +
   'jangan mengarang angka atau fakta di luar data. ' +
-  '(4) Jangan menyapa, jangan bertanya balik, jangan menjelaskan aturan ini.';
+  '(4) Jangan menyapa, jangan bertanya balik, jangan menjelaskan aturan ini. ' +
+  '(5) Jangan memakai simbol hiasan apa pun (bintang, emoji, centang, panah). ' +
+  'Untuk menegaskan sesuatu cukup gunakan teks tebal dengan tanda **dua bintang**. ' +
+  '(6) Jangan memakai istilah teknis pemrograman atau nama kolom data mentah; ' +
+  'sebut dengan bahasa manusia. Istilah asing hanya boleh dipakai bila memang ' +
+  'nama resmi (misalnya KPI, MPP, PKWT).';
 
 /**
  * Membersihkan keluaran model dari artefak "thinking" yang kadang bocor ke
@@ -231,7 +237,7 @@ async function callOpenRouter(
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         // Header opsional yang direkomendasikan OpenRouter (atribusi app).
         'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://e-performiq.vercel.app',
-        'X-Title': 'E-PerformIQ',
+        'X-Title': 'HR Command Center',
       },
       body: JSON.stringify({
         model,
@@ -340,18 +346,21 @@ export async function analyzeWithContext(
 ): Promise<{ insight: string; configured: boolean; failed: boolean }> {
   const prompt =
     `Peran pengguna: ${ROLE_HINT[role] ?? role}.\n` +
-    `Fitur yang dianalisis: ${feature}.\n` +
-    `Ringkasan data (JSON):\n${JSON.stringify(context)}\n\n` +
-    `Tulis analisis dalam BAHASA INDONESIA dengan struktur tepat berikut, ` +
-    `tanpa menambahkan bagian lain:\n` +
-    `**Ringkasan:** (2 kalimat tentang kondisi saat ini)\n` +
-    `**Temuan Penting:**\n- (temuan 1)\n- (temuan 2)\n- (temuan 3)\n` +
-    `**Rekomendasi Tindakan:**\n1. (rekomendasi 1)\n2. (rekomendasi 2)\n` +
-        `Bila sebuah item berstatus NO_DATA atau measured:false, sebut "belum dinilai/belum diukur" ` +
-        `dan jelaskan bahwa KPI-nya belum diturunkan — jangan menyebutnya gagal atau capaian 0%. ` +
-        `Bila ada governanceFindings, sebut sebagai temuan tata kelola dan sertakan rekomendasi ` +
-        `penetapan KPI pada posisi yang tercantum di cascadeGaps. ` +
-        `Gunakan hanya data pada ringkasan di atas; jangan mengarang angka. Ringkas dan profesional.`;
+    `Bagian yang sedang dianalisis: ${feature}.\n` +
+    `Data yang tersedia (JSON):\n${JSON.stringify(context)}\n\n` +
+    `Tulis analisis dalam Bahasa Indonesia dengan susunan berikut, tanpa bagian lain:\n` +
+    `**Ringkasan:** dua kalimat santai tentang kondisi saat ini.\n` +
+    `**Temuan Penting:** tiga poin, satu baris per poin, diawali tanda "- ".\n` +
+    `**Rekomendasi Tindakan:** dua sampai tiga langkah nyata, diawali angka "1. ", "2. ", dst.\n` +
+    `Panduan gaya: pakai kalimat sehari-hari yang enak dibaca, hindari kata birokratis ` +
+    `dan hindari istilah teknis. Jangan memakai bintang, emoji, tanda centang, tanda panah, ` +
+    `atau judul bergaya markdown (tanda #). Tebalkan hanya angka atau istilah penting ` +
+    `dengan **dua bintang**. ` +
+    `Bila sebuah data belum ada isinya, tulis "belum dinilai" atau "belum diukur" dan ` +
+    `jelaskan bahwa ukurannya memang belum ditetapkan — jangan menyebutnya gagal atau 0%. ` +
+    `Bila ada catatan tata kelola, sebutkan sebagai hal yang perlu ditata dan sertakan saran ` +
+    `penetapan ukuran pada posisi yang masih kosong. ` +
+    `Pakai hanya data di atas; jangan mengarang angka.`;
   const res = await generateContent(prompt, { maxOutputTokens: 2048, temperature: 0.25 });
   // `error` terisi saat SEMUA provider gagal (rate limit/5xx/network). Keluaran
   // seperti itu bukan analisis, sehingga pemanggil tidak boleh menyimpannya.
@@ -379,7 +388,9 @@ export async function chat(
   const prompt =
     `Peran pengguna: ${ROLE_HINT[role] ?? role}. Konteks data aplikasi (JSON): ${JSON.stringify(context)}.\n` +
     `Percakapan:\n${history}\nAsisten:` +
-    `\nJawab SINGKAT (maksimal 4 kalimat) dalam Bahasa Indonesia, akurat, dan hanya berdasarkan konteks aplikasi. ` +
+    `\nJawab SINGKAT (maksimal 4 kalimat) dalam Bahasa Indonesia yang ramah dan mudah dipahami, ` +
+    `hanya berdasarkan konteks aplikasi di atas. Hindari istilah teknis dan jangan pakai ` +
+    `simbol hiasan (bintang, emoji, centang, panah). ` +
     `Jangan tampilkan proses berpikir; langsung berikan jawaban akhir.`;
   const res = await generateContent(prompt, { maxOutputTokens: 1024, temperature: 0.3 });
   return { reply: res.text, configured: res.configured };

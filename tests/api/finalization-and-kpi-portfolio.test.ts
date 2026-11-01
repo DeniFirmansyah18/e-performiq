@@ -38,7 +38,9 @@ describe('WS: finalisasi Q3 & portofolio KPI PDF', () => {
    */
   async function freshCookie(): Promise<string> {
     const client = await getDb();
-    const code = `FIN-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    // Kode pendek: kolom employee_code hanya VARCHAR(50) dan prefix email
+    // di bawah diturunkan dari kode yang sama.
+    const code = `FIN-${Math.random().toString(36).slice(2, 10)}`;
     const email = `${code.toLowerCase()}@eperformiq.co.id`;
     const res = await client.query<{ id: string }>(
       `INSERT INTO employees (employee_code, full_name, email, department_id, position_id,

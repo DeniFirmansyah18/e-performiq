@@ -405,7 +405,7 @@ export default function PositionCourseMappingPanel() {
               ) : oerResults ? (
                 <>
                   <p className="mt-1.5 text-[10px] font-semibold text-[#047857]">
-                    {oerAiUsed ? '✨ Direkomendasikan AI' : '📚 Dari katalog terkurasi'} · {oerResults.length} materi
+                    {oerAiUsed ? 'Direkomendasikan AI' : 'Dari katalog terkurasi'} · {oerResults.length} materi
                   </p>
                   <ul className="mt-2 space-y-1.5">
                     {oerResults.map((r) => (

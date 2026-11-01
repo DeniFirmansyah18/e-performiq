@@ -181,7 +181,7 @@ export default function TechnicalTestPanel() {
           </div>
         </div>
         <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-          DRAFT → APPROVED
+          Draf → Disetujui
         </span>
       </div>
 

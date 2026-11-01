@@ -1528,7 +1528,13 @@ return (
         </div>
       </div>
 
-      <button className="w-full py-2 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors">
+      <button
+        type="button"
+        onClick={() =>
+          document.getElementById('employee-learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+        className="w-full py-2 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors"
+      >
         <span>Lanjutkan Pelatihan</span>
         <ArrowRight className="h-3.5 w-3.5" />
       </button>
@@ -1634,7 +1640,7 @@ return (
   <div className="mt-5">
     <OnboardingPanel />
   </div>
-  <div className="mt-5">
+  <div className="mt-5" id="employee-learning">
     <LearningModule />
   </div>
     <AiAnalyzePanel feature="employee" />
