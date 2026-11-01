@@ -1,8 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { UserPlus, Activity, LogOut, RefreshCw } from 'lucide-react';
-
-type Phase = 'pre' | 'during' | 'post';
+import { PHASE_LABEL, type WorkPhase } from '@/lib/employee/phase';
 
 interface LifecycleSummary {
   mpp_fulfillment_percentage?: number;
@@ -26,23 +25,31 @@ async function fetchJson(url: string): Promise<any> {
 
 function StatGrid({ items }: { items: Counted[] }) {
   if (items.length === 0) {
-    return <p className="text-xs text-slate-400">Belum ada data untuk fase ini.</p>;
+    return <p className="text-xs text-[#94a3b8]">Belum ada data untuk fase ini.</p>;
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {items.map((item, idx) => (
-        <div key={`${item.label}-${idx}`} className="p-4 rounded-xl border border-slate-200 bg-white">
-          <div className="text-[11px] font-semibold text-slate-500">{item.label}</div>
-          <div className="text-xl font-bold text-slate-800 mt-0.5">{item.value}</div>
-          {item.hint && <div className="text-[10px] text-slate-400 mt-1">{item.hint}</div>}
+        <div key={`${item.label}-${idx}`} className="p-4 rounded-xl border border-[#e2e8f0] bg-white">
+          <div className="text-[11px] font-semibold text-[#64748b]">{item.label}</div>
+          <div className="text-xl font-black text-[#0f172a] mt-0.5">{item.value}</div>
+          {item.hint && <div className="text-[10px] text-[#94a3b8] mt-1">{item.hint}</div>}
         </div>
       ))}
     </div>
   );
 }
 
-export default function HrLifecycleControlPanel() {
-  const [phase, setPhase] = useState<Phase>('pre');
+export default function HrLifecycleControlPanel({
+  phase: controlledPhase,
+  showPhaseSwitch = false,
+}: {
+  phase?: WorkPhase;
+  showPhaseSwitch?: boolean;
+} = {}) {
+  const [localPhase, setLocalPhase] = useState<WorkPhase>('PRE');
+  const phase = controlledPhase ?? localPhase;
+  const setPhase = setLocalPhase;
   const [summary, setSummary] = useState<LifecycleSummary | null>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
@@ -83,7 +90,7 @@ export default function HrLifecycleControlPanel() {
   }, []);
 
   if (loading) {
-    return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat kontrol siklus hidup...</div>;
+    return <div className="p-6 text-sm text-[#64748b] animate-pulse">Memuat kontrol siklus hidup...</div>;
   }
 
   const preItems: Counted[] = [
@@ -127,22 +134,23 @@ export default function HrLifecycleControlPanel() {
   return (
     <div className="space-y-5">
       {error && (
-        <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+        <div className="p-3 rounded-lg bg-[#fce8e6] border border-[#f5c6c0] text-xs text-[#c5221f]">
           {error}
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 w-full sm:w-auto sm:inline-flex">
+      {showPhaseSwitch && (
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#f1f5f9] w-full sm:w-auto sm:inline-flex">
         {([
-          { key: 'pre', label: 'Pra-Kerja', icon: <UserPlus className="w-3.5 h-3.5" /> },
-          { key: 'during', label: 'Saat-Kerja', icon: <Activity className="w-3.5 h-3.5" /> },
-          { key: 'post', label: 'Pasca-Kerja', icon: <LogOut className="w-3.5 h-3.5" /> },
+          { key: 'PRE', label: PHASE_LABEL.PRE, icon: <UserPlus className="w-3.5 h-3.5" /> },
+          { key: 'DURING', label: PHASE_LABEL.DURING, icon: <Activity className="w-3.5 h-3.5" /> },
+          { key: 'POST', label: PHASE_LABEL.POST, icon: <LogOut className="w-3.5 h-3.5" /> },
         ] as const).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setPhase(tab.key)}
             className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              phase === tab.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              phase === tab.key ? 'bg-[#007a5a] text-white shadow-sm' : 'text-[#64748b] hover:text-[#0f172a]'
             }`}
           >
             {tab.icon}
@@ -150,41 +158,42 @@ export default function HrLifecycleControlPanel() {
           </button>
         ))}
       </div>
+      )}
 
-      {phase === 'pre' && (
+      {phase === 'PRE' && (
         <div className="space-y-3">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-[#64748b]">
             Kontrol sebelum bekerja: pemenuhan MPP, mutu rekrutmen, dan kelulusan probation.
           </p>
           <StatGrid items={preItems} />
         </div>
       )}
 
-      {phase === 'during' && (
+      {phase === 'DURING' && (
         <div className="space-y-3">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-[#64748b]">
             Kontrol saat bekerja: aktivitas kepegawaian terbaru lintas modul.
           </p>
           <StatGrid items={duringItems} />
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Log Aktivitas Terbaru
+          <div className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden">
+            <div className="p-3 border-b border-[#f1f5f9] text-xs font-semibold text-[#334155] flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 text-[#64748b]" /> Log Aktivitas Terbaru
             </div>
             {activity.length === 0 ? (
-              <p className="p-4 text-xs text-slate-400">Belum ada aktivitas tercatat.</p>
+              <p className="p-4 text-xs text-[#94a3b8]">Belum ada aktivitas tercatat.</p>
             ) : (
-              <ul className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+              <ul className="divide-y divide-[#f1f5f9] max-h-80 overflow-y-auto">
                 {activity.map((item: any, idx: number) => (
-                  <li key={item.id ?? `act-${idx}`} className="p-3 text-[11px] text-slate-600 flex items-start gap-2">
-                    <span className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0" />
+                  <li key={item.id ?? `act-${idx}`} className="p-3 text-[11px] text-[#475569] flex items-start gap-2">
+                    <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#007a5a] flex-shrink-0" />
                     <span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-[#0f172a]">
                         {item.employeeName ?? 'Karyawan'}
                       </span>{' '}
-                      <span className="text-slate-500">[{item.eventType ?? 'AKTIVITAS'}]</span>{' '}
+                      <span className="text-[#64748b]">[{item.eventType ?? 'AKTIVITAS'}]</span>{' '}
                       {item.summary ?? ''}
                       {item.occurredAt && (
-                        <span className="text-slate-400">
+                        <span className="text-[#94a3b8]">
                           {' '}
                           &bull; {String(item.occurredAt).slice(0, 10)}
                         </span>
@@ -198,13 +207,13 @@ export default function HrLifecycleControlPanel() {
         </div>
       )}
 
-      {phase === 'post' && (
+      {phase === 'POST' && (
         <div className="space-y-3">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-[#64748b]">
             Kontrol setelah bekerja: progres clearance dan serah terima aset/pengetahuan.
           </p>
           {postItems.length === 0 ? (
-            <p className="text-xs text-slate-400">Tidak ada proses offboarding aktif.</p>
+            <p className="text-xs text-[#94a3b8]">Tidak ada proses offboarding aktif.</p>
           ) : (
             <StatGrid items={postItems} />
           )}

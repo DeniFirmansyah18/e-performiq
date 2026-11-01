@@ -9,19 +9,17 @@ import { listEmployeesForHr } from '@/lib/services/hrEmployeeDirectoryService';
  * Direktori pegawai untuk Command Center HRD (Narasi 3 pilar 7).
  *
  * Berbeda dari `/api/v1/hr/employees` (picker rekrutmen yang mensyaratkan
- * `recruitment:manage`), endpoint ini memakai `employment:read` agar BOD dan
- * AUDITOR dapat memakai direktori. Peran EMPLOYEE ditolak eksplisit: ini
- * halaman HR, dan direktori bukan sarana enumerasi pegawai bagi semua orang.
+ * `recruitment:manage`), endpoint ini memakai `directory:read` agar BOD dan
+ * AUDITOR dapat memakai direktori. Tidak memakai `employment:read` karena
+ * permission itu juga dipakai `me/employment-status` untuk membaca data DIRI
+ * SENDIRI, sehingga dimiliki EMPLOYEE — direktori ini justru mencakup seluruh
+ * perusahaan dan tidak boleh terbuka bagi karyawan.
  */
 export async function GET(req: NextRequest) {
   try {
     const session = await getAuthSession(req);
     if (!session) return fail('UNAUTHORIZED', 'Sesi tidak valid.', 401);
-    assertCan(session, 'employment:read');
-
-    if (session.role === 'EMPLOYEE') {
-      return fail('FORBIDDEN', 'Direktori pegawai hanya untuk peran HR.', 403);
-    }
+    assertCan(session, 'directory:read');
 
     const includeInactive = req.nextUrl.searchParams.get('includeInactive') === 'true';
     const employees = await listEmployeesForHr(db, { includeInactive });

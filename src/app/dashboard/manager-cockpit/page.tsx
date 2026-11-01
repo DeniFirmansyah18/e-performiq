@@ -20,16 +20,81 @@ import {
   Users,
   Star as StarIcon,
   ClipboardCheck,
+  Target,
 } from 'lucide-react';
 import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
 import DailyVerificationPanel from '@/components/governance/DailyVerificationPanel';
+import KpiIndicatorPanel from '@/components/governance/KpiIndicatorPanel';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
-type ManagerFeature = 'roster' | 'approval' | 'evaluasi';
+type ManagerFeature = 'roster' | 'approval' | 'evaluasi' | 'indikator';
+
+/** Periode penilaian aktif yang dipakai seluruh panel cockpit manajer. */
+const PERIOD_ID = 'd0000000-0000-4000-8000-000000000001';
+
+const QUADRANT_LABEL: Record<string, string> = {
+  STAR: 'Kuadran 1 — Growth Star / Top Talent',
+  FUTURE_LEADER: 'Kuadran 1 — Future Leader / High Potential',
+  HIGH_IMPACT: 'Kuadran 2 — High Impact Performer',
+  CORE_PLAYER: 'Kuadran 5 — Core Player / Steady Performer',
+  WORKHORSE: 'Kuadran 6 — Solid Contributor',
+  DILEMMA: 'Kuadran 4 — Dilemma / Inconsistent',
+  RISK: 'Kuadran 7 — Underperformer / Risk',
+  PUZZLE: 'Kuadran 8 — Puzzle / Enigma',
+  TRUSTED_PROFESSIONAL: 'Kuadran 3 — Trusted Professional',
+};
+
+function statusTypeFor(pending: number, gpa: number | null): TeamMember['statusType'] {
+  if (pending > 0) return 'attention';
+  if (gpa != null) return 'ready';
+  return 'review';
+}
+
+function statusLabelFor(pending: number, gpa: number | null): string {
+  if (pending > 0) return `${pending} KPI Menunggu`;
+  if (gpa != null) return 'Terkalkulasi';
+  return 'Belum Dinilai';
+}
+
+/** Memetakan baris roster API ke model tampilan cockpit. */
+function toTeamMember(raw: Record<string, any>): TeamMember {
+  const gpa = raw.compositeGpa != null ? Number(raw.compositeGpa) : null;
+  const pending = Number(raw.pendingKpiCount ?? 0);
+  const achievement = raw.kpiAchievement != null ? Number(raw.kpiAchievement) : null;
+  return {
+    id: String(raw.employeeId),
+    name: String(raw.fullName ?? '—'),
+    nip: raw.employeeCode ? `NIP: ${raw.employeeCode}` : 'NIP: —',
+    role: raw.position ?? '—',
+    pillar: raw.department ?? '—',
+    kpi: achievement != null ? `${achievement.toFixed(1)}%` : '—',
+    kpiScore: achievement ?? 0,
+    kpiNote:
+      Number(raw.kpiCount ?? 0) === 0
+        ? 'Belum ada KPI periode ini'
+        : `${raw.kpiCount} KPI · ${raw.activeIndicatorCount ?? 0} indikator harian aktif`,
+    kpiColor: achievement != null && achievement >= 90 ? 'text-[#007a5a]' : 'text-[#334155]',
+    sopScore: 0,
+    sopInsidents: '—',
+    competencyScore: 0,
+    coreValuesScore: 0,
+    potentialScore: 3.5,
+    rating360: '—',
+    reviewsCount: '—',
+    gpa: gpa != null ? gpa.toFixed(2) : '—',
+    box: raw.nineBoxQuadrant ? String(raw.nineBoxQuadrant).replace(/_/g, ' ') : 'Belum ada',
+    boxName: raw.nineBoxQuadrant
+      ? QUADRANT_LABEL[String(raw.nineBoxQuadrant)] ?? 'Terkalibrasi'
+      : 'Menunggu kalibrasi',
+    status: statusLabelFor(pending, gpa),
+    statusType: statusTypeFor(pending, gpa),
+    avatar: '',
+  };
+}
 
 interface ProbationMilestone {
   id: string;
@@ -98,132 +163,27 @@ export default function ManagerCockpitPage() {
   const [isSavingProbation, setIsSavingProbation] = useState(false);
   const [probationMsg, setProbationMsg] = useState<string | null>(null);
 
-  const [teamRoster, setTeamRoster] = useState<TeamMember[]>([
-    {
-      id: 'b0000000-0000-4000-8000-000000000004',
-      name: 'Budi Pratama',
-      nip: 'NIP: EMP-2022-0042',
-      role: 'Senior Systems Architect',
-      pillar: 'Internal Tech & Scalability',
-      kpi: '96.8%',
-      kpiScore: 96.8,
-      kpiNote: '+4.8% SLA 99.98%',
-      kpiColor: 'text-[#007a5a]',
-      sopScore: 98.0,
-      sopInsidents: '0 Insiden',
-      competencyScore: 88.0,
-      coreValuesScore: 92.0,
-      potentialScore: 4.2,
-      rating360: '4.8',
-      reviewsCount: '12 Ulasan',
-      gpa: '3.67',
-      box: 'Kuadran 1',
-      boxName: 'Future Leader / High Potential',
-      status: 'Siap Kalibrasi',
-      statusType: 'ready',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-    },
-    {
-      id: 'b0000000-0000-4000-8000-000000000007',
-      name: 'Anisa Wijaya, S.Ds.',
-      nip: 'NIP: EMP-2023-0108',
-      role: 'Product Designer (UI/UX)',
-      pillar: 'Customer Experience & Design',
-      kpi: '94.0%',
-      kpiScore: 94.0,
-      kpiNote: 'OKR Tercapai Sesuai Target',
-      kpiColor: 'text-[#007a5a]',
-      sopScore: 95.0,
-      sopInsidents: '0 Insiden',
-      competencyScore: 86.0,
-      coreValuesScore: 90.0,
-      potentialScore: 4.0,
-      rating360: '4.7',
-      reviewsCount: '14 Ulasan',
-      gpa: '3.52',
-      box: 'Kuadran 2',
-      boxName: 'Growth Star / Top Talent',
-      status: 'Siap Kalibrasi',
-      statusType: 'ready',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
-    },
-    {
-      id: 'b0000000-0000-4000-8000-000000000008',
-      name: 'Dimas Prasetyo, S.Kom.',
-      nip: 'NIP: EMP-2021-0089',
-      role: 'DevOps & SRE Engineer',
-      pillar: 'Infrastructure SLA & Security',
-      kpi: '88.5%',
-      kpiScore: 88.5,
-      kpiNote: '-2.5% Target SLA Cloud',
-      kpiColor: 'text-[#334155]',
-      sopScore: 90.0,
-      sopInsidents: '1 Tiket SLA',
-      sopAlert: true,
-      competencyScore: 82.0,
-      coreValuesScore: 85.0,
-      potentialScore: 3.5,
-      rating360: '4.1',
-      reviewsCount: '8 Ulasan',
-      gpa: '3.41',
-      box: 'Kuadran 5',
-      boxName: 'Core Player / Steady Performer',
-      status: 'Butuh Justifikasi',
-      statusType: 'attention',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100',
-    },
-    {
-      id: 'b0000000-0000-4000-8000-000000000009',
-      name: 'Rian Hidayat, S.Kom.',
-      nip: 'NIP: EMP-2024-0230',
-      role: 'Junior Backend Developer',
-      pillar: 'API Service & Architecture',
-      kpi: '80.0%',
-      kpiScore: 80.0,
-      kpiNote: 'Evaluasi Probation Hari-90',
-      kpiColor: 'text-[#0369a1]',
-      sopScore: 87.5,
-      sopInsidents: '0 Insiden',
-      competencyScore: 78.0,
-      coreValuesScore: 84.0,
-      potentialScore: 3.2,
-      rating360: '4.2',
-      reviewsCount: '6 Ulasan',
-      gpa: '2.85',
-      box: 'Kuadran 4',
-      boxName: 'Dilemma / Inconsistent',
-      status: 'Evaluasi Probation',
-      statusType: 'review',
-      isProbation: true,
-      avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100',
-    },
-  ]);
+  // Roster nyata dari DB (bukan data demo). Diisi oleh /api/v1/performance/team-roster.
+  const [teamRoster, setTeamRoster] = useState<TeamMember[]>([]);
+  const [isRosterLoaded, setIsRosterLoaded] = useState(false);
 
-  // Task 8: hydrate GPA/rating/box dari API DB (override nilai demo bila tersedia).
+  // Task 8: hydrate roster (identitas + KPI + GPA/9-box) dari API DB.
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const res = await fetch('/api/v1/performance/team-roster');
+        const res = await fetch(
+          `/api/v1/performance/team-roster?period_id=${PERIOD_ID}`
+        );
         if (!res.ok) return;
         const json = await res.json();
-        const members: Array<any> = json?.data?.members ?? [];
-        if (!active || members.length === 0) return;
-        setTeamRoster((prev) =>
-          prev.map((m) => {
-            const api = members.find((x) => x.employeeId === m.id);
-            if (!api) return m;
-            return {
-              ...m,
-              gpa: api.compositeGpa != null ? String(api.compositeGpa) : m.gpa,
-              boxName: api.nineBoxQuadrant
-                ? api.nineBoxQuadrant.replace(/_/g, ' ')
-                : m.boxName,
-            };
-          })
-        );
+        const members: Array<Record<string, any>> = json?.data?.members ?? [];
+        if (!active) return;
+        setTeamRoster(members.map(toTeamMember));
       } catch {
-        /* biarkan nilai demo bila API tidak tersedia */
+        /* roster tetap kosong; UI menampilkan empty state */
+      } finally {
+        if (active) setIsRosterLoaded(true);
       }
     })();
     return () => {
@@ -321,7 +281,7 @@ export default function ManagerCockpitPage() {
     setApprovalMsg(null);
     try {
       const res = await fetch(
-        `/api/v1/performance/gpa-preview?employee_id=${selectedMember.id}&period_id=d0000000-0000-4000-8000-000000000001`
+        `/api/v1/performance/gpa-preview?employee_id=${selectedMember.id}&period_id=${PERIOD_ID}`
       );
       const json = await res.json();
       if (res.ok && json.data) {
@@ -365,9 +325,8 @@ export default function ManagerCockpitPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          period_id: 'd0000000-0000-4000-8000-000000000001',
+          period_id: PERIOD_ID,
           employee_id: selectedMember.id,
-          kpi_actual_score: Number(evalForm.kpiScore),
           sop_compliance_score: Number(evalForm.sopScore),
           competency_gap_score: Number(evalForm.competencyScore),
           core_values_360_score: Number(evalForm.coreValuesScore),
@@ -388,7 +347,8 @@ export default function ManagerCockpitPage() {
                   boxName: data.nine_box_placement?.strategic_action || 'Evaluated',
                   status: 'Terkalkulasi & Tersimpan',
                   statusType: 'ready',
-                  kpiScore: evalForm.kpiScore,
+                  kpi: data.kpi_score != null ? `${Number(data.kpi_score).toFixed(1)}%` : m.kpi,
+                  kpiScore: data.kpi_score != null ? Number(data.kpi_score) : m.kpiScore,
                   sopScore: evalForm.sopScore,
                   competencyScore: evalForm.competencyScore,
                   coreValuesScore: evalForm.coreValuesScore,
@@ -398,7 +358,9 @@ export default function ManagerCockpitPage() {
           )
         );
         setApprovalMsg(
-          `Evaluasi kinerja untuk ${selectedMember.name} berhasil disimpan! Nilai Kinerja: ${data.composite_gpa} (Rating ${data.performance_rating} — ${data.nine_box_placement?.quadrant}).`
+          `Evaluasi kinerja untuk ${selectedMember.name} berhasil disimpan! Nilai Kinerja: ${data.composite_gpa} (Rating ${data.performance_rating} — ${data.nine_box_placement?.quadrant}). Komponen KPI ${
+            data.kpi_score_source === 'DERIVED' ? 'dihitung otomatis dari capaian KPI' : 'diisi manual'
+          }: ${data.kpi_score ?? '—'}.`
         );
         setSelectedMember(null);
       } else {
@@ -415,19 +377,53 @@ export default function ManagerCockpitPage() {
     setIsApproving(true);
     setApprovalMsg(null);
     try {
-      const res = await fetch('/api/v1/performance/individual-kpis', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kpi_id: 'f0000000-0000-4000-8000-000000000001',
-          action: 'APPROVE',
-        }),
-      });
-      if (res.ok) {
-        setApprovalMsg('Persetujuan sasaran KPI seluruh tim berhasil disahkan dan tercatat di audit trail PostgreSQL.');
-      } else {
+      const pending: Array<{ kpiId: string; title: string }> = [];
+      for (const member of teamRoster) {
+        const res = await fetch(
+          `/api/v1/performance/individual-kpis?employee_id=${member.id}&period_id=${PERIOD_ID}`
+        );
+        if (!res.ok) continue;
         const json = await res.json();
-        setApprovalMsg(json.detail || 'Gagal menyetujui KPI tim.');
+        (json?.data?.items ?? []).forEach((k: any) => {
+          if (k.status !== 'APPROVED') pending.push({ kpiId: k.kpi_id, title: k.kpi_title });
+        });
+      }
+
+      if (pending.length === 0) {
+        setApprovalMsg('Tidak ada sasaran KPI yang menunggu persetujuan di tim Anda.');
+        return;
+      }
+
+      let okCount = 0;
+      const failures: string[] = [];
+      for (const item of pending) {
+        try {
+          const res = await fetch('/api/v1/performance/individual-kpis', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kpi_id: item.kpiId, action: 'APPROVE' }),
+          });
+          if (res.ok) okCount += 1;
+          else {
+            const json = await res.json().catch(() => ({}));
+            failures.push(`${item.title}: ${json.detail || 'gagal'}`);
+          }
+        } catch {
+          failures.push(`${item.title}: kesalahan koneksi`);
+        }
+      }
+
+      setApprovalMsg(
+        failures.length
+          ? `${okCount} dari ${pending.length} sasaran KPI disetujui. Gagal — ${failures[0]}`
+          : `${okCount} sasaran KPI tim berhasil disahkan dan tercatat di audit trail.`
+      );
+
+      // Segarkan roster agar status "menunggu" langsung hilang.
+      const refreshed = await fetch(`/api/v1/performance/team-roster?period_id=${PERIOD_ID}`);
+      if (refreshed.ok) {
+        const json = await refreshed.json();
+        setTeamRoster((json?.data?.members ?? []).map(toTeamMember));
       }
     } catch {
       setApprovalMsg('Terjadi kesalahan koneksi.');
@@ -517,6 +513,14 @@ export default function ManagerCockpitPage() {
           tag="Otorisasi"
           description="Tindakan otorisasi manajerial, penghitungan nilai kinerja tim, dan peninjauan lamaran internal."
           onOpen={() => setOpenFeature('evaluasi')}
+        />
+        <FeatureCard
+          icon={Target}
+          title="Indikator KPI Harian"
+          metric="CRUD & Rollup"
+          tag="Target & Nilai"
+          description="Tetapkan indikator harian tiap sasaran KPI, tarik realisasi harian menjadi capaian periode, lalu sahkan KPI anggota tim."
+          onOpen={() => setOpenFeature('indikator')}
         />
       </FeatureGrid>
 
@@ -731,11 +735,22 @@ export default function ManagerCockpitPage() {
                     {/* Column 1: Member */}
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2.5">
-                        <img
-                          src={row.avatar}
-                          alt={row.name}
-                          className="h-9 w-9 rounded-full object-cover border border-[#e2e8f0]"
-                        />
+                        {row.avatar ? (
+                          <img
+                            src={row.avatar}
+                            alt={row.name}
+                            className="h-9 w-9 rounded-full object-cover border border-[#e2e8f0]"
+                          />
+                        ) : (
+                          <span className="h-9 w-9 rounded-full bg-[#e6f4ea] text-[#007a5a] border border-[#b7e1cd] flex items-center justify-center text-[11px] font-bold">
+                            {row.name
+                              .split(' ')
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((p) => p[0]?.toUpperCase() ?? '')
+                              .join('')}
+                          </span>
+                        )}
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-[#0f172a]">{row.name}</span>
@@ -1003,17 +1018,45 @@ export default function ManagerCockpitPage() {
         <AiAnalyzePanel feature="manager" />
       </ExpandablePanel>
 
+      <ExpandablePanel
+        open={openFeature === 'indikator'}
+        title="Indikator KPI Harian Tim"
+        onClose={() => setOpenFeature(null)}
+      >
+        <KpiIndicatorPanel
+          members={teamRoster.map((m) => ({
+            employeeId: m.id,
+            fullName: m.name,
+            employeeCode: m.nip.replace(/^NIP:\s*/, ''),
+            position: m.role,
+            department: m.pillar,
+          }))}
+          periodId={PERIOD_ID}
+        />
+      </ExpandablePanel>
+
       {/* Modal Evaluasi Kinerja & Hitung Nilai Tim */}
       {selectedMember && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-5 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
               <div className="flex items-center gap-3">
-                <img
-                  src={selectedMember.avatar}
-                  alt={selectedMember.name}
-                  className="h-10 w-10 rounded-full object-cover border border-[#e2e8f0]"
-                />
+                {selectedMember.avatar ? (
+                  <img
+                    src={selectedMember.avatar}
+                    alt={selectedMember.name}
+                    className="h-10 w-10 rounded-full object-cover border border-[#e2e8f0]"
+                  />
+                ) : (
+                  <span className="h-10 w-10 rounded-full bg-[#e6f4ea] text-[#007a5a] border border-[#b7e1cd] flex items-center justify-center text-xs font-bold">
+                    {selectedMember.name
+                      .split(' ')
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((p) => p[0]?.toUpperCase() ?? '')
+                      .join('')}
+                  </span>
+                )}
                 <div>
                   <h3 className="text-sm font-extrabold text-[#0f172a]">
                     Evaluasi Kinerja: {selectedMember.name}

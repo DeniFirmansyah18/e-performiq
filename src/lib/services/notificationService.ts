@@ -374,7 +374,7 @@ export type EmployeeLifecycleEvent =
   | 'PAYSLIP_READY'
   | 'TRAINING_ASSIGNED'
   | 'CONTRACT_ENDING'
-  // --- Event lintas-role (HR / Atasan / Assessor / Pengawas) ---
+  // --- Event lintas-role (HR / Atasan / Komite Kalibrasi / Pengawas) ---
   | 'LEAVE_REQUESTED'          // pengajuan cuti masuk → HR/Atasan (persetujuan)
   | 'LEAVE_DECIDED'            // keputusan cuti → karyawan pemohon
   | 'TIMESHEET_SUBMITTED'      // timesheet dikirim → Atasan (persetujuan)
@@ -383,7 +383,7 @@ export type EmployeeLifecycleEvent =
   | 'PAYROLL_ITEM_PAID'        // slip dibayar → karyawan + Auditor
   | 'APPRAISAL_BATCH_READY'    // batch GPA massal selesai → HR
   | 'FINALIZATION_REQUESTED'   // permintaan finalisasi nilai → HR
-  | 'CALIBRATION_PENDING'      // hasil siap dikalibrasi → Assessor
+  | 'CALIBRATION_PENDING'      // hasil siap dikalibrasi → Komite Kalibrasi
   | 'CLEARANCE_PENDING'        // serah terima menunggu verifikasi → Atasan
   | 'CANDIDATE_HIRED'          // kandidat dikonversi → HR + Atasan terkait
   | 'AUDIT_EVENT';             // peristiwa sensitif yang tercatat → Auditor
@@ -581,7 +581,7 @@ export async function markEmployeeNotificationsRead(db: Db, q: NotifQuery, notif
 
 /**
  * Notifikasi peran: catat untuk SETIAP peran target. Berguna saat 1 event
- * harus sampai ke beberapa tim (mis. FINALIZATION → HR + Assessor).
+ * harus sampai ke beberapa tim (mis. FINALIZATION → HR + Komite Kalibrasi).
  */
 export async function notifyRoles(
   db: Db,

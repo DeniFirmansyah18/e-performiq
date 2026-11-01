@@ -17,12 +17,12 @@ export default function FeatureCard({ icon: Icon, title, description, metric, ta
     <button
       type="button"
       onClick={onOpen}
-      className="group text-left rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#007a5a] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a] focus-visible:ring-offset-2"
+      className="group flex h-full w-full flex-col text-left rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#007a5a] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a] focus-visible:ring-offset-2"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
           {Icon && (
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e6f4ea]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e6f4ea]">
               <Icon className="h-4 w-4 text-[#007a5a]" />
             </span>
           )}
@@ -35,12 +35,17 @@ export default function FeatureCard({ icon: Icon, title, description, metric, ta
             )}
           </div>
         </div>
-        <ArrowUpRight className="h-4 w-4 text-[#94a3b8] transition-colors group-hover:text-[#007a5a]" />
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-[#94a3b8] transition-colors group-hover:text-[#007a5a]" />
       </div>
 
-      {metric && <p className="mt-3 text-2xl font-extrabold tracking-tight text-[#0f172a]">{metric}</p>}
+      {/* Blok metrik mendapat tinggi minimum yang sama pada semua kartu agar
+          judul & deskripsi antar kartu sejajar, termasuk pada ActionCard yang
+          tidak punya metrik. */}
+      <p className="mt-3 min-h-[2rem] text-2xl font-extrabold tracking-tight text-[#0f172a]">
+        {metric ?? '\u00A0'}
+      </p>
       <p className="mt-2 text-xs leading-relaxed text-[#64748b]">{description}</p>
-      <p className="mt-3 text-[11px] font-semibold text-[#007a5a] opacity-0 transition-opacity group-hover:opacity-100">
+      <p className="mt-auto pt-3 text-[11px] font-semibold text-[#007a5a] opacity-0 transition-opacity group-hover:opacity-100">
         Klik untuk membuka →
       </p>
     </button>

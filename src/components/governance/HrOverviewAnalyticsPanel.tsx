@@ -23,10 +23,10 @@ interface WorkforceProfile {
 
 /** Label & warna tiap rating, mengikuti skala performance_rating A/B/C/D. */
 const RATING_META: Record<string, { label: string; range: string; color: string; bg: string }> = {
-  A: { label: 'Rating A (Exceptional)', range: '>= 90%', color: 'text-emerald-400', bg: 'bg-emerald-500' },
-  B: { label: 'Rating B (Solid/Meets)', range: '80% - 89.9%', color: 'text-blue-400', bg: 'bg-blue-500' },
-  C: { label: 'Rating C (Acceptable)', range: '70% - 79.9%', color: 'text-amber-400', bg: 'bg-amber-500' },
-  D: { label: 'Rating D (Unsatisfactory)', range: '< 70%', color: 'text-rose-400', bg: 'bg-rose-500' },
+  A: { label: 'Rating A (Exceptional)', range: '>= 90%', color: 'text-[#137333]', bg: 'bg-[#007a5a]' },
+  B: { label: 'Rating B (Solid/Meets)', range: '80% - 89.9%', color: 'text-[#0369a1]', bg: 'bg-[#0284c7]' },
+  C: { label: 'Rating C (Acceptable)', range: '70% - 79.9%', color: 'text-[#b45309]', bg: 'bg-[#f59e0b]' },
+  D: { label: 'Rating D (Unsatisfactory)', range: '< 70%', color: 'text-[#c5221f]', bg: 'bg-[#dc2626]' },
 };
 
 interface ExecutiveSummary {
@@ -52,26 +52,26 @@ function DistributionList({
 }) {
   const max = Math.max(1, ...buckets.map((b) => b.count));
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-slate-700">
+    <div className="stitch-card-white p-4">
+      <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-[#0f172a]">
         {icon}
         {title}
       </div>
       {buckets.length === 0 ? (
-        <p className="text-xs text-slate-400">Belum ada data.</p>
+        <p className="text-xs text-[#94a3b8]">Belum ada data.</p>
       ) : (
         <ul className="space-y-2">
           {buckets.map((b) => (
             <li key={b.label}>
-              <div className="flex items-center justify-between text-[11px] text-slate-600 mb-0.5">
+              <div className="flex items-center justify-between text-[11px] text-[#475569] mb-0.5">
                 <span className="truncate pr-2">{b.label}</span>
-                <span className="font-semibold text-slate-800 whitespace-nowrap">
+                <span className="font-semibold text-[#0f172a] whitespace-nowrap">
                   {b.count} ({b.percentage}%)
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#f1f5f9] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-indigo-500 rounded-full"
+                  className="h-full bg-[#007a5a] rounded-full"
                   style={{ width: `${(b.count / max) * 100}%` }}
                 />
               </div>
@@ -112,12 +112,12 @@ export default function HrOverviewAnalyticsPanel() {
   }, []);
 
   if (loading) {
-    return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat analitik kepegawaian...</div>;
+    return <div className="p-6 text-sm text-[#64748b] animate-pulse">Memuat analitik kepegawaian...</div>;
   }
 
   if (error) {
     return (
-      <div className="p-6 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl">
+      <div className="p-6 text-sm text-[#c5221f] bg-[#fce8e6] border border-[#f5c6c0] rounded-xl">
         Gagal memuat analitik kepegawaian: {error}
       </div>
     );
@@ -144,54 +144,68 @@ export default function HrOverviewAnalyticsPanel() {
     <div className="space-y-6">
       {/* Metrik utama */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Users className="w-4 h-4 text-indigo-600" /> Headcount Aktif
+        <div className="p-4 stitch-card-white">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#64748b] mb-1">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e6f4ea]">
+              <Users className="w-4 h-4 text-[#007a5a]" />
+            </span>
+            Headcount Aktif
           </div>
-          <div className="text-2xl font-bold text-slate-800">{hc?.active ?? 0}</div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-2xl font-black text-[#0f172a]">{hc?.active ?? 0}</div>
+          <div className="text-[11px] text-[#64748b] mt-1">
             dari {hc?.total ?? 0} total &bull; PKWT {hc?.pkwt ?? 0} &bull; Probation{' '}
             {hc?.probation ?? 0}
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Award className="w-4 h-4 text-emerald-600" /> Rata-rata GPA
+        <div className="p-4 stitch-card-white">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#64748b] mb-1">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e6f4ea]">
+              <Award className="w-4 h-4 text-[#007a5a]" />
+            </span>
+            Rata-rata GPA
           </div>
-          <div className="text-2xl font-bold text-slate-800">
+          <div className="text-2xl font-black text-[#0f172a]">
             {summary?.appraisal.average_gpa ?? 0}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-[11px] text-[#64748b] mt-1">
             {summary?.appraisal.total_appraised ?? 0} karyawan dinilai
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <TrendingUp className="w-4 h-4 text-blue-600" /> Capaian KPI
+        <div className="p-4 stitch-card-white">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#64748b] mb-1">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e6f4ea]">
+              <TrendingUp className="w-4 h-4 text-[#007a5a]" />
+            </span>
+            Capaian KPI
           </div>
-          <div className="text-2xl font-bold text-slate-800">{kpi?.averagePercentage ?? 0}%</div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-2xl font-black text-[#0f172a]">{kpi?.averagePercentage ?? 0}%</div>
+          <div className="text-[11px] text-[#64748b] mt-1">
             {kpi?.belowTargetCount ?? 0} dari {kpi?.totalKpi ?? 0} KPI di bawah target
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Target className="w-4 h-4 text-violet-600" /> Pemenuhan MPP
+        <div className="p-4 stitch-card-white">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#64748b] mb-1">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e6f4ea]">
+              <Target className="w-4 h-4 text-[#007a5a]" />
+            </span>
+            Pemenuhan MPP
           </div>
-          <div className="text-2xl font-bold text-slate-800">{mpp?.percentage ?? 0}%</div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-2xl font-black text-[#0f172a]">{mpp?.percentage ?? 0}%</div>
+          <div className="text-[11px] text-[#64748b] mt-1">
             {mpp?.hired ?? 0} terisi dari kuota {mpp?.quota ?? 0}
           </div>
         </div>
       </div>
 
       {/* Talent signal */}
-      <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-100 bg-indigo-50/50">
-        <AlertTriangle className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
-        <p className="text-[11px] text-indigo-900 leading-relaxed">
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-[#b7e1cd] bg-[#e6f4ea]/60">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#007a5a] flex-shrink-0 mt-0.5">
+          <AlertTriangle className="w-4 h-4 text-white" />
+        </span>
+        <p className="text-[11px] text-[#0d3b2e] leading-relaxed">
           <span className="font-semibold">{summary?.appraisal.high_potential_count ?? 0} karyawan</span>{' '}
           berada di kuadran potensi tinggi (Future Leader / Growth Star / Enigma), dihitung dari
           appraisal terbaru. Matriks 9-Box di bawah menampilkan sebaran lengkap beserta daftar
@@ -201,21 +215,21 @@ export default function HrOverviewAnalyticsPanel() {
 
       {/* Distribusi performa & 9-box */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-slate-700">
-            <TrendingUp className="w-4 h-4 text-blue-600" /> Distribusi Nilai Performa (Kurva Gaussian)
+        <div className="stitch-card-white p-4">
+          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-[#0f172a]">
+            <TrendingUp className="w-4 h-4 text-[#007a5a]" /> Distribusi Nilai Performa (Kurva Gaussian)
           </div>
           {ratings.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#94a3b8]">
               Belum ada data appraisal untuk menggambarkan distribusi nilai.
             </p>
           ) : (
             <GaussianCurve ratings={ratings} />
           )}
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-slate-700">
-            <Award className="w-4 h-4 text-emerald-600" /> Matriks Talenta 9-Box
+        <div className="stitch-card-white p-4">
+          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-[#0f172a]">
+            <Award className="w-4 h-4 text-[#007a5a]" /> Matriks Talenta 9-Box
           </div>
           <NineBoxGrid />
         </div>
@@ -225,22 +239,22 @@ export default function HrOverviewAnalyticsPanel() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <DistributionList
           title="Sebaran per Departemen"
-          icon={<Users className="w-4 h-4 text-indigo-600" />}
+          icon={<Users className="w-4 h-4 text-[#007a5a]" />}
           buckets={profile?.byDepartment ?? []}
         />
         <DistributionList
           title="Rasio Gender"
-          icon={<PieChart className="w-4 h-4 text-emerald-600" />}
+          icon={<PieChart className="w-4 h-4 text-[#007a5a]" />}
           buckets={profile?.byGender ?? []}
         />
         <DistributionList
           title="Sebaran Usia"
-          icon={<PieChart className="w-4 h-4 text-amber-600" />}
+          icon={<PieChart className="w-4 h-4 text-[#007a5a]" />}
           buckets={profile?.byAgeBand ?? []}
         />
         <DistributionList
           title="Sebaran Job Grade"
-          icon={<PieChart className="w-4 h-4 text-slate-600" />}
+          icon={<PieChart className="w-4 h-4 text-[#007a5a]" />}
           buckets={profile?.byJobGrade ?? []}
         />
       </div>

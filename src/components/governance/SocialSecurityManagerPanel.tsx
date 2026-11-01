@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { ShieldCheck, Save, X } from 'lucide-react';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface Row {
   employeeId: string;
@@ -21,6 +22,8 @@ const STATUS_LABEL: Record<Row['bpjsTkStatus'], string> = {
 };
 
 export default function SocialSecurityManagerPanel() {
+  const { activeRole } = useAuth();
+  const canWrite = activeRole === 'HR_MANAGER' || activeRole === 'SUPER_ADMIN';
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [missingOnly, setMissingOnly] = useState(false);
@@ -37,11 +40,19 @@ export default function SocialSecurityManagerPanel() {
     registeredAt: '',
   });
 
+  const [forbidden, setForbidden] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/v1/hr/social-security${missingOnly ? '?missing=true' : ''}`);
-      if (res.ok) setRows((await res.json())?.data?.items ?? []);
+      if (res.ok) {
+        setForbidden(false);
+        setRows((await res.json())?.data?.items ?? []);
+      } else if (res.status === 403) {
+        setForbidden(true);
+        setRows([]);
+      }
     } catch {
       /* biarkan kosong */
     } finally {
@@ -100,7 +111,9 @@ export default function SocialSecurityManagerPanel() {
             <span>Data BPJS Karyawan</span>
           </h3>
           <p className="text-[11px] text-[#64748b]">
-            Nomor peserta selalu ter-masking; isi hanya bila ada perubahan.
+            {canWrite
+              ? 'Nomor peserta selalu ter-masking; isi hanya bila ada perubahan.'
+              : 'Pantau kepesertaan BPJS karyawan. Perubahan data hanya dapat dilakukan HR.'}
           </p>
         </div>
         <label className="flex items-center gap-1.5 text-[11px] text-[#475569]">
@@ -122,6 +135,18 @@ export default function SocialSecurityManagerPanel() {
 
       {loading && <p className="text-[11px] text-[#64748b]">Memuat data BPJS…</p>}
 
+      {!loading && forbidden && (
+        <p className="text-[11px] text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-lg px-3 py-2">
+          Anda tidak berwenang melihat data BPJS karyawan. Data ini hanya tersedia untuk HR.
+        </p>
+      )}
+
+      {!loading && !forbidden && rows.length === 0 && (
+        <p className="text-[11px] text-[#64748b]">
+          Tidak ada data BPJS yang cocok dengan filter saat ini.
+        </p>
+      )}
+
       <ul className="divide-y divide-[#e2e8f0]">
         {rows.map((r) => (
           <li key={r.employeeId} className="py-2.5">
@@ -137,6 +162,7 @@ export default function SocialSecurityManagerPanel() {
                 type="button"
                 onClick={() => (editing === r.employeeId ? setEditing(null) : startEdit(r))}
                 aria-label={`Kelola BPJS ${r.employeeName}`}
+                hidden={!canWrite}
                 className="ml-auto rounded-lg border border-[#0284c7] px-2 py-1 text-[10px] font-semibold text-[#0284c7] hover:bg-[#e0f2fe] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0284c7] focus-visible:ring-offset-2"
               >
                 Kelola

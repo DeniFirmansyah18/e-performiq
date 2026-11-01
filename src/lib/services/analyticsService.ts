@@ -11,7 +11,18 @@ import {
 import { logAction } from './auditService';
 
 export async function getVmaiScorecardData(db: Db, periodId = '2026-Q3') {
-  const pillars = await selectActivePillars(db);
+  const periodRes = (await db.execute(sql`
+    SELECT id::text AS "id", period_code AS "periodCode"
+      FROM appraisal_periods
+     WHERE id::text = ${periodId} OR period_code = ${periodId}
+     ORDER BY start_date DESC
+     LIMIT 1
+  `)) as unknown as { rows: Array<{ id: string; periodCode: string }> };
+  const periodCode = periodRes.rows[0]?.periodCode ?? periodId;
+
+  // Capaian pilar diambil dari periode yang diminta; tanpa filter periode
+  // VMAI mencampur seluruh periode sehingga angka tidak bisa diaudit.
+  const pillars = await selectActivePillars(db, periodRes.rows[0]?.id ?? periodCode);
 
   const countRes = (await db.execute(sql`
     SELECT COUNT(*)::int AS "total"
@@ -19,15 +30,6 @@ export async function getVmaiScorecardData(db: Db, periodId = '2026-Q3') {
      WHERE status <> 'RESIGNED'
   `)) as unknown as { rows: Array<{ total: number }> };
   const totalEmployees = Number(countRes.rows[0]?.total ?? 0);
-
-  const periodRes = (await db.execute(sql`
-    SELECT period_code AS "periodCode"
-      FROM appraisal_periods
-     WHERE id::text = ${periodId} OR period_code = ${periodId}
-     ORDER BY start_date DESC
-     LIMIT 1
-  `)) as unknown as { rows: Array<{ periodCode: string }> };
-  const periodCode = periodRes.rows[0]?.periodCode ?? periodId;
 
   const gcgComplianceFactor = await computeGcgComplianceFactor(db, periodCode);
   const vmai = calculateVMAI(pillars, gcgComplianceFactor, { totalEmployees, periodCode });

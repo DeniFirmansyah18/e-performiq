@@ -4,8 +4,19 @@ import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/re
 import WorkloadAnalysisPanel from '@/components/governance/WorkloadAnalysisPanel';
 import CareerAndActionsPanel from '@/components/governance/CareerAndActionsPanel';
 import PkwtDirectoryPanel from '@/components/governance/PkwtDirectoryPanel';
+import { AuthProvider } from '@/lib/context/AuthContext';
 
 const okJson = (data: unknown) => ({ ok: true, json: async () => ({ status: 'success', data }) });
+
+// Role sesi dipakai `AuthProvider` untuk menentukan hak tulis pada panel PKWT.
+let sessionRole = 'HR_MANAGER';
+
+const renderPkwt = () =>
+  render(
+    <AuthProvider>
+      <PkwtDirectoryPanel />
+    </AuthProvider>
+  );
 
 const workload = {
   fromDate: '2026-09-21',
@@ -59,7 +70,9 @@ const contracts = {
 };
 
 beforeEach(() => {
+  sessionRole = 'HR_MANAGER';
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (String(url).includes('/auth/me')) return okJson({ user: { id: 'u1', email: 'u@x.id', name: 'U', role: sessionRole } });
     if (String(url).includes('workload-summary')) return okJson(workload);
     if (String(url).includes('action-recommendations')) return okJson(recommendations);
     if (String(url).includes('contracts-summary')) return okJson(contracts);
@@ -144,7 +157,7 @@ describe('CareerAndActionsPanel', () => {
 
 describe('PkwtDirectoryPanel', () => {
   it('menampilkan ringkasan kontrak dan menyaring berdasarkan pencarian', async () => {
-    render(<PkwtDirectoryPanel />);
+    renderPkwt();
     await waitFor(() => expect(screen.getByText(/Rian Hidayat/)).toBeTruthy());
     expect(screen.getByText('2')).toBeTruthy();
 
@@ -156,12 +169,26 @@ describe('PkwtDirectoryPanel', () => {
   });
 
   it('menyaring kontrak kedaluwarsa', async () => {
-    render(<PkwtDirectoryPanel />);
+    renderPkwt();
     await waitFor(() => expect(screen.getByText(/Rian Hidayat/)).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: /Kedaluwarsa/ }));
     await waitFor(() => expect(screen.queryByText(/Rian Hidayat/)).toBeNull());
     expect(screen.getByText(/Dewi Lestari/)).toBeTruthy();
+  });
+
+  it('menampilkan tombol aksi hanya untuk role ber-hak employment:manage', async () => {
+    renderPkwt();
+    await waitFor(() => expect(screen.getByText(/Rian Hidayat/)).toBeTruthy());
+    expect(screen.getAllByRole('button', { name: /Perpanjang/ }).length).toBe(2);
+    cleanup();
+
+    sessionRole = 'EMPLOYEE';
+    renderPkwt();
+    await waitFor(() => expect(screen.getByText(/Rian Hidayat/)).toBeTruthy());
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Perpanjang/ })).toBeNull());
+    expect(screen.queryByRole('button', { name: /Tetap/ })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Aksi' })).toBeNull();
   });
 });
 

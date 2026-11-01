@@ -250,12 +250,33 @@ export async function deactivateEmployeeOnExit(
   const result = await db.execute(sql`
     UPDATE employees
        SET status = ${exitStatus}::employee_status_enum,
-           last_working_day = ${lastWorkingDay}::date
+           last_working_day = ${lastWorkingDay}::date,
+           employment_status = CASE
+             WHEN ${exitStatus}::text = 'RETIRED'
+               THEN 'RETIRED'::employment_status_enum
+             ELSE 'RESIGNED'::employment_status_enum
+           END
      WHERE id = ${employeeId}::uuid
        AND status NOT IN ('RESIGNED','RETIRED')
     RETURNING id, status, last_working_day as "lastWorkingDay"
   `);
   return (result.rows[0] as any) ?? null;
+}
+
+/**
+ * Karyawan yang keluar masuk fase Pasca-Kerja. Best-effort agar kegagalan
+ * pencatatan fase tidak menggagalkan proses offboarding.
+ */
+export async function enterPostPhase(db: Db, employeeId: string, reason: string) {
+  try {
+    const { syncEmployeePhase } = await import('@/lib/services/employeePhaseService');
+    await syncEmployeePhase(db, {
+      employeeId,
+      targetPhase: 'POST',
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      reason,
+    });
+  } catch { /* best-effort */ }
 }
 
 /** Nonaktifkan akun login (users.is_active=false) milik karyawan yang keluar. */

@@ -88,7 +88,7 @@ export const FAQ_DATA: FaqItem[] = [
         '1. Penetapan Target (Awal Periode): Karyawan dan atasan menyepakati target kerja (KPI). Total bobot seluruh target wajib tepat 100%.',
         '2. Pencatatan Hasil (Harian/Mingguan): Karyawan memperbarui angka capaian kerja secara berkala di portal pribadinya.',
         '3. Evaluasi Atasan (Tengah/Akhir Periode): Atasan menilai pencapaian target, kepatuhan tata tertib SOP, keahlian teknis, dan perilaku budaya kerja.',
-        '4. Sidang Kalibrasi (Komite Penilai): Komite Assessor independen meninjau seluruh nilai agar sebaran nilai di seluruh divisi adil dan merata.',
+        '4. Sidang Kalibrasi (Komite Penilai): Komite Kalibrasi independen meninjau seluruh nilai agar sebaran nilai di seluruh divisi adil dan merata.',
         '5. Penerbitan Rapor Sah: Nilai dikunci permanen, rapor diterbitkan, dan posisi karyawan dipetakan ke dalam Matriks 9-Box untuk jenjang karir selanjutnya.',
       ],
       steps: {
@@ -96,7 +96,7 @@ export const FAQ_DATA: FaqItem[] = [
         items: [
           'Karyawan: Memperbarui realisasi capaian & mengisi ulasan rekan sejawat 360° secara anonim.',
           'Atasan Langsung: Menyetujui usulan target bawahan & memberikan penilaian komposit 4 pilar.',
-          'Assessor / Komite: Menyelenggarakan sidang kalibrasi untuk mencegah perlakuan tidak adil.',
+          'Komite Kalibrasi / People Manager: Menyelenggarakan sidang kalibrasi untuk mencegah perlakuan tidak adil.',
           'HR Manager: Memantau kelengkapan berkas, mengelola rekrutmen, dan memproses hak pesangon pensiun/keluar.',
           'Direksi (BOD): Memantau kesehatan performa korporat secara keseluruhan lewat grafik eksekutif.',
         ],
@@ -111,13 +111,13 @@ export const FAQ_DATA: FaqItem[] = [
     categoryColor: 'bg-[#E3F1DF] text-[#008060] border-[#B4E3B2]',
     roleTag: 'Daftar Peran',
     question: 'Apa saja 6 peran (Role) di aplikasi ini dan apa fungsi masing-masing peran?',
-    summary: 'Karyawan (isi capaian), Atasan (nilai tim), Assessor (kalibrasi adil), HR (kelola pegawai), Direksi (pantau strategi), Auditor (awasi keabsahan).',
+    summary: 'Karyawan (isi capaian), Atasan (nilai tim), People Manager (kalibrasi adil), HR (kelola pegawai), Direksi (pantau strategi), Auditor (awasi keabsahan).',
     detail: {
       explanation: [
         'Setiap peran di E-PerformIQ memiliki menu dan tombol yang disesuaikan dengan tanggung jawab resminya:',
         '1. Karyawan (Individual Talent - Budi Pratama): Mengakses portal pribadi untuk melihat rapor nilai, menambah target KPI baru, mengupdate capaian, dan mengirim ulasan 360° anonim.',
         '2. Atasan Langsung (People Lead - Raden Mas Danu): Menyetujui target anggota tim, menilai kinerja 4 pilar bawahan, dan melihat simulasi penempatan kuadran 9-Box tim.',
-        '3. Komite Penilai (Lead Assessor - Dr. Aris Wicaksono): Menyelenggarakan sidang moderasi nilai dan mengesahkan penempatan talenta pada Matriks 9-Box suksesi.',
+        '3. People Manager / Komite Kalibrasi (Dr. Aris Wicaksono): Menyelenggarakan sidang moderasi nilai dan mengesahkan penempatan talenta pada Matriks 9-Box suksesi.',
         '4. Pengelola SDM (HR Command - Siti Nurhaliza): Mengelola penerimaan calon karyawan baru (QoH), mengekspor laporan standar ISO 30414, mengawasi pengembalian aset kantor (BAST), dan menghitung uang pesangon resmi PP 35/2021.',
         '5. Direksi Korporasi (Executive Boardroom - Ir. Hendra Gunawan): Memantau indeks kesehatan strategi VMAI, memeriksa grafik 4 pilar Balanced Scorecard, dan mengunduh laporan RUPS.',
         '6. Pengawas Tata Kelola (Auditor SPI - Bambang Soeprapto): Mengawasi keaslian rekaman data sistem, memastikan kepatuhan tata kelola GCG, dan memeriksa perbandingan data dengan tombol "Lihat Diff".',
@@ -174,7 +174,7 @@ export const FAQ_DATA: FaqItem[] = [
           'HR Manager membuka formulir pendaftaran rekrutmen baru dan menyeleksi kandidat hingga lulus seleksi.',
           'Karyawan (Employee) mengajukan sasaran target baru di portal pribadinya sesuai pilar Balanced Scorecard.',
           'Atasan Langsung (People Manager) menyetujui target kerja dan melakukan evaluasi berkala 4 pilar.',
-          'Komite Penilai (Assessor) menyelenggarakan sidang kalibrasi untuk memoderasi nilai dan menempatkan posisi karyawan di 9-Box Talent Matrix.',
+          'Komite Kalibrasi (People Manager) menyelenggarakan sidang kalibrasi untuk memoderasi nilai dan menempatkan posisi karyawan di 9-Box Talent Matrix.',
           'Direksi (BOD) memantau skor kesehatan kinerja korporat dan Auditor Pengawas memeriksa keabsahan catatan riwayat.',
         ],
       },
@@ -334,7 +334,7 @@ export const FAQ_DATA: FaqItem[] = [
         '1. Transparency (Keterbukaan): Rumus bobot komposit (50/20/15/15) dan pohon cascading sasaran dapat dilihat secara transparan oleh seluruh karyawan di portal pribadinya tanpa ada formula rahasia.',
         '2. Accountability (Akuntabilitas): Pengesahan nilai akhir wajib diputuskan melalui sidang kuorum Komite Kalibrasi Talenta dan dibubuhi stempel digital penilai serta catatan risalah resmi.',
         '3. Responsibility (Pertanggungjawaban): Kepatuhan mutlak terhadap hukum ketenagakerjaan RI (PP 35/2021) terkait pembayaran pesangon, jaminan sosial, dan keselamatan kerja.',
-        '4. Independency (Kemandirian): Kehadiran peran Assessor Independen yang tidak berada di bawah tekanan operasional departemen untuk memoderasi nilai secara objektif.',
+        '4. Independency (Kemandirian): Kehadiran Komite Kalibrasi independen yang tidak berada di bawah tekanan operasional departemen untuk memoderasi nilai secara objektif.',
         '5. Fairness (Kewajaran & Kesetaraan): Kesetaraan hak karyawan melalui mekanisme ulasan rekan sejawat 360° yang terlindungi anonimitasnya, serta hak audit bagi SPI untuk melacak segala bentuk perubahan data.',
       ],
       legalBasis: 'Pedoman Umum Good Corporate Governance Indonesia (KNKG RI 2021).',
@@ -399,18 +399,18 @@ export const FAQ_DATA: FaqItem[] = [
     category: 'roles',
     categoryLabel: 'Panduan Role',
     categoryColor: 'bg-[#F1F1F1] text-[#202223] border-[#E1E3E5]',
-    roleTag: 'Komite Penilai Independen / Assessor',
-    question: 'Bagaimana panduan lengkap langkah demi langkah bagi peran ASSESSOR (Dr. Aris Wicaksono)?',
+    roleTag: 'Komite Kalibrasi Independen / People Manager',
+    question: 'Bagaimana panduan lengkap langkah demi langkah bagi peran People Manager pada Komite Kalibrasi (Dr. Aris Wicaksono)?',
     summary: 'Cara memimpin sidang kalibrasi talenta, memoderasi nilai, dan mengesahkan penempatan 9-Box.',
     detail: {
       explanation: [
-        'Assessor bertindak sebagai penjamin mutu dan keadilan penilaian di seluruh organisasi, memastikan standar BUMN diterapkan secara merata dan merumuskan talent pipeline suksesi.',
+        'Komite Kalibrasi bertindak sebagai penjamin mutu dan keadilan penilaian di seluruh organisasi, memastikan standar BUMN diterapkan secara merata dan merumuskan talent pipeline suksesi. Peran ini melekat pada People Manager yang ditunjuk, bukan peran terpisah.',
       ],
       steps: {
         title: 'Langkah Demi Langkah di 9-Box Talent Matrix',
         items: [
           'Langkah 1: Buka menu "9-Box Talent Matrix" di bilah navigasi. Anda akan melihat sebaran seluruh karyawan perusahaan pada 9 kuadran talenta.',
-          'Langkah 2: Klik tombol biru "Moderasi & Kalibrasi (Assessor)" di bilah atas.',
+          'Langkah 2: Klik tombol biru "Moderasi & Kalibrasi" di bilah atas.',
           'Langkah 3: Pada modal sidang kalibrasi, pilih nama pegawai yang disidangkan (misal: Budi Pratama).',
           'Langkah 4: Tentukan skor "Potensi Kepemimpinan & Suksesi" (skala 1.0 - 5.0) berdasarkan hasil uji asesmen kepemimpinan atau psikotes berkala.',
           'Langkah 5: Sesuaikan skor moderasi capaian KPI jika sidang menemukan deviasi objektivitas dari atasan langsung.',
@@ -418,7 +418,7 @@ export const FAQ_DATA: FaqItem[] = [
           'Langkah 7: Klik tombol "Sahkan Kalibrasi & Simpan". Sistem akan mengunci nilai secara otomatis menjadi permanen (tidak dapat diubah sepihak) dan mencatat pengesahan ini ke buku pengawasan internal (SPI).',
         ],
       },
-      importantNote: 'Pengesahan oleh Assessor merupakan gerbang hukum terakhir sebelum nilai dicantumkan dalam SK resmi kepegawaian.',
+      importantNote: 'Pengesahan oleh Komite Kalibrasi merupakan gerbang hukum terakhir sebelum nilai dicantumkan dalam SK resmi kepegawaian.',
     },
   },
   {
@@ -653,7 +653,7 @@ export const FAQ_DATA: FaqItem[] = [
       background:
         'Pada cara kerja konvensional, nilai rawan diubah diam-diam oleh pihak tertentu setelah masa evaluasi selesai. Di E-PerformIQ, hal tersebut dicegah melalui sistem penguncian otomatis berstandar audit perbankan dan tata kelola GCG.',
       explanation: [
-        'Ketika Komite Penilai (Assessor) mengesahkan penilaian seorang karyawan, sistem langsung mengaktifkan kunci pengaman resmi (status Terkalibrasi / Sah).',
+        'Ketika Komite Kalibrasi mengesahkan penilaian seorang karyawan, sistem langsung mengaktifkan kunci pengaman resmi (status Terkalibrasi / Sah).',
         'Setelah berstatus terkunci, sistem secara otomatis menolak segala upaya pengeditan maupun penghapusan nilai dari pihak mana pun tanpa kecuali.',
         'Bagaimana jika terjadi kekeliruan administrasi yang sah?',
         'Nilai hanya dapat diperbaiki melalui prosedur pembukaan kunci resmi yang memerlukan izin tertulis dari Direktur Human Capital dengan menyertakan alasan yang jelas. Setiap proses perbaikan nilai otomatis dicatat di buku riwayat audit sistem yang tidak dapat dihapus, sehingga Satuan Pengawas Internal (SPI) dapat memantau transparansinya kapan saja.',

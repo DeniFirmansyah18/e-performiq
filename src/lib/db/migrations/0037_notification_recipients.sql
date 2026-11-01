@@ -1,7 +1,7 @@
 -- 0037: Penerima notifikasi lintas-role.
 -- Notifikasi tidak lagi hanya milik `employee_id`: suatu aksi bisnis dapat
 -- menargetkan PENGGUNA tertentu (recipient_user_id) atau PERAN (recipient_role),
--- sehingga HR/Atasan/Assessor/Pengawas dapat menerima pemberitahuan atas
+-- sehingga HR/Atasan/Komite Kalibrasi/Pengawas dapat menerima pemberitahuan atas
 -- perubahan yang relevan dengan tugasnya. Backfill baris lama ke user karyawan.
 
 ALTER TABLE employee_notifications

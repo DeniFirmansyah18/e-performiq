@@ -93,6 +93,23 @@ async function notifyHired(db: Db, employeeId: string, name: string): Promise<vo
   } catch { /* best-effort */ }
 }
 
+/**
+ * Karyawan hasil konversi masuk fase Pra-Kerja (orientasi 30-60-90 belum
+ * tuntas). Dicatat lewat state machine agar transisinya punya jejak audit.
+ */
+async function enterPrePhase(db: Db, employeeId: string, actorUserId?: string | null): Promise<void> {
+  try {
+    const { syncEmployeePhase } = await import('./employeePhaseService');
+    await syncEmployeePhase(db, {
+      employeeId,
+      targetPhase: 'PRE',
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      reason: 'Konversi kandidat HIRED menjadi karyawan; orientasi 30-60-90 hari dibuka.',
+      decidedBy: actorUserId ?? null,
+    });
+  } catch { /* best-effort */ }
+}
+
 export async function convertHiredCandidate(
   db: Db,
   input: { applicationId: string; actorUserId?: string | null },
@@ -132,6 +149,7 @@ export async function convertHiredCandidate(
     `);
     await ensureOnboardingBridge(db, eid, input.applicationId, row.positionId ?? null);
     await ensureStarterKpiBridge(db, eid);
+    await enterPrePhase(db, eid, input.actorUserId);
     await notifyHired(db, eid, String(row.fullName));
     if (row.accountId) {
       await db.execute(sql`UPDATE candidate_accounts SET is_active = FALSE WHERE id = ${row.accountId}::uuid`);
@@ -185,6 +203,7 @@ export async function convertHiredCandidate(
   // tertaut ke lamaran/posisi asal agar siklus Rekrutmen → Orientasi menyatu.
   await ensureOnboardingBridge(db, employeeId, input.applicationId, row.positionId ?? null);
   await ensureStarterKpiBridge(db, employeeId);
+  await enterPrePhase(db, employeeId, input.actorUserId);
   await notifyHired(db, employeeId, String(row.fullName));
 
   if (row.accountId) {

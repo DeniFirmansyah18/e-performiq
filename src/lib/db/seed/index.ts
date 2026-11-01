@@ -4,6 +4,8 @@ import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/types';
 import { ASSESSMENT_TEMPLATES, type SeedQuestion } from './assessment-seed';
 import { SEED_MAJORS, SEED_INSTITUTIONS } from './education-seed';
+import { seedLifecycle } from './lifecycle-seed';
+import { seedTalentAndContracts } from './talent-contract-seed';
 
 export const DEMO_PASSWORD = 'enterprise2026';
 /** PIN slip gaji demo untuk seluruh karyawan seed (disimpan sebagai hash bcrypt). */
@@ -17,7 +19,7 @@ export const SEED_USER_EMAILS: ReadonlyArray<{ email: string; role: UserRole }> 
 { email: 'budi.pratama@eperformiq.co.id', role: 'EMPLOYEE' },
 { email: 'bambang.audit@eperformiq.co.id', role: 'AUDITOR' },
 { email: 'admin@eperformiq.co.id', role: 'SUPER_ADMIN' },
-{ email: 'aris.assessor@eperformiq.co.id', role: 'ASSESSOR' },
+{ email: 'aris.assessor@eperformiq.co.id', role: 'PEOPLE_MANAGER' },
 ];
 
 /** Idempoten: seluruh INSERT memakai ON CONFLICT DO NOTHING (spec §10). */
@@ -94,7 +96,7 @@ INSERT INTO users (id, employee_id, email, password_hash, role, is_active) VALUE
   ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','${hash}','EMPLOYEE',TRUE),
   ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','${hash}','AUDITOR',TRUE),
   ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE),
-  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','ASSESSOR',TRUE)
+  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Strategic Pillars (BSC 4 Perspektif, sum = 100)
@@ -549,6 +551,8 @@ ON CONFLICT (id) DO NOTHING;
   await seedAssessmentBank(client);
   await seedPositionCourses(client);
   await seedEducationReference(client);
+  await seedLifecycle(client, { hash });
+  await seedTalentAndContracts(client);
 }
 
 /** Escape string untuk literal SQL (seed hanya memakai data terkontrol). */

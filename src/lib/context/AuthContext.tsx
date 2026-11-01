@@ -24,7 +24,6 @@ const ROLE_EMAILS: Record<UserRole, string> = {
   EMPLOYEE: 'budi.pratama@eperformiq.co.id',
   AUDITOR: 'bambang.audit@eperformiq.co.id',
   SUPER_ADMIN: 'admin@eperformiq.co.id',
-  ASSESSOR: 'aris.assessor@eperformiq.co.id',
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

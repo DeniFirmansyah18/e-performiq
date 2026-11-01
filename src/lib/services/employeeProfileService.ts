@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { logAction } from '@/lib/services/auditService';
+import { deriveWorkPhase, type WorkPhase } from '@/lib/employee/phase';
 
 /** Field yang boleh diubah karyawan sendiri (allowlist). Field lain diabaikan. */
 export const EDITABLE_PROFILE_FIELDS = [
@@ -30,7 +31,7 @@ export async function getMyProfile(db: Db, employeeId: string) {
   return res.rows[0] ?? null;
 }
 
-export type WorkPhase = 'PRE' | 'DURING' | 'POST';
+export type { WorkPhase };
 
 export const EMPLOYEE_STATUS_LABEL: Record<string, string> = {
   PROBATION: 'Percobaan',
@@ -67,7 +68,7 @@ export async function getMyLifecycleProfile(db: Db, employeeId: string) {
     SELECT e.id, e.employee_code AS "employeeCode", e.full_name AS "fullName",
            e.email, e.phone_number AS "phoneNumber", e.status, e.join_date AS "joinDate",
            e.last_working_day AS "lastWorkingDay", e.contract_end_date AS "contractEndDate",
-           e.photo_url AS "photoUrl", e.bio,
+           e.photo_url AS "photoUrl", e.bio, e.employee_phase AS "employeePhase",
            d.department_name AS "departmentName", jp.position_title AS "positionTitle",
            m.full_name AS "managerName", m.employee_code AS "managerCode"
       FROM employees e
@@ -120,17 +121,20 @@ export async function getMyLifecycleProfile(db: Db, employeeId: string) {
   const milestones = [onb.day30, onb.day60, onb.day90].filter((v: any) => v != null).length;
   const status: string = row.status ?? 'PROBATION';
   const programStatus: string | null = onb.opStatus ?? null;
-  // Program dianggap tuntas bila ditandai COMPLETED, atau masa percobaan lulus, atau 3 milestone lengkap.
-  const orientationDone =
-    programStatus === 'COMPLETED' || onb.probationPassed === true || milestones >= 3;
 
-  // Fase: sudah ada offboarding = POST; masa orientasi belum tuntas = PRE; else DURING.
-  // Karyawan berstatus PROBATION tetap di PRE sampai orientasi tuntas (program
-  // COMPLETED / lulus percobaan / 3 milestone), baru naik ke DURING.
-  let phase: WorkPhase = 'DURING';
-  if (offboardingStatus) phase = 'POST';
-  else if (programStatus != null && !orientationDone) phase = 'PRE';
-  else if (status === 'PROBATION' && !orientationDone) phase = 'PRE';
+  // Fase diambil dari kolom eksplisit `employees.employee_phase` (state machine
+  // yang dapat diaudit). Bila kolom belum terisi (mis. data hasil seed lama),
+  // turunkan lewat `deriveWorkPhase` agar kolom dan turunan tidak pernah
+  // memakai aturan berbeda.
+  const phase: WorkPhase =
+    (row.employeePhase as WorkPhase | null) ??
+    deriveWorkPhase({
+      offboardingStatus,
+      programStatus,
+      probationPassed: onb.probationPassed ?? null,
+      milestonesDone: milestones,
+      status,
+    });
 
   const period =
     perf?.periodCode ??

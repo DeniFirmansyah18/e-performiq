@@ -213,7 +213,7 @@ export default function NineBoxMatrixPage() {
     return () => { active = false; };
   }, []);
 
-  // Assessor Calibration State
+  // Komite Kalibrasi State
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   const [calibrateSuccessMsg, setCalibrateSuccessMsg] = useState<string | null>(null);
   const [isCalibrating, setIsCalibrating] = useState(false);
@@ -340,13 +340,13 @@ export default function NineBoxMatrixPage() {
             <span>Download Matriks PDF</span>
           </button>
 
-          {/* Moderasi & Kalibrasi Nilai (Assessor) */}
+          {/* Moderasi & Kalibrasi Nilai (Komite Kalibrasi) */}
           <button 
             onClick={() => setIsCalibrateModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#0284c7] text-white text-xs font-semibold shadow-xs hover:bg-[#0369a1] transition-all"
           >
             <Scale className="w-3.5 h-3.5 text-white" />
-            <span>Moderasi &amp; Kalibrasi (Assessor)</span>
+            <span>Moderasi &amp; Kalibrasi</span>
           </button>
 
           {/* Simulasi Talent Pool Suksesi */}
@@ -409,8 +409,8 @@ export default function NineBoxMatrixPage() {
             icon={Scale}
             tone="blue"
             title="Moderasi & Kalibrasi"
-            tag="Assessor"
-            description="Moderasi nilai potensi-kinerja oleh komite penilai independen."
+            tag="Komite"
+            description="Moderasi nilai potensi-kinerja oleh komite kalibrasi independen."
             onClick={() => setIsCalibrateModalOpen(true)}
           />
           <ActionCard
@@ -982,7 +982,7 @@ export default function NineBoxMatrixPage() {
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
-      {/* Modal Moderasi & Kalibrasi Komite Penilai (Assessor) */}
+      {/* Modal Moderasi & Kalibrasi Komite Kalibrasi */}
       {isCalibrateModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
@@ -990,7 +990,7 @@ export default function NineBoxMatrixPage() {
               <div>
                 <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
                   <Scale className="h-4 w-4 text-[#0284c7]" />
-                  <span>Sidang Kalibrasi &amp; Moderasi Komite Penilai (Assessor)</span>
+                  <span>Sidang Kalibrasi &amp; Moderasi Komite Kalibrasi</span>
                 </h3>
                 <p className="text-[11px] text-[#64748b]">
                   Standar Forced Distribution Kurva Gaussian BUMN &amp; Segmentasi 9-Box McKinsey/GE.

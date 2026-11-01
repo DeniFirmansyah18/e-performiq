@@ -67,15 +67,18 @@ describe('HR Action Recommendation & Career Guidance (TDD)', () => {
   });
 
   it('menghasilkan rekomendasi DOCUMENT_PENDING untuk berkas menunggu verifikasi', async () => {
+    // Seed sudah memuat berkas PENDING untuk pegawai lain, jadi uji ini harus
+    // memeriksa rekomendasi milik Budi secara spesifik — bukan yang pertama.
     await db.execute(sql`
       INSERT INTO employee_documents (employee_id, document_type, file_url, verification_status, created_at)
       VALUES (${BUDI}::uuid, 'KTP', 'https://files.example.com/ktp.pdf', 'PENDING', NOW() - INTERVAL '5 days')
     `);
 
     const recommendations = await getActionRecommendations(db);
-    const doc = recommendations.find((r) => r.type === 'DOCUMENT_PENDING');
+    const doc = recommendations.find(
+      (r) => r.type === 'DOCUMENT_PENDING' && r.targetEmployeeId === BUDI
+    );
     expect(doc).toBeDefined();
-    expect(doc?.targetEmployeeId).toBe(BUDI);
   });
 
   it('posisi puncak tanpa target lanjutan menghasilkan daftar kosong, bukan error', async () => {
@@ -85,24 +88,38 @@ describe('HR Action Recommendation & Career Guidance (TDD)', () => {
   });
 
   it('skill gap dihitung dari competency_scores, bukan disamakan dengan skill wajib', async () => {
-    // Seed: Budi punya 2 competency_scores (Cloud Native Architecture &
-    // Cross-Functional Collaboration), keduanya level 4 dari 4 -> tidak ada gap.
-    // Skill wajib ke Manager IT: TypeScript, PostgreSQL, System Design.
+    // Seed menilai penuh Budi untuk ketiga skill wajib (TypeScript, PostgreSQL,
+    // System Design), jadi seluruhnya harus terverifikasi dan tanpa gap.
     const guidance = await getCareerGuidanceForEmployee(db, BUDI);
     const path = guidance.nextCareerPaths.find((p) => p.targetPositionId === MGR_POSITION);
     expect(path).toBeDefined();
     expect(path?.assessedSkills).toEqual(
       expect.arrayContaining([
-        { skillName: 'Cloud Native Architecture', actualLevel: 4, requiredLevel: 4 },
+        { skillName: 'TypeScript', actualLevel: 5, requiredLevel: 4 },
       ])
     );
-    // Ketiga skill wajib tidak punya bukti asesmen -> dilaporkan sebagai belum
-    // terverifikasi, bukan diklaim "kurang".
     expect(path?.missingSkills).toEqual([]);
-    expect(path?.verifiedSkills).toEqual([]);
-    expect(path?.unverifiedSkills).toEqual(
+    expect(path?.unverifiedSkills).toEqual([]);
+    expect(path?.verifiedSkills).toEqual(
       expect.arrayContaining(['TypeScript', 'PostgreSQL', 'System Design'])
     );
+  });
+
+  it('skill wajib tanpa bukti asesmen dilaporkan sebagai belum terverifikasi, bukan kurang', async () => {
+    // Pegawai b...0007 hanya punya asesmen TypeScript; dua skill wajib lain
+    // belum pernah dinilai sehingga tidak boleh diklaim "kurang", namun juga
+    // tidak boleh dianggap memenuhi syarat.
+    const PARTIAL = 'b0000000-0000-4000-8000-000000000007';
+    const guidance = await getCareerGuidanceForEmployee(db, PARTIAL);
+    const path = guidance.nextCareerPaths.find((p) => p.targetPositionId === MGR_POSITION);
+    expect(path).toBeDefined();
+    expect(path?.verifiedSkills).toContain('TypeScript');
+    expect(path?.missingSkills).toEqual([]);
+    expect(path?.unverifiedSkills).toEqual(
+      expect.arrayContaining(['PostgreSQL', 'System Design'])
+    );
+    expect(path?.isSkillsMet).toBe(false);
+    expect(path?.isEligibleForPromotion).toBe(false);
   });
 
   it('skill yang sudah terpenuhi tidak masuk missingSkills', async () => {

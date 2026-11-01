@@ -111,5 +111,30 @@ export async function updateProbationStatus(
       UPDATE employees SET status = 'PERMANENT' WHERE id = ${updated.employeeId}::uuid
     `);
   }
+  if (updated) await syncPhaseAfterProbation(db, updated.employeeId, data.probationPassed);
   return updated;
+}
+
+/**
+ * Lulus masa percobaan menuntaskan orientasi → karyawan naik dari Pra-Kerja ke
+ * Saat-Kerja. Best-effort agar kegagalan pencatatan fase tidak menggagalkan
+ * penyimpanan skor orientasi.
+ */
+async function syncPhaseAfterProbation(
+  db: Db,
+  employeeId: string,
+  probationPassed?: boolean,
+): Promise<void> {
+  try {
+    const { syncEmployeePhase } = await import('@/lib/services/employeePhaseService');
+    const targetPhase = probationPassed ? 'DURING' : 'PRE';
+    await syncEmployeePhase(db, {
+      employeeId,
+      targetPhase,
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      reason: probationPassed
+        ? 'Masa percobaan lulus; orientasi 30-60-90 hari tuntas.'
+        : 'Masa percobaan belum lulus; karyawan tetap pada fase Pra-Kerja.',
+    });
+  } catch { /* best-effort */ }
 }

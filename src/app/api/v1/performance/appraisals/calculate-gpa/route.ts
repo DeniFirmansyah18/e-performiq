@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic';
 const CalculateGPASchema = z.object({
   period_id: z.string().min(1, 'period_id wajib diisi'),
   employee_id: z.string().min(1, 'employee_id wajib diisi'),
-  kpi_actual_score: z.number().min(0).max(100),
+  // Opsional: bila kosong, skor KPI diturunkan dari capaian `individual_kpis` periode ini.
+  kpi_actual_score: z.number().min(0).max(100).optional(),
   sop_compliance_score: z.number().min(0).max(100),
   competency_gap_score: z.number().min(0).max(100),
   core_values_360_score: z.number().min(0).max(100),
@@ -46,6 +47,8 @@ export async function POST(req: NextRequest) {
         competency_weighted: Number((saved.competencyScore * 0.15).toFixed(2)),
         core_values_weighted: Number((saved.coreValuesScore * 0.15).toFixed(2)),
       },
+      kpi_score_source: body.kpi_actual_score === undefined ? 'DERIVED' : 'MANUAL',
+      kpi_score: Number(saved.kpiCompositeScore),
       total_percentage_score: Number(saved.totalPercentageScore),
       composite_gpa: Number(saved.compositeGPA),
       performance_rating: saved.performanceRating,

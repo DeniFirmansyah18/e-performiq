@@ -25,6 +25,8 @@ export interface CareerLadderStep {
   minGpa: number;
   currentGpa: number | null;
   isGpaMet: boolean;
+  /** Semua skill wajib sudah diasesmen dan levelnya memadai. */
+  isSkillsMet: boolean;
   requiredSkills: string[];
   /** Skill wajib yang punya bukti asesmen dan levelnya sudah memadai. */
   verifiedSkills: string[];
@@ -151,7 +153,7 @@ export async function getActionRecommendations(db: Db): Promise<HrActionRecommen
       type: 'PROMOTION_READINESS',
       priority: 'LOW',
       title: `${row.full_name} Siap Promosi ke ${path.targetPositionTitle}`,
-      description: `Kesiapan ${path.readinessPercentage}%: masa kerja ${path.currentServiceMonths} bulan (minimal ${path.minServiceMonths}) dan GPA ${path.currentGpa ?? '-'} (minimal ${path.minGpa}). Ajukan evaluasi promosi melalui komite kinerja.`,
+      description: `Kesiapan ${path.readinessPercentage}%: masa kerja ${path.currentServiceMonths} bulan (minimal ${path.minServiceMonths}), GPA ${path.currentGpa ?? '-'} (minimal ${path.minGpa}), dan ${path.verifiedSkills.length}/${path.requiredSkills.length} skill wajib terverifikasi. Ajukan evaluasi promosi melalui komite kinerja.`,
       targetEmployeeId: row.id,
       targetEmployeeName: row.full_name,
       actionUrl: `/dashboard/hr-command?tab=career-actions&employeeId=${row.id}`,
@@ -323,7 +325,13 @@ export async function getCareerGuidanceForEmployee(
       }
     }
 
-    const requirementsMet = [isServiceMet, isGpaMet];
+    // Kesiapan harus mencerminkan SELURUH syarat. Sebelumnya hanya masa kerja
+    // dan GPA yang dihitung sehingga pegawai dengan skill wajib yang belum
+    // pernah diasesmen tetap tampil "100% siap" — menyesatkan komite promosi.
+    // Skill yang belum diasesmen TIDAK boleh dianggap memenuhi syarat: tanpa
+    // bukti penilaian, kelayakan belum dapat dinyatakan.
+    const isSkillsMet = requiredSkills.length === 0 || missingSkills.length === 0 && unverifiedSkills.length === 0;
+    const requirementsMet = [isServiceMet, isGpaMet, isSkillsMet];
     const metCount = requirementsMet.filter(Boolean).length;
 
     return {
@@ -336,13 +344,14 @@ export async function getCareerGuidanceForEmployee(
       minGpa,
       currentGpa,
       isGpaMet,
+      isSkillsMet,
       requiredSkills,
       verifiedSkills,
       missingSkills,
       unverifiedSkills,
       assessedSkills,
       readinessPercentage: Math.round((metCount / requirementsMet.length) * 100),
-      isEligibleForPromotion: isServiceMet && isGpaMet,
+      isEligibleForPromotion: isServiceMet && isGpaMet && isSkillsMet,
     };
   });
 

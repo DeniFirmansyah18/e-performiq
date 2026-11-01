@@ -16,10 +16,13 @@ describe('seed data', () => {
     await client.close();
   });
 
-  it('membuat 7 user, satu per role (termasuk ASSESSOR)', async () => {
+  it('membuat 7 user, satu per akun demo (6 peran)', async () => {
     const res = await client.query<{ count: string }>('SELECT count(*)::text AS count FROM users');
     expect(Number(res.rows[0].count)).toBe(7);
     expect(SEED_USER_EMAILS).toHaveLength(7);
+    // ASSESSOR sudah dihapus; semua peran seed harus termasuk 6 peran resmi.
+    const roles = new Set(SEED_USER_EMAILS.map((u) => u.role));
+    expect(roles.has('ASSESSOR' as never)).toBe(false);
   });
 
   it('menyimpan password sebagai hash bcrypt yang cocok dengan password demo', async () => {
@@ -71,5 +74,80 @@ describe('seed data', () => {
       const res = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM ${t}`);
       expect(Number(res.rows[0].count)).toBeGreaterThan(0);
     }
+  });
+
+  it('mengisi rantai rekrutmen: akun kandidat, lamaran, wawancara, asesmen, keputusan, dan penawaran', async () => {
+    const tables = [
+      'candidate_accounts', 'candidates', 'candidate_skills', 'candidate_educations',
+      'candidate_experiences', 'job_applications', 'candidate_documents',
+      'candidate_certifications', 'resume_parses', 'application_timeline',
+      'interview_schedules', 'interview_evaluations', 'assessment_attempts',
+      'assessment_responses', 'candidate_assessment_scores', 'candidate_decisions',
+      'job_offers', 'candidate_notifications', 'email_outbox', 'whatsapp_outbox',
+    ];
+    for (const t of tables) {
+      const res = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM ${t}`);
+      expect(Number(res.rows[0].count), `tabel ${t} kosong`).toBeGreaterThan(0);
+    }
+  });
+
+  it('mengisi tabel fase pra-kerja, saat kerja, dan pasca-kerja', async () => {
+    const groups: Record<string, string[]> = {
+      PRE: ['onboarding_programs', 'employee_registrations', 'employee_documents'],
+      DURING: [
+        'company_dpi_settings', 'kpi_indicators', 'kpi_daily_entries',
+        'daily_performance_snapshots', 'attendance_logs', 'attendance_corrections',
+        'letters', 'letter_dispositions', 'policy_documents', 'policy_acknowledgments',
+        'disciplinary_actions', 'recognitions', 'badge_awards', 'career_ladder_steps',
+        'salary_components', 'company_holidays', 'conversations', 'messages',
+        'employee_notifications', 'ai_insights', 'employee_flight_risk_snapshots',
+        'improvement_ideas', 'sop_period_metrics', 'gpa_batch_jobs',
+        'appraisal_finalization_requests', 'competency_evidence', 'course_completions',
+      ],
+      POST: ['offboarding_requests', 'exit_interviews'],
+    };
+    for (const [phase, tables] of Object.entries(groups)) {
+      for (const t of tables) {
+        const res = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM ${t}`);
+        expect(Number(res.rows[0].count), `tabel ${t} (${phase}) kosong`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('setiap karyawan punya fase siklus yang konsisten dengan riwayat transisinya', async () => {
+    const res = await client.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM employees WHERE employee_phase IS NULL'
+    );
+    expect(Number(res.rows[0].count)).toBe(0);
+
+    const phases = await client.query<{ phase: string; count: string }>(
+      'SELECT employee_phase::text AS phase, count(*)::text AS count FROM employees GROUP BY 1'
+    );
+    const byPhase = Object.fromEntries(phases.rows.map((r) => [r.phase, Number(r.count)]));
+    expect(byPhase.PRE).toBeGreaterThan(0);
+    expect(byPhase.DURING).toBeGreaterThan(0);
+    expect(byPhase.POST).toBeGreaterThan(0);
+
+    // Baris terakhir riwayat harus sama dengan kolom denormalisasi.
+    const mismatch = await client.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM employees e
+         JOIN (
+           SELECT DISTINCT ON (employee_id) employee_id, new_phase
+             FROM employee_phase_history
+            ORDER BY employee_id, effective_date DESC, created_at DESC
+         ) h ON h.employee_id = e.id
+        WHERE e.employee_phase IS DISTINCT FROM h.new_phase`
+    );
+    expect(Number(mismatch.rows[0].count)).toBe(0);
+  });
+
+  it('mencakup siklus penuh sampai pensiun (karyawan RETIRED dengan exit interview)', async () => {
+    const res = await client.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM employees e
+         JOIN offboarding_requests o ON o.employee_id = e.id
+         JOIN exit_interviews x ON x.employee_id = e.id
+        WHERE e.employment_status = 'RETIRED'`
+    );
+    expect(Number(res.rows[0].count)).toBeGreaterThan(0);
   });
 });

@@ -5,6 +5,7 @@ import { resolveVisibleEmployeeIds, assertEmployeeVisible } from '@/lib/auth/sco
 import { getSopMetrics } from './sopComplianceService';
 import { aggregate360Score } from './coreValuesService';
 import { deriveDisciplineIndicator } from './attendanceService';
+import { deriveKpiScore } from './kpiScoreDerivationService';
 
 export interface DerivedComponent {
   value: number | null;
@@ -16,6 +17,7 @@ export interface GpaDerivation {
   employeeId: string;
   periodId: string;
   components: {
+    kpiScore: DerivedComponent;
     sopScore: DerivedComponent;
     coreValuesScore: DerivedComponent;
     discipline: DerivedComponent;
@@ -71,9 +73,21 @@ export async function previewGpaDerivation(
       ? { value: agg.score, source: 'derived', detail: { avg: agg.avg, count: agg.count, byGroup: agg.byGroup } }
       : { value: null, source: 'missing', detail: { count: agg.count, sufficient: agg.sufficient } };
 
+  // Skor KPI dari capaian `individual_kpis` periode ini
+  const kpiDerived = await deriveKpiScore(db, employeeId, periodId);
+  const kpiComp: DerivedComponent =
+    kpiDerived.value === null
+      ? { value: null, source: 'missing', detail: kpiDerived.detail }
+      : { value: kpiDerived.value, source: 'derived', detail: kpiDerived.detail };
+
   return {
     employeeId,
     periodId,
-    components: { sopScore: sopComp, coreValuesScore: coreComp, discipline: disciplineComp },
+    components: {
+      kpiScore: kpiComp,
+      sopScore: sopComp,
+      coreValuesScore: coreComp,
+      discipline: disciplineComp,
+    },
   };
 }

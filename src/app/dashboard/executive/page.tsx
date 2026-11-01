@@ -33,8 +33,9 @@ import BoardActivityPanel from '@/components/executive/BoardActivityPanel';
 import BoardVisionPanel from '@/components/executive/BoardVisionPanel';
 import BoardPositionFitPanel from '@/components/executive/BoardPositionFitPanel';
 import BoardCostPanel from '@/components/executive/BoardCostPanel';
+import BoardDrilldownPanel from '@/components/executive/BoardDrilldownPanel';
 
-type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession';
+type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession' | 'drilldown';
 
 const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'activity', 'vision', 'position-fit', 'cost'];
 
@@ -228,6 +229,14 @@ export default function ExecutiveBoardroomPage() {
           tag="TARIF"
           description="Pipeline kepemimpinan, kesiapan cadangan talenta, faktor tata kelola, dan mandat Dewan Komisaris."
           onOpen={() => setOpenFeature('succession')}
+        />
+        <FeatureCard
+          icon={Grid3X3}
+          title="Drill-down Talenta & KPI"
+          metric="9-Box → KPI"
+          tag="Analitik"
+          description="Telusuri indeks korporasi sampai ke nama karyawan per kuadran 9-Box dan pohon cascading Visi → Pilar → KPI Korporasi → KPI Divisi."
+          onOpen={() => setOpenFeature('drilldown')}
         />
       </FeatureGrid>
 
@@ -748,6 +757,14 @@ export default function ExecutiveBoardroomPage() {
 
       </div>
         <AiAnalyzePanel feature="executive" />
+      </ExpandablePanel>
+
+      <ExpandablePanel
+        open={openFeature === 'drilldown'}
+        title="Drill-down Talenta & Cascading KPI"
+        onClose={() => setOpenFeature(null)}
+      >
+        <BoardDrilldownPanel periodCode="2026-Q3" />
       </ExpandablePanel>
 
       {/* 5. Peringatan Dini Attrition & Burnout (PRD §5.4) */}

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Users, Check } from 'lucide-react';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface DirRow {
   employeeId: string;
@@ -15,6 +16,8 @@ interface DirRow {
 
 /** Panel HR: menetapkan atasan langsung (manager_id) tiap karyawan. */
 export default function ManagerAssignmentPanel() {
+  const { activeRole } = useAuth();
+  const canWrite = activeRole === 'HR_MANAGER' || activeRole === 'SUPER_ADMIN';
   const [rows, setRows] = useState<DirRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -25,8 +28,10 @@ export default function ManagerAssignmentPanel() {
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
-      const res = await fetch('/api/v1/hr/employees');
-      if (!res.ok) { setErr('Anda tidak berwenang mengelola data karyawan.'); return; }
+      // Direktori (employment:read) agar atasan langsung & BOD dapat memantau;
+      // penyimpanan penugasan tetap terbatas pada HR lewat PATCH di bawah.
+      const res = await fetch('/api/v1/hr/employee-directory');
+      if (!res.ok) { setErr('Anda tidak berwenang melihat data karyawan.'); return; }
       const json = await res.json();
       setRows(json?.data?.employees ?? []);
     } catch {
@@ -76,7 +81,11 @@ export default function ManagerAssignmentPanel() {
           <div className="p-2 rounded-lg bg-[#e6f4ea] text-[#137333]"><Users className="h-4 w-4" /></div>
           <div>
             <h3 className="text-sm font-extrabold text-[#0f172a]">Penugasan Atasan Langsung</h3>
-            <p className="text-[11px] text-[#64748b]">Tetapkan approver / atasan langsung tiap karyawan (dipakai untuk persetujuan timesheet, finalisasi KPI, dll.).</p>
+            <p className="text-[11px] text-[#64748b]">
+              {canWrite
+                ? 'Tetapkan approver / atasan langsung tiap karyawan (dipakai untuk persetujuan timesheet, finalisasi KPI, dll.).'
+                : 'Pantau atasan langsung tiap karyawan. Penetapan hanya dapat dilakukan HR.'}
+            </p>
           </div>
         </div>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama / NIP / unit…"
@@ -108,9 +117,9 @@ export default function ManagerAssignmentPanel() {
                   <td className="py-2 pr-3">
                     <select
                       value={r.managerId ?? ''}
-                      disabled={busyId === r.employeeId}
+                      disabled={!canWrite || busyId === r.employeeId}
                       onChange={(e) => assign(r.employeeId, e.target.value || null)}
-                      className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-xs bg-white disabled:opacity-50 min-w-[190px]"
+                      className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-xs bg-white disabled:opacity-60 disabled:bg-[#f8fafc] min-w-[190px]"
                     >
                       <option value="">— Belum ditetapkan —</option>
                       {rows

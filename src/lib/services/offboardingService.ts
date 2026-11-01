@@ -15,6 +15,7 @@ import {
   deactivateEmployeeOnExit,
   deactivateUserAccount,
   getClearanceStatus,
+  enterPostPhase,
 } from '@/lib/repositories/offboardingRepository';
 import { logAction } from './auditService';
 
@@ -54,6 +55,13 @@ export async function createOffboardingRequest(
         `Mohon lengkapi checklist serah terima (handover) melalui portal karyawan.`,
     });
   } catch { /* best-effort */ }
+
+  // Inisiasi offboarding memindahkan karyawan ke fase Pasca-Kerja (state machine).
+  await enterPostPhase(
+    db,
+    data.employeeId,
+    `Offboarding diinisiasi (hari kerja terakhir ${data.lastWorkingDay}).`
+  );
 
   return created;
 }
@@ -222,6 +230,11 @@ export async function disburseSeverance(
       );
       if (deactivated) {
         await deactivateUserAccount(db, offboarding.employeeId);
+        await enterPostPhase(
+          db,
+          offboarding.employeeId,
+          `Offboarding tuntas: karyawan dinonaktifkan (${exitStatus}).`
+        );
         await logAction(db, {
           userId: session.userId,
           actionType: 'UPDATE',

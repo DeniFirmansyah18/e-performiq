@@ -38,7 +38,7 @@ const ROLE_FILTERS = [
   { id: 'Karyawan', label: 'Karyawan' },
   { id: 'Atasan', label: 'Atasan Langsung' },
   { id: 'HR', label: 'HR & People Ops' },
-  { id: 'Penilai', label: 'Komite Assessor' },
+  { id: 'Penilai', label: 'Komite Kalibrasi' },
   { id: 'Direksi', label: 'Direksi (C-Level)' },
   { id: 'Auditor', label: 'Auditor SPI' },
 ];

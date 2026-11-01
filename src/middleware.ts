@@ -5,12 +5,13 @@ import type { UserRole } from '@/types';
 
 // Peta segmen dashboard -> role yang diizinkan (selaras dengan Sidebar.tsx).
 const DASHBOARD_ROLES: Record<string, readonly UserRole[]> = {
-  executive: ['BOD', 'SUPER_ADMIN', 'AUDITOR', 'ASSESSOR'],
-  'hr-command': ['HR_MANAGER', 'SUPER_ADMIN', 'BOD', 'ASSESSOR'],
-  'manager-cockpit': ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'],
-  'employee-portal': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'SUPER_ADMIN', 'ASSESSOR'],
-  'ninebox-matrix': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'ASSESSOR'],
-  'audit-governance': ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'],
+  executive: ['BOD', 'SUPER_ADMIN', 'AUDITOR'],
+  'hr-command': ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'],
+  'manager-cockpit': ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER'],
+  'employee-portal': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'SUPER_ADMIN'],
+  'ninebox-matrix': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'],
+  'audit-governance': ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER'],
+  'account-management': ['SUPER_ADMIN'],
 };
 
 // Dashboard utama per role (untuk redirect saat mengakses halaman terlarang).

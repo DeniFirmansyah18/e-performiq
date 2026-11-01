@@ -18,21 +18,23 @@ import {
   ChevronDown,
   Compass,
   Landmark,
+  ShieldCheck,
 } from 'lucide-react';
 
 type NavItem = { name: string; href: string; icon: any; roles: UserRole[] };
 
 const CORE_PORTALS: NavItem[] = [
-  { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD', 'SUPER_ADMIN', 'AUDITOR', 'ASSESSOR'] },
-  { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD', 'ASSESSOR'] },
-  { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'] },
-  { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: UserCheck, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR', 'ASSESSOR'] },
+  { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD', 'SUPER_ADMIN', 'AUDITOR'] },
+  { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
+  { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER'] },
+  { name: 'Employee Growth Portal', href: '/dashboard/employee-portal', icon: UserCheck, roles: ['EMPLOYEE', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER', 'BOD', 'AUDITOR'] },
 ];
 
 const MODULES_GOVERNANCE: NavItem[] = [
-  { name: '9-Box Talent Matrix', href: '/dashboard/ninebox-matrix', icon: Grid3X3, roles: ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN', 'ASSESSOR'] },
-  { name: 'Offboarding & Clearance', href: '/dashboard/hr-command?tab=offboarding', icon: ClipboardCheck, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
-  { name: 'GCG Audit & Compliance', href: '/dashboard/audit-governance', icon: Scale, roles: ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER', 'ASSESSOR'] },
+  { name: '9-Box Talent Matrix', href: '/dashboard/ninebox-matrix', icon: Grid3X3, roles: ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'] },
+  { name: 'Offboarding & Clearance', href: '/dashboard/hr-command?tab=lifecycle&phase=POST', icon: ClipboardCheck, roles: ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'] },
+  { name: 'GCG Audit & Compliance', href: '/dashboard/audit-governance', icon: Scale, roles: ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER'] },
+  { name: 'Manajemen Akun', href: '/dashboard/account-management', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
 ];
 
 function NavDropdown({

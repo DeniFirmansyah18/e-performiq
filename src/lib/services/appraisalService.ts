@@ -3,7 +3,7 @@ import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan, can } from '@/lib/auth/rbac';
 import { resolveVisibleEmployeeIds, assertEmployeeVisible } from '@/lib/auth/scope';
-import { NotFoundError, ImmutableRecordError } from '@/lib/auth/errors';
+import { NotFoundError, ImmutableRecordError, BusinessRuleError } from '@/lib/auth/errors';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 import {
   selectAppraisalByEmployee,
@@ -12,11 +12,13 @@ import {
   setAppraisalCalibrated,
 } from '@/lib/repositories/appraisalRepository';
 import { logAction } from './auditService';
+import { deriveKpiScore } from './kpiScoreDerivationService';
 
 export interface CalculateGPAInput {
   periodId: string;
   employeeId: string;
-  kpiScore: number;
+  /** Bila dihilangkan, skor KPI diturunkan dari `individual_kpis` periode ini. */
+  kpiScore?: number;
   sopScore: number;
   competencyScore: number;
   coreValuesScore: number;
@@ -82,8 +84,16 @@ export async function calculateAndSaveGPA(
     );
   }
 
+  const kpiDerived = await deriveKpiScore(db, input.employeeId, input.periodId);
+  const kpiScore = input.kpiScore ?? kpiDerived.value;
+  if (kpiScore === null) {
+    throw new BusinessRuleError(
+      `Skor KPI karyawan ${input.employeeId} pada periode ${input.periodId} belum bisa dihitung: belum ada KPI dengan target yang terisi. Lengkapi KPI karyawan atau isi kpi_actual_score secara manual.`
+    );
+  }
+
   const result = calculateCompositeGPA({
-    kpiScore: input.kpiScore,
+    kpiScore,
     sopScore: input.sopScore,
     competencyScore: input.competencyScore,
     coreValuesScore: input.coreValuesScore,
@@ -95,7 +105,7 @@ export async function calculateAndSaveGPA(
     {
       periodId: input.periodId,
       employeeId: input.employeeId,
-      kpiCompositeScore: input.kpiScore,
+      kpiCompositeScore: kpiScore,
       sopComplianceScore: input.sopScore,
       competencyScore: input.competencyScore,
       coreValuesScore: input.coreValuesScore,
@@ -125,7 +135,7 @@ export async function calculateAndSaveGPA(
     recordId: finalSaved.id,
     oldData: existing,
     newData: finalSaved,
-    description: `Kalkulasi Composite GPA (${result.compositeGPA}) dan 9-Box Grid (${result.nineBoxQuadrant})`,
+    description: `Kalkulasi Composite GPA (${result.compositeGPA}) dan 9-Box Grid (${result.nineBoxQuadrant}) — skor KPI ${kpiScore.toFixed(2)} (${input.kpiScore === undefined ? 'diturunkan dari KPI' : 'input manual'})`,
   });
 
   return finalSaved;

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Plus, Gavel } from 'lucide-react';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface Action {
   id: string;
@@ -40,6 +41,9 @@ export default function DisciplinaryManagerPanel() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const { activeRole } = useAuth();
+  const canWrite = activeRole === 'HR_MANAGER' || activeRole === 'SUPER_ADMIN';
+
   const [form, setForm] = useState({
     employeeId: '',
     actionType: 'SP1' as Action['actionType'],
@@ -53,7 +57,7 @@ export default function DisciplinaryManagerPanel() {
     try {
       const [a, e] = await Promise.all([
         fetch('/api/v1/hr/disciplinary-actions').then((r) => (r.ok ? r.json() : null)),
-        fetch('/api/v1/hr/employees').then((r) => (r.ok ? r.json() : null)),
+        fetch('/api/v1/hr/employee-directory').then((r) => (r.ok ? r.json() : null)),
       ]);
       setActions(a?.data?.items ?? []);
       setEmployees(e?.data?.employees ?? []);
@@ -136,6 +140,7 @@ export default function DisciplinaryManagerPanel() {
       )}
 
       {/* Form penerbitan */}
+      {canWrite && (
       <div className="rounded-xl border border-[#e2e8f0] p-3 space-y-2">
         <p className="text-[11px] font-bold text-[#0f172a] flex items-center gap-1.5">
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Terbitkan Sanksi
@@ -206,6 +211,7 @@ export default function DisciplinaryManagerPanel() {
           Terbitkan sanksi
         </button>
       </div>
+      )}
 
       {loading && <p className="text-[11px] text-[#64748b]">Memuat sanksi…</p>}
 
@@ -226,7 +232,7 @@ export default function DisciplinaryManagerPanel() {
               <p className="mt-0.5 text-[10px] text-[#64748b]">Keberatan: {a.appealReason}</p>
             )}
 
-            {a.appealStatus === 'UNDER_APPEAL' && (
+            {a.appealStatus === 'UNDER_APPEAL' && canWrite && (
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"

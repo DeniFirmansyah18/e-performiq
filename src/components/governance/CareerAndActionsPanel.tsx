@@ -25,6 +25,7 @@ interface CareerLadderStep {
   minGpa: number;
   currentGpa: number | null;
   isGpaMet: boolean;
+  isSkillsMet: boolean;
   requiredSkills: string[];
   verifiedSkills: string[];
   missingSkills: string[];
@@ -47,7 +48,7 @@ const TYPE_META: Record<HrActionRecommendation['type'], { label: string; classNa
   CONTRACT_EXPIRY: { label: 'Kontrak PKWT', className: 'bg-red-100 text-red-700' },
   OVERWORK_INTERVENTION: { label: 'Beban Kerja', className: 'bg-amber-100 text-amber-700' },
   PROMOTION_READINESS: { label: 'Jenjang Karir', className: 'bg-emerald-100 text-emerald-700' },
-  DOCUMENT_PENDING: { label: 'Verifikasi Berkas', className: 'bg-indigo-100 text-indigo-700' },
+  DOCUMENT_PENDING: { label: 'Verifikasi Berkas', className: 'bg-sky-100 text-sky-700' },
 };
 
 const PRIORITY_META: Record<HrActionRecommendation['priority'], { label: string; className: string }> = {
@@ -169,7 +170,7 @@ export default function CareerAndActionsPanel({ employeeId }: { employeeId?: str
                 <p className="text-[11px] text-slate-600 mb-3">{rec.description}</p>
                 <Link
                   href={rec.actionUrl}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#007a5a] hover:text-[#005f47]"
                 >
                   {rec.actionLabel}
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -181,7 +182,7 @@ export default function CareerAndActionsPanel({ employeeId }: { employeeId?: str
       </div>
 
       {guidance && (
-        <div className="bg-white rounded-xl border border-indigo-100 p-5 space-y-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h4 className="font-semibold text-sm text-slate-800">
@@ -236,14 +237,22 @@ export default function CareerAndActionsPanel({ employeeId }: { employeeId?: str
                       )}
                       GPA {path.currentGpa ?? '-'} (minimal {path.minGpa})
                     </li>
+                    <li className="flex items-center gap-1.5">
+                      {path.isSkillsMet ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-red-500" />
+                      )}
+                      Skill wajib terverifikasi {path.verifiedSkills.length}/{path.requiredSkills.length}
+                    </li>
                     {path.missingSkills.length > 0 && (
                       <li className="text-red-600">
                         Skill belum memenuhi syarat: {path.missingSkills.join(', ')}
                       </li>
                     )}
                     {path.unverifiedSkills.length > 0 && (
-                      <li className="text-slate-500">
-                        Belum diasesmen: {path.unverifiedSkills.join(', ')}
+                      <li className="text-amber-700">
+                        Belum diasesmen (wajib dinilai dulu): {path.unverifiedSkills.join(', ')}
                       </li>
                     )}
                     {path.verifiedSkills.length > 0 && (
@@ -259,20 +268,22 @@ export default function CareerAndActionsPanel({ employeeId }: { employeeId?: str
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-5">
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-5">
         <div className="flex items-start gap-3">
-          <Compass className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+          <Compass className="w-6 h-6 text-emerald-700 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="font-semibold text-sm text-indigo-950">
+            <h4 className="font-semibold text-sm text-emerald-950">
               Penuntun Jalur Jenjang Karir & Matriks Suksesi
             </h4>
-            <p className="text-xs text-indigo-800 leading-relaxed">
-              Kesiapan promosi dihitung dari masa kerja dan GPA appraisal terakhir
-              (<code>performance_appraisals.composite_gpa</code>) terhadap syarat
-              <code> career_path_levels</code>. Kesenjangan keterampilan diambil dari
-              <code> competency_scores</code>: skill yang sudah dinilai tetapi belum memenuhi
-              level syarat dilaporkan sebagai gap, sedangkan skill yang belum pernah diasesmen
-              ditandai terpisah agar tidak disalahartikan sebagai kekurangan.
+            <p className="text-xs text-emerald-900 leading-relaxed">
+              Kesiapan promosi dihitung dari tiga syarat yang bobotnya setara: masa kerja,
+              GPA appraisal terakhir (<code>performance_appraisals.composite_gpa</code>), dan
+              keterampilan wajib pada <code>career_path_levels.required_skills</code>. Syarat
+              keterampilan diambil dari <code>competency_scores</code> periode terakhir: skill
+              yang sudah dinilai tetapi belum memenuhi level syarat dilaporkan sebagai gap,
+              sedangkan skill yang belum pernah diasesmen dihitung <strong>belum terpenuhi</strong>
+              sampai ada bukti penilaian. Promosi baru direkomendasikan ketika ketiga syarat
+              terpenuhi sekaligus.
             </p>
           </div>
         </div>

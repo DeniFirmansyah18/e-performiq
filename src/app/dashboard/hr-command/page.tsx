@@ -1,7 +1,6 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
@@ -28,6 +27,18 @@ import {
   GraduationCap,
   TrendingDown,
   Banknote,
+  Target,
+  Briefcase,
+  ClipboardList,
+  Building2,
+  FileSignature,
+  Coins,
+  BookOpen,
+  HeartPulse,
+  Gavel,
+  GitBranch,
+  FileSpreadsheet,
+  ChevronLeft,
 } from 'lucide-react';
 import CostOfWorkforceCard from '@/components/governance/CostOfWorkforceCard';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
@@ -49,22 +60,282 @@ import ManagerAssignmentPanel from '@/components/governance/ManagerAssignmentPan
 import LeaveApprovalPanel from '@/components/governance/LeaveApprovalPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
+import HrKpiIndicatorPanel from '@/components/governance/HrKpiIndicatorPanel';
 import WorkloadAnalysisPanel from '@/components/governance/WorkloadAnalysisPanel';
 import CareerAndActionsPanel from '@/components/governance/CareerAndActionsPanel';
 import PkwtDirectoryPanel from '@/components/governance/PkwtDirectoryPanel';
 import HrOverviewAnalyticsPanel from '@/components/governance/HrOverviewAnalyticsPanel';
 import HrLifecycleControlPanel from '@/components/governance/HrLifecycleControlPanel';
 import EmployeeDirectoryPanel from '@/components/governance/EmployeeDirectoryPanel';
-import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+import { PHASES, PHASE_LABEL, PHASE_SUBTITLE, PHASE_TITLE, normalizePhase, phaseOf, type WorkPhase } from '@/lib/employee/phase';
 
 type MainTab = 'overview' | 'lifecycle' | 'workload' | 'career-actions' | 'directory';
-type HrFeature = 'mpp' | 'pipeline' | 'learning' | 'cost';
+/**
+ * Fitur yang bisa dibuka sebagai panel. Setiap kunci wajib terdaftar di
+ * `FEATURE_PHASE` (`@/lib/employee/phase`) karena kartunya dirender per fase.
+ */
+type HrFeature = string | null;
 
 const MAIN_TABS: MainTab[] = ['overview', 'lifecycle', 'workload', 'career-actions', 'directory'];
+
+/** Label tab lifecycle pipeline; istilah teknis dipertahankan sebagai konteks. */
+const PIPELINE_TAB_LABEL: Record<WorkPhase, string> = {
+  PRE: 'Pre-Employment (MPP & QoH)',
+  DURING: 'During (GPA & 360)',
+  POST: 'Post (Clearance & Severance)',
+};
+
+const PHASE_STYLE: Record<WorkPhase, { frame: string; header: string; badge: string; icon: string }> = {
+  PRE: {
+    frame: 'border-[#c7e7d3]',
+    header: 'border-[#d8ecdf] bg-[#e6f4ea]/40',
+    badge: 'bg-[#e6f4ea]',
+    icon: 'text-[#007a5a]',
+  },
+  DURING: {
+    frame: 'border-[#bfe3f7]',
+    header: 'border-[#cfe8f9] bg-[#e0f2fe]/40',
+    badge: 'bg-[#e0f2fe]',
+    icon: 'text-[#0284c7]',
+  },
+  POST: {
+    frame: 'border-[#f5c6c0]',
+    header: 'border-[#f7d5d0] bg-[#fce8e6]/40',
+    badge: 'bg-[#fce8e6]',
+    icon: 'text-[#dc2626]',
+  },
+};
+
+/**
+ * Panel tata kelola per fitur, masing-masing dengan fase siklusnya. Fase
+ * ditentukan lewat `phaseOf(key)` dari `FEATURE_PHASE`, bukan dari urutan
+ * render, sehingga penempatan tidak bisa melenceng lagi.
+ *
+ * `metric` & `tag` dipakai kartu fitur; `Panel` dirender di panelnya sendiri.
+ * `action` menandai fitur yang membuka modal alih-alih panel.
+ */
+type HrFeatureIcon = React.ComponentType<{ className?: string }>;
+
+const MPP_PANELS: ReadonlyArray<{
+  feature: string;
+  title: string;
+  description: string;
+  Panel: React.ComponentType;
+  icon: HrFeatureIcon;
+  metric?: string;
+  tag?: string;
+  action?: boolean;
+}> = [
+  {
+    feature: 'mpp',
+    title: 'Kelola MPP',
+    description: 'Kuota formasi & budget, tersinkron ke form Buat Lowongan.',
+    Panel: ManpowerPlanManager,
+    icon: ClipboardList,
+    metric: 'Kuota & Budget',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'recruitment',
+    title: 'Rekrutmen Kandidat',
+    description: 'Portal karier publik, pipeline pelamar, dan kualitas rekrutmen.',
+    Panel: RecruitmentPanel,
+    icon: UserPlus,
+    metric: 'Pipeline',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'recruitment-fptk',
+    title: 'Rekrutmen Baru (FPTK)',
+    description: 'Buat Formulir Permintaan Tenaga Kerja baru untuk posisi yang dibutuhkan.',
+    Panel: () => null,
+    icon: FileSignature,
+    metric: 'FPTK Baru',
+    tag: 'Pra-Kerja',
+    action: true,
+  },
+  {
+    feature: 'interview',
+    title: 'Jadwal Wawancara',
+    description: 'Penjadwalan wawancara dengan tautan meeting ke kandidat.',
+    Panel: InterviewSchedulerPanel,
+    icon: Calendar,
+    metric: 'Jadwal',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'technical-test',
+    title: 'Bank Soal Tes Teknis',
+    description: 'Generate soal dengan AI, tinjau, lalu setujui.',
+    Panel: TechnicalTestPanel,
+    icon: FileCheck,
+    metric: 'Bank Soal',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'registration',
+    title: 'Registrasi Karyawan Mandiri',
+    description: 'Verifikasi email kandidat lalu persetujuan HR.',
+    Panel: EmployeeRegistrationPanel,
+    icon: Building2,
+    metric: 'Onboarding',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'document-verification',
+    title: 'Verifikasi Berkas Kepegawaian',
+    description: 'Pemeriksaan kelengkapan & keabsahan berkas sebelum penempatan.',
+    Panel: DocumentVerificationPanel,
+    icon: FileCheck,
+    metric: 'Berkas',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'manager-assignment',
+    title: 'Penugasan Atasan Langsung',
+    description: 'Penetapan manager_id dan garis pelaporan karyawan aktif.',
+    Panel: ManagerAssignmentPanel,
+    icon: Users,
+    metric: 'Garis Pelaporan',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'leave',
+    title: 'Persetujuan Cuti & Izin',
+    description: 'Antrian pengajuan cuti, izin, dan peninjauan saldo.',
+    Panel: LeaveApprovalPanel,
+    icon: Calendar,
+    metric: 'Antrian Cuti',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'payroll',
+    title: 'Payroll',
+    description: 'Komponen gaji lengkap dengan AI advisory.',
+    Panel: PayrollPanel,
+    icon: Banknote,
+    metric: 'Payroll',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'e-letter',
+    title: 'Register e-Surat & Disposisi',
+    description: 'Registrasi surat masuk/keluar dan alur disposisinya.',
+    Panel: LetterManagerPanel,
+    icon: Inbox,
+    metric: 'e-Surat',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'policy',
+    title: 'Perpustakaan SOP & Peraturan',
+    description: 'Katalog SOP, PP, dan kebijakan perusahaan beserta versinya.',
+    Panel: PolicyManagerPanel,
+    icon: BookOpen,
+    metric: 'SOP & PP',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'bpjs',
+    title: 'Data BPJS Karyawan',
+    description: 'Kepesertaan dan iuran BPJS Ketenagakerjaan/Kesehatan.',
+    Panel: SocialSecurityManagerPanel,
+    icon: HeartPulse,
+    metric: 'BPJS',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'disciplinary',
+    title: 'Sanksi & Keberatan',
+    description: 'Pencatatan sanksi disiplin dan penanganan keberatan.',
+    Panel: DisciplinaryManagerPanel,
+    icon: Gavel,
+    metric: 'Disiplin',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'career-ladder',
+    title: 'Konfigurasi Jenjang Karir',
+    description: 'Jenjang, syarat kenaikan, dan pemetaan kursus per posisi.',
+    Panel: CareerLadderManagerPanel,
+    icon: GitBranch,
+    metric: 'Jenjang',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'scorecard',
+    title: 'Indikator KPI & Realisasi Harian',
+    description: 'Tetapkan indikator harian, tarik realisasi menjadi capaian periode, dan sahkan KPI karyawan.',
+    Panel: HrKpiIndicatorPanel,
+    icon: Target,
+    metric: 'KPI Harian',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'pipeline',
+    title: 'Lifecycle Pipeline',
+    description: 'Pemantauan SLA transisi karyawan: Pre-Employment, During (GPA & 360), dan Post (Clearance).',
+    Panel: () => null,
+    icon: Activity,
+    metric: '24 Active',
+    tag: 'Milestone',
+  },
+  {
+    feature: 'learning',
+    title: 'Learning & Certification',
+    description: 'Materi pembelajaran, pelacakan progres, dan sertifikasi otomatis setelah pelatihan mandatori.',
+    Panel: () => null,
+    icon: GraduationCap,
+    metric: 'Moodle',
+    tag: 'LMS',
+  },
+  {
+    feature: 'appraisal-calibration',
+    title: 'Kalibrasi Nilai Semester',
+    description: 'Moderasi distribusi nilai kinerja sesuai kurva Gaussian korporat.',
+    Panel: () => null,
+    icon: Scale,
+    metric: 'Gaussian',
+    tag: 'Kalibrasi',
+  },
+  {
+    feature: 'cost',
+    title: 'Cost & Risk',
+    description: 'Cost of Workforce, Flight Risk Heatmap, dan clearance offboarding.',
+    Panel: () => null,
+    icon: TrendingDown,
+    metric: 'Flight Risk',
+    tag: 'Govera360',
+  },
+  {
+    feature: 'iso-30414',
+    title: 'Ekspor ISO 30414',
+    description: 'Ekspor metrik human capital sesuai standar ISO 30414.',
+    Panel: () => null,
+    icon: Download,
+    metric: 'Laporan',
+    tag: 'Pasca-Kerja',
+    action: true,
+  },
+  {
+    feature: 'hr-dashboard',
+    title: 'Ringkasan SDM & Pasca-Kerja',
+    description: 'Agregasi metrik lintas modul, termasuk pasca-kerja.',
+    Panel: HrDashboardCards,
+    icon: Briefcase,
+    metric: 'Agregat',
+    tag: 'Pasca-Kerja',
+  },
+];
+
+/** Fitur satu fase, urut sesuai urutan kartu di blok fase. */
+function panelsInPhase(phase: WorkPhase) {
+  return MPP_PANELS.filter((panel) => phaseOf(panel.feature) === phase);
+}
 
 /** Membaca `?tab=` agar tautan dari rekomendasi HRD (mis. ?tab=directory) langsung terbuka. */
 function resolveInitialTab(): MainTab {
@@ -75,8 +346,42 @@ function resolveInitialTab(): MainTab {
 
 export default function HROperationsPage() {
   const [mainTab, setMainTab] = useState<MainTab>('overview');
-  const [pipelineTab, setPipelineTab] = useState<'pre' | 'during' | 'post'>('pre');
-  const [openFeature, setOpenFeature] = useState<HrFeature | null>(null);
+  const [pipelineTab, setPipelineTab] = useState<WorkPhase>('PRE');
+  // `activePhase` dibiarkan null sampai pengguna memilih fase: blok fase dan
+  // panel MPP memakai nilai yang sama sehingga hanya satu fase yang dirender.
+  const [activePhase, setActivePhase] = useState<WorkPhase | null>(null);
+  const [openFeature, setOpenFeature] = useState<HrFeature>(null);
+  // Panel fitur dirender tepat di bawah blok kartu fase, jadi posisinya perlu
+  // dijadikan acuan scroll supaya panel yang dibuka langsung terlihat.
+  const phaseBlockRef = React.useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Satu handler untuk semua pemilih fase agar transisi selalu atomik:
+   * ganti fase sekaligus tutup panel fitur yang sedang terbuka, supaya isi
+   * panel dari fase sebelumnya tidak ikut tampil di fase baru.
+   */
+  const selectPhase = useCallback((phase: WorkPhase) => {
+    setOpenFeature(null);
+    setActivePhase(phase);
+  }, []);
+
+  /**
+   * Membuka satu fitur lalu menggulir ke panelnya, supaya pengguna tidak perlu
+   * mencari panel yang terbuka secara manual.
+   */
+  const openPanelAtTop = useCallback((feature: string) => {
+    setOpenFeature(feature);
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        const node = phaseBlockRef.current;
+        if (node) {
+          node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    }
+  }, []);
   const [mppData, setMppData] = useState<any>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
   const [disbursingId, setDisbursingId] = useState<string | null>(null);
@@ -95,7 +400,7 @@ export default function HROperationsPage() {
         fetch('/api/v1/pre-employment/mpp-summary'),
         fetch('/api/v1/offboarding/initiate'),
         fetch('/api/v1/recruitment/candidates'),
-        fetch('/api/v1/hr/employees'),
+        fetch('/api/v1/hr/employee-directory'),
       ]);
       if (resMpp.ok) {
         const json = await resMpp.json();
@@ -134,6 +439,13 @@ export default function HROperationsPage() {
     const params = new URLSearchParams(window.location.search);
     setDeepLinkEmployeeId(params.get('employeeId') ?? undefined);
     setDeepLinkSearch(params.get('search') ?? undefined);
+    // `?phase=` membuka fase lifecycle tertentu langsung (mis. Offboarding → POST).
+    const phase = params.get('phase');
+    if (phase) {
+      const resolved = normalizePhase(phase, 'PRE');
+      setPipelineTab(resolved);
+      setActivePhase(resolved);
+    }
   }, []);
 
   // FPTK Modal State
@@ -322,9 +634,74 @@ export default function HROperationsPage() {
     }
   };
 
+  const phasePanels = activePhase === null ? [] : panelsInPhase(activePhase);
+
+  /** Fitur yang isinya bergantung state halaman ini dirender inline. */
+  const renderFeatureContent = (feature: string): React.ReactNode => {
+    switch (feature) {
+      case 'learning':
+        return (
+          <div>
+            <div className="stitch-card-white p-6 mb-6 space-y-4">
+              <div className="flex items-center gap-2 border-b border-[#f1f5f9] pb-4">
+                <GraduationCap className="w-5 h-5 text-[#007a5a]" />
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0f172a]">Generate Program Onboarding</h2>
+                  <p className="text-xs text-slate-500">
+                    Buat program onboarding LMS (learning plan + kursus wajib posisi) untuk karyawan baru.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Karyawan</label>
+                  <select
+                    value={onboardingEmployeeId}
+                    onChange={(e) => setOnboardingEmployeeId(e.target.value)}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+                  >
+                    <option value="">— Pilih karyawan —</option>
+                    {employees.map((emp) => (
+                      <option key={emp.employeeId} value={emp.employeeId}>
+                        {emp.fullName}
+                        {emp.employeeCode ? ` (${emp.employeeCode})` : ''}
+                        {emp.position ? ` — ${emp.position}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateOnboarding}
+                  disabled={isOnboardingSubmitting || !onboardingEmployeeId}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#007a5a] text-white text-xs font-bold hover:bg-[#00664b] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  {isOnboardingSubmitting ? 'Memproses...' : 'Generate Program Onboarding'}
+                </button>
+              </div>
+            </div>
+            <LearningCertificationPanel />
+            <PositionCourseMappingPanel />
+          </div>
+        );
+      case 'appraisal-calibration':
+        return <p className="text-xs text-[#64748b]">Kalibrasi dibuka melalui panel Lifecycle Pipeline.</p>;
+      case 'cost':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CostOfWorkforceCard />
+            <FlightRiskHeatmap />
+            <CompanyActivityFeed />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
-      
+    <div className="space-y-6 max-w-[1400px] mx-auto pb-12">      
       {/* 1. Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -372,14 +749,26 @@ export default function HROperationsPage() {
         </div>
       </div>
 
+                  {actionNotice && (
+                    <div className="mb-3 flex items-center justify-between rounded-lg border border-[#b7e1cd] bg-[#e6f4ea] p-3 text-xs font-semibold text-[#137333]">
+                      <span>{actionNotice}</span>
+                      <button
+                        onClick={() => setActionNotice(null)}
+                        className="font-bold underline"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  )}
+
                   {/* Navigasi Utama Tab Command Center Narasi 3 */}
-                  <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+                  <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2 overflow-x-auto">
                     <button
                       onClick={() => setMainTab('overview')}
                       className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         mainTab === 'overview'
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                          ? 'bg-[#007a5a] text-white shadow-sm'
+                          : 'bg-white text-[#475569] hover:bg-[#f8fafc] border border-[#e2e8f0]'
                       }`}
                     >
                       Overview & Analitik
@@ -388,8 +777,8 @@ export default function HROperationsPage() {
                       onClick={() => setMainTab('lifecycle')}
                       className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         mainTab === 'lifecycle'
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                          ? 'bg-[#007a5a] text-white shadow-sm'
+                          : 'bg-white text-[#475569] hover:bg-[#f8fafc] border border-[#e2e8f0]'
                       }`}
                     >
                       Kontrol Siklus 3-Fase
@@ -398,8 +787,8 @@ export default function HROperationsPage() {
                       onClick={() => setMainTab('workload')}
                       className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         mainTab === 'workload'
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                          ? 'bg-[#007a5a] text-white shadow-sm'
+                          : 'bg-white text-[#475569] hover:bg-[#f8fafc] border border-[#e2e8f0]'
                       }`}
                     >
                       Analisis Beban Kerja & Waktu
@@ -408,8 +797,8 @@ export default function HROperationsPage() {
                       onClick={() => setMainTab('career-actions')}
                       className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         mainTab === 'career-actions'
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                          ? 'bg-[#007a5a] text-white shadow-sm'
+                          : 'bg-white text-[#475569] hover:bg-[#f8fafc] border border-[#e2e8f0]'
                       }`}
                     >
                       Rekomendasi Aksi & Karir
@@ -418,8 +807,8 @@ export default function HROperationsPage() {
                       onClick={() => setMainTab('directory')}
                       className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         mainTab === 'directory'
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                          ? 'bg-[#007a5a] text-white shadow-sm'
+                          : 'bg-white text-[#475569] hover:bg-[#f8fafc] border border-[#e2e8f0]'
                       }`}
                     >
                       Direktori Pegawai & Status PKWT
@@ -447,326 +836,137 @@ export default function HROperationsPage() {
                   )}
 
                   {mainTab === 'lifecycle' && (
-                    <>
-                  <HrLifecycleControlPanel />
-                  {/* 2. Feature Card Grid (click to open) */}
-      <FeatureGrid>
-        <FeatureCard
-          icon={UserPlus}
-          title="MPP & Rekrutmen"
-          metric="96.4%"
-          tag="Pre-Employment"
-          description="Manpower Planning (MPP), Quality of Hire, SLA rekrutmen, dan portal karier kandidat publik."
-          onOpen={() => setOpenFeature('mpp')}
-        />
-        <FeatureCard
-          icon={Activity}
-          title="Lifecycle Pipeline"
-          metric="24 Active"
-          tag="Milestone"
-          description="Pemantauan SLA transisi karyawan: Pre-Employment, During (GPA & 360), dan Post (Clearance)."
-          onOpen={() => setOpenFeature('pipeline')}
-        />
-        <FeatureCard
-          icon={GraduationCap}
-          title="Learning & Certification"
-          metric="Moodle"
-          tag="LMS"
-          description="Materi pembelajaran, pelacakan progres, dan sertifikasi otomatis setelah pelatihan mandatori."
-          onOpen={() => setOpenFeature('learning')}
-        />
-        <FeatureCard
-          icon={TrendingDown}
-          title="Cost & Risk"
-          metric="Flight Risk"
-          tag="Govera360"
-          description="Cost of Workforce, Flight Risk Heatmap, kalibrasi kurva Gaussian, dan clearance offboarding."
-          onOpen={() => setOpenFeature('cost')}
-        />
-      </FeatureGrid>
+                    <div className="space-y-3" ref={phaseBlockRef}>
+                      <HrLifecycleControlPanel phase={activePhase ?? 'PRE'} />
+                      {/* Pemilih fase tunggal: tiga tombol selalu tampil, dan hanya
+                          isi di bawahnya yang berganti sesuai fase terpilih. */}
+                      <div
+                        role="group"
+                        aria-label="Pilih fase siklus karyawan"
+                        className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-[#e2e8f0] bg-white p-1.5"
+                      >
+                        {PHASES.map((phase) => {
+                          const active = phase === activePhase;
+                          return (
+                            <button
+                              key={phase}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => selectPhase(phase)}
+                              className={`flex flex-1 min-w-[7rem] items-center justify-center rounded-xl px-3 py-2 text-xs font-bold transition ${
+                                active
+                                  ? 'bg-[#007a5a] text-white shadow-sm'
+                                  : 'text-[#007a5a] hover:bg-[#e6f4ea]'
+                              }`}
+                            >
+                              {PHASE_LABEL[phase]}
+                            </button>
+                          );
+                        })}
+                      </div>
 
-      {/* Aksi Cepat (kartu) */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat HR</h2>
-          <span className="text-[11px] text-[#64748b]">Rekrutmen, kalibrasi & ekspor</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionCard
-            icon={UserPlus}
-            tone="emerald"
-            title="Rekrutmen Baru (FPTK)"
-            tag="Pre-Employment"
-            description="Buat Formulir Permintaan Tenaga Kerja baru untuk posisi yang dibutuhkan."
-            onClick={() => setIsFptkModalOpen(true)}
-          />
-          <ActionCard
-            icon={Download}
-            tone="blue"
-            title="Ekspor ISO 30414"
-            tag="Laporan"
-            description="Ekspor metrik human capital sesuai standar ISO 30414."
-            onClick={handleExportIso}
-          />
-          <ActionCard
-            icon={Scale}
-            tone="slate"
-            title="Kalibrasi Nilai Semester"
-            tag="Kalibrasi"
-            description="Moderasi distribusi nilai kinerja sesuai kurva Gaussian korporat."
-            onClick={() => { setOpenFeature('pipeline'); setPipelineTab('during'); }}
-          />
-          <ActionCard
-            icon={Activity}
-            tone="violet"
-            title="Lifecycle Pipeline"
-            tag="Milestone"
-            description="Pantau SLA transisi karyawan Pre/During/Post employment."
-            onClick={() => setOpenFeature('pipeline')}
-          />
-        </div>
-      </div>
+                      {activePhase === null ? (
+                        <div className="rounded-2xl border border-dashed border-[#cbd5e1] bg-white px-5 py-8 text-center">
+                          <Scale className="mx-auto h-5 w-5 text-[#94a3b8]" />
+                          <p className="mt-2 text-sm font-bold text-[#0f172a]">Pilih fase siklus karyawan</p>
+                          <p className="mt-1 text-xs text-[#64748b]">
+                            Tampilkan satu fase saja — fitur fase lain tidak akan ikut muncul.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-[#e2e8f0] bg-white overflow-hidden">
+                          <div className={`flex items-center gap-2.5 border-b px-4 py-3 ${PHASE_STYLE[activePhase].header}`}>
+                        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${PHASE_STYLE[activePhase].badge}`}>
+                          {activePhase === 'PRE' ? (
+                            <Inbox className={`h-4 w-4 ${PHASE_STYLE[activePhase].icon}`} />
+                          ) : activePhase === 'DURING' ? (
+                            <Activity className={`h-4 w-4 ${PHASE_STYLE[activePhase].icon}`} />
+                          ) : (
+                            <LogOut className={`h-4 w-4 ${PHASE_STYLE[activePhase].icon}`} />
+                          )}
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-[#0f172a]">{PHASE_TITLE[activePhase]}</h3>
+                          <p className="text-[11px] text-[#64748b]">{PHASE_SUBTITLE[activePhase]}</p>
+                        </div>
+                      </div>
+                        <div className="p-4 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {phasePanels.map((panel) =>
+                          panel.action ? (
+                            <ActionCard
+                              key={panel.feature}
+                              icon={panel.icon}
+                              tone="emerald"
+                              title={panel.title}
+                              tag={panel.tag}
+                              description={panel.description}
+                              onClick={() =>
+                                panel.feature === 'iso-30414' ? handleExportIso() : setIsFptkModalOpen(true)
+                              }
+                            />
+                          ) : (
+                            <FeatureCard
+                              key={panel.feature}
+                              icon={panel.icon}
+                              title={panel.title}
+                              metric={panel.metric}
+                              tag={panel.tag}
+                              description={panel.description}
+                              onOpen={() => openPanelAtTop(panel.feature)}
+                            />
+                          )
+                        )}
+                      </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="space-y-3">
 
-      {/* Panel: MPP & Rekrutmen */}
-      <ExpandablePanel open={openFeature === 'mpp'} title="MPP & Rekrutmen" onClose={() => setOpenFeature(null)}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Card 1: Pre-Employment */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
-              Pre-Employment
-            </span>
-            <Inbox className="h-4 w-4 text-[#007a5a]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-3xl font-black text-[#0f172a] font-sans">
-              96.4%
-            </span>
-            <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              +3.2% vs Q2
-            </span>
-          </div>
-          <p className="text-xs font-medium text-[#334155] mt-1">
-            MPP Fulfillment (135/140 kuota)
-          </p>
-          <div className="mt-3 pt-2.5 border-t border-[#f1f5f9] flex items-center justify-between text-[11px] text-[#64748b]">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3 text-[#94a3b8]" /> TTF: <strong>24.2 hari</strong>
-            </span>
-            <span>QoH: <strong className="text-[#0f172a]">87.5/100</strong></span>
-          </div>
-        </div>
-
-        {/* Card 2: During-Employment */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
-              During-Employment
-            </span>
-            <Activity className="h-4 w-4 text-[#0284c7]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-3xl font-black text-[#0f172a] font-sans">
-              3.52
-            </span>
-            <span className="text-sm font-bold text-[#64748b]">/ 4.00</span>
-            <span className="text-[11px] font-bold text-[#0369a1] bg-[#e0f2fe] px-1.5 py-0.5 rounded">
-              Sehat
-            </span>
-          </div>
-          <p className="text-xs font-medium text-[#334155] mt-1">
-            Overall Average GPA Nilai
-          </p>
-          {/* Distribution Stacked Bar */}
-          <div className="mt-3 pt-2.5 border-t border-[#f1f5f9] space-y-1">
-            <div className="w-full bg-[#f1f5f9] h-1.5 rounded-full overflow-hidden flex">
-              <div className="bg-[#007a5a] h-full" style={{ width: '18%' }} />
-              <div className="bg-[#0284c7] h-full" style={{ width: '64%' }} />
-              <div className="bg-[#f59e0b] h-full" style={{ width: '15%' }} />
-              <div className="bg-[#dc2626] h-full" style={{ width: '3%' }} />
-            </div>
-            <p className="text-[10px] text-[#64748b] text-center font-mono">
-              A: 18% &bull; B: 64% &bull; C: 15% &bull; D: 3%
-            </p>
-          </div>
-        </div>
-
-        {/* Card 3: SOP & GCG SLA */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
-              SOP & GCG SLA
-            </span>
-            <ShieldCheck className="h-4 w-4 text-[#007a5a]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-3xl font-black text-[#0f172a] font-sans">
-              98.7%
-            </span>
-            <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              Tercapai
-            </span>
-          </div>
-          <p className="text-xs font-medium text-[#334155] mt-1">
-            0 Fatal Error Operasional
-          </p>
-          <div className="mt-3 pt-2.5 border-t border-[#f1f5f9] flex items-center justify-between text-[11px] text-[#64748b]">
-            <span className="flex items-center gap-1 text-[#137333] font-semibold">
-              <CheckCircle2 className="h-3 w-3" /> Audit: 100%
-            </span>
-            <span className="text-[10px] bg-[#f1f5f9] px-1.5 py-0.5 rounded text-[#475569]">
-              Clearance Strict
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4: Post-Employment */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
-              Post-Employment
-            </span>
-            <LogOut className="h-4 w-4 text-[#dc2626]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-3xl font-black text-[#0f172a] font-sans">
-              2.1%
-            </span>
-            <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              Di Bawah Batas
-            </span>
-          </div>
-          <p className="text-xs font-medium text-[#334155] mt-1">
-            Regrettable Attrition (Target &le; 3.0%)
-          </p>
-          <div className="mt-3 pt-2.5 border-t border-[#f1f5f9] flex items-center justify-between text-[11px] text-[#64748b]">
-            <span>Exit SLA: <strong>4.8 hari Aman</strong></span>
-            <span className="text-[10px] bg-[#fce8e6] px-1.5 py-0.5 rounded text-[#c5221f] font-semibold">
-              Offboarding
-            </span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Kelola MPP: kuota formasi & budget (tersinkron ke form Buat Lowongan) */}
-      <div className="mt-5">
-        <ManpowerPlanManager />
-      </div>
-
-      {/* Rekrutmen Kandidat (portal karier publik) */}
-      <RecruitmentPanel />
-      {/* Jadwal Wawancara (tautan meeting → kandidat) */}
-      <div className="mt-5">
-        <InterviewSchedulerPanel />
-      </div>
-      {/* Bank Soal Tes Teknis (AI, WS-4): generate → tinjau → setujui */}
-      <div className="mt-5">
-        <TechnicalTestPanel />
-      </div>
-      {/* Registrasi Karyawan Mandiri (email verify → HR approve) */}
-      <div className="mt-5">
-        <EmployeeRegistrationPanel />
-      </div>
-      {/* Penugasan atasan langsung (manager_id) */}
-      <div className="mt-5">
-        <ManagerAssignmentPanel />
-      </div>
-      {/* Persetujuan cuti & izin karyawan */}
-      <div className="mt-5">
-        <LeaveApprovalPanel />
-      </div>
-      {/* Payroll (komponen lengkap + AI advisory) */}
-      <div className="mt-5">
-        <PayrollPanel />
-      </div>
-      {/* e-Surat & disposisi (PRD v2 §5.8) */}
-      <div className="mt-5">
-        <LetterManagerPanel />
-      </div>
-      {/* Perpustakaan SOP & PP (PRD v2 §5.9) */}
-      <div className="mt-5">
-        <PolicyManagerPanel />
-      </div>
-      {/* Data kepegawaian: BPJS, berkas, sanksi, jenjang karir (PRD v2 fase 4) */}
-      <div className="mt-5">
-        <SocialSecurityManagerPanel />
-      </div>
-      <div className="mt-5">
-        <DocumentVerificationPanel />
-      </div>
-      <div className="mt-5">
-        <DisciplinaryManagerPanel />
-      </div>
-      <div className="mt-5">
-        <CareerLadderManagerPanel />
-      </div>
-      {/* Ringkasan SDM & Pasca-Kerja (agregasi lintas-modul) */}
-      <div className="mt-5">
-        <HrDashboardCards />
-      </div>
-        <AiAnalyzePanel feature="hr" />
-      </ExpandablePanel>
-
-      {/* Panel: Cost & Risk (Govera360 Analytics) */}
-      <ExpandablePanel open={openFeature === 'cost'} title="Cost of Workforce & Flight Risk" onClose={() => setOpenFeature(null)}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CostOfWorkforceCard />
-        <FlightRiskHeatmap />
-        <CompanyActivityFeed />
-      </div>
-        <AiAnalyzePanel feature="hr" />
-      </ExpandablePanel>
-
-      {/* Panel: Learning & Certification */}
-      <ExpandablePanel open={openFeature === 'learning'} title="Learning & Certification" onClose={() => setOpenFeature(null)}>
-      <div className="stitch-card-white p-6 mb-6 space-y-4">
-        <div className="flex items-center gap-2 border-b border-[#f1f5f9] pb-4">
-          <GraduationCap className="w-5 h-5 text-[#007a5a]" />
-          <div>
-            <h2 className="text-base font-extrabold text-[#0f172a]">Generate Program Onboarding</h2>
-            <p className="text-xs text-slate-500">
-              Buat program onboarding LMS (learning plan + kursus wajib posisi) untuk karyawan baru.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-          <div className="flex-1">
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Karyawan</label>
-            <select
-              value={onboardingEmployeeId}
-              onChange={(e) => setOnboardingEmployeeId(e.target.value)}
-              className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-            >
-              <option value="">— Pilih karyawan —</option>
-              {employees.map((emp) => (
-                <option key={emp.employeeId} value={emp.employeeId}>
-                  {emp.fullName}
-                  {emp.employeeCode ? ` (${emp.employeeCode})` : ''}
-                  {emp.position ? ` — ${emp.position}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={handleGenerateOnboarding}
-            disabled={isOnboardingSubmitting || !onboardingEmployeeId}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#007a5a] text-white text-xs font-bold hover:bg-[#00664b] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <GraduationCap className="w-4 h-4" />
-            {isOnboardingSubmitting ? 'Memproses...' : 'Generate Program Onboarding'}
-          </button>
-        </div>
-      </div>
-      <LearningCertificationPanel />
-      <PositionCourseMappingPanel />
-        <AiAnalyzePanel feature="learning" />
-      </ExpandablePanel>
+                  {/* Satu panel per fitur fase. Membuka satu kartu hanya menampilkan
+                      panel fitur tersebut, dan hanya bila fitur itu milik fase aktif. */}
+                  {activePhase !== null &&
+                    phasePanels
+                      .filter((panel) => !panel.action)
+                      .map((panel) => (
+                        <ExpandablePanel
+                          key={panel.feature}
+                          open={openFeature === panel.feature}
+                          title={panel.title}
+                          onClose={() => setOpenFeature(null)}
+                        >
+                          {phaseOf(panel.feature) !== activePhase ? (
+                            <p className="text-xs text-[#64748b]">Pilih fase siklus karyawan terlebih dahulu.</p>
+                          ) : (
+                            <div className="space-y-4">
+                              <button
+                                type="button"
+                                onClick={() => setOpenFeature(null)}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
+                              >
+                                <ChevronLeft className="h-3.5 w-3.5" /> Kembali ke daftar fitur fase
+                              </button>
+                              <panel.Panel />
+                              {renderFeatureContent(panel.feature)}
+                              <AiAnalyzePanel feature="hr" />
+                            </div>
+                          )}
+                        </ExpandablePanel>
+                      ))}
 
       {/* Panel: Lifecycle Pipeline */}
       <ExpandablePanel open={openFeature === 'pipeline'} title="Lifecycle Milestone & Pipeline" onClose={() => setOpenFeature(null)}>
+      {phaseOf('pipeline') !== activePhase ? (
+        <p className="text-xs text-[#64748b]">Pilih fase siklus karyawan terlebih dahulu.</p>
+      ) : (
+      <>
+      <button
+        type="button"
+        onClick={() => setOpenFeature(null)}
+        className="mb-4 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" /> Kembali ke daftar fitur fase
+      </button>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Column (60%): Lifecycle Milestone Pipeline Table */}
@@ -789,36 +989,19 @@ export default function HROperationsPage() {
 
           {/* Sub-filter tabs */}
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#f1f5f9] text-xs font-medium text-[#64748b]">
-            <button
-              onClick={() => setPipelineTab('pre')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-                pipelineTab === 'pre'
-                  ? 'bg-white text-[#0f172a] shadow-xs'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
-              }`}
-            >
-              Pre-Employment (MPP & QoH)
-            </button>
-            <button
-              onClick={() => setPipelineTab('during')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-                pipelineTab === 'during'
-                  ? 'bg-white text-[#0f172a] shadow-xs'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
-              }`}
-            >
-              During (GPA & 360)
-            </button>
-            <button
-              onClick={() => setPipelineTab('post')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-                pipelineTab === 'post'
-                  ? 'bg-white text-[#0f172a] shadow-xs'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
-              }`}
-            >
-              Post (Clearance & Severance)
-            </button>
+            {PHASES.map((p) => (
+              <button
+                key={p}
+                onClick={() => setPipelineTab(p)}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  pipelineTab === p
+                    ? 'bg-white text-[#0f172a] shadow-xs'
+                    : 'text-[#64748b] hover:text-[#0f172a]'
+                }`}
+              >
+                {PIPELINE_TAB_LABEL[p]}
+              </button>
+            ))}
           </div>
 
           {actionNotice && (
@@ -830,7 +1013,7 @@ export default function HROperationsPage() {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            {pipelineTab === 'post' ? (
+            {pipelineTab === 'POST' ? (
               <div className="space-y-4">
                 {offboardings.map((off) => (
                   <div key={off.id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
@@ -876,7 +1059,7 @@ export default function HROperationsPage() {
                           </span>
                         </div>
                         <span className="text-[10px] font-bold text-[#137333] bg-white px-2 py-1 rounded-lg border border-[#b7e1cd]">
-                          {off.isSeverancePaid ? 'Telah Ditransfer' : 'Siap Dicairkan (SLA ≤ 7 Hari)'}
+                          {off.isSeverancePaid ? 'Telah Ditransfer' : 'Siap Dicairkan (SLA â‰¤ 7 Hari)'}
                         </span>
                       </div>
                     )}
@@ -960,36 +1143,16 @@ export default function HROperationsPage() {
               </table>
             )}
           </div>
-
-          {/* Bottom Banner */}
-          <div className="p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-[#334155]">
-              <ShieldCheck className="h-4 w-4 text-[#007a5a] flex-shrink-0" />
-              <span>
-                <strong>SOP SLA Penanganan Rekrutmen:</strong> Maksimal 30 hari kalender per headcount.
-              </span>
-            </div>
-
-            <button className="flex items-center gap-1 text-xs font-semibold text-[#007a5a] hover:underline whitespace-nowrap">
-              <span>Lihat Seluruh 135 Kuota Terisi</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
         </div>
 
-        {/* Right Column (40%): Two Cards */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Right Column (40%): Two Cards */}        <div className="lg:col-span-5 space-y-6">
           
           {/* Card 1: Kalibrasi Penilaian Semester (Gaussian Bell Curve) */}
           <div className="stitch-card-white p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
               <div>
-                <h3 className="text-sm font-extrabold text-[#0f172a]">
-                  Kalibrasi Penilaian Semester
-                </h3>
-                <p className="text-xs text-[#64748b]">
-                  Distribusi Kurva Gaussian BUMN / Enterprise Governance
-                </p>
+                <h3 className="text-sm font-extrabold text-[#0f172a]">Kalibrasi Penilaian Semester</h3>
+                <p className="text-xs text-[#64748b] mt-0.5">Distribusi nilai terhadap kurva Gaussian korporat</p>
               </div>
               <Scale className="h-4 w-4 text-[#007a5a]" />
             </div>
@@ -1109,21 +1272,16 @@ export default function HROperationsPage() {
               <span>Review Dokumen LWD & BAST</span>
             </button>
           </div>
-
         </div>
-
       </div>
-        <AiAnalyzePanel feature="hr" />
+      </>
+      )}
       </ExpandablePanel>
-                    </>
-                  )}
-
-      {/* Modal Input FPTK Baru */}
+      </div>
       {isFptkModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
+              <div className="flex items-center gap-2.5 px-5 pt-5 pr-14">
                 <div className="p-2 rounded-lg bg-[#007a5a]/10 text-[#007a5a]">
                   <UserPlus className="h-5 w-5" />
                 </div>
@@ -1134,13 +1292,12 @@ export default function HROperationsPage() {
               </div>
               <button 
                 onClick={() => setIsFptkModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                className="absolute right-4 top-4 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
-            </div>
 
-            <form onSubmit={handleCreateFptk} className="p-5 space-y-4">
+            <form onSubmit={handleCreateFptk} className="p-5 pt-4 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Kandidat *</label>
                 <input
@@ -1240,7 +1397,7 @@ export default function HROperationsPage() {
               </div>
 
               <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800">
-                Formula Quality of Hire: <strong>(Psikometri × 30%) + (Teknis × 40%) + (Wawancara × 30%)</strong>
+                Formula Quality of Hire: <strong>(Psikometri Ã— 30%) + (Teknis Ã— 40%) + (Wawancara Ã— 30%)</strong>
                 <div className="mt-0.5 font-bold">
                   Estimasi Skor: {((fptkForm.psychometricScore * 0.3) + (fptkForm.technicalTestScore * 0.4) + (fptkForm.competencyInterviewScore * 0.3)).toFixed(1)} / 100
                 </div>
@@ -1267,7 +1424,7 @@ export default function HROperationsPage() {
         </div>,
         document.body
       )}
-
     </div>
   );
 }
+

@@ -11,6 +11,7 @@ import { GET as getWorkload } from '@/app/api/v1/hr/workload-summary/route';
 import { GET as getContracts } from '@/app/api/v1/hr/contracts-summary/route';
 import { GET as getActions } from '@/app/api/v1/hr/action-recommendations/route';
 import { GET as getCareer } from '@/app/api/v1/hr/career-guidance/[id]/route';
+import { GET as getEmployees } from '@/app/api/v1/hr/employees/route';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
 
@@ -92,15 +93,15 @@ describe('HR Command Center API Endpoints (Integration)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('menolak peran tanpa izin baca kepegawaian (403)', async () => {
-    // ASSESSOR tidak punya 'employment:read'.
-    const assessorCookie = `${SESSION_COOKIE_NAME}=${await signSession({
-      userId: 'e0000000-0000-4000-8000-000000000007',
-      employeeId: 'b0000000-0000-4000-8000-000000000011',
-      role: 'ASSESSOR',
-      email: 'aris.assessor@eperformiq.co.id',
+  it('menolak sesi tanpa izin kelola rekrutmen pada endpoint yang dijaga (403)', async () => {
+    // /api/v1/hr/employees dijaga 'recruitment:manage' (khusus SUPER_ADMIN/HR_MANAGER).
+    const empCookie403 = `${SESSION_COOKIE_NAME}=${await signSession({
+      userId: 'e0000000-0000-4000-8000-000000000004',
+      employeeId: 'b0000000-0000-4000-8000-000000000004',
+      role: 'EMPLOYEE',
+      email: 'budi.pratama@eperformiq.co.id',
     })}`;
-    const res = await getContracts(req('/api/v1/hr/contracts-summary', assessorCookie));
+    const res = await getEmployees(req('/api/v1/hr/employees', empCookie403));
     expect(res.status).toBe(403);
   });
 

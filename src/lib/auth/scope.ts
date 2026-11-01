@@ -5,7 +5,7 @@ import { ForbiddenError } from './errors';
 
 export type VisibleScope = string[] | 'ALL';
 
-/** Role yang melihat seluruh organisasi (spec §6.3). ASSESSOR hanya melihat penugasan asesmennya. */
+/** Role yang melihat seluruh organisasi (spec §6.3). */
 const ORG_WIDE_ROLES = ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR'] as const;
 
 /**
@@ -24,10 +24,6 @@ export async function resolveVisibleEmployeeIds(
   if (!session.employeeId) return [];
 
   if (session.role === 'EMPLOYEE') return [session.employeeId];
-
-  // ASSESSOR independen: hanya menangani data kandidat/asesmen, bukan data
-  // karyawan. Beri scope karyawan kosong agar tak bocor lintas unit.
-  if (session.role === 'ASSESSOR') return [];
 
   const result = await db.execute(sql`
     WITH RECURSIVE subordinates AS (
