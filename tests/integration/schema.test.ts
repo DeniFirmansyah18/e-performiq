@@ -44,6 +44,8 @@ const EXPECTED_TABLES = [
   'ai_insights',
     // ADR 023: register penawaran kerja (offer register)
     'job_offers',
+  // State machine fase karyawan: riwayat transisi fase yang dapat diaudit
+  'employee_phase_history',
     ].sort();
 
 describe('skema database', () => {
@@ -57,7 +59,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 112 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 113 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -68,13 +70,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 52 enum', async () => {
+  it('membuat 53 enum', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-      expect(Number(res.rows[0].count)).toBe(52);
+      expect(Number(res.rows[0].count)).toBe(53);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {

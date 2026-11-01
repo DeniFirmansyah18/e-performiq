@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import { getMyProfile, updateMyProfile, getMyLifecycleProfile, tenureParts } from '@/lib/services/employeeProfileService';
+import { changeEmployeePhase } from '@/lib/services/employeePhaseService';
 import type { Db } from '@/lib/db/client';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
@@ -76,6 +77,15 @@ describe('employeeProfileService', () => {
       INSERT INTO offboarding_requests (employee_id, reason_for_leaving, resignation_notice_date, last_working_day, status)
       VALUES ('${OFF_EMP}','RESIGNATION','2026-09-01','2026-09-30','INITIATED');
     `);
+    // Fase bergerak hanya lewat state machine; kolom `employee_phase` adalah
+    // acuan utama sehingga sinyal offboarding saja tidak mengubah fase.
+    await changeEmployeePhase(db, {
+      employeeId: OFF_EMP,
+      newPhase: 'POST',
+      effectiveDate: '2026-09-30',
+      reason: 'Permintaan offboarding diajukan; karyawan masuk fase pasca-kerja.',
+      decidedBy: HR_USER,
+    });
     const p = await getMyLifecycleProfile(db, OFF_EMP);
     expect(p.phase).toBe('POST');
     expect(p.offboardingStatus).toBe('INITIATED');
@@ -88,6 +98,16 @@ describe('employeeProfileService', () => {
       INSERT INTO onboarding_programs (employee_id, status) VALUES ('${PRE_EMP}','IN_PROGRESS');
       INSERT INTO onboarding_milestones (employee_id, probation_passed) VALUES ('${PRE_EMP}', FALSE);
     `);
+    // Karyawan ini sudah tercatat DURING; mundur ke PRE adalah koreksi data,
+    // bukan transisi maju, sehingga memerlukan flag `allowCorrection`.
+    await changeEmployeePhase(db, {
+      employeeId: PRE_EMP,
+      newPhase: 'PRE',
+      effectiveDate: '2026-09-01',
+      reason: 'Koreksi fase: onboarding pra-penempatan ternyata belum tuntas.',
+      decidedBy: HR_USER,
+      allowCorrection: true,
+    });
     const p = await getMyLifecycleProfile(db, PRE_EMP);
     expect(p.phase).toBe('PRE');
     expect(p.onboarding.probationPassed).toBe(false);
@@ -108,13 +128,30 @@ describe('employeeProfileService', () => {
   });
 
   it('getMyLifecycleProfile menaikkan PROBATION yang orientasinya tuntas ke fase DURING', async () => {
-    const DONE_EMP = 'b0000000-0000-4000-8000-000000000011';
+    const DONE_EMP = 'b0000000-0000-4000-8000-000000000010';
     await client.exec(`
       DELETE FROM onboarding_milestones WHERE employee_id='${DONE_EMP}';
       DELETE FROM onboarding_programs WHERE employee_id='${DONE_EMP}';
       UPDATE employees SET status='PROBATION' WHERE id='${DONE_EMP}';
       INSERT INTO onboarding_programs (employee_id, status) VALUES ('${DONE_EMP}','COMPLETED');
     `);
+    // Fase DURING pada state machine tidak bisa diturunkan menjadi PRE oleh tes lain,
+    // jadi pastikan fase tegas DURING lewat state machine sebelum menguji orientasi tuntas.
+    await changeEmployeePhase(db, {
+      employeeId: DONE_EMP,
+      newPhase: 'PRE',
+      effectiveDate: '2026-09-01',
+      reason: 'Simulasi awal: karyawan masih pra-penempatan sebelum orientasi tuntas.',
+      decidedBy: HR_USER,
+      allowCorrection: true,
+    });
+    await changeEmployeePhase(db, {
+      employeeId: DONE_EMP,
+      newPhase: 'DURING',
+      effectiveDate: '2026-09-15',
+      reason: 'Orientasi tuntas; karyawan resmi masuk fase saat kerja.',
+      decidedBy: HR_USER,
+    });
     const p = await getMyLifecycleProfile(db, DONE_EMP);
     expect(p.phase).toBe('DURING');
     expect(p.onboarding.programStatus).toBe('COMPLETED');

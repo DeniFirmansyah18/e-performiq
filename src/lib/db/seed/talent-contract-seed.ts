@@ -23,6 +23,14 @@ function shiftDays(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Ubah tanggal `YYYY-MM-DD` menjadi timestamp UTC agar jam transisi eksplisit. */
+function ts(date: string): string {
+  return `${q(`${date}T01:00:00Z`)}::timestamptz`;
+}
+
+/** HR Manager pemutus transisi fase pada data seed. */
+const PKWT_DECIDER = 'e0000000-0000-4000-8000-000000000002';
+
 interface PkwtSeedRow {
   id: string;
   employeeCode: string;
@@ -270,6 +278,7 @@ function jsonArray(values: string[]): string {
 
 export async function seedTalentAndContracts(client: SqlClient): Promise<void> {
   // 1) Pegawai PKWT pada seluruh tingkat urgensi kontrak.
+  const pkwtPhaseRows: string[] = [];
   for (const row of PKWT_EMPLOYEES) {
     const endDate = row.daysRemaining === null ? null : shiftDays(row.daysRemaining);
     const startDate =
@@ -289,9 +298,26 @@ INSERT INTO employees (id, employee_code, full_name, email, phone_number,
    ${row.baseSalary},${q(row.joinDate)})
 ON CONFLICT (id) DO NOTHING;
 `);
+
+    // Pegawai PKWT sudah melewati rekrutmen dan sedang aktif bekerja, sehingga
+    // fasenya DURING dengan satu transisi awal pada tanggal bergabung.
+    pkwtPhaseRows.push(
+      `('6f000000-0000-4000-8000-${row.id.slice(-12)}',${q(row.id)},NULL,'DURING'::employee_phase_enum,${q(row.joinDate)}::date,'Karyawan PKWT aktif sejak tanggal bergabung.',${q(PKWT_DECIDER)},${ts(row.joinDate)})`
+    );
   }
 
-  // 2) Jenjang karir untuk setiap posisi yang terisi.
+  // 2) Riwayat transisi fase untuk pegawai PKWT agar kolom denormalisasi
+  // `employees.employee_phase` punya jejak audit yang bisa ditelusuri.
+  if (pkwtPhaseRows.length > 0) {
+    await client.exec(`
+INSERT INTO employee_phase_history
+  (id, employee_id, previous_phase, new_phase, effective_date, reason, decided_by, created_at) VALUES
+  ${pkwtPhaseRows.join(',\n  ')}
+ON CONFLICT (id) DO NOTHING;
+`);
+  }
+
+  // 3) Jenjang karir untuk setiap posisi yang terisi.
   for (const path of CAREER_PATHS) {
     await client.exec(`
 INSERT INTO career_path_levels (id, job_position_id, target_position_id, min_gpa, min_service_months, required_skills) VALUES
@@ -300,7 +326,7 @@ ON CONFLICT (id) DO NOTHING;
 `);
   }
 
-  // 3) Skor kompetensi pada skill yang benar-benar disyaratkan.
+  // 4) Skor kompetensi pada skill yang benar-benar disyaratkan.
   for (const c of COMPETENCIES) {
     await client.exec(`
 INSERT INTO competency_scores (id, period_id, employee_id, skill_name, skill_category, required_level, actual_level, score) VALUES
@@ -309,7 +335,7 @@ ON CONFLICT (id) DO NOTHING;
 `);
   }
 
-  // 4) Appraisal pendukung syarat GPA.
+  // 5) Appraisal pendukung syarat GPA.
   for (const a of APPRAISALS) {
     await client.exec(`
 INSERT INTO performance_appraisals (id, period_id, employee_id, kpi_composite_score, sop_compliance_score, competency_score, core_values_score, total_percentage_score, composite_gpa, performance_rating, potential_score, nine_box_quadrant, is_calibrated, calibration_notes) VALUES
@@ -317,4 +343,19 @@ INSERT INTO performance_appraisals (id, period_id, employee_id, kpi_composite_sc
 ON CONFLICT (id) DO NOTHING;
 `);
   }
+
+  // 6) Selaraskan kolom denormalisasi dengan transisi terakhir di riwayat fase.
+  // Seeder ini berjalan setelah `seedLifecycle`, yang sudah lebih dulu
+  // menyelaraskan kolomnya, sehingga tanpa langkah ini pegawai PKWT tetap
+  // berfase NULL. Satu statement: PGlite hanya menerapkan efek pertama pada
+  // batch multi-statement.
+  await client.exec(`UPDATE employees e
+    SET employee_phase = latest.new_phase
+    FROM (
+      SELECT DISTINCT ON (h.employee_id) h.employee_id, h.new_phase
+        FROM employee_phase_history h
+       ORDER BY h.employee_id, h.effective_date DESC, h.created_at DESC
+    ) AS latest
+    WHERE latest.employee_id = e.id
+      AND e.employee_phase IS DISTINCT FROM latest.new_phase;`);
 }
