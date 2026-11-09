@@ -1,6 +1,8 @@
 'use client';
 
 import { createPortal } from 'react-dom';
+import { nineBoxCopy, NINE_BOX_BOX_NUMBER } from '@/lib/employee/nineBoxLabels';
+import type { NineBoxQuadrant } from '@/types';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -36,17 +38,10 @@ type ManagerFeature = 'roster' | 'approval' | 'evaluasi' | 'indikator';
 /** Periode penilaian aktif yang dipakai seluruh panel cockpit manajer. */
 const PERIOD_ID = 'd0000000-0000-4000-8000-000000000001';
 
-const QUADRANT_LABEL: Record<string, string> = {
-  STAR: 'Kuadran 1 — Growth Star / Top Talent',
-  FUTURE_LEADER: 'Kuadran 1 — Future Leader / High Potential',
-  HIGH_IMPACT: 'Kuadran 2 — High Impact Performer',
-  CORE_PLAYER: 'Kuadran 5 — Core Player / Steady Performer',
-  WORKHORSE: 'Kuadran 6 — Solid Contributor',
-  DILEMMA: 'Kuadran 4 — Dilemma / Inconsistent',
-  RISK: 'Kuadran 7 — Underperformer / Risk',
-  PUZZLE: 'Kuadran 8 — Puzzle / Enigma',
-  TRUSTED_PROFESSIONAL: 'Kuadran 3 — Trusted Professional',
-};
+/** Label kotak 9-Box — nomor & nama dari modul bersama (sebelumnya nomor kuadran di sini keliru). */
+const QUADRANT_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(NINE_BOX_BOX_NUMBER).map(([code, no]) => [code, `Kotak ${no} — ${nineBoxCopy(code).name}`])
+);
 
 function statusTypeFor(pending: number, gpa: number | null): TeamMember['statusType'] {
   if (pending > 0) return 'attention';
@@ -344,8 +339,10 @@ export default function ManagerCockpitPage() {
               ? {
                   ...m,
                   gpa: Number(data.composite_gpa).toFixed(2),
-                  box: `Kuadran (${data.nine_box_placement?.quadrant})`,
-                  boxName: data.nine_box_placement?.strategic_action || 'Evaluated',
+                  box: `Kotak ${NINE_BOX_BOX_NUMBER[data.nine_box_placement?.quadrant as NineBoxQuadrant] ?? '-'}`,
+                  boxName: data.nine_box_placement?.quadrant
+                    ? `Kotak ${NINE_BOX_BOX_NUMBER[data.nine_box_placement.quadrant as NineBoxQuadrant] ?? '-'} — ${nineBoxCopy(String(data.nine_box_placement.quadrant)).name}`
+                    : 'Belum dinilai',
                   status: 'Terkalkulasi & Tersimpan',
                   statusType: 'ready',
                   kpi: data.kpi_score != null ? `${Number(data.kpi_score).toFixed(1)}%` : m.kpi,

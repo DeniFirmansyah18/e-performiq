@@ -47,7 +47,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
     position: 'potensi tinggi · kinerja sedang',
     short: 'Punya kapasitas lebih, hasil kerjanya masih bisa dinaikkan.',
     happening:
-      'Kemampuan dan motivasinya sudah tampak, tetapi hasil kerjanya baru pada tingkat memadai. Biasanya ini orang yang kurang tantangan, bukan kurang mampu.',
+      'Kemampuan dan tanda untuk naik level sudah tampak, tetapi hasil kerjanya baru pada tingkat memadai. Penyebabnya belum diketahui — bisa karena kurang tantangan, bisa karena hambatan lain.',
     firstStep: 'Beri satu tanggung jawab tambahan yang lebih menantang dan sepakati targetnya bersama.',
     checkFirst:
       'Apakah targetnya sekarang terlalu mudah? Apakah dia butuh bimbingan teknis, bukan hanya tambahan tugas?',
@@ -72,7 +72,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
     position: 'potensi sedang · kinerja tinggi',
     short: 'Hasil kerjanya tinggi dan keahliannya sulit digantikan.',
     happening:
-      'Hasil kerjanya konsisten di atas target karena keahlian yang mendalam. Umumnya dia lebih berkembang di jalur keahlian, bukan jalur memimpin orang.',
+      'Hasil kerjanya konsisten di atas target dengan keahlian yang mendalam. Tanda untuk naik ke jenjang berikutnya baru pada tingkat sedang.',
     firstStep: 'Beri pengakuan dan insentif yang membuatnya bertahan, lalu pastikan keahliannya dibagikan ke rekan lain.',
     checkFirst:
       'Apakah dia merasa kariernya mentok karena tidak diarahkan ke jabatan manajerial? Apakah beban kerjanya sudah berlebihan?',
@@ -96,7 +96,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
     position: 'potensi sedang · kinerja rendah',
     short: 'Kemampuannya ada, tapi hasil kerjanya belum mencapai target.',
     happening:
-      'Kemampuan dasarnya cukup, tetapi hasil kerjanya belum sesuai target. Bisa karena keterampilan yang belum lengkap, atau penempatan yang kurang tepat.',
+      'Kemampuan dasarnya cukup, tetapi hasil kerjanya belum sesuai target. Bisa karena keterampilan yang belum lengkap, atau peran yang tidak cocok.',
     firstStep: 'Tetapkan satu atau dua keterampilan yang paling menghambat, lalu susun pelatihannya.',
     checkFirst:
       'Keterampilan apa yang paling kurang? Apakah tugasnya cocok dengan kemampuannya sekarang? Apakah targetnya perlu ditinjau ulang?',
@@ -108,7 +108,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
     position: 'potensi rendah · kinerja tinggi',
     short: 'Sangat andal di bidangnya, tapi tidak diarahkan memimpin orang.',
     happening:
-      'Pekerjaannya rapi dan hasilnya tinggi pada bidang yang dikuasainya, biasanya karena pengalaman panjang. Dia tidak mengejar peran memimpin orang.',
+      'Pekerjaannya rapi dan hasilnya tinggi pada bidang yang dikuasainya. Tanda untuk naik level belum terlihat pada penilaian.',
     firstStep: 'Pertahankan dan jadikan tempat bertanya bagi rekan yang lebih baru di bidang yang sama.',
     checkFirst:
       'Apakah keahliannya sudah terdokumentasi sehingga tidak hilang bila dia keluar? Apakah dia merasa dihargai?',
@@ -138,6 +138,19 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
       'Apakah akar masalahnya sudah dipahami bersama dia? Apakah ada kondisi pribadi atau hambatan kerja yang perlu ditangani lebih dulu?',
     shortAction: 'Buat rencana pembinaan',
   },
+};
+
+/** Nomor kotak 9-Box (1 = potensi & kinerja terendah, 9 = tertinggi). */
+export const NINE_BOX_BOX_NUMBER: Record<NineBoxQuadrant, number> = {
+  UNDERPERFORMER: 1,
+  EFFECTIVE_PRO: 2,
+  TRUSTED_PRO: 3,
+  DILEMMA: 4,
+  CORE_PLAYER: 5,
+  HIGH_IMPACT: 6,
+  ENIGMA: 7,
+  GROWTH_STAR: 8,
+  FUTURE_LEADER: 9,
 };
 
 const UNKNOWN: NineBoxCopy = {

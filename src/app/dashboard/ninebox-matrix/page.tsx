@@ -2,6 +2,7 @@
 
 import { createPortal } from 'react-dom';
 import { nineBoxCopy, potentialLabel } from '@/lib/employee/nineBoxLabels';
+import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -422,7 +423,7 @@ export default function NineBoxMatrixPage() {
         </div>
       )}
 
-      {/* Error Alert Ã¢â‚¬â€ jangan pernah mengaku berhasil saat server menolak */}
+      {/* Error Alert — jangan pernah mengaku berhasil saat server menolak */}
       {calibrateErrorMsg && (
         <div role="alert" className="p-3.5 rounded-xl bg-[#fce8e6] border border-[#f5c6c0] text-xs font-semibold text-[#c5221f] flex items-center justify-between shadow-xs animate-fadeIn">
           <span>{calibrateErrorMsg}</span>
@@ -437,7 +438,7 @@ export default function NineBoxMatrixPage() {
         <FeatureCard
           icon={Users}
           title="Distribusi Kinerja"
-          metric={summary ? summary.total.toLocaleString('id-ID') : 'â€”'}
+          metric={summary ? summary.total.toLocaleString('id-ID') : '—'}
           tag="100% Sensus"
           description="Sebaran populasi talenta pada kuadran potensi-kinerja: Future Leaders, Core Backbone, dan Underperformer."
           onOpen={() => setOpenFeature('distribusi')}
@@ -445,7 +446,7 @@ export default function NineBoxMatrixPage() {
         <FeatureCard
           icon={Grid3X3}
           title="Matriks 9-Box & Inspeksi"
-          metric="3 Ãƒâ€” 3"
+          metric="3 × 3"
           tag="Talenta"
           description="Matriks visual 9 kuadran dengan panel inspeksi kandidat, analisis kesenjangan kompetensi, dan IDP."
           onOpen={() => setOpenFeature('inspection')}
@@ -502,22 +503,22 @@ export default function NineBoxMatrixPage() {
         </div>
       </div>
 
-      {/* Ringkasan pemula â€” selalu terlihat, bukan di dalam panel yang harus dibuka */}
+      {/* Ringkasan pemula — selalu terlihat, bukan di dalam panel yang harus dibuka */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-[#f5c6c0] p-4 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#c5221f]">Perlu perhatian</span>
           <div data-testid="summary-perhatian" className="text-2xl font-black text-[#c5221f] mt-1">
             {summary ? `${summaryPerhatian} orang` : 'Data belum tersedia'}
           </div>
-          <p className="text-[11px] text-[#64748b]">Kotak 1â€“3 Â· hasil kerja di bawah target</p>
+          <p className="text-[11px] text-[#64748b]">Kotak 1–3 · hasil kerja di bawah target</p>
         </div>
 
         <div className="bg-white rounded-xl border border-[#b7e1cd] p-4 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Siap dipromosikan</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Potensi tinggi</span>
           <div data-testid="summary-promosi" className="text-2xl font-black text-[#137333] mt-1">
             {summary ? `${summaryPromosi} orang` : 'Data belum tersedia'}
           </div>
-          <p className="text-[11px] text-[#64748b]">Kotak 7â€“9 Â· potensi tinggi</p>
+          <p className="text-[11px] text-[#64748b]">Kotak 7–9 · perlu dikembangkan dulu</p>
         </div>
 
         <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-xs">
@@ -525,7 +526,7 @@ export default function NineBoxMatrixPage() {
           <div data-testid="summary-dijaga" className="text-2xl font-black text-[#0f172a] mt-1">
             {summary ? `${summaryDijaga} orang` : 'Data belum tersedia'}
           </div>
-          <p className="text-[11px] text-[#64748b]">Kotak 4â€“6 Â· kinerja stabil</p>
+          <p className="text-[11px] text-[#64748b]">Kotak 4–6 · kinerja stabil</p>
         </div>
       </div>
 
@@ -542,7 +543,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#0f172a]">{(summary?.total ?? 1240).toLocaleString('id-ID')}</span>
+            <span className="text-2xl font-black text-[#0f172a]">{summary ? summary.total.toLocaleString('id-ID') : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#e6f4ea] text-[#137333]">
               100% Sensus
             </span>
@@ -559,7 +560,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#007a5a]">{summary?.byQuadrant?.FUTURE_LEADER ?? 42}</span>
+            <span className="text-2xl font-black text-[#007a5a]">{summary ? (summary.byQuadrant?.FUTURE_LEADER ?? 0) : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#166534]">
               3.4% Populasi
             </span>
@@ -576,7 +577,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#0f172a]">{summary?.byQuadrant?.CORE_PLAYER ?? 180}</span>
+            <span className="text-2xl font-black text-[#0f172a]">{summary ? (summary.byQuadrant?.CORE_PLAYER ?? 0) : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569]">
               14.5% Populasi
             </span>
@@ -593,7 +594,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#dc2626]">{summary?.byQuadrant?.UNDERPERFORMER ?? 12}</span>
+            <span className="text-2xl font-black text-[#dc2626]">{summary ? (summary.byQuadrant?.UNDERPERFORMER ?? 0) : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626]">
               1.0% Mandat PIP
             </span>
@@ -646,14 +647,14 @@ export default function NineBoxMatrixPage() {
             {/* Y-Axis Labeling */}
             <div className="w-12 flex-shrink-0 flex flex-col justify-between py-6 text-[10px] font-bold text-[#64748b] tracking-wider select-none pr-2 text-right">
               <div className="flex items-center justify-end gap-0.5 text-[#007a5a]">
-                <span className="text-xs">Ã¢â€ â€˜</span>
+                <span className="text-xs">↑</span>
                 <span className="writing-vertical -rotate-90 origin-center translate-y-3 whitespace-nowrap">POTENSI TINGGI</span>
               </div>
               <div className="flex items-center justify-end">
                 <span className="writing-vertical -rotate-90 origin-center whitespace-nowrap">POTENSI SEDANG</span>
               </div>
               <div className="flex items-center justify-end gap-0.5 text-[#dc2626]">
-                <span className="text-xs">Ã¢â€ â€œ</span>
+                <span className="text-xs">↓</span>
                 <span className="writing-vertical -rotate-90 origin-center -translate-y-3 whitespace-nowrap">POTENSI RENDAH</span>
               </div>
             </div>
@@ -709,7 +710,7 @@ export default function NineBoxMatrixPage() {
                         <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
                       </div>
 
-                      {/* Kalimat singkat untuk pemula â€” bisa disembunyikan */}
+                      {/* Kalimat singkat untuk pemula — bisa disembunyikan */}
                       {showHelp && (
                         <p data-testid="quad-short" className="text-[10px] text-[#475569] leading-snug mb-1.5">
                           {nineBoxCopy(quad.quadrantKey).short}
@@ -749,13 +750,13 @@ export default function NineBoxMatrixPage() {
               {/* X-Axis Labeling */}
               <div className="grid grid-cols-3 gap-2.5 mt-3 text-center text-[10px] font-bold text-[#64748b] tracking-wider select-none">
                 <div className="text-left text-[#dc2626] pl-1">
-                  Ã¢â€ Â KINERJA RENDAH
+                  ← KINERJA RENDAH
                 </div>
                 <div className="text-center text-[#64748b]">
                   KINERJA SEDANG
                 </div>
                 <div className="text-right text-[#007a5a] pr-1">
-                  KINERJA TINGGI Ã¢â€ â€™
+                  KINERJA TINGGI →
                 </div>
               </div>
 
@@ -859,7 +860,7 @@ export default function NineBoxMatrixPage() {
                           </span>
                         </div>
                         <p className="text-[10px] text-[#64748b]">
-                          NIP: {cand.nip} Ã¢â‚¬Â¢ Masa Kerja: {cand.tenure}
+                          NIP: {cand.nip} • Masa Kerja: {cand.tenure}
                         </p>
                       </div>
                     </div>
@@ -1169,10 +1170,10 @@ export default function NineBoxMatrixPage() {
                   }}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#0284c7] bg-white text-[#0f172a]"
                 >
-                  <option value="b0000000-0000-4000-8000-000000000004">Budi Pratama Ã¢â‚¬â€ Senior Systems Architect</option>
-                  <option value="b0000000-0000-4000-8000-000000000007">Anisa Wijaya, S.Ds. Ã¢â‚¬â€ Product Designer UI/UX</option>
-                  <option value="b0000000-0000-4000-8000-000000000008">Dimas Prasetyo, S.Kom. Ã¢â‚¬â€ DevOps &amp; SRE Engineer</option>
-                  <option value="b0000000-0000-4000-8000-000000000009">Rian Hidayat, S.Kom. Ã¢â‚¬â€ Junior Backend Developer (Probation)</option>
+                  <option value="b0000000-0000-4000-8000-000000000004">Budi Pratama — Senior Systems Architect</option>
+                  <option value="b0000000-0000-4000-8000-000000000007">Anisa Wijaya, S.Ds. — Product Designer UI/UX</option>
+                  <option value="b0000000-0000-4000-8000-000000000008">Dimas Prasetyo, S.Kom. — DevOps &amp; SRE Engineer</option>
+                  <option value="b0000000-0000-4000-8000-000000000009">Rian Hidayat, S.Kom. — Junior Backend Developer (Probation)</option>
                 </select>
               </div>
 
@@ -1240,25 +1241,17 @@ export default function NineBoxMatrixPage() {
                 />
               </div>
 
-              {/* Real-time 9-Box Calculation Preview */}
+              {/* Pratinjau 9-Box memakai engine yang sama dengan perhitungan resmi,
+                  agar tidak pernah berbeda dari hasil yang benar-benar disimpan. */}
               {(() => {
-                const totalScore = Number(
-                  (calibForm.kpiScore * 0.5 + calibForm.sopScore * 0.2 + calibForm.compScore * 0.15 + calibForm.valuesScore * 0.15).toFixed(2)
-                );
-                const gpa = Number(Math.min(4.0, (totalScore / 100) * 4.0).toFixed(2));
-                const isHighPerf = totalScore >= 90;
-                const isMedPerf = totalScore >= 75 && totalScore < 90;
-                const isHighPot = calibForm.potentialScore >= 4.0;
-                const isMedPot = calibForm.potentialScore >= 3.0 && calibForm.potentialScore < 4.0;
-
-                let quad = 'CORE_PLAYER';
-                if (isHighPerf && isHighPot) quad = 'FUTURE_LEADER (Box 9)';
-                else if (isHighPerf && isMedPot) quad = 'GROWTH_STAR (Box 8)';
-                else if (isHighPerf && !isHighPot && !isMedPot) quad = 'HIGH_IMPACT (Box 6)';
-                else if (isMedPerf && isHighPot) quad = 'ENIGMA (Box 7)';
-                else if (isMedPerf && isMedPot) quad = 'CORE_PLAYER (Box 5)';
-                else if (!isHighPerf && !isMedPerf && isHighPot) quad = 'DILEMMA (Box 4)';
-                else quad = 'CORE_PLAYER (Box 5)';
+                const preview = calculateCompositeGPA({
+                  kpiScore: calibForm.kpiScore,
+                  sopScore: calibForm.sopScore,
+                  competencyScore: calibForm.compScore,
+                  coreValuesScore: calibForm.valuesScore,
+                  potentialScore: calibForm.potentialScore,
+                });
+                const quad = nineBoxCopy(preview.nineBoxQuadrant).name;
 
                 return (
                   <div className="p-3.5 rounded-xl bg-[#e0f2fe] border border-[#bae6fd] flex items-center justify-between">
@@ -1267,7 +1260,7 @@ export default function NineBoxMatrixPage() {
                         Prediksi Penempatan 9-Box
                       </span>
                       <p className="text-xs text-[#0f172a] font-bold mt-0.5">
-                        {quad} &bull; GPA: {gpa}
+                        {quad} &bull; GPA: {preview.compositeGPA}
                       </p>
                     </div>
                     <span className="text-[11px] font-bold text-[#0284c7] bg-white px-2.5 py-1 rounded-lg border border-[#bae6fd]">

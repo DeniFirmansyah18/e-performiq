@@ -207,7 +207,7 @@ export default function HrOverviewAnalyticsPanel() {
         </span>
         <p className="text-[11px] text-[#0d3b2e] leading-relaxed">
           <span className="font-semibold">{summary?.appraisal.high_potential_count ?? 0} karyawan</span>{' '}
-          berada di kuadran potensi tinggi (Future Leader / Growth Star / Enigma), dihitung dari
+          berada di kotak potensi tinggi (Pemimpin Masa Depan / Bintang Berkembang / Potensi Tinggi, Kinerja Rendah), dihitung dari
           appraisal terbaru. Matriks 9-Box di bawah menampilkan sebaran lengkap beserta daftar
           pegawai per kuadran.
         </p>
