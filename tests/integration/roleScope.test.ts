@@ -31,7 +31,6 @@ describe('Scope & RBAC per role setelah penyederhanaan 6 peran', () => {
 
   it('role ASSESSOR sudah tidak ada di matriks RBAC', () => {
     // Setiap permission harus menolak string role yang tak terdaftar.
-    expect(can('ASSESSOR' as UserRole, 'appraisal:calibrate')).toBe(false);
     expect(can('ASSESSOR' as UserRole, 'kpi:read')).toBe(false);
   });
 
@@ -54,7 +53,6 @@ describe('Scope & RBAC per role setelah penyederhanaan 6 peran', () => {
 
   it('EMPLOYEE boleh mengubah profilnya sendiri namun tidak mengkalibrasi', () => {
     expect(can('EMPLOYEE', 'profile:write')).toBe(true);
-    expect(can('EMPLOYEE', 'appraisal:calibrate')).toBe(false);
     expect(can('EMPLOYEE', 'appraisal:calculate')).toBe(false);
   });
 

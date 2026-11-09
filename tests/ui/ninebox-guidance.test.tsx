@@ -79,39 +79,5 @@ describe('panduan 9-Box untuk pemula', () => {
     expect(window.localStorage.getItem('epq:ninebox:showHelp')).toBe('false');
   });
 
-  it('pratinjau memakai engine resmi: memberi kotak yang sama dengan calculateCompositeGPA', async () => {
-    render(<NineBoxMatrixPage />);
-    fireEvent.click(screen.getAllByRole('button', { name: /Kalibrasi/i })[0]);
 
-    // Default form: KPI 96, SOP 98, Komp 88, Values 92, potensi 4.5.
-    const expected = calculateCompositeGPA({
-      kpiScore: 96,
-      sopScore: 98,
-      competencyScore: 88,
-      coreValuesScore: 92,
-      potentialScore: 4.5,
-    });
-
-    const preview = await screen.findByText(/Prediksi Penempatan/i);
-    const teks = preview.parentElement?.parentElement?.textContent ?? '';
-    expect(teks).toContain(nineBoxCopy(expected.nineBoxQuadrant).name);
-    // Nama kode internal tidak boleh bocor ke layar.
-    expect(teks).not.toMatch(/[A-Z]{4,}_[A-Z_]+/);
-  });
-
-  it('label slider potensi mengikuti ambang engine', async () => {
-    render(<NineBoxMatrixPage />);
-    fireEvent.click(screen.getAllByRole('button', { name: /Kalibrasi/i })[0]);
-
-    const label = await screen.findByTestId('potential-label');
-    // Nilai awal form = 4.5 â†’ potensi tinggi
-    expect(label.textContent).toBe('Potensi tinggi');
-
-    const slider = screen.getByTestId('potential-slider') as HTMLInputElement;
-    fireEvent.change(slider, { target: { value: '2.9' } });
-    expect(screen.getByTestId('potential-label').textContent).toBe('Potensi rendah');
-
-    fireEvent.change(slider, { target: { value: '3.5' } });
-    expect(screen.getByTestId('potential-label').textContent).toBe('Potensi sedang');
-  });
 });

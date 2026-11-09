@@ -59,8 +59,8 @@ describe('Stage R1 — batch/queue kalkulasi GPA massal', () => {
     expect(targets).toContain(RIAN);
   });
 
-  it('listGpaBatchTargets melewati appraisal yang sudah dikalibrasi (immutable)', async () => {
-    // Budi pada Q3 sudah punya appraisal is_calibrated=TRUE → harus dilewati.
+  it('listGpaBatchTargets melewati karyawan yang appraisalnya sudah ada (perilaku batch)', async () => {
+    // Kalibrasi dihapus, tetapi batch tetap hanya menyasar karyawan yang belum punya appraisal.
     const targets = await listGpaBatchTargets(db, PERIOD_Q3);
     expect(targets).not.toContain(BUDI);
   });

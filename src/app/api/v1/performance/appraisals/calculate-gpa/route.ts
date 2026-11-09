@@ -17,10 +17,6 @@ const CalculateGPASchema = z.object({
   competency_gap_score: z.number().min(0).max(100),
   core_values_360_score: z.number().min(0).max(100),
   potential_assessment_score: z.number().min(1).max(5).optional(),
-  calibration_notes: z.string().optional(),
-  // `false` = simpan hasil kalkulasi tanpa mengunci (alur evaluasi manajer).
-  // Default `true` = simpan sekaligus mengesahkan (butuh `appraisal:calibrate`).
-  approve: z.boolean().optional(),
 });
 
 // POST /api/v1/performance/appraisals/calculate-gpa (PRD Section 11.3)
@@ -37,8 +33,6 @@ export async function POST(req: NextRequest) {
       competencyScore: body.competency_gap_score,
       coreValuesScore: body.core_values_360_score,
       potentialScore: body.potential_assessment_score,
-      notes: body.calibration_notes,
-      approve: body.approve,
     });
 
     return ok({

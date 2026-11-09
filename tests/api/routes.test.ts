@@ -5,7 +5,6 @@ import { runSeed } from '@/lib/db/seed';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { POST as loginHandler } from '@/app/api/v1/auth/login/route';
 import { GET as kpiGetHandler, POST as kpiPostHandler } from '@/app/api/v1/performance/individual-kpis/route';
-import { PUT as calibrateHandler } from '@/app/api/v1/performance/appraisals/[id]/calibrate/route';
 import { GET as auditGetHandler } from '@/app/api/v1/governance/audit-logs/route';
 import { NextRequest } from 'next/server';
 
@@ -110,32 +109,6 @@ describe('API Route Handlers (Integration)', () => {
 
     const res = await kpiPostHandler(req);
     expect(res.status).toBe(422);
-  });
-
-  it('PUT /api/v1/performance/appraisals/:id/calibrate menolak kalibrasi ulang (409)', async () => {
-    const token = await signSession({
-      userId: SITI_USER,
-      employeeId: 'b0000000-0000-4000-8000-000000000002',
-      role: 'HR_MANAGER',
-      email: 'siti.nurhaliza@eperformiq.co.id',
-    });
-
-    const req = new NextRequest('http://localhost:3000/api/v1/performance/appraisals/40000000-0000-4000-8000-000000000001/calibrate', {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        calibration_notes: 'Coba kalibrasi lagi',
-      }),
-    });
-
-    const res = await calibrateHandler(req, {
-      params: { id: '40000000-0000-4000-8000-000000000001' },
-    });
-    expect(res.status).toBe(409);
-    const json = await res.json();
-    expect(json.title).toBe('Immutable Appraisal Record');
   });
 
   it('GET /api/v1/governance/audit-logs berhasil untuk SUPER_ADMIN', async () => {

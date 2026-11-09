@@ -155,15 +155,6 @@ describe('kpiService & appraisalService', () => {
     expect(appraisal.compositeGPA).toBeGreaterThan(0);
   });
 
-  it('menolak kalibrasi ulang jika sudah is_calibrated = true (409)', async () => {
-    // Di seed, appraisal Budi sudah is_calibrated = true
-    const budiAppraisal = await appraisalService.getAppraisalByEmployee(db, BUDI, PERIOD_ID);
-    expect(budiAppraisal?.isCalibrated).toBe(true);
-
-    await expect(
-      appraisalService.calibrateAppraisal(db, sess('HR_MANAGER', SITI, 'siti@x.id'), budiAppraisal!.id, 'Kalibrasi kedua')
-    ).rejects.toThrow(ImmutableRecordError);
-  });
 
 
 });

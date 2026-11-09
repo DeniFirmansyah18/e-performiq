@@ -6,8 +6,7 @@ export type Permission =
 | 'kpi:read'
 | 'kpi:write'
 | 'kpi:approve'
-| 'appraisal:calculate'
-| 'appraisal:calibrate'
+| 'appraisal:calculate'
 | 'appraisal:batch'
 | 'audit:read'
 | 'attendance:read'
@@ -66,8 +65,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'kpi:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'kpi:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'kpi:approve': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
-'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
-'appraisal:calibrate': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD'],
+'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'appraisal:batch': ['SUPER_ADMIN', 'HR_MANAGER'],
 'audit:read': ['SUPER_ADMIN'],
 'attendance:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],

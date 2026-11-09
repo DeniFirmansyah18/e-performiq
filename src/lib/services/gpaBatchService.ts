@@ -98,7 +98,7 @@ export async function listGpaBatchTargets(
       LEFT JOIN performance_appraisals pa
         ON pa.employee_id = ik.employee_id AND pa.period_id = ik.period_id
      WHERE ik.period_id = ${periodId}::uuid
-       AND (pa.id IS NULL OR pa.is_calibrated = FALSE)
+       AND pa.id IS NULL
      LIMIT ${limit}
   `)) as unknown as { rows: Array<{ employeeId: string }> };
   return (res.rows ?? []).map((r) => r.employeeId);
