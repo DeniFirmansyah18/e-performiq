@@ -55,7 +55,6 @@ interface QuadrantData {
   boxNumber: number;
   quadrantKey: string;
   name: string;
-  populationPct: string;
   employeeCount: number;
   badgeType: 'top' | 'standard' | 'risk';
   actionLabel: string;
@@ -70,7 +69,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 7,
     quadrantKey: 'ENIGMA',
     name: 'Enigma',
-    populationPct: '0.6%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Role Re-alignment',
@@ -83,7 +81,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 8,
     quadrantKey: 'GROWTH_STAR',
     name: 'Growth Star',
-    populationPct: '2.7%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Mentoring & Stretch',
@@ -96,7 +93,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 9,
     quadrantKey: 'FUTURE_LEADER',
     name: 'Future Leader',
-    populationPct: 'Top 3.4%',
     employeeCount: 0,
     badgeType: 'top',
     actionLabel: 'Fast-Track Leadership',
@@ -109,7 +105,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 4,
     quadrantKey: 'DILEMMA',
     name: 'Dilemma',
-    populationPct: '1.1%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Skill Upskilling',
@@ -122,7 +117,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 5,
     quadrantKey: 'CORE_PLAYER',
     name: 'Core Player',
-    populationPct: '14.5%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Lateral Enrichment',
@@ -135,7 +129,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 6,
     quadrantKey: 'HIGH_IMPACT',
     name: 'High Impact',
-    populationPct: '7.6%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Retention & Incentives',
@@ -148,7 +141,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 1,
     quadrantKey: 'UNDERPERFORMER',
     name: 'Underperformer',
-    populationPct: '1.0%',
     employeeCount: 0,
     badgeType: 'risk',
     actionLabel: 'PIP Plan (60 Days)',
@@ -161,7 +153,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 2,
     quadrantKey: 'EFFECTIVE_PRO',
     name: 'Effective Pro',
-    populationPct: '7.1%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Skill Specialization',
@@ -174,7 +165,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 3,
     quadrantKey: 'TRUSTED_PRO',
     name: 'Trusted Pro',
-    populationPct: '4.2%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Key SME Retention',
@@ -249,6 +239,15 @@ export default function NineBoxMatrixPage() {
   });
 
   const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
+
+  /** Persentase kotak dari data nyata; "—" bila belum dimuat atau total nol. */
+  const boxPercent = (code: string): string => {
+    if (!summary || !summary.total) return '—';
+    const n = summary.byQuadrant?.[code] ?? 0;
+    const pct = (n / summary.total) * 100;
+    return `${pct.toFixed(1).replace('.', ',')}%`;
+  };
+
 
   // Ringkasan pemula: tiga kelompok kotak yang ditanyakan HRD.
   const sumBoxes = (codes: string[]) =>
@@ -664,19 +663,19 @@ export default function NineBoxMatrixPage() {
                           {nineBoxCopy(quad.quadrantKey).name}
                         </span>
 
-                        {isBox9 ? (
-                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#007a5a] text-white">
-                            {quad.populationPct}
-                          </span>
-                        ) : isBox1 ? (
-                          <span className="text-[10px] font-bold text-[#dc2626]">
-                            {quad.populationPct}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-[#64748b]">
-                            {quad.populationPct}
-                          </span>
-                        )}
+{isBox9 ? (
+                <span data-testid="box-percent" className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#007a5a] text-white">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              ) : isBox1 ? (
+                <span data-testid="box-percent" className="text-[10px] font-bold text-[#dc2626]">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              ) : (
+                <span data-testid="box-percent" className="text-[10px] font-medium text-[#64748b]">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              )}
                       </div>
 
                       {/* Middle: Count */}
