@@ -21,7 +21,7 @@ const ROLE_EMAILS: Record<UserRole, string> = {
   BOD: 'hendra.gunawan@eperformiq.co.id',
   HR_MANAGER: 'siti.nurhaliza@eperformiq.co.id',
   PEOPLE_MANAGER: 'danu.tech@eperformiq.co.id',
-  EMPLOYEE: 'budi.pratama@eperformiq.co.id',
+  EMPLOYEE: 'budi.pratama@eperformiq.co.id',
   SUPER_ADMIN: 'admin@eperformiq.co.id',
 };
 
@@ -180,4 +180,13 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+/**
+ * Seperti `useAuth`, tetapi mengembalikan `null` bila dipakai di luar
+ * `AuthProvider` (mis. tes komponen tunggal) alih-alih melempar. Aman dipanggil
+ * di level atas komponen — jumlah hook tidak berubah antar-render.
+ */
+export function useOptionalAuth(): AuthContextType | null {
+  return useContext(AuthContext) ?? null;
 }

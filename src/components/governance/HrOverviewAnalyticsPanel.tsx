@@ -1,8 +1,10 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Users, TrendingUp, Target, PieChart, Award, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { Users, TrendingUp, Target, PieChart, Award, AlertTriangle, ArrowRight } from 'lucide-react';
 import GaussianCurve from '@/components/charts/GaussianCurve';
 import NineBoxGrid from '@/components/charts/NineBoxGrid';
+import { useOptionalAuth } from '@/lib/context/AuthContext';
 
 interface Bucket {
   label: string;
@@ -84,6 +86,11 @@ function DistributionList({
 }
 
 export default function HrOverviewAnalyticsPanel() {
+  // 9-Box kini diakses dari sini (bukan dari bilah atas); hanya untuk peran berhak.
+  // `useOptionalAuth` aman bila komponen dirender tanpa AuthProvider (tes).
+  const bolehBukaNineBox = ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'].includes(
+    useOptionalAuth()?.activeRole ?? ''
+  );
   const [profile, setProfile] = useState<WorkforceProfile | null>(null);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -232,6 +239,14 @@ export default function HrOverviewAnalyticsPanel() {
             <Award className="w-4 h-4 text-[#007a5a]" /> Matriks Talenta 9-Box
           </div>
           <NineBoxGrid />
+          {bolehBukaNineBox && (
+            <Link
+              href="/dashboard/ninebox-matrix"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#007a5a] hover:underline"
+            >
+              Buka Matriks 9-Box <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
         </div>
       </div>
 
