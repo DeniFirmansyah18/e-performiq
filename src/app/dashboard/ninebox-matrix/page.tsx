@@ -10,15 +10,10 @@ import {
   Building2,
   Filter,
   Calendar,
-  Download,
   Users,
   Target,
   Network,
   AlertTriangle,
-  ExternalLink,
-  ChevronDown,
-  MoreHorizontal,
-  Cpu,
   TrendingUp,
   ArrowRight,
   ShieldCheck,
@@ -29,7 +24,6 @@ import {
   Compass,
   Scale,
   X,
-  Calculator,
   Grid3X3,
   ListOrdered,
 } from 'lucide-react';
@@ -61,7 +55,6 @@ interface QuadrantData {
   boxNumber: number;
   quadrantKey: string;
   name: string;
-  populationPct: string;
   employeeCount: number;
   badgeType: 'top' | 'standard' | 'risk';
   actionLabel: string;
@@ -76,7 +69,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 7,
     quadrantKey: 'ENIGMA',
     name: 'Enigma',
-    populationPct: '0.6%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Role Re-alignment',
@@ -89,7 +81,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 8,
     quadrantKey: 'GROWTH_STAR',
     name: 'Growth Star',
-    populationPct: '2.7%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Mentoring & Stretch',
@@ -102,7 +93,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 9,
     quadrantKey: 'FUTURE_LEADER',
     name: 'Future Leader',
-    populationPct: 'Top 3.4%',
     employeeCount: 0,
     badgeType: 'top',
     actionLabel: 'Fast-Track Leadership',
@@ -115,7 +105,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 4,
     quadrantKey: 'DILEMMA',
     name: 'Dilemma',
-    populationPct: '1.1%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Skill Upskilling',
@@ -128,7 +117,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 5,
     quadrantKey: 'CORE_PLAYER',
     name: 'Core Player',
-    populationPct: '14.5%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Lateral Enrichment',
@@ -141,7 +129,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 6,
     quadrantKey: 'HIGH_IMPACT',
     name: 'High Impact',
-    populationPct: '7.6%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Retention & Incentives',
@@ -154,7 +141,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 1,
     quadrantKey: 'UNDERPERFORMER',
     name: 'Underperformer',
-    populationPct: '1.0%',
     employeeCount: 0,
     badgeType: 'risk',
     actionLabel: 'PIP Plan (60 Days)',
@@ -167,7 +153,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 2,
     quadrantKey: 'EFFECTIVE_PRO',
     name: 'Effective Pro',
-    populationPct: '7.1%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Skill Specialization',
@@ -180,7 +165,6 @@ const QUADRANTS: QuadrantData[] = [
     boxNumber: 3,
     quadrantKey: 'TRUSTED_PRO',
     name: 'Trusted Pro',
-    populationPct: '4.2%',
     employeeCount: 0,
     badgeType: 'standard',
     actionLabel: 'Key SME Retention',
@@ -195,8 +179,9 @@ export default function NineBoxMatrixPage() {
   const [selectedBox, setSelectedBox] = useState<number>(9);
   const [activeDirectorate, setActiveDirectorate] = useState('Semua Direktorat (Holding)');
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
-  const [isAiRunning, setIsAiRunning] = useState(false);
-  const [aiSuccessMsg, setAiSuccessMsg] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  const [reloadOk, setReloadOk] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
   const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number> } | null>(null);
 
   // Task 8: jumlah per kuadran dari DB (bukan konstanta 1,240/42/180/12).
@@ -256,6 +241,21 @@ export default function NineBoxMatrixPage() {
 
   const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
 
+  /** Jumlah karyawan per kotak; "—" bila ringkasan belum dimuat (0 berarti kosong, beda arti). */
+  const boxCount = (code: string): string => {
+    if (!summary) return '—';
+    return String(summary.byQuadrant?.[code] ?? 0);
+  };
+
+  /** Persentase kotak dari data nyata; "—" bila belum dimuat atau total nol. */
+  const boxPercent = (code: string): string => {
+    if (!summary || !summary.total) return '—';
+    const n = summary.byQuadrant?.[code] ?? 0;
+    const pct = (n / summary.total) * 100;
+    return `${pct.toFixed(1).replace('.', ',')}%`;
+  };
+
+
   // Ringkasan pemula: tiga kelompok kotak yang ditanyakan HRD.
   const sumBoxes = (codes: string[]) =>
     codes.reduce((acc, x) => acc + (summary?.byQuadrant?.[x] ?? 0), 0);
@@ -264,20 +264,23 @@ export default function NineBoxMatrixPage() {
   const summaryDijaga = sumBoxes(['DILEMMA', 'CORE_PLAYER', 'HIGH_IMPACT']);
 
   const handleRunAi = async () => {
-    setIsAiRunning(true);
+    setIsReloading(true);
+    setReloadError(null);
     try {
       // Task 8: segarkan distribusi 9-Box dari DB (bukan simulasi setTimeout).
       const res = await fetch('/api/v1/performance/nine-box-summary');
-      if (res.ok) {
-        const json = await res.json();
-        setSummary(json?.data ?? null);
+      if (!res.ok) {
+        setReloadError('Gagal memuat ulang data. Silakan coba lagi.');
+        return;
       }
-      setAiSuccessMsg(true);
-      setTimeout(() => setAiSuccessMsg(false), 4000);
+      const json = await res.json();
+      setSummary(json?.data ?? null);
+      setReloadOk(true);
+      setTimeout(() => setReloadOk(false), 4000);
     } catch {
       /* no-op */
     } finally {
-      setIsAiRunning(false);
+      setIsReloading(false);
     }
   };
 
@@ -375,15 +378,6 @@ export default function NineBoxMatrixPage() {
             <span>2026-Q3</span>
           </div>
 
-          {/* Download Matrix PDF */}
-          <button 
-            onClick={() => alert('Mengunduh Laporan Matriks 9-Box & Talent Readiness 2026-Q3 (PDF Resmi Direksi)...')}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]"
-          >
-            <Download className="w-3.5 h-3.5 text-[#64748b]" />
-            <span>Download Matriks PDF</span>
-          </button>
-
           {/* Kalibrasi Penilaian (Komite Kalibrasi) */}
           <button 
             onClick={() => setIsCalibrateModalOpen(true)}
@@ -402,13 +396,13 @@ export default function NineBoxMatrixPage() {
             <span>{showHelp ? 'Sembunyikan penjelasan' : 'Tampilkan penjelasan'}</span>
           </button>
 
-          {/* Simulasi Talent Pool Suksesi */}
+          {/* Muat ulang data 9-Box */}
           <button 
             onClick={handleRunAi}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-xs font-semibold shadow-xs hover:bg-[#00664b] transition-all"
           >
             <Plus className="w-3.5 h-3.5 text-white" />
-            <span>Simulasi Talent Pool Suksesi</span>
+            <span>Muat ulang data</span>
           </button>
         </div>
       </div>
@@ -433,6 +427,21 @@ export default function NineBoxMatrixPage() {
         </div>
       )}
 
+      {/* Pemberitahuan muat ulang — di level halaman agar terlihat dari tombol mana pun */}
+      {reloadError && (
+        <div role="alert" className="p-3.5 rounded-xl bg-[#fce8e6] border border-[#f5c6c0] text-xs font-semibold text-[#c5221f] flex items-center justify-between shadow-xs animate-fadeIn">
+          <span>{reloadError}</span>
+          <button onClick={() => setReloadError(null)} className="font-bold underline text-[#c5221f]">
+            Tutup
+          </button>
+        </div>
+      )}
+      {reloadOk && (
+        <div role="status" className="p-3.5 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] shadow-xs animate-fadeIn">
+          Data 9-Box berhasil dimuat ulang.
+        </div>
+      )}
+
       {/* 2. Feature Card Grid (click to open) */}
       <FeatureGrid>
         <FeatureCard
@@ -453,7 +462,7 @@ export default function NineBoxMatrixPage() {
         />
         <FeatureCard
           icon={ListOrdered}
-          title="Simulasi Suksesi"
+          title="Kesiapan Suksesi"
           metric="Bench Strength"
           tag="Suksesi"
           description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Automated Succession Matcher."
@@ -465,7 +474,7 @@ export default function NineBoxMatrixPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Talenta</h2>
-          <span className="text-[11px] text-[#64748b]">Kalibrasi, simulasi & ekspor</span>
+          <span className="text-[11px] text-[#64748b]">Kalibrasi & kesiapan suksesi</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <ActionCard
@@ -479,9 +488,9 @@ export default function NineBoxMatrixPage() {
           <ActionCard
             icon={Plus}
             tone="emerald"
-            title="Simulasi Talent Pool"
+            title="Muat ulang data"
             tag="Suksesi"
-            description="Jalankan simulasi pencocokan talent pool untuk posisi kritis."
+            description="Ambil ulang sebaran karyawan terbaru dari database."
             onClick={handleRunAi}
           />
           <ActionCard
@@ -491,14 +500,6 @@ export default function NineBoxMatrixPage() {
             tag="Talenta"
             description="Buka matriks 9-Box dan panel inspeksi kandidat."
             onClick={() => setOpenFeature('inspection')}
-          />
-          <ActionCard
-            icon={Download}
-            tone="slate"
-            title="Download Matriks PDF"
-            tag="Dokumen"
-            description="Unduh laporan matriks 9-Box & talent readiness periode ini."
-            onClick={() => alert('Mengunduh Laporan Matriks 9-Box & Talent Readiness 2026-Q3 (PDF Resmi Direksi)...')}
           />
         </div>
       </div>
@@ -687,25 +688,25 @@ export default function NineBoxMatrixPage() {
                           {nineBoxCopy(quad.quadrantKey).name}
                         </span>
 
-                        {isBox9 ? (
-                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#007a5a] text-white">
-                            {quad.populationPct}
-                          </span>
-                        ) : isBox1 ? (
-                          <span className="text-[10px] font-bold text-[#dc2626]">
-                            {quad.populationPct}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-[#64748b]">
-                            {quad.populationPct}
-                          </span>
-                        )}
+{isBox9 ? (
+                <span data-testid="box-percent" className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#007a5a] text-white">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              ) : isBox1 ? (
+                <span data-testid="box-percent" className="text-[10px] font-bold text-[#dc2626]">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              ) : (
+                <span data-testid="box-percent" className="text-[10px] font-medium text-[#64748b]">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              )}
                       </div>
 
                       {/* Middle: Count */}
                       <div className="my-1.5">
-                        <span className="text-xl font-black text-[#0f172a]">
-                          {summary?.byQuadrant?.[quad.quadrantKey] ?? 0}
+                        <span data-testid="box-count" className="text-xl font-black text-[#0f172a]">
+                          {boxCount(quad.quadrantKey)}
                         </span>
                         <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
                       </div>
@@ -780,19 +781,12 @@ export default function NineBoxMatrixPage() {
                   Box {selectedBox} Selected
                 </span>
               </div>
-              <button 
-                title="Buka detail kuadran lengkap"
-                onClick={() => alert(`Membuka audit dossier lengkap seluruh talent di Box ${selectedBox} (${currentQuadrant.name}).`)}
-                className="text-[#94a3b8] hover:text-[#0f172a] transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Title & Description */}
             <div className="mt-3">
               <h3 className="text-sm font-extrabold text-[#0f172a]">
-                {nineBoxCopy(currentQuadrant.quadrantKey).name} ({summary?.byQuadrant?.[currentQuadrant.quadrantKey] ?? 0} karyawan)
+                {nineBoxCopy(currentQuadrant.quadrantKey).name} ({boxCount(currentQuadrant.quadrantKey)} karyawan)
               </h3>
               <p className="text-[11px] text-[#64748b] mt-0.5">
                 {nineBoxCopy(currentQuadrant.quadrantKey).position}
@@ -916,29 +910,34 @@ export default function NineBoxMatrixPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#0f172a]">Automated Succession Matcher</h4>
-                  <p className="text-[10px] text-[#64748b]">Simulasi 12 kursi C-Suite kosong</p>
+                  <p className="text-[10px] text-[#64748b]">Kesiapan mengikuti penilaian tersimpan</p>
                 </div>
               </div>
               <button
                 onClick={handleRunAi}
-                disabled={isAiRunning}
+                disabled={isReloading}
                 className="px-3 py-1.5 rounded-lg bg-white border border-[#cbd5e1] text-xs font-semibold text-[#0f172a] hover:bg-[#f8fafc] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                {isAiRunning ? (
+                {isReloading ? (
                   <>
                     <RefreshCw className="w-3 h-3 animate-spin text-[#007a5a]" />
                     <span>Memetakan...</span>
                   </>
                 ) : (
                   <>
-                    <span>Jalankan Simulasi</span>
+                    <span>Muat ulang data</span>
                   </>
                 )}
               </button>
             </div>
-            {aiSuccessMsg && (
+            {reloadError && (
+              <p role="alert" className="text-[10px] text-[#c5221f] font-semibold bg-[#fce8e6] rounded-md px-2 py-1 mt-2 text-center">
+                {reloadError}
+              </p>
+            )}
+            {reloadOk && (
               <p className="text-[10px] text-[#166534] font-semibold bg-[#dcfce7] rounded-md px-2 py-1 mt-2 text-center animate-fade-in">
-                Simulasi selesai: 12 kursi terpetakan dengan rasio koverasi suksesi 3.2 : 1!
+                Data 9-Box berhasil dimuat ulang.
               </p>
             )}
           </div>
@@ -949,8 +948,8 @@ export default function NineBoxMatrixPage() {
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
-      {/* Panel: Simulasi Suksesi (Bench Strength Table) */}
-      <ExpandablePanel open={openFeature === 'simulasi'} title="Succession Bench Strength Summary" onClose={() => setOpenFeature(null)}>
+      {/* Panel: Kesiapan Suksesi (Bench Strength Table) */}
+      <ExpandablePanel open={openFeature === 'simulasi'} title="Kesiapan Suksesi" onClose={() => setOpenFeature(null)}>
       <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-xs space-y-4">
         
         {/* Table Title & Target note */}
@@ -979,7 +978,6 @@ export default function NineBoxMatrixPage() {
                 <th className="py-3 px-4">BENCH POOL (READY NOW)</th>
                 <th className="py-3 px-4">BENCH POOL (READY 1-2 Y)</th>
                 <th className="py-3 px-4 text-center">COVERAGE STATUS</th>
-                <th className="py-3 px-4 text-right">OPSI TATA KELOLA</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
@@ -1011,14 +1009,7 @@ export default function NineBoxMatrixPage() {
                     Robust (3:1)
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button 
-                    onClick={() => alert('Opsi Tata Kelola CTO: Penjadwalan Wawancara Komite Remunerasi & Nominasi (KRN).')}
-                    className="p-1 rounded hover:bg-[#e2e8f0] text-[#64748b] transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </td>
+
               </tr>
 
               {/* Row 2: VP Enterprise Commercial */}
@@ -1048,14 +1039,7 @@ export default function NineBoxMatrixPage() {
                     Adequate (3:1)
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button 
-                    onClick={() => alert('Opsi Tata Kelola VP Commercial: Rotasi penugasan ke unit bisnis strategis.')}
-                    className="p-1 rounded hover:bg-[#e2e8f0] text-[#64748b] transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </td>
+
               </tr>
 
               {/* Row 3: Head of Internal Audit & Risk */}
@@ -1085,14 +1069,7 @@ export default function NineBoxMatrixPage() {
                     Vulnerable (0:1)
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button 
-                    onClick={() => alert('Opsi Tata Kelola Head Audit: Akselerasi Executive Mentoring Farhan Hakim atau rekrutmen pro-hire eksternal.')}
-                    className="p-1 rounded hover:bg-[#e2e8f0] text-[#64748b] transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </td>
+
               </tr>
 
             </tbody>
