@@ -331,6 +331,7 @@ export default function ManagerCockpitPage() {
           competency_gap_score: Number(evalForm.competencyScore),
           core_values_360_score: Number(evalForm.coreValuesScore),
           potential_assessment_score: Number(evalForm.potentialScore),
+          approve: false,
         }),
       });
 

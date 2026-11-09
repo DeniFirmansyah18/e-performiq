@@ -43,9 +43,25 @@ redesain.
 
 | Area | Perubahan |
 |---|---|
-| `calculateAndSaveGPA` | Melempar `ForbiddenError` untuk peran tanpa `appraisal:calibrate`, sebelum menyentuh DB. |
+| `calculateAndSaveGPA` | Parameter `approve` (default `true`). `approve: true` butuh `appraisal:calibrate` (else 403) dan **menolak baris yang sudah terkunci** (409). `approve: false` menyimpan tanpa mengunci. |
+| `calculateAndSaveGPA` | Baris `is_calibrated = TRUE` tidak dapat ditimpa oleh siapa pun (409) — satu-satunya jalan adalah `unlock_appraisal()`. |
 | `calibrateAppraisal` | Menegakkan `resolveVisibleEmployeeIds` + `assertEmployeeVisible` setelah pengecekan 409. |
-| UI 9-Box | Menampilkan `role="alert"` berisi `detail` dari server; pesan sukses menyebut **terkunci** vs **BELUM terkunci** sesuai `is_calibrated`. |
+| UI 9-Box | Menampilkan `role="alert"` berisi `detail` dari server — di dalam modal **dan** di halaman; pesan sukses menyebut **terkunci** vs **BELUM terkunci**. |
+| UI Manager Cockpit | Mengirim `approve: false` sehingga alur evaluasi kinerja manajer tetap berfungsi. |
+
+## 4a. Kesalahan yang ditemukan review dan diperbaiki
+
+Versi pertama perubahan ini menolak **semua** penyimpanan oleh peran tanpa
+`appraisal:calibrate`. Review menemukan akibat yang tidak diperhitungkan:
+`manager-cockpit` — dashboard milik `PEOPLE_MANAGER` — memakai endpoint yang
+sama untuk tombol **"Hitung & Simpan Nilai ke PostgreSQL"**, dan seluruh alur
+evaluasi kinerja manajer langsung mati (403). Perbaikan: penyimpanan dan
+pengesahan dipisah lewat parameter `approve`.
+
+Review juga menemukan bahwa `calculate-gpa` **menimpa baris yang sudah
+terkunci** bila pemanggil adalah kalibrator (dibuktikan: GPA 3.67 → 2.00 tanpa
+error), karena form 9-Box default menunjuk karyawan yang appraisal-nya sudah
+dikunci di seed. Kini dijaga 409.
 
 ## 5. Yang diperiksa dan ternyata bukan masalah
 
@@ -59,9 +75,10 @@ DB berfungsi; masalahnya murni di lapisan otorisasi aplikasi.
 
 ## 6. Konsekuensi yang diterima
 
-`PEOPLE_MANAGER` kini **tidak dapat menyimpan hasil kalkulasi penilaian sama
-sekali** (403). Ini konsekuensi langsung dari keputusan menjaga izin tetap.
-Lihat butir follow-up di README.
+`PEOPLE_MANAGER` dapat menyimpan hasil evaluasi tetapi **tidak dapat
+mengesahkan**. Nilai yang ia simpan berstatus belum terkunci, sehingga
+memang belum ada jalur persetujuan eksplisit baginya — itu isi pekerjaan
+lanjutan nomor 1 di bawah.
 
 ## 7. Pekerjaan lanjutan
 

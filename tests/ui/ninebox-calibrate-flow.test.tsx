@@ -68,9 +68,21 @@ describe('alur kalibrasi 9-Box', () => {
     await submitCalibration();
 
     await waitFor(() => {
-      expect(screen.getByRole('alert').textContent).toMatch(/tidak memiliki otorisasi/i);
+      const alerts = screen.getAllByRole('alert').map((a) => a.textContent ?? '');
+      expect(alerts.some((t) => /tidak memiliki otorisasi/i.test(t))).toBe(true);
     });
     expect(screen.queryByText(/berhasil/i)).toBeNull();
+  });
+
+  it('menampilkan galat DI DALAM modal agar terlihat, bukan tersembunyi di balik overlay', async () => {
+    stubFetch(403);
+    await submitCalibration();
+
+    // Modal tetap terbuka dan memuat alert-nya sendiri.
+    await waitFor(() => {
+      expect(screen.getAllByRole('alert').length).toBeGreaterThan(1);
+    });
+    expect(screen.getByRole('button', { name: /Sahkan Kalibrasi/i })).toBeTruthy();
   });
 
   it('menampilkan pesan sukses yang menyebut nilai sudah terkunci saat server menerima', async () => {

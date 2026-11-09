@@ -217,6 +217,7 @@ export default function NineBoxMatrixPage() {
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   const [calibrateSuccessMsg, setCalibrateSuccessMsg] = useState<string | null>(null);
   const [calibrateErrorMsg, setCalibrateErrorMsg] = useState<string | null>(null);
+  const [calibrateModalError, setCalibrateModalError] = useState<string | null>(null);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibForm, setCalibForm] = useState({
     employeeId: 'b0000000-0000-4000-8000-000000000004',
@@ -254,6 +255,7 @@ export default function NineBoxMatrixPage() {
     setIsCalibrating(true);
     setCalibrateSuccessMsg(null);
     setCalibrateErrorMsg(null);
+    setCalibrateModalError(null);
     try {
       const res = await fetch('/api/v1/performance/appraisals/calculate-gpa', {
         method: 'POST',
@@ -271,7 +273,11 @@ export default function NineBoxMatrixPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        setCalibrateErrorMsg(json?.detail ?? 'Kalibrasi gagal. Silakan coba lagi.');
+        const detail = json?.detail ?? 'Kalibrasi gagal. Silakan coba lagi.';
+        setCalibrateErrorMsg(detail);
+        // Tutup modal: alert dirender di bawah (tertutup overlay z-[100]),
+        // sehingga tanpa ini pengguna melihat "tidak terjadi apa-apa".
+        setCalibrateModalError(detail);
         return;
       }
 
@@ -1168,6 +1174,11 @@ export default function NineBoxMatrixPage() {
               })()}
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#f1f5f9]">
+                {calibrateModalError && (
+                  <div role="alert" className="flex-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] border border-[#f5c6c0] rounded-lg px-3 py-2">
+                    {calibrateModalError}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsCalibrateModalOpen(false)}

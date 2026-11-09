@@ -3,13 +3,14 @@ import type { PGlite } from '@electric-sql/pglite';
 import { createTestDb } from '../setup';
 import { runSeed } from '@/lib/db/seed';
 import * as appraisalService from '@/lib/services/appraisalService';
-import { ForbiddenError } from '@/lib/auth/errors';
+import { ForbiddenError, ImmutableRecordError } from '@/lib/auth/errors';
 import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 
 const DANU = 'b0000000-0000-4000-8000-000000000003';
 const SITI = 'b0000000-0000-4000-8000-000000000002';
 const ANISA = 'b0000000-0000-4000-8000-000000000007';
+const RIAN = 'b0000000-0000-4000-8000-000000000009';
 const PERIOD_ID = 'd0000000-0000-4000-8000-000000000001';
 
 const ROLE_USER_IDS: Record<string, string> = {
@@ -83,5 +84,42 @@ describe('calculateAndSaveGPA — peran tanpa izin kalibrasi', () => {
       coreValuesScore: 80,
     });
     expect(saved.isCalibrated).toBe(true);
+  });
+
+  // C1: alur evaluasi kinerja manajer di Manager Cockpit harus tetap hidup.
+  it('PEOPLE_MANAGER dapat menyimpan hasil kalkulasi TANPA mengunci (approve:false)', async () => {
+    const saved = await appraisalService.calculateAndSaveGPA(db, sess('PEOPLE_MANAGER', DANU), {
+      periodId: PERIOD_ID,
+      employeeId: RIAN,
+      kpiScore: 75,
+      sopScore: 78,
+      competencyScore: 80,
+      coreValuesScore: 82,
+      approve: false,
+    });
+    expect(saved.isCalibrated).toBe(false);
+    expect(Number(saved.compositeGPA)).toBeGreaterThan(0);
+  });
+
+  // I1: baris yang sudah disahkan tidak boleh ditimpa oleh siapa pun.
+  it('HR_MANAGER tidak dapat menimpa baris yang sudah dikunci lewat calculate-gpa (409)', async () => {
+    const before = await appraisalService.getAppraisalByEmployee(db, ANISA, PERIOD_ID);
+    expect(before?.isCalibrated).toBe(true);
+    const gpa = Number(before!.compositeGPA);
+
+    await expect(
+      appraisalService.calculateAndSaveGPA(db, sess('HR_MANAGER', SITI), {
+        periodId: PERIOD_ID,
+        employeeId: ANISA,
+        kpiScore: 50,
+        sopScore: 50,
+        competencyScore: 50,
+        coreValuesScore: 50,
+      })
+    ).rejects.toBeInstanceOf(ImmutableRecordError);
+
+    const after = await appraisalService.getAppraisalByEmployee(db, ANISA, PERIOD_ID);
+    expect(Number(after!.compositeGPA)).toBe(gpa);
+    expect(after!.isCalibrated).toBe(true);
   });
 });
