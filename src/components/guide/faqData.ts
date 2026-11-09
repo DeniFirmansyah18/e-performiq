@@ -1,3 +1,27 @@
+import { NINE_BOX_COPY } from '@/lib/employee/nineBoxLabels';
+
+/**
+ * Sembilan baris FAQ untuk 9-Box, diturunkan dari modul teks bersama agar nama
+ * dan penjelasan kotak tidak pernah berbeda dari yang tampil di grid.
+ * Urutan mengikuti nomor kotak 9 → 1.
+ */
+const NINE_BOX_FAQ_ORDER: Array<[number, keyof typeof NINE_BOX_COPY]> = [
+  [9, 'FUTURE_LEADER'],
+  [8, 'GROWTH_STAR'],
+  [7, 'ENIGMA'],
+  [6, 'HIGH_IMPACT'],
+  [5, 'CORE_PLAYER'],
+  [4, 'DILEMMA'],
+  [3, 'TRUSTED_PRO'],
+  [2, 'EFFECTIVE_PRO'],
+  [1, 'UNDERPERFORMER'],
+];
+
+const NINE_BOX_FAQ_ROWS: string[] = NINE_BOX_FAQ_ORDER.map(([box, code]) => {
+  const copy = NINE_BOX_COPY[code];
+  return `• Box ${box} - ${copy.name} (${copy.position}): ${copy.short} ${copy.firstStep}`;
+});
+
 export type FaqCategory =
   | 'all'
   | 'pemula'
@@ -286,15 +310,8 @@ export const FAQ_DATA: FaqItem[] = [
         '• Sumbu X (Kinerja Masa Kini / Performance): Dihitung dari Composite GPA (IPK Kinerja 0.0 - 4.0).',
         '• Sumbu Y (Potensi Kepemimpinan Masa Depan / Potential): Dinilai dari kapasitas belajar, pemikiran strategis, dan kepemimpinan (skala 1.0 - 5.0).',
         'Rincian dan Makna ke-9 Kuadran:',
-        '• Box 9 - Future Leader (Kinerja Tinggi, Potensi Tinggi): Suksesor utama jabatan Direksi/VP (Ready Now / Ready 1-2 Thn). Mendapat program Executive Mentoring.',
-        '• Box 8 - Growth Leader (Kinerja Sedang, Potensi Tinggi): Calon pemimpin masa depan yang membutuhkan jam terbang manajerial tambahan.',
-        '• Box 7 - Enigma (Kinerja Rendah, Potensi Tinggi): Karyawan sangat cerdas namun kinerjanya terhambat karena ketidaksesuaian peran atau beban adaptasi (perlu role re-alignment).',
-        '• Box 6 - High Impact (Kinerja Tinggi, Potensi Sedang): Kontributor kunci yang sangat produktif namun lebih cocok di jalur spesialis (SME/Expert). Diberi insentif retensi.',
-        '• Box 5 - Core Backbone (Kinerja Sedang, Potensi Sedang): Tulang punggung operasional organisasi yang stabil dan konsisten.',
-        '• Box 4 - Dilemma (Kinerja Rendah, Potensi Sedang): Memerlukan pelatihan ulang dan evaluasi penempatan tugas.',
-        '• Box 3 - Trusted Pro (Kinerja Tinggi, Potensi Terbatas): Tenaga ahli senior yang sangat andal pada bidang spesifiknya tanpa keinginan menjadi manajer struktural.',
-        '• Box 2 - Effective Pro (Kinerja Sedang, Potensi Terbatas): Pelaksana operasional harian standar.',
-        '• Box 1 - Underperformer (Kinerja Rendah, Potensi Rendah): Wajib masuk program pembinaan khusus (Performance Improvement Plan / PIP) selama 60 hari.',
+        // Teks diambil dari modul bersama agar tidak pernah berbeda dari grid 9-Box.
+        ...NINE_BOX_FAQ_ROWS,
       ],
       legalBasis: 'Metodologi Pemetaan Suksesi Kepemimpinan 9-Box (GE / McKinsey).',
     },
@@ -620,7 +637,7 @@ export const FAQ_DATA: FaqItem[] = [
         '• Kinerja (Performance - Sumbu X): Mengukur APA YANG SUDAH DIBUKTIKAN. Apakah target KPI tercapai? Apakah tidak pernah melanggar SOP? Jika ya, kinerjanya TINGGI.',
         '• Potensi (Potential - Sumbu Y): Mengukur KAPASITAS BELAJAR DAN KEPEMIMPINAN. Seberapa cepat ia mempelajari hal baru yang belum pernah diajarkan? Apakah ia mampu menenangkan tim saat krisis? Apakah ia memiliki visi strategis?',
         'Contoh Nyata:',
-        'Seorang programmer jenius yang mampu menyelesaikan ribuan baris kode tanpa salah memiliki KINERJA TINGGI. Namun jika ia tidak suka berbicara dengan orang lain dan menolak mengelola bawahan, maka POTENSI KEPEMIMPINANNYA SEDANG/RENDAH (masuk ke Box 3: Trusted Pro). Ia tetap sangat dihargai dan gajinya tinggi sebagai Tenaga Ahli (SME), tanpa dipaksa menjadi manajer yang justru bisa membuatnya stres.',
+        'Seorang programmer jenius yang mampu menyelesaikan ribuan baris kode tanpa salah memiliki KINERJA TINGGI. Namun jika ia tidak suka berbicara dengan orang lain dan menolak mengelola bawahan, maka POTENSI KEPEMIMPINANNYA SEDANG/RENDAH (masuk ke Box 3: Profesional Andalan). Ia tetap sangat dihargai dan gajinya tinggi sebagai Tenaga Ahli (SME), tanpa dipaksa menjadi manajer yang justru bisa membuatnya stres.',
       ],
     },
   },
