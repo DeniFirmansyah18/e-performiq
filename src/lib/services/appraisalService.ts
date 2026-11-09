@@ -3,7 +3,7 @@ import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan, can } from '@/lib/auth/rbac';
 import { resolveVisibleEmployeeIds, assertEmployeeVisible } from '@/lib/auth/scope';
-import { NotFoundError, ImmutableRecordError, BusinessRuleError } from '@/lib/auth/errors';
+import { NotFoundError, ImmutableRecordError, BusinessRuleError, ForbiddenError } from '@/lib/auth/errors';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 import {
   selectAppraisalByEmployee,
@@ -84,6 +84,17 @@ export async function calculateAndSaveGPA(
     );
   }
 
+  // Hanya pemegang `appraisal:calibrate` yang boleh menyimpan hasil penilaian.
+  // Tanpa penjagaan ini, peran lain (mis. PEOPLE_MANAGER) menyimpan diam-diam
+  // tanpa mengunci — tombol "Sahkan Kalibrasi" tampak berhasil padahal tidak
+  // ada yang disahkan.
+  if (!isAuthorizedCalibrator) {
+    throw new ForbiddenError(
+      `Peran '${session.role}' tidak memiliki otorisasi 'appraisal:calibrate' untuk menyimpan hasil penilaian. ` +
+        'Hasil kalkulasi tidak disimpan.'
+    );
+  }
+
   const kpiDerived = await deriveKpiScore(db, input.employeeId, input.periodId);
   const kpiScore = input.kpiScore ?? kpiDerived.value;
   if (kpiScore === null) {
@@ -115,18 +126,15 @@ export async function calculateAndSaveGPA(
       potentialScore: input.potentialScore ?? 3.5,
       nineBoxQuadrant: result.nineBoxQuadrant,
     },
-    isAuthorizedCalibrator
+    true
   );
 
-  let finalSaved = saved;
-  if (isAuthorizedCalibrator) {
-    finalSaved = await setAppraisalCalibrated(
-      db,
-      saved.id,
-      session.userId,
-      input.notes ?? existing?.calibrationNotes ?? 'Dimoderasi oleh Komite Penilai'
-    );
-  }
+  const finalSaved = await setAppraisalCalibrated(
+    db,
+    saved.id,
+    session.userId,
+    input.notes ?? existing?.calibrationNotes ?? 'Dimoderasi oleh Komite Penilai'
+  );
 
   await logAction(db, {
     userId: session.userId,
