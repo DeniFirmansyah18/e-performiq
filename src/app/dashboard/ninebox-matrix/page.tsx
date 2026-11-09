@@ -1,6 +1,8 @@
 'use client';
 
 import { createPortal } from 'react-dom';
+import { nineBoxCopy, potentialLabel } from '@/lib/employee/nineBoxLabels';
+import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -215,6 +217,28 @@ export default function NineBoxMatrixPage() {
 
   // Komite Kalibrasi State
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  // Preferensi tampilan penjelasan. Default tampil; HRD berpengalaman bisa menyembunyikan.
+  const [showHelp, setShowHelp] = useState(true);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('epq:ninebox:showHelp') === 'false') setShowHelp(false);
+    } catch {
+      /* localStorage tidak tersedia */
+    }
+  }, []);
+
+  const toggleHelp = () => {
+    setShowHelp((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('epq:ninebox:showHelp', next ? 'true' : 'false');
+      } catch {
+        /* abaikan */
+      }
+      return next;
+    });
+  };
   const [calibrateSuccessMsg, setCalibrateSuccessMsg] = useState<string | null>(null);
   const [calibrateErrorMsg, setCalibrateErrorMsg] = useState<string | null>(null);
   const [calibrateModalError, setCalibrateModalError] = useState<string | null>(null);
@@ -231,6 +255,13 @@ export default function NineBoxMatrixPage() {
   });
 
   const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
+
+  // Ringkasan pemula: tiga kelompok kotak yang ditanyakan HRD.
+  const sumBoxes = (codes: string[]) =>
+    codes.reduce((acc, x) => acc + (summary?.byQuadrant?.[x] ?? 0), 0);
+  const summaryPerhatian = sumBoxes(['UNDERPERFORMER', 'EFFECTIVE_PRO', 'TRUSTED_PRO']);
+  const summaryPromosi = sumBoxes(['ENIGMA', 'GROWTH_STAR', 'FUTURE_LEADER']);
+  const summaryDijaga = sumBoxes(['DILEMMA', 'CORE_PLAYER', 'HIGH_IMPACT']);
 
   const handleRunAi = async () => {
     setIsAiRunning(true);
@@ -353,13 +384,22 @@ export default function NineBoxMatrixPage() {
             <span>Download Matriks PDF</span>
           </button>
 
-          {/* Moderasi & Kalibrasi Nilai (Komite Kalibrasi) */}
+          {/* Kalibrasi Penilaian (Komite Kalibrasi) */}
           <button 
             onClick={() => setIsCalibrateModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#0284c7] text-white text-xs font-semibold shadow-xs hover:bg-[#0369a1] transition-all"
           >
             <Scale className="w-3.5 h-3.5 text-white" />
-            <span>Moderasi &amp; Kalibrasi</span>
+            <span>Kalibrasi Penilaian</span>
+          </button>
+
+          {/* Tampilkan / sembunyikan penjelasan untuk pemula */}
+          <button
+            type="button"
+            onClick={toggleHelp}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+          >
+            <span>{showHelp ? 'Sembunyikan penjelasan' : 'Tampilkan penjelasan'}</span>
           </button>
 
           {/* Simulasi Talent Pool Suksesi */}
@@ -398,9 +438,9 @@ export default function NineBoxMatrixPage() {
         <FeatureCard
           icon={Users}
           title="Distribusi Kinerja"
-          metric={`${(summary?.total ?? 1240).toLocaleString('id-ID')}`}
+          metric={summary ? summary.total.toLocaleString('id-ID') : '—'}
           tag="100% Sensus"
-          description="Sebaran populasi talenta pada kuadran potensi-kinerja: Future Leaders, Core Backbone, dan Underperformer."
+          description="Sebaran populasi talenta pada kotak potensi-kinerja: Pemimpin Masa Depan, Penggerak Inti, dan Perlu Pembinaan."
           onOpen={() => setOpenFeature('distribusi')}
         />
         <FeatureCard
@@ -431,9 +471,9 @@ export default function NineBoxMatrixPage() {
           <ActionCard
             icon={Scale}
             tone="blue"
-            title="Moderasi & Kalibrasi"
+            title="Kalibrasi Penilaian"
             tag="Komite"
-            description="Moderasi nilai potensi-kinerja oleh komite kalibrasi independen."
+            description="Menetapkan nilai potensi-kinerja oleh komite kalibrasi independen."
             onClick={() => setIsCalibrateModalOpen(true)}
           />
           <ActionCard
@@ -463,6 +503,33 @@ export default function NineBoxMatrixPage() {
         </div>
       </div>
 
+      {/* Ringkasan pemula — selalu terlihat, bukan di dalam panel yang harus dibuka */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-[#f5c6c0] p-4 shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#c5221f]">Perlu perhatian</span>
+          <div data-testid="summary-perhatian" className="text-2xl font-black text-[#c5221f] mt-1">
+            {summary ? `${summaryPerhatian} orang` : 'Data belum tersedia'}
+          </div>
+          <p className="text-[11px] text-[#64748b]">Kotak 1–3 · hasil kerja di bawah target</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#b7e1cd] p-4 shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Potensi tinggi</span>
+          <div data-testid="summary-promosi" className="text-2xl font-black text-[#137333] mt-1">
+            {summary ? `${summaryPromosi} orang` : 'Data belum tersedia'}
+          </div>
+          <p className="text-[11px] text-[#64748b]">Kotak 7–9 · perlu dikembangkan dulu</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#334155]">Perlu dijaga</span>
+          <div data-testid="summary-dijaga" className="text-2xl font-black text-[#0f172a] mt-1">
+            {summary ? `${summaryDijaga} orang` : 'Data belum tersedia'}
+          </div>
+          <p className="text-[11px] text-[#64748b]">Kotak 4–6 · kinerja stabil</p>
+        </div>
+      </div>
+
       {/* Panel: Distribusi */}
       <ExpandablePanel open={openFeature === 'distribusi'} title="Distribusi Kinerja Talenta" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -476,7 +543,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#0f172a]">{(summary?.total ?? 1240).toLocaleString('id-ID')}</span>
+            <span className="text-2xl font-black text-[#0f172a]">{summary ? summary.total.toLocaleString('id-ID') : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#e6f4ea] text-[#137333]">
               100% Sensus
             </span>
@@ -493,7 +560,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#007a5a]">{summary?.byQuadrant?.FUTURE_LEADER ?? 42}</span>
+            <span className="text-2xl font-black text-[#007a5a]">{summary ? (summary.byQuadrant?.FUTURE_LEADER ?? 0) : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#166534]">
               3.4% Populasi
             </span>
@@ -510,7 +577,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#0f172a]">{summary?.byQuadrant?.CORE_PLAYER ?? 180}</span>
+            <span className="text-2xl font-black text-[#0f172a]">{summary ? (summary.byQuadrant?.CORE_PLAYER ?? 0) : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569]">
               14.5% Populasi
             </span>
@@ -527,7 +594,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-black text-[#dc2626]">{summary?.byQuadrant?.UNDERPERFORMER ?? 12}</span>
+            <span className="text-2xl font-black text-[#dc2626]">{summary ? (summary.byQuadrant?.UNDERPERFORMER ?? 0) : 'Data belum tersedia'}</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626]">
               1.0% Mandat PIP
             </span>
@@ -617,7 +684,7 @@ export default function NineBoxMatrixPage() {
                         <span className={`text-xs font-bold ${
                           isBox9 ? 'text-[#007a5a]' : isBox1 ? 'text-[#dc2626]' : 'text-[#1e293b]'
                         }`}>
-                          {quad.name}
+                          {nineBoxCopy(quad.quadrantKey).name}
                         </span>
 
                         {isBox9 ? (
@@ -643,17 +710,24 @@ export default function NineBoxMatrixPage() {
                         <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
                       </div>
 
+                      {/* Kalimat singkat untuk pemula — bisa disembunyikan */}
+                      {showHelp && (
+                        <p data-testid="quad-short" className="text-[10px] text-[#475569] leading-snug mb-1.5">
+                          {nineBoxCopy(quad.quadrantKey).short}
+                        </p>
+                      )}
+
                       {/* Bottom Action Pill */}
                       <div>
                         {quad.actionType === 'primary' ? (
                           <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-[#007a5a] text-white shadow-xs">
                             <Award className="w-3 h-3 text-white" />
-                            <span>{quad.actionLabel}</span>
+                            <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
                           </div>
                         ) : quad.actionType === 'danger' ? (
                           <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-[#dc2626] text-white shadow-xs">
                             <AlertTriangle className="w-3 h-3 text-white" />
-                            <span>{quad.actionLabel}</span>
+                            <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
                           </div>
                         ) : (
                           <div className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-white border border-[#e2e8f0] text-[#475569]">
@@ -664,7 +738,7 @@ export default function NineBoxMatrixPage() {
                             {quad.boxNumber === 6 && <Award className="w-2.5 h-2.5 text-[#64748b]" />}
                             {quad.boxNumber === 2 && <Target className="w-2.5 h-2.5 text-[#64748b]" />}
                             {quad.boxNumber === 3 && <ShieldCheck className="w-2.5 h-2.5 text-[#64748b]" />}
-                            <span>{quad.actionLabel}</span>
+                            <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
                           </div>
                         )}
                       </div>
@@ -718,12 +792,36 @@ export default function NineBoxMatrixPage() {
             {/* Title & Description */}
             <div className="mt-3">
               <h3 className="text-sm font-extrabold text-[#0f172a]">
-                {currentQuadrant.name} ({summary?.byQuadrant?.[currentQuadrant.quadrantKey] ?? 0} karyawan)
+                {nineBoxCopy(currentQuadrant.quadrantKey).name} ({summary?.byQuadrant?.[currentQuadrant.quadrantKey] ?? 0} karyawan)
               </h3>
-              <p className="text-[11px] text-[#64748b] mt-1 leading-relaxed">
-                {currentQuadrant.description}
+              <p className="text-[11px] text-[#64748b] mt-0.5">
+                {nineBoxCopy(currentQuadrant.quadrantKey).position}
               </p>
             </div>
+
+            {/* Panduan untuk HRD pemula */}
+            {showHelp && (
+              <div className="mt-3 space-y-2.5">
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">Sedang terjadi</p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed">
+                    {nineBoxCopy(currentQuadrant.quadrantKey).happening}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#f0fdf4] border border-[#bbf7d0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#137333] mb-1">Langkah pertama</p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed">
+                    {nineBoxCopy(currentQuadrant.quadrantKey).firstStep}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#fffbeb] border border-[#fde68a]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#b45309] mb-1">Yang perlu dicek dulu</p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed">
+                    {nineBoxCopy(currentQuadrant.quadrantKey).checkFirst}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Candidate Cards List */}
             <div className="mt-4 space-y-3">
@@ -1005,7 +1103,7 @@ export default function NineBoxMatrixPage() {
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
-      {/* Modal Moderasi & Kalibrasi Komite Kalibrasi */}
+      {/* Modal Kalibrasi Penilaian */}
       {isCalibrateModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
@@ -1013,10 +1111,10 @@ export default function NineBoxMatrixPage() {
               <div>
                 <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
                   <Scale className="h-4 w-4 text-[#0284c7]" />
-                  <span>Sidang Kalibrasi &amp; Moderasi Komite Kalibrasi</span>
+                  <span>Rapat Kalibrasi Penilaian</span>
                 </h3>
                 <p className="text-[11px] text-[#64748b]">
-                  Standar Forced Distribution Kurva Gaussian BUMN &amp; Segmentasi 9-Box McKinsey/GE.
+                  Sebaran Nilai Wajib (kurva normal) dan pengelompokan sembilan kotak.
                 </p>
               </div>
               <button onClick={() => setIsCalibrateModalOpen(false)} className="text-[#64748b] hover:text-[#0f172a]">
@@ -1090,6 +1188,7 @@ export default function NineBoxMatrixPage() {
                   </div>
                   <input
                     type="range"
+                    data-testid="potential-slider"
                     min="1.0"
                     max="5.0"
                     step="0.1"
@@ -1097,10 +1196,16 @@ export default function NineBoxMatrixPage() {
                     onChange={(e) => setCalibForm({ ...calibForm, potentialScore: parseFloat(e.target.value) })}
                     className="w-full accent-[#ea580c]"
                   />
+                  {/* Acuan sesuai ambang nyata gpa-engine: <3.0 rendah, 3.0–3.9 sedang, >=4.0 tinggi */}
+                  {showHelp && (
+                    <p data-testid="potential-label" className="text-[11px] font-semibold text-[#ea580c] mt-1">
+                      {potentialLabel(calibForm.potentialScore)}
+                    </p>
+                  )}
                   <div className="flex justify-between text-[10px] text-[#94a3b8]">
-                    <span>1.0 (Low Potential)</span>
-                    <span>3.0 (Medium Potential)</span>
-                    <span>5.0 (High Potential)</span>
+                    <span>1.0 (Potensi rendah)</span>
+                    <span>3.0 (Potensi sedang)</span>
+                    <span>5.0 (Potensi tinggi)</span>
                   </div>
                 </div>
 
@@ -1126,7 +1231,7 @@ export default function NineBoxMatrixPage() {
 
               {/* Justification Notes */}
               <div>
-                <label className="block text-xs font-semibold text-[#334155] mb-1">Catatan Risalah Komite Kalibrasi &amp; Justifikasi Moderasi</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">Catatan Alasan</label>
                 <textarea
                   rows={2}
                   required
@@ -1136,25 +1241,17 @@ export default function NineBoxMatrixPage() {
                 />
               </div>
 
-              {/* Real-time 9-Box Calculation Preview */}
+              {/* Pratinjau 9-Box memakai engine yang sama dengan perhitungan resmi,
+                  agar tidak pernah berbeda dari hasil yang benar-benar disimpan. */}
               {(() => {
-                const totalScore = Number(
-                  (calibForm.kpiScore * 0.5 + calibForm.sopScore * 0.2 + calibForm.compScore * 0.15 + calibForm.valuesScore * 0.15).toFixed(2)
-                );
-                const gpa = Number(Math.min(4.0, (totalScore / 100) * 4.0).toFixed(2));
-                const isHighPerf = totalScore >= 90;
-                const isMedPerf = totalScore >= 75 && totalScore < 90;
-                const isHighPot = calibForm.potentialScore >= 4.0;
-                const isMedPot = calibForm.potentialScore >= 3.0 && calibForm.potentialScore < 4.0;
-
-                let quad = 'CORE_PLAYER';
-                if (isHighPerf && isHighPot) quad = 'FUTURE_LEADER (Box 9)';
-                else if (isHighPerf && isMedPot) quad = 'GROWTH_STAR (Box 8)';
-                else if (isHighPerf && !isHighPot && !isMedPot) quad = 'HIGH_IMPACT (Box 6)';
-                else if (isMedPerf && isHighPot) quad = 'ENIGMA (Box 7)';
-                else if (isMedPerf && isMedPot) quad = 'CORE_PLAYER (Box 5)';
-                else if (!isHighPerf && !isMedPerf && isHighPot) quad = 'DILEMMA (Box 4)';
-                else quad = 'CORE_PLAYER (Box 5)';
+                const preview = calculateCompositeGPA({
+                  kpiScore: calibForm.kpiScore,
+                  sopScore: calibForm.sopScore,
+                  competencyScore: calibForm.compScore,
+                  coreValuesScore: calibForm.valuesScore,
+                  potentialScore: calibForm.potentialScore,
+                });
+                const quad = nineBoxCopy(preview.nineBoxQuadrant).name;
 
                 return (
                   <div className="p-3.5 rounded-xl bg-[#e0f2fe] border border-[#bae6fd] flex items-center justify-between">
@@ -1163,7 +1260,7 @@ export default function NineBoxMatrixPage() {
                         Prediksi Penempatan 9-Box
                       </span>
                       <p className="text-xs text-[#0f172a] font-bold mt-0.5">
-                        {quad} &bull; GPA: {gpa}
+                        {quad} &bull; GPA: {preview.compositeGPA}
                       </p>
                     </div>
                     <span className="text-[11px] font-bold text-[#0284c7] bg-white px-2.5 py-1 rounded-lg border border-[#bae6fd]">

@@ -5,14 +5,20 @@ import { createPortal } from 'react-dom';
 import { NineBoxQuadrant } from '@/types';
 import { Users, X, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
-interface QuadrantInfo {
-  code: NineBoxQuadrant;
-  name: string;
-  action: string;
-  badgeBg: string;
-  badgeBorder: string;
-  badgeText: string;
-}
+import { nineBoxCopy } from '@/lib/employee/nineBoxLabels';
+
+/** Warna per kotak; dipisah dari teks agar teks punya satu sumber (nineBoxLabels). */
+const QUADRANT_COLORS: Record<NineBoxQuadrant, { bg: string; border: string; text: string }> = {
+  FUTURE_LEADER: { bg: 'bg-[#e6f4ea] hover:bg-[#d7ecdf]', border: 'border-[#b7e1cd]', text: 'text-[#137333]' },
+  GROWTH_STAR: { bg: 'bg-[#e0f2fe] hover:bg-[#cfe8f9]', border: 'border-[#bfe3f7]', text: 'text-[#0369a1]' },
+  ENIGMA: { bg: 'bg-[#e8eafd] hover:bg-[#dcdffb]', border: 'border-[#c7cbf5]', text: 'text-[#4338ca]' },
+  HIGH_IMPACT: { bg: 'bg-[#e0f2f1] hover:bg-[#cdeae8]', border: 'border-[#bfe5e2]', text: 'text-[#0f766e]' },
+  CORE_PLAYER: { bg: 'bg-[#f1f5f9] hover:bg-[#e8eef5]', border: 'border-[#e2e8f0]', text: 'text-[#334155]' },
+  DILEMMA: { bg: 'bg-[#fef3e2] hover:bg-[#fdeacd]', border: 'border-[#fadfb8]', text: 'text-[#b45309]' },
+  TRUSTED_PRO: { bg: 'bg-[#e0f5f7] hover:bg-[#cfedf1]', border: 'border-[#bce4ea]', text: 'text-[#0e7490]' },
+  EFFECTIVE_PRO: { bg: 'bg-[#f8fafc] hover:bg-[#f1f5f9]', border: 'border-[#e2e8f0]', text: 'text-[#475569]' },
+  UNDERPERFORMER: { bg: 'bg-[#fce8e6] hover:bg-[#fadbd8]', border: 'border-[#f5c6c0]', text: 'text-[#c5221f]' },
+};
 
 interface Props {
   employees?: any[];
@@ -20,7 +26,7 @@ interface Props {
 
 export default function NineBoxGrid({ employees: propEmployees }: Props) {
   const [employees, setEmployees] = useState<any[]>(propEmployees || []);
-  const [selectedQuadrant, setSelectedQuadrant] = useState<QuadrantInfo | null>(null);
+  const [selectedQuadrant, setSelectedQuadrant] = useState<NineBoxQuadrant | null>(null);
 
   useEffect(() => {
     if (propEmployees) {
@@ -56,80 +62,6 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
     load();
   }, [propEmployees]);
 
-  const quadrantDefs: Record<NineBoxQuadrant, QuadrantInfo> = {
-    FUTURE_LEADER: {
-      code: 'FUTURE_LEADER',
-      name: 'Future Leader (Star)',
-      action: 'Fast-track promosi & program suksesi kepemimpinan C-Level',
-      badgeBg: 'bg-[#e6f4ea] hover:bg-[#d7ecdf]',
-      badgeBorder: 'border-[#b7e1cd]',
-      badgeText: 'text-[#137333]',
-    },
-    GROWTH_STAR: {
-      code: 'GROWTH_STAR',
-      name: 'Growth Star',
-      action: 'Perluasan tanggung jawab & mentoring strategis',
-      badgeBg: 'bg-[#e0f2fe] hover:bg-[#cfe8f9]',
-      badgeBorder: 'border-[#bfe3f7]',
-      badgeText: 'text-[#0369a1]',
-    },
-    ENIGMA: {
-      code: 'ENIGMA',
-      name: 'Enigma (High Potential)',
-      action: 'Eksplorasi penempatan peran baru atau evaluasi hambatan teknis',
-      badgeBg: 'bg-[#e8eafd] hover:bg-[#dcdffb]',
-      badgeBorder: 'border-[#c7cbf5]',
-      badgeText: 'text-[#4338ca]',
-    },
-    HIGH_IMPACT: {
-      code: 'HIGH_IMPACT',
-      name: 'High Impact Specialist',
-      action: 'Pertahankan retensi, insentif performa, & program subject-matter expert',
-      badgeBg: 'bg-[#e0f2f1] hover:bg-[#cdeae8]',
-      badgeBorder: 'border-[#bfe5e2]',
-      badgeText: 'text-[#0f766e]',
-    },
-    CORE_PLAYER: {
-      code: 'CORE_PLAYER',
-      name: 'Core Player',
-      action: 'Pelatihan pengembangan hard skill & motivasi kontribusi',
-      badgeBg: 'bg-[#f1f5f9] hover:bg-[#e8eef5]',
-      badgeBorder: 'border-[#e2e8f0]',
-      badgeText: 'text-[#334155]',
-    },
-    DILEMMA: {
-      code: 'DILEMMA',
-      name: 'Dilemma / Inconsistent',
-      action: 'Coaching intensif performa bulanan dengan batas waktu evaluasi',
-      badgeBg: 'bg-[#fef3e2] hover:bg-[#fdeacd]',
-      badgeBorder: 'border-[#fadfb8]',
-      badgeText: 'text-[#b45309]',
-    },
-    TRUSTED_PRO: {
-      code: 'TRUSTED_PRO',
-      name: 'Trusted Professional',
-      action: 'Andalan operasional, beri peran mentor bagi staf baru',
-      badgeBg: 'bg-[#e0f5f7] hover:bg-[#cfedf1]',
-      badgeBorder: 'border-[#bce4ea]',
-      badgeText: 'text-[#0e7490]',
-    },
-    EFFECTIVE_PRO: {
-      code: 'EFFECTIVE_PRO',
-      name: 'Effective Contributor',
-      action: 'Review target kerja & simplifikasi hambatan birokrasi tugas',
-      badgeBg: 'bg-[#f8fafc] hover:bg-[#f1f5f9]',
-      badgeBorder: 'border-[#e2e8f0]',
-      badgeText: 'text-[#475569]',
-    },
-    UNDERPERFORMER: {
-      code: 'UNDERPERFORMER',
-      name: 'Risk / Underperformer',
-      action: 'Performance Improvement Plan (PIP 60 hari) atau rotasi departemen',
-      badgeBg: 'bg-[#fce8e6] hover:bg-[#fadbd8]',
-      badgeBorder: 'border-[#f5c6c0]',
-      badgeText: 'text-[#c5221f]',
-    },
-  };
 
   // 3x3 Grid Layout Matrix: [Row High Pot, Row Med Pot, Row Low Pot]
   const matrix: NineBoxQuadrant[][] = [
@@ -158,16 +90,17 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
         <div className="grid grid-cols-3 gap-2.5">
           {matrix.map((row, rIdx) =>
             row.map((quadCode, cIdx) => {
-              const info = quadrantDefs[quadCode];
+              const info = nineBoxCopy(quadCode);
+              const color = QUADRANT_COLORS[quadCode];
               const quadEmps = getEmployeesInQuad(quadCode);
               return (
                 <button
                   key={quadCode}
-                  onClick={() => setSelectedQuadrant(info)}
-                  className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all group ${info.badgeBg} ${info.badgeBorder} shadow-sm`}
+                  onClick={() => setSelectedQuadrant(quadCode)}
+                  className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all group ${color.bg} ${color.border} shadow-sm`}
                 >
                   <div className="flex items-start justify-between w-full">
-                    <span className={`text-xs font-bold ${info.badgeText} group-hover:underline flex items-center gap-1`}>
+                    <span className={`text-xs font-bold ${color.text} group-hover:underline flex items-center gap-1`}>
                       {info.name}
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#e2e8f0] text-[#0f172a]">
@@ -177,7 +110,7 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
                   </div>
 
                   <p className="text-[10px] text-[#475569] mt-2 line-clamp-2 leading-relaxed">
-                    {info.action}
+                    {info.short}
                   </p>
 
                   <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-[#e2e8f0] w-full text-[10px] text-[#64748b]">
@@ -216,15 +149,15 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
             <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-base font-bold ${selectedQuadrant.badgeText}`}>
-                    {selectedQuadrant.name}
+                  <span className={`text-base font-bold ${QUADRANT_COLORS[selectedQuadrant].text}`}>
+                    {nineBoxCopy(selectedQuadrant).name}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-[#f1f5f9] border border-[#e2e8f0] text-[#475569]">
-                    {getEmployeesInQuad(selectedQuadrant.code).length} Karyawan
+                    {getEmployeesInQuad(selectedQuadrant).length} Karyawan
                   </span>
                 </div>
                 <p className="text-xs text-[#64748b] mt-1">
-                  Rekomendasi Strategis: {selectedQuadrant.action}
+                  Rekomendasi Strategis: {nineBoxCopy(selectedQuadrant).firstStep}
                 </p>
               </div>
               <button
@@ -237,8 +170,8 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
 
             {/* Employee Roster in this quadrant */}
             <div className="max-h-72 overflow-y-auto space-y-2.5 pr-1">
-              {getEmployeesInQuad(selectedQuadrant.code).length > 0 ? (
-                getEmployeesInQuad(selectedQuadrant.code).map((e) => (
+              {getEmployeesInQuad(selectedQuadrant).length > 0 ? (
+                getEmployeesInQuad(selectedQuadrant).map((e) => (
                   <div
                     key={e.id}
                     className="flex items-center justify-between p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]"
