@@ -23,11 +23,6 @@ describe('matriks RBAC', () => {
     expect(can('BOD', 'appraisal:calibrate')).toBe(true);
   });
 
-  it('AUDITOR hanya boleh membaca audit log', () => {
-    expect(can('AUDITOR', 'audit:read')).toBe(true);
-    expect(can('AUDITOR', 'kpi:write')).toBe(false);
-    expect(can('AUDITOR', 'appraisal:calibrate')).toBe(false);
-  });
 
   it('BOD tidak boleh menulis KPI', () => {
     expect(can('BOD', 'kpi:write')).toBe(false);

@@ -138,11 +138,11 @@ describe('API Route Handlers (Integration)', () => {
     expect(json.title).toBe('Immutable Appraisal Record');
   });
 
-  it('GET /api/v1/governance/audit-logs berhasil untuk AUDITOR', async () => {
+  it('GET /api/v1/governance/audit-logs berhasil untuk SUPER_ADMIN', async () => {
     const token = await signSession({
       userId: BAMBANG_USER,
       employeeId: 'b0000000-0000-4000-8000-000000000005',
-      role: 'AUDITOR',
+      role: 'SUPER_ADMIN',
       email: 'bambang.audit@eperformiq.co.id',
     });
 

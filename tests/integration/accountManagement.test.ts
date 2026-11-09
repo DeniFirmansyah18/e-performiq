@@ -64,10 +64,10 @@ describe('Manajemen Akun SUPER_ADMIN (Integration)', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     const items = json.data.items as Array<Record<string, unknown>>;
-    expect(items.length).toBeGreaterThanOrEqual(7);
+    expect(items.length).toBeGreaterThanOrEqual(6);
     expect(items[0]).not.toHaveProperty('password_hash');
     expect(items[0]).not.toHaveProperty('passwordHash');
-    expect(json.data.roles).toContain('AUDITOR');
+    expect(json.data.roles).toContain('PEOPLE_MANAGER');
     expect(json.data.roles).not.toContain('ASSESSOR');
   });
 
@@ -88,14 +88,14 @@ describe('Manajemen Akun SUPER_ADMIN (Integration)', () => {
   it('SUPER_ADMIN dapat membuat akun baru dengan peran tertentu', async () => {
     const res = await createUser(
       mkReq('/api/v1/admin/users', adminCookie, {
-        email: 'auditor.baru@eperformiq.co.id',
-        role: 'AUDITOR',
+        email: 'pm.baru@eperformiq.co.id',
+        role: 'PEOPLE_MANAGER',
         password: 'rahasia123',
       })
     );
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data.user.role).toBe('AUDITOR');
+    expect(json.data.user.role).toBe('PEOPLE_MANAGER');
     expect(json.data.user.isActive).toBe(true);
   });
 

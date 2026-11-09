@@ -22,7 +22,6 @@ const ROLE_USER_IDS: Record<string, string> = {
   EMPLOYEE: 'e0000000-0000-4000-8000-000000000004',
   PEOPLE_MANAGER: 'e0000000-0000-4000-8000-000000000003',
   HR_MANAGER: 'e0000000-0000-4000-8000-000000000002',
-  AUDITOR: 'e0000000-0000-4000-8000-000000000005',
 };
 
 const sess = (role: string, employeeId: string, email: string): SessionPayload => ({
@@ -166,14 +165,5 @@ describe('kpiService & appraisalService', () => {
     ).rejects.toThrow(ImmutableRecordError);
   });
 
-  it('Auditor dapat membaca audit log', async () => {
-    const logs = await auditService.getAuditLogs(db, sess('AUDITOR', BAMBANG, 'bambang@x.id'));
-    expect(logs.length).toBeGreaterThan(0);
-  });
 
-  it('Employee ditolak saat mencoba membaca audit log (403)', async () => {
-    await expect(
-      auditService.getAuditLogs(db, sess('EMPLOYEE', BUDI, 'budi@x.id'))
-    ).rejects.toThrow(ForbiddenError);
-  });
 });

@@ -5,12 +5,11 @@ import type { UserRole } from '@/types';
 
 // Peta segmen dashboard -> role yang diizinkan (selaras dengan Sidebar.tsx).
 const DASHBOARD_ROLES: Record<string, readonly UserRole[]> = {
-  executive: ['BOD', 'SUPER_ADMIN', 'AUDITOR'],
+  executive: ['BOD', 'SUPER_ADMIN'],
   'hr-command': ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'],
   'manager-cockpit': ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER'],
-  'employee-portal': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'SUPER_ADMIN'],
+  'employee-portal': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'SUPER_ADMIN'],
   'ninebox-matrix': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'],
-  'audit-governance': ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER'],
   'account-management': ['SUPER_ADMIN'],
 };
 
@@ -24,8 +23,6 @@ function homeForRole(role: UserRole): string {
       return '/dashboard/hr-command';
     case 'PEOPLE_MANAGER':
       return '/dashboard/manager-cockpit';
-    case 'AUDITOR':
-      return '/dashboard/audit-governance';
     default:
       return '/dashboard/employee-portal';
   }

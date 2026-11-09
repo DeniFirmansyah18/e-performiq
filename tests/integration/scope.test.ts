@@ -49,8 +49,8 @@ describe('row-level scope', () => {
     expect(scope).not.toContain(CEO);
   });
 
-  it('HR_MANAGER, BOD, AUDITOR, SUPER_ADMIN melihat seluruh organisasi', async () => {
-    for (const role of ['HR_MANAGER', 'BOD', 'AUDITOR', 'SUPER_ADMIN']) {
+  it('HR_MANAGER, BOD, SUPER_ADMIN melihat seluruh organisasi', async () => {
+    for (const role of ['HR_MANAGER', 'BOD', 'SUPER_ADMIN']) {
       expect(await resolveVisibleEmployeeIds(db, sess(role, null))).toBe('ALL');
     }
   });

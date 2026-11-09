@@ -10,7 +10,7 @@ import { POST as postAck } from '@/app/api/v1/policies/[id]/acknowledge/route';
 import { GET as getCompliance } from '@/app/api/v1/policies/compliance/route';
 
 const BUDI = 'b0000000-0000-4000-8000-000000000004';
-const AUDITOR_USER = 'e0000000-0000-4000-8000-000000000005';
+const ADMIN_USER = 'e0000000-0000-4000-8000-000000000005';
 
 const getReq = (path: string, cookie: string) =>
   new NextRequest(`http://localhost:3000${path}`, { method: 'GET', headers: new Headers({ cookie }) });
@@ -21,7 +21,7 @@ const postReq = (path: string, cookie: string) =>
 
 describe('perpustakaan kebijakan', () => {
   let empCookie = '';
-  let auditorCookie = '';
+  let adminCookie = '';
   let v1Id = '';
   let v2Id = '';
 
@@ -31,7 +31,7 @@ describe('perpustakaan kebijakan', () => {
     const db = appDb;
 
     empCookie = `${SESSION_COOKIE_NAME}=${await signSession({ userId: 'e0000000-0000-4000-8000-000000000004', employeeId: BUDI, role: 'EMPLOYEE', email: 'budi@eperformiq.co.id' })}`;
-    auditorCookie = `${SESSION_COOKIE_NAME}=${await signSession({ userId: AUDITOR_USER, employeeId: 'b0000000-0000-4000-8000-000000000005', role: 'AUDITOR', email: 'audit@eperformiq.co.id' })}`;
+    adminCookie = `${SESSION_COOKIE_NAME}=${await signSession({ userId: ADMIN_USER, employeeId: 'b0000000-0000-4000-8000-000000000005', role: 'SUPER_ADMIN', email: 'audit@eperformiq.co.id' })}`;
 
     const stamp = Date.now();
     const v1 = await publishVersion(db, {
@@ -107,11 +107,11 @@ describe('perpustakaan kebijakan', () => {
     expect(res.status).toBe(422);
   });
 
-  it('kepatuhan acknowledgment hanya untuk auditor/HR', async () => {
+  it('kepatuhan acknowledgment hanya untuk super admin/HR', async () => {
     const denied = await getCompliance(getReq('/api/v1/policies/compliance', empCookie));
     expect(denied.status).toBe(403);
 
-    const allowed = await getCompliance(getReq('/api/v1/policies/compliance', auditorCookie));
+    const allowed = await getCompliance(getReq('/api/v1/policies/compliance', adminCookie));
     expect(allowed.status).toBe(200);
     expect(Array.isArray((await allowed.json()).data.items)).toBe(true);
   });

@@ -22,8 +22,7 @@ function dashboardForRole(role: UserRole): string {
     case 'BOD': return '/dashboard/executive';
     case 'HR_MANAGER': return '/dashboard/hr-command';
     case 'PEOPLE_MANAGER': return '/dashboard/manager-cockpit';
-    case 'EMPLOYEE': return '/dashboard/employee-portal';
-    case 'AUDITOR': return '/dashboard/audit-governance';
+    case 'EMPLOYEE': return '/dashboard/employee-portal';
     default: return '/dashboard/executive';
   }
 }

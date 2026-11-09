@@ -8,7 +8,7 @@ import { GET as integrity } from '@/app/api/v1/audit/integrity/route';
 import { insertAuditLog } from '@/lib/repositories/auditRepository';
 import { db } from '@/lib/db/client';
 
-const AUDITOR = 'e0000000-0000-4000-8000-000000000005';
+const ADMIN_USER = 'e0000000-0000-4000-8000-000000000006';
 const HR = 'e0000000-0000-4000-8000-000000000002';
 
 const getReq = (cookie?: string) =>
@@ -19,16 +19,16 @@ const getReq = (cookie?: string) =>
 
 describe('GET /api/v1/audit/integrity', () => {
   let client: SqlClient;
-  let auditorCookie = '';
+  let adminCookie = '';
   let hrCookie = '';
 
   beforeAll(async () => {
     client = await getDb();
     await runSeed(client);
 
-    auditorCookie = `${SESSION_COOKIE_NAME}=${await signSession({
-      userId: AUDITOR, employeeId: 'b0000000-0000-4000-8000-000000000005',
-      role: 'AUDITOR', email: 'audit@eperformiq.co.id',
+    adminCookie = `${SESSION_COOKIE_NAME}=${await signSession({
+      userId: ADMIN_USER, employeeId: 'b0000000-0000-4000-8000-000000000006',
+      role: 'SUPER_ADMIN', email: 'audit@eperformiq.co.id',
     })}`;
     hrCookie = `${SESSION_COOKIE_NAME}=${await signSession({
       userId: HR, employeeId: 'b0000000-0000-4000-8000-000000000002',
@@ -51,8 +51,8 @@ describe('GET /api/v1/audit/integrity', () => {
     expect(res.status).toBe(403);
   });
 
-  it('AUDITOR menerima status integritas rantai', async () => {
-    const res = await integrity(getReq(auditorCookie));
+  it('ADMIN_USER menerima status integritas rantai', async () => {
+    const res = await integrity(getReq(adminCookie));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data).toHaveProperty('ok');
@@ -63,7 +63,7 @@ describe('GET /api/v1/audit/integrity', () => {
   });
 
   it('tidak membocorkan isi audit log', async () => {
-    const res = await integrity(getReq(auditorCookie));
+    const res = await integrity(getReq(adminCookie));
     const text = JSON.stringify(await res.json());
     expect(text).not.toContain('entri untuk uji endpoint integritas');
   });

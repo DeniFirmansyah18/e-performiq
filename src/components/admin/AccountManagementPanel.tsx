@@ -23,8 +23,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
   BOD: 'Direksi (BOD)',
   HR_MANAGER: 'HR Manager',
   PEOPLE_MANAGER: 'People Manager',
-  EMPLOYEE: 'Karyawan',
-  AUDITOR: 'Auditor',
+  EMPLOYEE: 'Karyawan',
 };
 
 const ROLES: UserRole[] = [
@@ -32,8 +31,7 @@ const ROLES: UserRole[] = [
   'BOD',
   'HR_MANAGER',
   'PEOPLE_MANAGER',
-  'EMPLOYEE',
-  'AUDITOR',
+  'EMPLOYEE',
 ];
 
 function fmtDate(value: string | null): string {

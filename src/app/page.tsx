@@ -13,8 +13,7 @@ export default function RootPage() {
       if (activeRole === 'BOD') router.replace('/dashboard/executive');
       else if (activeRole === 'HR_MANAGER') router.replace('/dashboard/hr-command');
       else if (activeRole === 'PEOPLE_MANAGER') router.replace('/dashboard/manager-cockpit');
-      else if (activeRole === 'EMPLOYEE') router.replace('/dashboard/employee-portal');
-      else if (activeRole === 'AUDITOR') router.replace('/dashboard/audit-governance');
+      else if (activeRole === 'EMPLOYEE') router.replace('/dashboard/employee-portal');
       else router.replace('/dashboard/executive');
     } else {
       router.replace('/login');

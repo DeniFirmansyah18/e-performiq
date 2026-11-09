@@ -16,7 +16,6 @@ const ROLE_USER_IDS: Record<string, string> = {
   EMPLOYEE: 'e0000000-0000-4000-8000-000000000004',
   PEOPLE_MANAGER: 'e0000000-0000-4000-8000-000000000003',
   HR_MANAGER: 'e0000000-0000-4000-8000-000000000002',
-  AUDITOR: 'e0000000-0000-4000-8000-000000000005',
 };
 
 const sess = (role: string, employeeId: string, email = 'x@x.id'): SessionPayload => ({
