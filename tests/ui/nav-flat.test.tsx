@@ -24,6 +24,8 @@ describe('menu datar', () => {
   it('menu relevan tampil langsung sebagai tautan top-level', () => {
     render(<NavMenu />);
     expect(screen.getByRole('link', { name: /HR Ops Command Center/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /9-Box Talent Matrix/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Offboarding & Clearance/i })).toBeTruthy();
+    // 9-Box dipindah ke tab Ringkasan HR Command Center, bukan bilah atas.
+    expect(screen.queryByRole('link', { name: /9-Box/i })).toBeNull();
   });
 });
