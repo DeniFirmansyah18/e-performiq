@@ -39,4 +39,19 @@ describe('tidak ada aksi palsu', () => {
     expect(screen.queryByRole('button', { name: /Download Matriks PDF/i })).toBeNull();
     expect(screen.queryByTitle(/Buka detail kuadran lengkap/i)).toBeNull();
   });
+
+  it('tabel kesiapan suksesi: jumlah kolom header sama dengan jumlah sel tiap baris', async () => {
+    global.fetch = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })) as any;
+    render(<NineBoxMatrixPage />);
+    fireEvent.click(screen.getAllByRole('button', { name: /Kesiapan Suksesi/i })[0]);
+    await waitFor(() => expect(document.querySelector('table')).toBeTruthy());
+
+    const table = document.querySelector('table')!;
+    const thCount = table.querySelectorAll('thead th').length;
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      expect(r.querySelectorAll('td').length).toBe(thCount);
+    }
+  });
 });

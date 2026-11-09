@@ -78,4 +78,24 @@ describe('persentase kotak 9-Box', () => {
     const txt = document.body.textContent ?? '';
     expect(txt).not.toMatch(/NaN|Infinity/);
   });
+
+  it('saat data belum dimuat, jumlah karyawan juga "—", bukan 0 (konsisten dengan kartu ringkas)', async () => {
+    global.fetch = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })) as any;
+    render(<NineBoxMatrixPage />);
+    openGrid();
+    await waitFor(() => expect(screen.getAllByTestId('box-count')).toHaveLength(9));
+    for (const e of screen.getAllByTestId('box-count')) {
+      expect(e.textContent).toBe('—');
+    }
+    expect(document.body.textContent).not.toMatch(/0\s*karyawan/);
+  });
+
+  it('"Muat ulang data" tidak mengaku berhasil saat server menolak', async () => {
+    global.fetch = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })) as any;
+    render(<NineBoxMatrixPage />);
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /Muat ulang data/i }).length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByRole('button', { name: /Muat ulang data/i })[0]);
+    await waitFor(() => expect(document.body.textContent).toMatch(/gagal|tidak dapat/i));
+    expect(document.body.textContent).not.toMatch(/berhasil dimuat ulang/i);
+  });
 });

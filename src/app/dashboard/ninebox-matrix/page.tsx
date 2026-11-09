@@ -181,6 +181,7 @@ export default function NineBoxMatrixPage() {
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
   const [isReloading, setIsReloading] = useState(false);
   const [reloadOk, setReloadOk] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
   const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number> } | null>(null);
 
   // Task 8: jumlah per kuadran dari DB (bukan konstanta 1,240/42/180/12).
@@ -240,6 +241,12 @@ export default function NineBoxMatrixPage() {
 
   const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
 
+  /** Jumlah karyawan per kotak; "—" bila ringkasan belum dimuat (0 berarti kosong, beda arti). */
+  const boxCount = (code: string): string => {
+    if (!summary) return '—';
+    return String(summary.byQuadrant?.[code] ?? 0);
+  };
+
   /** Persentase kotak dari data nyata; "—" bila belum dimuat atau total nol. */
   const boxPercent = (code: string): string => {
     if (!summary || !summary.total) return '—';
@@ -258,13 +265,16 @@ export default function NineBoxMatrixPage() {
 
   const handleRunAi = async () => {
     setIsReloading(true);
+    setReloadError(null);
     try {
       // Task 8: segarkan distribusi 9-Box dari DB (bukan simulasi setTimeout).
       const res = await fetch('/api/v1/performance/nine-box-summary');
-      if (res.ok) {
-        const json = await res.json();
-        setSummary(json?.data ?? null);
+      if (!res.ok) {
+        setReloadError('Gagal memuat ulang data. Silakan coba lagi.');
+        return;
       }
+      const json = await res.json();
+      setSummary(json?.data ?? null);
       setReloadOk(true);
       setTimeout(() => setReloadOk(false), 4000);
     } catch {
@@ -414,6 +424,21 @@ export default function NineBoxMatrixPage() {
           <button onClick={() => setCalibrateErrorMsg(null)} className="font-bold underline text-[#c5221f]">
             Tutup
           </button>
+        </div>
+      )}
+
+      {/* Pemberitahuan muat ulang — di level halaman agar terlihat dari tombol mana pun */}
+      {reloadError && (
+        <div role="alert" className="p-3.5 rounded-xl bg-[#fce8e6] border border-[#f5c6c0] text-xs font-semibold text-[#c5221f] flex items-center justify-between shadow-xs animate-fadeIn">
+          <span>{reloadError}</span>
+          <button onClick={() => setReloadError(null)} className="font-bold underline text-[#c5221f]">
+            Tutup
+          </button>
+        </div>
+      )}
+      {reloadOk && (
+        <div role="status" className="p-3.5 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] shadow-xs animate-fadeIn">
+          Data 9-Box berhasil dimuat ulang.
         </div>
       )}
 
@@ -680,8 +705,8 @@ export default function NineBoxMatrixPage() {
 
                       {/* Middle: Count */}
                       <div className="my-1.5">
-                        <span className="text-xl font-black text-[#0f172a]">
-                          {summary?.byQuadrant?.[quad.quadrantKey] ?? 0}
+                        <span data-testid="box-count" className="text-xl font-black text-[#0f172a]">
+                          {boxCount(quad.quadrantKey)}
                         </span>
                         <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
                       </div>
@@ -761,7 +786,7 @@ export default function NineBoxMatrixPage() {
             {/* Title & Description */}
             <div className="mt-3">
               <h3 className="text-sm font-extrabold text-[#0f172a]">
-                {nineBoxCopy(currentQuadrant.quadrantKey).name} ({summary?.byQuadrant?.[currentQuadrant.quadrantKey] ?? 0} karyawan)
+                {nineBoxCopy(currentQuadrant.quadrantKey).name} ({boxCount(currentQuadrant.quadrantKey)} karyawan)
               </h3>
               <p className="text-[11px] text-[#64748b] mt-0.5">
                 {nineBoxCopy(currentQuadrant.quadrantKey).position}
@@ -905,6 +930,11 @@ export default function NineBoxMatrixPage() {
                 )}
               </button>
             </div>
+            {reloadError && (
+              <p role="alert" className="text-[10px] text-[#c5221f] font-semibold bg-[#fce8e6] rounded-md px-2 py-1 mt-2 text-center">
+                {reloadError}
+              </p>
+            )}
             {reloadOk && (
               <p className="text-[10px] text-[#166534] font-semibold bg-[#dcfce7] rounded-md px-2 py-1 mt-2 text-center animate-fade-in">
                 Data 9-Box berhasil dimuat ulang.
@@ -948,7 +978,6 @@ export default function NineBoxMatrixPage() {
                 <th className="py-3 px-4">BENCH POOL (READY NOW)</th>
                 <th className="py-3 px-4">BENCH POOL (READY 1-2 Y)</th>
                 <th className="py-3 px-4 text-center">COVERAGE STATUS</th>
-                <th className="py-3 px-4 text-right">OPSI TATA KELOLA</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
