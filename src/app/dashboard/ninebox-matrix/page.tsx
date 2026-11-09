@@ -10,15 +10,10 @@ import {
   Building2,
   Filter,
   Calendar,
-  Download,
   Users,
   Target,
   Network,
   AlertTriangle,
-  ExternalLink,
-  ChevronDown,
-  MoreHorizontal,
-  Cpu,
   TrendingUp,
   ArrowRight,
   ShieldCheck,
@@ -29,7 +24,6 @@ import {
   Compass,
   Scale,
   X,
-  Calculator,
   Grid3X3,
   ListOrdered,
 } from 'lucide-react';
@@ -375,15 +369,6 @@ export default function NineBoxMatrixPage() {
             <span>2026-Q3</span>
           </div>
 
-          {/* Download Matrix PDF */}
-          <button 
-            onClick={() => alert('Mengunduh Laporan Matriks 9-Box & Talent Readiness 2026-Q3 (PDF Resmi Direksi)...')}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc]"
-          >
-            <Download className="w-3.5 h-3.5 text-[#64748b]" />
-            <span>Download Matriks PDF</span>
-          </button>
-
           {/* Kalibrasi Penilaian (Komite Kalibrasi) */}
           <button 
             onClick={() => setIsCalibrateModalOpen(true)}
@@ -491,14 +476,6 @@ export default function NineBoxMatrixPage() {
             tag="Talenta"
             description="Buka matriks 9-Box dan panel inspeksi kandidat."
             onClick={() => setOpenFeature('inspection')}
-          />
-          <ActionCard
-            icon={Download}
-            tone="slate"
-            title="Download Matriks PDF"
-            tag="Dokumen"
-            description="Unduh laporan matriks 9-Box & talent readiness periode ini."
-            onClick={() => alert('Mengunduh Laporan Matriks 9-Box & Talent Readiness 2026-Q3 (PDF Resmi Direksi)...')}
           />
         </div>
       </div>
@@ -780,13 +757,6 @@ export default function NineBoxMatrixPage() {
                   Box {selectedBox} Selected
                 </span>
               </div>
-              <button 
-                title="Buka detail kuadran lengkap"
-                onClick={() => alert(`Membuka audit dossier lengkap seluruh talent di Box ${selectedBox} (${currentQuadrant.name}).`)}
-                className="text-[#94a3b8] hover:text-[#0f172a] transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Title & Description */}
@@ -1011,14 +981,7 @@ export default function NineBoxMatrixPage() {
                     Robust (3:1)
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button 
-                    onClick={() => alert('Opsi Tata Kelola CTO: Penjadwalan Wawancara Komite Remunerasi & Nominasi (KRN).')}
-                    className="p-1 rounded hover:bg-[#e2e8f0] text-[#64748b] transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </td>
+
               </tr>
 
               {/* Row 2: VP Enterprise Commercial */}
@@ -1048,14 +1011,7 @@ export default function NineBoxMatrixPage() {
                     Adequate (3:1)
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button 
-                    onClick={() => alert('Opsi Tata Kelola VP Commercial: Rotasi penugasan ke unit bisnis strategis.')}
-                    className="p-1 rounded hover:bg-[#e2e8f0] text-[#64748b] transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </td>
+
               </tr>
 
               {/* Row 3: Head of Internal Audit & Risk */}
@@ -1085,14 +1041,7 @@ export default function NineBoxMatrixPage() {
                     Vulnerable (0:1)
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button 
-                    onClick={() => alert('Opsi Tata Kelola Head Audit: Akselerasi Executive Mentoring Farhan Hakim atau rekrutmen pro-hire eksternal.')}
-                    className="p-1 rounded hover:bg-[#e2e8f0] text-[#64748b] transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </td>
+
               </tr>
 
             </tbody>
