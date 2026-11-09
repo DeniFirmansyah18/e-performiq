@@ -384,7 +384,7 @@ export default function NineBoxMatrixPage() {
             <span>Download Matriks PDF</span>
           </button>
 
-          {/* Moderasi & Kalibrasi Nilai (Komite Kalibrasi) */}
+          {/* Kalibrasi Penilaian (Komite Kalibrasi) */}
           <button 
             onClick={() => setIsCalibrateModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#0284c7] text-white text-xs font-semibold shadow-xs hover:bg-[#0369a1] transition-all"
@@ -440,7 +440,7 @@ export default function NineBoxMatrixPage() {
           title="Distribusi Kinerja"
           metric={summary ? summary.total.toLocaleString('id-ID') : '—'}
           tag="100% Sensus"
-          description="Sebaran populasi talenta pada kuadran potensi-kinerja: Future Leaders, Core Backbone, dan Underperformer."
+          description="Sebaran populasi talenta pada kotak potensi-kinerja: Pemimpin Masa Depan, Penggerak Inti, dan Perlu Pembinaan."
           onOpen={() => setOpenFeature('distribusi')}
         />
         <FeatureCard
@@ -471,9 +471,9 @@ export default function NineBoxMatrixPage() {
           <ActionCard
             icon={Scale}
             tone="blue"
-            title="Moderasi & Kalibrasi"
+            title="Kalibrasi Penilaian"
             tag="Komite"
-            description="Moderasi nilai potensi-kinerja oleh komite kalibrasi independen."
+            description="Menetapkan nilai potensi-kinerja oleh komite kalibrasi independen."
             onClick={() => setIsCalibrateModalOpen(true)}
           />
           <ActionCard
@@ -1103,7 +1103,7 @@ export default function NineBoxMatrixPage() {
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
-      {/* Modal Moderasi & Kalibrasi Komite Kalibrasi */}
+      {/* Modal Kalibrasi Penilaian */}
       {isCalibrateModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
@@ -1111,10 +1111,10 @@ export default function NineBoxMatrixPage() {
               <div>
                 <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
                   <Scale className="h-4 w-4 text-[#0284c7]" />
-                  <span>Sidang Kalibrasi &amp; Moderasi Komite Kalibrasi</span>
+                  <span>Rapat Kalibrasi Penilaian</span>
                 </h3>
                 <p className="text-[11px] text-[#64748b]">
-                  Standar Forced Distribution Kurva Gaussian BUMN &amp; Segmentasi 9-Box McKinsey/GE.
+                  Sebaran Nilai Wajib (kurva normal) dan pengelompokan sembilan kotak.
                 </p>
               </div>
               <button onClick={() => setIsCalibrateModalOpen(false)} className="text-[#64748b] hover:text-[#0f172a]">
@@ -1231,7 +1231,7 @@ export default function NineBoxMatrixPage() {
 
               {/* Justification Notes */}
               <div>
-                <label className="block text-xs font-semibold text-[#334155] mb-1">Catatan Risalah Komite Kalibrasi &amp; Justifikasi Moderasi</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">Catatan Alasan</label>
                 <textarea
                   rows={2}
                   required
