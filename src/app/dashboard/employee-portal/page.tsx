@@ -1060,6 +1060,9 @@ return (
     </>
   )}
 
+  {/* Indikator Pencapaian Target Individu — selalu tampil, di luar panel yang harus dibuka */}
+  <TargetAchievementCard periodId={selectedPeriod} />
+
   {/* Panel: Nilai Kinerja */}
   <ExpandablePanel open={openFeature === 'scorecard'} title="Nilai Kinerja (Scorecard)" onClose={() => setOpenFeature(null)}>
   <div className="stitch-card-white p-6 space-y-4">
@@ -1314,9 +1317,6 @@ return (
         <button onClick={() => setStatusMsg(null)}><X className="h-3.5 w-3.5" /></button>
       </div>
     )}
-
-    {/* Indikator Pencapaian Target Individu */}
-    <TargetAchievementCard periodId={selectedPeriod} />
 
     {/* Modal Update Actual */}
     {selectedKpi && typeof document !== 'undefined' && createPortal(
