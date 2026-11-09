@@ -189,8 +189,8 @@ export default function NineBoxMatrixPage() {
   const [selectedBox, setSelectedBox] = useState<number>(9);
   const [activeDirectorate, setActiveDirectorate] = useState('Semua Direktorat (Holding)');
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
-  const [isAiRunning, setIsAiRunning] = useState(false);
-  const [aiSuccessMsg, setAiSuccessMsg] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  const [reloadOk, setReloadOk] = useState(false);
   const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number> } | null>(null);
 
   // Task 8: jumlah per kuadran dari DB (bukan konstanta 1,240/42/180/12).
@@ -258,7 +258,7 @@ export default function NineBoxMatrixPage() {
   const summaryDijaga = sumBoxes(['DILEMMA', 'CORE_PLAYER', 'HIGH_IMPACT']);
 
   const handleRunAi = async () => {
-    setIsAiRunning(true);
+    setIsReloading(true);
     try {
       // Task 8: segarkan distribusi 9-Box dari DB (bukan simulasi setTimeout).
       const res = await fetch('/api/v1/performance/nine-box-summary');
@@ -266,12 +266,12 @@ export default function NineBoxMatrixPage() {
         const json = await res.json();
         setSummary(json?.data ?? null);
       }
-      setAiSuccessMsg(true);
-      setTimeout(() => setAiSuccessMsg(false), 4000);
+      setReloadOk(true);
+      setTimeout(() => setReloadOk(false), 4000);
     } catch {
       /* no-op */
     } finally {
-      setIsAiRunning(false);
+      setIsReloading(false);
     }
   };
 
@@ -387,13 +387,13 @@ export default function NineBoxMatrixPage() {
             <span>{showHelp ? 'Sembunyikan penjelasan' : 'Tampilkan penjelasan'}</span>
           </button>
 
-          {/* Simulasi Talent Pool Suksesi */}
+          {/* Muat ulang data 9-Box */}
           <button 
             onClick={handleRunAi}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-xs font-semibold shadow-xs hover:bg-[#00664b] transition-all"
           >
             <Plus className="w-3.5 h-3.5 text-white" />
-            <span>Simulasi Talent Pool Suksesi</span>
+            <span>Muat ulang data</span>
           </button>
         </div>
       </div>
@@ -438,7 +438,7 @@ export default function NineBoxMatrixPage() {
         />
         <FeatureCard
           icon={ListOrdered}
-          title="Simulasi Suksesi"
+          title="Kesiapan Suksesi"
           metric="Bench Strength"
           tag="Suksesi"
           description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Automated Succession Matcher."
@@ -450,7 +450,7 @@ export default function NineBoxMatrixPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Talenta</h2>
-          <span className="text-[11px] text-[#64748b]">Kalibrasi, simulasi & ekspor</span>
+          <span className="text-[11px] text-[#64748b]">Kalibrasi & kesiapan suksesi</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <ActionCard
@@ -464,9 +464,9 @@ export default function NineBoxMatrixPage() {
           <ActionCard
             icon={Plus}
             tone="emerald"
-            title="Simulasi Talent Pool"
+            title="Muat ulang data"
             tag="Suksesi"
-            description="Jalankan simulasi pencocokan talent pool untuk posisi kritis."
+            description="Ambil ulang sebaran karyawan terbaru dari database."
             onClick={handleRunAi}
           />
           <ActionCard
@@ -886,29 +886,29 @@ export default function NineBoxMatrixPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#0f172a]">Automated Succession Matcher</h4>
-                  <p className="text-[10px] text-[#64748b]">Simulasi 12 kursi C-Suite kosong</p>
+                  <p className="text-[10px] text-[#64748b]">Kesiapan mengikuti penilaian tersimpan</p>
                 </div>
               </div>
               <button
                 onClick={handleRunAi}
-                disabled={isAiRunning}
+                disabled={isReloading}
                 className="px-3 py-1.5 rounded-lg bg-white border border-[#cbd5e1] text-xs font-semibold text-[#0f172a] hover:bg-[#f8fafc] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                {isAiRunning ? (
+                {isReloading ? (
                   <>
                     <RefreshCw className="w-3 h-3 animate-spin text-[#007a5a]" />
                     <span>Memetakan...</span>
                   </>
                 ) : (
                   <>
-                    <span>Jalankan Simulasi</span>
+                    <span>Muat ulang data</span>
                   </>
                 )}
               </button>
             </div>
-            {aiSuccessMsg && (
+            {reloadOk && (
               <p className="text-[10px] text-[#166534] font-semibold bg-[#dcfce7] rounded-md px-2 py-1 mt-2 text-center animate-fade-in">
-                Simulasi selesai: 12 kursi terpetakan dengan rasio koverasi suksesi 3.2 : 1!
+                Data 9-Box berhasil dimuat ulang.
               </p>
             )}
           </div>
@@ -919,8 +919,8 @@ export default function NineBoxMatrixPage() {
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
-      {/* Panel: Simulasi Suksesi (Bench Strength Table) */}
-      <ExpandablePanel open={openFeature === 'simulasi'} title="Succession Bench Strength Summary" onClose={() => setOpenFeature(null)}>
+      {/* Panel: Kesiapan Suksesi (Bench Strength Table) */}
+      <ExpandablePanel open={openFeature === 'simulasi'} title="Kesiapan Suksesi" onClose={() => setOpenFeature(null)}>
       <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-xs space-y-4">
         
         {/* Table Title & Target note */}
