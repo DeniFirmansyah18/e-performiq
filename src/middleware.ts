@@ -16,8 +16,10 @@ const DASHBOARD_ROLES: Record<string, readonly UserRole[]> = {
 // Dashboard utama per role (untuk redirect saat mengakses halaman terlarang).
 function homeForRole(role: UserRole): string {
   switch (role) {
-    case 'BOD':
     case 'SUPER_ADMIN':
+      // Super Admin hanya mengelola hak akses; tidak punya dashboard fungsional.
+      return '/dashboard/account-management';
+    case 'BOD':
       return '/dashboard/executive';
     case 'HR_MANAGER':
       return '/dashboard/hr-command';
@@ -41,6 +43,12 @@ export async function middleware(request: NextRequest) {
       const res = NextResponse.redirect(loginUrl);
       if (token) res.cookies.delete(SESSION_COOKIE_NAME); // token rusak/kedaluwarsa
       return res;
+    }
+
+    // Super Admin difokuskan ke panel hak akses: segmen lain dialihkan ke sana.
+    // Izin RBAC tidak diubah, sehingga API tetap dapat dipanggil untuk kebutuhan administratif.
+    if (session.role === 'SUPER_ADMIN' && pathname !== '/dashboard/account-management') {
+      return NextResponse.redirect(new URL('/dashboard/account-management', request.url));
     }
 
     // Gating per-segmen: role yang tidak berhak diarahkan ke dashboard-nya.
