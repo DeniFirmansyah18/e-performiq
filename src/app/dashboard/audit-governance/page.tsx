@@ -27,6 +27,7 @@ import {
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -288,7 +289,10 @@ export default function AuditGovernancePage() {
         </div>
       </div>
 
-      {/* 2. Feature Card Grid (click to open) */}
+      {/* 2. Indikator Ketercapaian Target */}
+      <TargetAchievementCard title="Indikator Ketercapaian Target & Kepatuhan KPI" />
+
+      {/* 3. Feature Card Grid (click to open) */}
       <FeatureGrid>
         <FeatureCard
           icon={Scale}

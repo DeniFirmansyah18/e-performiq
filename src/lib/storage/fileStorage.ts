@@ -24,6 +24,11 @@ const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.ogg': 'video/ogg',
+  '.m4v': 'video/mp4',
 };
 
 /** Driver lokal tidak menyimpan metadata, jadi content-type disimpulkan dari ekstensi. */
@@ -77,13 +82,16 @@ export function sanitizeFileName(name: string): string {
   return cleaned.length > 0 ? cleaned.slice(0, 120) : 'berkas';
 }
 
-/** `policies/<uuid>-<nama-aman>.pdf` — UUID mencegah tabrakan nama. */
-export function buildStorageKey(prefix: string, fileName: string): string {
+/** `<prefix>/<uuid>-<nama-aman>.<ext>` — UUID mencegah tabrakan nama. */
+export function buildStorageKey(prefix: string, fileName: string, defaultExt: string = '.pdf'): string {
   const safePrefix = prefix.replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'files';
   let safeName = sanitizeFileName(fileName);
-  safeName = /\.pdf$/i.test(safeName)
-    ? safeName.replace(/\.PDF$/i, '.pdf')
-    : `${safeName}.pdf`;
+  const extMatch = safeName.toLowerCase().match(/\.[a-z0-9]+$/);
+  if (extMatch && CONTENT_TYPES[extMatch[0]]) {
+    // Ekstensi valid yang dikenal
+  } else {
+    safeName = `${safeName}${defaultExt.startsWith('.') ? defaultExt : `.${defaultExt}`}`;
+  }
   return `${safePrefix}/${randomUUID()}-${safeName}`;
 }
 

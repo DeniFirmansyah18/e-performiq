@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import { useAuth } from '@/lib/context/AuthContext';
 import {
 Download,
@@ -1313,6 +1314,9 @@ return (
         <button onClick={() => setStatusMsg(null)}><X className="h-3.5 w-3.5" /></button>
       </div>
     )}
+
+    {/* Indikator Pencapaian Target Individu */}
+    <TargetAchievementCard periodId={selectedPeriod} />
 
     {/* Modal Update Actual */}
     {selectedKpi && typeof document !== 'undefined' && createPortal(
