@@ -168,6 +168,10 @@ export async function calibrateAppraisal(
     );
   }
 
+  // 409 di atas didahulukan; baru setelah itu scope diperiksa.
+  const scope = await resolveVisibleEmployeeIds(db, session);
+  assertEmployeeVisible(scope, appraisal.employeeId);
+
   const calibrated = await setAppraisalCalibrated(db, appraisalId, session.userId, notes);
 
   await logAction(db, {
