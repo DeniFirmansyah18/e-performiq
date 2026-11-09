@@ -252,6 +252,10 @@ Lihat `docs/decisions/` (ADR 003–019). Sumber pihak ketiga (IRT, IPIP) dicatat
   ditelan diam-diam) dan tetap terlihat via `GET /api/v1/careers/notifications/health`.
   Kirim nyata bergantung pada kredensial valid (`EMAIL_FROM` domain terverifikasi,
   `WHATSAPP_TOKEN` + perangkat Fonnte aktif) dan nomor `62…` yang valid.
+- **Alur kalibrasi dua tahap** belum ada — saat ini `PEOPLE_MANAGER` tidak dapat
+  menyimpan hasil kalkulasi penilaian sama sekali (403), dan hanya
+  `SUPER_ADMIN`/`HR_MANAGER`/`BOD` yang dapat mengesahkan. Lihat
+  `docs/superpowers/specs/2026-11-09-kalibrasi-lock-design.md`.
 
 ## Deploy ke Vercel
 
