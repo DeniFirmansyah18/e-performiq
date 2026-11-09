@@ -51,6 +51,16 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [coverLetterFile, setCoverLetterFile] = useState<{ url: string; name: string } | null>(null);
   const [resumeDoc, setResumeDoc] = useState<{ url: string; name: string } | null>(null);
+  const [videoFile, setVideoFile] = useState<{
+    url: string;
+    name: string;
+    size: number;
+    duration: number | null;
+    localPreviewUrl?: string;
+  } | null>(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [upload, setUpload] = useState<any | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -147,6 +157,98 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
     finally { setUploading(false); }
   };
 
+  const handleVideoSelect = async (file: File) => {
+    setVideoError(null);
+    if (!file) return;
+
+    // 1. Validasi ukuran (maksimal 10 MB)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      setVideoError(`Ukuran video melebihi batas maksimal 10 MB (terdeteksi: ${mb} MB).`);
+      if (videoInputRef.current) videoInputRef.current.value = '';
+      return;
+    }
+
+    // 2. Validasi format file (MP4, WebM, MOV)
+    const lower = file.name.toLowerCase();
+    const validExts = ['.mp4', '.webm', '.mov', '.ogg', '.m4v'];
+    const validMimes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-m4v'];
+    if (!validExts.some((ext) => lower.endsWith(ext)) && !validMimes.includes(file.type)) {
+      setVideoError('Format video tidak didukung. Harap unggah berkas MP4, WebM, atau MOV.');
+      if (videoInputRef.current) videoInputRef.current.value = '';
+      return;
+    }
+
+    // 3. Validasi durasi (maksimal 2 menit / 120 detik) via HTML5 video element
+    const objectUrl = URL.createObjectURL(file);
+    const videoElem = document.createElement('video');
+    videoElem.preload = 'metadata';
+
+    const checkDurationAndUpload = async (durationSec: number | null) => {
+      if (durationSec != null && durationSec > 121.5) {
+        const m = Math.floor(durationSec / 60);
+        const s = Math.floor(durationSec % 60);
+        setVideoError(`Durasi video (${m}:${String(s).padStart(2, '0')}) melebihi batas maksimal 2 menit.`);
+        URL.revokeObjectURL(objectUrl);
+        if (videoInputRef.current) videoInputRef.current.value = '';
+        return;
+      }
+
+      setVideoUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        if (durationSec != null) fd.append('duration', String(durationSec));
+
+        const res = await fetch('/api/v1/careers/upload-video', {
+          method: 'POST',
+          body: fd,
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setVideoError(j?.detail || 'Gagal mengunggah video perkenalan.');
+          URL.revokeObjectURL(objectUrl);
+          if (videoInputRef.current) videoInputRef.current.value = '';
+          return;
+        }
+
+        setVideoFile({
+          url: j.data.fileUrl,
+          name: file.name,
+          size: file.size,
+          duration: j.data.duration ?? durationSec,
+          localPreviewUrl: objectUrl,
+        });
+      } catch {
+        setVideoError('Terjadi kesalahan saat mengunggah video.');
+        URL.revokeObjectURL(objectUrl);
+      } finally {
+        setVideoUploading(false);
+      }
+    };
+
+    videoElem.onloadedmetadata = () => {
+      const dur = videoElem.duration;
+      void checkDurationAndUpload(Number.isFinite(dur) ? dur : null);
+    };
+
+    videoElem.onerror = () => {
+      // Jika browser tidak dapat membaca metadata lokal (mis. MOV tertentu),
+      // serahkan validasi ke server
+      void checkDurationAndUpload(null);
+    };
+
+    videoElem.src = objectUrl;
+  };
+
+  const removeVideo = () => {
+    if (videoFile?.localPreviewUrl) URL.revokeObjectURL(videoFile.localPreviewUrl);
+    setVideoFile(null);
+    setVideoError(null);
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
   const field = (k: keyof typeof form, label: string, type = 'text', required = false) => (
     <label className="block text-[11px] text-[#334155]">
       <span className="font-semibold">{label}{required ? ' *' : ''}</span>
@@ -157,7 +259,13 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMsg(null); setBusy(true);
+    setMsg(null);
+    if (!videoFile) {
+      setMsg('Video perkenalan diri (unjuk spesialisasi) wajib diunggah.');
+      document.getElementById('video-perkenalan-section')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    setBusy(true);
     const payload = {
       ...form,
       // Field opsional: kirim undefined (bukan '') agar lolos validasi enum/opsional.
@@ -192,6 +300,7 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
       documents: [
         ...(resumeDoc ? [{ docType: 'CV', fileName: resumeDoc.name, mimeType: 'application/pdf', fileUrl: resumeDoc.url }] : []),
         ...(coverLetterFile ? [{ docType: 'COVER_LETTER', fileName: coverLetterFile.name, fileUrl: coverLetterFile.url }] : []),
+        ...(videoFile ? [{ docType: 'INTRODUCTION_VIDEO', fileName: videoFile.name, mimeType: 'video/mp4', fileUrl: videoFile.url }] : []),
         ...certifications.filter((c) => c.proofUrl).map((c) => ({ docType: 'CERTIFICATE', fileName: `${c.name}-bukti`, fileUrl: c.proofUrl })),
       ],
     };
@@ -411,6 +520,83 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
               className="text-[10px] font-semibold text-rose-600 justify-self-end">Hapus</button>
           </div>
         ))}
+      </div>
+
+      {/* ==== VIDEO PERKENALAN DIRI (UNJUK SPESIALISASI) - WAJIB ==== */}
+      <div id="video-perkenalan-section" className="p-4 rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold text-[#0f172a]">Video Perkenalan Diri (Unjuk Spesialisasi)</p>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">Wajib</span>
+            </div>
+            <p className="text-[11px] text-[#475569] mt-0.5">
+              Unggah video singkat untuk memperkenalkan diri dan memaparkan keahlian / spesialisasi yang Anda kuasai.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1 text-[10px]">
+            <span className="px-2 py-0.5 rounded bg-white border border-[#cbd5e1] font-semibold text-[#334155]">Maks. 10 MB</span>
+            <span className="px-2 py-0.5 rounded bg-white border border-[#cbd5e1] font-semibold text-[#334155]">Maks. 2 Menit</span>
+            <span className="px-2 py-0.5 rounded bg-white border border-[#cbd5e1] font-semibold text-[#334155]">MP4, WebM, MOV</span>
+          </div>
+        </div>
+
+        {!videoFile ? (
+          <div>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleVideoSelect(f);
+              }}
+              disabled={videoUploading}
+              className="block w-full text-[11px] text-[#334155] file:mr-2 file:rounded-lg file:border-0 file:bg-[#1d4ed8] file:px-3 file:py-1.5 file:text-[11px] file:font-bold file:text-white hover:file:bg-[#1e40af] cursor-pointer disabled:opacity-50"
+            />
+            {videoUploading && (
+              <p className="text-[11px] text-indigo-700 font-semibold mt-1 animate-pulse">
+                Mengunggah &amp; memverifikasi video…
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2 p-3 rounded-lg bg-white border border-indigo-100 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span className="text-xs font-bold text-[#0f172a] truncate max-w-[200px] sm:max-w-md">{videoFile.name}</span>
+                <span className="text-[10px] text-[#64748b]">
+                  ({(videoFile.size / (1024 * 1024)).toFixed(1)} MB
+                  {videoFile.duration ? ` · ${Math.floor(videoFile.duration / 60)}:${String(Math.floor(videoFile.duration % 60)).padStart(2, '0')}` : ''})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={removeVideo}
+                className="text-[11px] font-semibold text-rose-600 hover:text-rose-800"
+              >
+                Ganti / Hapus
+              </button>
+            </div>
+
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={videoFile.localPreviewUrl || videoFile.url}
+              className="w-full max-h-56 rounded-lg bg-black object-contain"
+            >
+              Peramban Anda tidak mendukung pemutar video.
+            </video>
+          </div>
+        )}
+
+        {videoError && (
+          <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-semibold">
+            {videoError}
+          </div>
+        )}
       </div>
 
       {/* ==== SURAT LAMARAN (FILE) ==== */}

@@ -46,7 +46,7 @@ const CertificationSchema = z.object({
 });
 
 const DocumentSchema = z.object({
-  docType: z.enum(['CV', 'COVER_LETTER', 'CERTIFICATE', 'OTHER']),
+  docType: z.enum(['CV', 'COVER_LETTER', 'CERTIFICATE', 'OTHER', 'INTRODUCTION_VIDEO']),
   fileName: z.string().max(255).nullable().optional(),
   mimeType: z.string().max(120).nullable().optional(),
   fileUrl: z.string().max(2_000_000),

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import { useAuth } from '@/lib/context/AuthContext';
 import {
 Download,
@@ -1058,6 +1059,9 @@ return (
   </div>
     </>
   )}
+
+  {/* Indikator Pencapaian Target Individu — selalu tampil, di luar panel yang harus dibuka */}
+  <TargetAchievementCard periodId={selectedPeriod} />
 
   {/* Panel: Nilai Kinerja */}
   <ExpandablePanel open={openFeature === 'scorecard'} title="Nilai Kinerja (Scorecard)" onClose={() => setOpenFeature(null)}>

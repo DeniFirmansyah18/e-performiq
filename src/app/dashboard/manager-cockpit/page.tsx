@@ -27,6 +27,7 @@ import {
 import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
 import DailyVerificationPanel from '@/components/governance/DailyVerificationPanel';
 import KpiIndicatorPanel from '@/components/governance/KpiIndicatorPanel';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
@@ -594,6 +595,9 @@ export default function ManagerCockpitPage() {
           />
         </div>
       </div>
+
+      {/* Indikator Pencapaian Target Tim */}
+      <TargetAchievementCard periodId={PERIOD_ID} title="Indikator Pencapaian Target Tim" />
 
       {/* Panel: Roster Tim */}
       <ExpandablePanel open={openFeature === 'roster'} title="Roster Tim" onClose={() => setOpenFeature(null)}>

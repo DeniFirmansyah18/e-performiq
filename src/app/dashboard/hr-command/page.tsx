@@ -64,6 +64,7 @@ import LeaveApprovalPanel from '@/components/governance/LeaveApprovalPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
 import HrKpiIndicatorPanel from '@/components/governance/HrKpiIndicatorPanel';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import WorkloadAnalysisPanel from '@/components/governance/WorkloadAnalysisPanel';
 import CareerAndActionsPanel from '@/components/governance/CareerAndActionsPanel';
 import PkwtDirectoryPanel from '@/components/governance/PkwtDirectoryPanel';
@@ -927,6 +928,7 @@ export default function HROperationsPage() {
 
                   {mainTab === 'overview' && (
                     <div className="space-y-6">
+                      <TargetAchievementCard title="Indikator Pencapaian Target Organisasi" />
                       <HrOverviewAnalyticsPanel />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <CostOfWorkforceCard />

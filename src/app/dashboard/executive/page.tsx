@@ -25,6 +25,7 @@ import {
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
@@ -196,7 +197,8 @@ export default function ExecutiveBoardroomPage() {
       {/* 2. Feature Card Grid (click to open) */}
       {mainTab === 'overview' && !loadError && !loading && (
         <>
-      <FeatureGrid>
+          <TargetAchievementCard title="Indikator Pencapaian Target Strategis Korporasi (BSC)" />
+          <FeatureGrid>
         <FeatureCard
           icon={ShieldCheck}
           title="VMAI Indeks Korporasi"

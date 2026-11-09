@@ -496,9 +496,35 @@ function CandidateProfile({ profile }: { profile: any }) {
       <div>
         <p className="text-[11px] font-bold text-[#334155] mb-1">Berkas Lamaran</p>
         {profile.documents?.length ? profile.documents.map((d: any) => (
-          <div key={d.id} className="text-[11px] text-[#334155] py-1 flex items-center justify-between">
-            <span>{d.docType} — {d.fileName || 'dokumen'}</span>
-            {d.fileUrl && <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[#0284c7] underline">Lihat</a>}
+          <div key={d.id} className="text-[11px] text-[#334155] py-1.5 border-b border-[#f1f5f9] last:border-0">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-medium">
+                {d.docType === 'INTRODUCTION_VIDEO' ? (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">Video Perkenalan</span>
+                ) : (
+                  <span>{d.docType}</span>
+                )}
+                <span className="text-[#64748b]">· {d.fileName || 'dokumen'}</span>
+              </span>
+              {d.fileUrl && (
+                <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-semibold text-[#0284c7] hover:underline">
+                  Buka Berkas
+                </a>
+              )}
+            </div>
+            {d.docType === 'INTRODUCTION_VIDEO' && d.fileUrl && (
+              <div className="mt-2 rounded-lg bg-black overflow-hidden border border-[#e2e8f0]">
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={d.fileUrl}
+                  className="w-full max-h-56 object-contain"
+                >
+                  Peramban Anda tidak mendukung pemutar video.
+                </video>
+              </div>
+            )}
           </div>
         )) : <p className="text-[11px] text-[#94a3b8]">Tidak ada berkas.</p>}
       </div>
