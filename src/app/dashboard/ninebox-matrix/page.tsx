@@ -216,6 +216,8 @@ export default function NineBoxMatrixPage() {
   // Komite Kalibrasi State
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   const [calibrateSuccessMsg, setCalibrateSuccessMsg] = useState<string | null>(null);
+  const [calibrateErrorMsg, setCalibrateErrorMsg] = useState<string | null>(null);
+  const [calibrateModalError, setCalibrateModalError] = useState<string | null>(null);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibForm, setCalibForm] = useState({
     employeeId: 'b0000000-0000-4000-8000-000000000004',
@@ -252,6 +254,8 @@ export default function NineBoxMatrixPage() {
     e.preventDefault();
     setIsCalibrating(true);
     setCalibrateSuccessMsg(null);
+    setCalibrateErrorMsg(null);
+    setCalibrateModalError(null);
     try {
       const res = await fetch('/api/v1/performance/appraisals/calculate-gpa', {
         method: 'POST',
@@ -267,14 +271,25 @@ export default function NineBoxMatrixPage() {
         }),
       });
       const json = await res.json();
-      if (res.ok) {
-        setCalibrateSuccessMsg(
-          `Moderasi nilai & penempatan 9-Box untuk ${calibForm.name} berhasil disahkan! Kuadran: ${json.data?.nine_box_placement?.quadrant} (GPA: ${json.data?.composite_gpa})`
-        );
-        setIsCalibrateModalOpen(false);
+
+      if (!res.ok) {
+        const detail = json?.detail ?? 'Kalibrasi gagal. Silakan coba lagi.';
+        setCalibrateErrorMsg(detail);
+        // Tutup modal: alert dirender di bawah (tertutup overlay z-[100]),
+        // sehingga tanpa ini pengguna melihat "tidak terjadi apa-apa".
+        setCalibrateModalError(detail);
+        return;
       }
+
+      const locked = json?.data?.is_calibrated === true;
+      setCalibrateSuccessMsg(
+        locked
+          ? `Nilai ${calibForm.name} telah disahkan dan terkunci. Kuadran: ${json.data?.nine_box_placement?.quadrant} (GPA: ${json.data?.composite_gpa})`
+          : `Nilai ${calibForm.name} tersimpan tetapi BELUM terkunci. Kuadran: ${json.data?.nine_box_placement?.quadrant} (GPA: ${json.data?.composite_gpa})`
+      );
+      setIsCalibrateModalOpen(false);
     } catch {
-      // ignore
+      setCalibrateErrorMsg('Kalibrasi gagal: tidak dapat menghubungi server.');
     } finally {
       setIsCalibrating(false);
     }
@@ -360,9 +375,19 @@ export default function NineBoxMatrixPage() {
 
       {/* Success Alert */}
       {calibrateSuccessMsg && (
-        <div className="p-3.5 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] flex items-center justify-between shadow-xs animate-fadeIn">
+        <div role="alert" className="p-3.5 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] flex items-center justify-between shadow-xs animate-fadeIn">
           <span>{calibrateSuccessMsg}</span>
           <button onClick={() => setCalibrateSuccessMsg(null)} className="font-bold underline text-[#137333]">
+            Tutup
+          </button>
+        </div>
+      )}
+
+      {/* Error Alert — jangan pernah mengaku berhasil saat server menolak */}
+      {calibrateErrorMsg && (
+        <div role="alert" className="p-3.5 rounded-xl bg-[#fce8e6] border border-[#f5c6c0] text-xs font-semibold text-[#c5221f] flex items-center justify-between shadow-xs animate-fadeIn">
+          <span>{calibrateErrorMsg}</span>
+          <button onClick={() => setCalibrateErrorMsg(null)} className="font-bold underline text-[#c5221f]">
             Tutup
           </button>
         </div>
@@ -1149,6 +1174,11 @@ export default function NineBoxMatrixPage() {
               })()}
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#f1f5f9]">
+                {calibrateModalError && (
+                  <div role="alert" className="flex-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] border border-[#f5c6c0] rounded-lg px-3 py-2">
+                    {calibrateModalError}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsCalibrateModalOpen(false)}

@@ -3,7 +3,7 @@ import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan, can } from '@/lib/auth/rbac';
 import { resolveVisibleEmployeeIds, assertEmployeeVisible } from '@/lib/auth/scope';
-import { NotFoundError, ImmutableRecordError, BusinessRuleError } from '@/lib/auth/errors';
+import { NotFoundError, ImmutableRecordError, BusinessRuleError, ForbiddenError } from '@/lib/auth/errors';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 import {
   selectAppraisalByEmployee,
@@ -24,6 +24,13 @@ export interface CalculateGPAInput {
   coreValuesScore: number;
   potentialScore?: number;
   notes?: string;
+  /**
+   * `true` (default): simpan sekaligus mengesahkan/mengunci nilai. Hanya untuk
+   * pemegang `appraisal:calibrate`.
+   * `false`: simpan hasil kalkulasi saja, nilai tetap BELUM terkunci
+   * (`is_calibrated = false`) — alur evaluasi kinerja manajer.
+   */
+  approve?: boolean;
 }
 
 export async function getAppraisalByEmployee(db: Db, employeeId: string, periodId: string) {
@@ -78,9 +85,28 @@ export async function calculateAndSaveGPA(
 
   const existing = await selectAppraisalByEmployee(db, input.employeeId, input.periodId);
   const isAuthorizedCalibrator = can(session.role, 'appraisal:calibrate');
-  if (existing?.isCalibrated && !isAuthorizedCalibrator) {
+
+  // `approve` (default true) = sekaligus mengunci nilai. Hanya pemegang
+  // `appraisal:calibrate` yang boleh mengunci; peran lain (mis. PEOPLE_MANAGER)
+  // hanya MENYIMPAN hasil kalkulasi tanpa mengunci — itulah alur evaluasi
+  // kinerja di Manager Cockpit. Tanpa pemisahan ini, penjagaan "hanya
+  // kalibrator boleh menyimpan" mematikan alur evaluasi manajer, sedangkan
+  // membiarkannya tanpa penjagaan membuat tombol "Sahkan Kalibrasi" berbohong.
+  const approve = input.approve ?? true;
+
+  if (approve && !isAuthorizedCalibrator) {
+    throw new ForbiddenError(
+      `Peran '${session.role}' tidak memiliki otorisasi 'appraisal:calibrate' untuk mengesahkan nilai. ` +
+        'Gunakan penyimpanan tanpa pengesahan (approve: false).'
+    );
+  }
+
+  // Baris yang sudah disahkan tidak boleh ditimpa oleh siapa pun; satu-satunya
+  // jalan adalah unlock_appraisal() (PRD §6.2).
+  if (existing?.isCalibrated) {
     throw new ImmutableRecordError(
-      `Nilai penilaian karyawan ${input.employeeId} pada periode ${input.periodId} telah disahkan dan berstatus immutable.`
+      `Nilai penilaian karyawan ${input.employeeId} pada periode ${input.periodId} telah disahkan dan berstatus immutable. ` +
+        'Gunakan unlock_appraisal() untuk membukanya.'
     );
   }
 
@@ -115,27 +141,26 @@ export async function calculateAndSaveGPA(
       potentialScore: input.potentialScore ?? 3.5,
       nineBoxQuadrant: result.nineBoxQuadrant,
     },
-    isAuthorizedCalibrator
+    true
   );
 
-  let finalSaved = saved;
-  if (isAuthorizedCalibrator) {
-    finalSaved = await setAppraisalCalibrated(
-      db,
-      saved.id,
-      session.userId,
-      input.notes ?? existing?.calibrationNotes ?? 'Dimoderasi oleh Komite Penilai'
-    );
-  }
+  const finalSaved = approve
+    ? await setAppraisalCalibrated(
+        db,
+        saved.id,
+        session.userId,
+        input.notes ?? existing?.calibrationNotes ?? 'Dimoderasi oleh Komite Penilai'
+      )
+    : saved;
 
   await logAction(db, {
     userId: session.userId,
-    actionType: 'CALIBRATE',
+    actionType: approve ? 'CALIBRATE' : 'UPDATE',
     entityName: 'performance_appraisals',
     recordId: finalSaved.id,
     oldData: existing,
     newData: finalSaved,
-    description: `Kalkulasi Composite GPA (${result.compositeGPA}) dan 9-Box Grid (${result.nineBoxQuadrant}) — skor KPI ${kpiScore.toFixed(2)} (${input.kpiScore === undefined ? 'diturunkan dari KPI' : 'input manual'})`,
+    description: `Kalkulasi Composite GPA (${result.compositeGPA}) dan 9-Box Grid (${result.nineBoxQuadrant}) — skor KPI ${kpiScore.toFixed(2)} (${input.kpiScore === undefined ? 'diturunkan dari KPI' : 'input manual'}) — ${approve ? 'disahkan & dikunci' : 'disimpan tanpa pengesahan'}`,
   });
 
   return finalSaved;
@@ -159,6 +184,10 @@ export async function calibrateAppraisal(
       `Nilai penilaian ID '${appraisalId}' telah disahkan oleh Komite Kalibrasi dan berstatus immutable.`
     );
   }
+
+  // 409 di atas didahulukan; baru setelah itu scope diperiksa.
+  const scope = await resolveVisibleEmployeeIds(db, session);
+  assertEmployeeVisible(scope, appraisal.employeeId);
 
   const calibrated = await setAppraisalCalibrated(db, appraisalId, session.userId, notes);
 
