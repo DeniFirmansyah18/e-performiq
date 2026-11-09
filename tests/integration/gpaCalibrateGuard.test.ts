@@ -40,7 +40,7 @@ describe('calculateAndSaveGPA — peran tanpa izin kalibrasi', () => {
     await client.close();
   });
 
-  it('PEOPLE_MANAGER tidak dapat menyimpan hasil kalkulasi (403)', async () => {
+  it('PEOPLE_MANAGER tidak dapat MENGESAHKAN nilai (403)', async () => {
     await expect(
       appraisalService.calculateAndSaveGPA(db, sess('PEOPLE_MANAGER', DANU), {
         periodId: PERIOD_ID,
