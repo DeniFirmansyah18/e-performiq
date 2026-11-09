@@ -690,13 +690,6 @@ export default function ExecutiveBoardroomPage() {
             </div>
           </div>
 
-          <Link
-            href="/dashboard/audit-governance"
-            className="w-full py-2.5 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <span>Lihat Audit Trail Eksekutif</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
 
         {/* Card 3: Risiko Suksesi Eksekutif (Pipeline Kepemimpinan) */}

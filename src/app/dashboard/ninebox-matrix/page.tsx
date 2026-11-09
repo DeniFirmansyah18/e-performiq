@@ -1,8 +1,7 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { nineBoxCopy, potentialLabel } from '@/lib/employee/nineBoxLabels';
-import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
+import { nineBoxCopy } from '@/lib/employee/nineBoxLabels';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -22,7 +21,6 @@ import {
   Award,
   Plus,
   Compass,
-  Scale,
   X,
   Grid3X3,
   ListOrdered,
@@ -200,8 +198,7 @@ export default function NineBoxMatrixPage() {
     return () => { active = false; };
   }, []);
 
-  // Komite Kalibrasi State
-  const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+
   // Preferensi tampilan penjelasan. Default tampil; HRD berpengalaman bisa menyembunyikan.
   const [showHelp, setShowHelp] = useState(true);
 
@@ -224,22 +221,8 @@ export default function NineBoxMatrixPage() {
       return next;
     });
   };
-  const [calibrateSuccessMsg, setCalibrateSuccessMsg] = useState<string | null>(null);
-  const [calibrateErrorMsg, setCalibrateErrorMsg] = useState<string | null>(null);
-  const [calibrateModalError, setCalibrateModalError] = useState<string | null>(null);
-  const [isCalibrating, setIsCalibrating] = useState(false);
-  const [calibForm, setCalibForm] = useState({
-    employeeId: 'b0000000-0000-4000-8000-000000000004',
-    name: 'Budi Pratama (Senior Systems Architect)',
-    potentialScore: 4.5,
-    kpiScore: 96.0,
-    sopScore: 98.0,
-    compScore: 88.0,
-    valuesScore: 92.0,
-    notes: 'Moderasi Komite Penilai: Kesiapan suksesi kepemimpinan arsitektur cloud tingkat C-Level.',
-  });
 
-  const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
+  const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];;
 
   /** Jumlah karyawan per kotak; "—" bila ringkasan belum dimuat (0 berarti kosong, beda arti). */
   const boxCount = (code: string): string => {
@@ -284,50 +267,6 @@ export default function NineBoxMatrixPage() {
     }
   };
 
-  const handleSaveCalibration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCalibrating(true);
-    setCalibrateSuccessMsg(null);
-    setCalibrateErrorMsg(null);
-    setCalibrateModalError(null);
-    try {
-      const res = await fetch('/api/v1/performance/appraisals/calculate-gpa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          period_id: 'd0000000-0000-4000-8000-000000000001',
-          employee_id: calibForm.employeeId,
-          kpi_actual_score: Number(calibForm.kpiScore),
-          sop_compliance_score: Number(calibForm.sopScore),
-          competency_gap_score: Number(calibForm.compScore),
-          core_values_360_score: Number(calibForm.valuesScore),
-          potential_assessment_score: Number(calibForm.potentialScore),
-        }),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        const detail = json?.detail ?? 'Kalibrasi gagal. Silakan coba lagi.';
-        setCalibrateErrorMsg(detail);
-        // Tutup modal: alert dirender di bawah (tertutup overlay z-[100]),
-        // sehingga tanpa ini pengguna melihat "tidak terjadi apa-apa".
-        setCalibrateModalError(detail);
-        return;
-      }
-
-      const locked = json?.data?.is_calibrated === true;
-      setCalibrateSuccessMsg(
-        locked
-          ? `Nilai ${calibForm.name} telah disahkan dan terkunci. Kuadran: ${json.data?.nine_box_placement?.quadrant} (GPA: ${json.data?.composite_gpa})`
-          : `Nilai ${calibForm.name} tersimpan tetapi BELUM terkunci. Kuadran: ${json.data?.nine_box_placement?.quadrant} (GPA: ${json.data?.composite_gpa})`
-      );
-      setIsCalibrateModalOpen(false);
-    } catch {
-      setCalibrateErrorMsg('Kalibrasi gagal: tidak dapat menghubungi server.');
-    } finally {
-      setIsCalibrating(false);
-    }
-  };
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
@@ -378,15 +317,6 @@ export default function NineBoxMatrixPage() {
             <span>2026-Q3</span>
           </div>
 
-          {/* Kalibrasi Penilaian (Komite Kalibrasi) */}
-          <button 
-            onClick={() => setIsCalibrateModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#0284c7] text-white text-xs font-semibold shadow-xs hover:bg-[#0369a1] transition-all"
-          >
-            <Scale className="w-3.5 h-3.5 text-white" />
-            <span>Kalibrasi Penilaian</span>
-          </button>
-
           {/* Tampilkan / sembunyikan penjelasan untuk pemula */}
           <button
             type="button"
@@ -406,26 +336,6 @@ export default function NineBoxMatrixPage() {
           </button>
         </div>
       </div>
-
-      {/* Success Alert */}
-      {calibrateSuccessMsg && (
-        <div role="alert" className="p-3.5 rounded-xl bg-[#e6f4ea] border border-[#b7e1cd] text-xs font-semibold text-[#137333] flex items-center justify-between shadow-xs animate-fadeIn">
-          <span>{calibrateSuccessMsg}</span>
-          <button onClick={() => setCalibrateSuccessMsg(null)} className="font-bold underline text-[#137333]">
-            Tutup
-          </button>
-        </div>
-      )}
-
-      {/* Error Alert — jangan pernah mengaku berhasil saat server menolak */}
-      {calibrateErrorMsg && (
-        <div role="alert" className="p-3.5 rounded-xl bg-[#fce8e6] border border-[#f5c6c0] text-xs font-semibold text-[#c5221f] flex items-center justify-between shadow-xs animate-fadeIn">
-          <span>{calibrateErrorMsg}</span>
-          <button onClick={() => setCalibrateErrorMsg(null)} className="font-bold underline text-[#c5221f]">
-            Tutup
-          </button>
-        </div>
-      )}
 
       {/* Pemberitahuan muat ulang — di level halaman agar terlihat dari tombol mana pun */}
       {reloadError && (
@@ -474,17 +384,9 @@ export default function NineBoxMatrixPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Talenta</h2>
-          <span className="text-[11px] text-[#64748b]">Kalibrasi & kesiapan suksesi</span>
+          <span className="text-[11px] text-[#64748b]">Kesiapan suksesi</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionCard
-            icon={Scale}
-            tone="blue"
-            title="Kalibrasi Penilaian"
-            tag="Komite"
-            description="Menetapkan nilai potensi-kinerja oleh komite kalibrasi independen."
-            onClick={() => setIsCalibrateModalOpen(true)}
-          />
           <ActionCard
             icon={Plus}
             tone="emerald"
@@ -822,8 +724,8 @@ export default function NineBoxMatrixPage() {
               {currentQuadrant.candidates.length === 0 && (
                 <div className="p-4 rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc]/50 text-center">
                   <p className="text-[11px] text-[#64748b]">
-                    Detail kandidat per kuadran belum tersedia. Skor 9-Box dihitung dari hasil kalibrasi
-                    penilaian kinerja; daftar kandidat akan tampil setelah kalibrasi dijalankan.
+                    Detail kandidat per kuadran belum tersedia. Skor 9-Box dihitung dari hasil penilaianrasi
+                    penilaian kinerja; daftar kandidat akan tampil setelah penilaian tersimpan.
                   </p>
                 </div>
               )}
@@ -1080,200 +982,6 @@ export default function NineBoxMatrixPage() {
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
-      {/* Modal Kalibrasi Penilaian */}
-      {isCalibrateModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4 border border-[#e2e8f0] animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
-                  <Scale className="h-4 w-4 text-[#0284c7]" />
-                  <span>Rapat Kalibrasi Penilaian</span>
-                </h3>
-                <p className="text-[11px] text-[#64748b]">
-                  Sebaran Nilai Wajib (kurva normal) dan pengelompokan sembilan kotak.
-                </p>
-              </div>
-              <button onClick={() => setIsCalibrateModalOpen(false)} className="text-[#64748b] hover:text-[#0f172a]">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCalibration} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#334155] mb-1">Pilih Pegawai yang Dimoderasi</label>
-                <select
-                  value={calibForm.employeeId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    let name = 'Budi Pratama';
-                    let kpi = 96.0;
-                    let sop = 98.0;
-                    let comp = 88.0;
-                    let val = 92.0;
-                    let pot = 4.5;
-                    if (id === 'b0000000-0000-4000-8000-000000000007') {
-                      name = 'Anisa Wijaya, S.Ds.';
-                      kpi = 94.0;
-                      sop = 95.0;
-                      comp = 86.0;
-                      val = 90.0;
-                      pot = 4.0;
-                    } else if (id === 'b0000000-0000-4000-8000-000000000008') {
-                      name = 'Dimas Prasetyo, S.Kom.';
-                      kpi = 88.5;
-                      sop = 90.0;
-                      comp = 82.0;
-                      val = 85.0;
-                      pot = 3.5;
-                    } else if (id === 'b0000000-0000-4000-8000-000000000009') {
-                      name = 'Rian Hidayat, S.Kom.';
-                      kpi = 80.0;
-                      sop = 87.5;
-                      comp = 78.0;
-                      val = 84.0;
-                      pot = 3.2;
-                    }
-                    setCalibForm({
-                      ...calibForm,
-                      employeeId: id,
-                      name,
-                      kpiScore: kpi,
-                      sopScore: sop,
-                      compScore: comp,
-                      valuesScore: val,
-                      potentialScore: pot,
-                    });
-                  }}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#0284c7] bg-white text-[#0f172a]"
-                >
-                  <option value="b0000000-0000-4000-8000-000000000004">Budi Pratama — Senior Systems Architect</option>
-                  <option value="b0000000-0000-4000-8000-000000000007">Anisa Wijaya, S.Ds. — Product Designer UI/UX</option>
-                  <option value="b0000000-0000-4000-8000-000000000008">Dimas Prasetyo, S.Kom. — DevOps &amp; SRE Engineer</option>
-                  <option value="b0000000-0000-4000-8000-000000000009">Rian Hidayat, S.Kom. — Junior Backend Developer (Probation)</option>
-                </select>
-              </div>
-
-              <div className="space-y-3 p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
-                {/* Potential Assessment */}
-                <div>
-                  <div className="flex justify-between items-center text-xs mb-1">
-                    <span className="font-semibold text-[#334155]">Potensi Kepemimpinan &amp; Suksesi (Sumbu Y: 1.0 - 5.0)</span>
-                    <span className="font-mono font-bold text-[#ea580c] bg-white px-2 py-0.5 rounded border border-[#cbd5e1]">
-                      {calibForm.potentialScore} / 5.0
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    data-testid="potential-slider"
-                    min="1.0"
-                    max="5.0"
-                    step="0.1"
-                    value={calibForm.potentialScore}
-                    onChange={(e) => setCalibForm({ ...calibForm, potentialScore: parseFloat(e.target.value) })}
-                    className="w-full accent-[#ea580c]"
-                  />
-                  {/* Acuan sesuai ambang nyata gpa-engine: <3.0 rendah, 3.0–3.9 sedang, >=4.0 tinggi */}
-                  {showHelp && (
-                    <p data-testid="potential-label" className="text-[11px] font-semibold text-[#ea580c] mt-1">
-                      {potentialLabel(calibForm.potentialScore)}
-                    </p>
-                  )}
-                  <div className="flex justify-between text-[10px] text-[#94a3b8]">
-                    <span>1.0 (Potensi rendah)</span>
-                    <span>3.0 (Potensi sedang)</span>
-                    <span>5.0 (Potensi tinggi)</span>
-                  </div>
-                </div>
-
-                {/* KPI Moderation */}
-                <div className="pt-2 border-t border-[#e2e8f0]">
-                  <div className="flex justify-between items-center text-xs mb-1">
-                    <span className="font-semibold text-[#334155]">Moderasi Skor Capaian KPI (Bobot 50%)</span>
-                    <span className="font-mono font-bold text-[#007a5a] bg-white px-2 py-0.5 rounded border border-[#cbd5e1]">
-                      {calibForm.kpiScore}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="100"
-                    step="0.5"
-                    value={calibForm.kpiScore}
-                    onChange={(e) => setCalibForm({ ...calibForm, kpiScore: parseFloat(e.target.value) })}
-                    className="w-full accent-[#007a5a]"
-                  />
-                </div>
-              </div>
-
-              {/* Justification Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-[#334155] mb-1">Catatan Alasan</label>
-                <textarea
-                  rows={2}
-                  required
-                  value={calibForm.notes}
-                  onChange={(e) => setCalibForm({ ...calibForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#0284c7]"
-                />
-              </div>
-
-              {/* Pratinjau 9-Box memakai engine yang sama dengan perhitungan resmi,
-                  agar tidak pernah berbeda dari hasil yang benar-benar disimpan. */}
-              {(() => {
-                const preview = calculateCompositeGPA({
-                  kpiScore: calibForm.kpiScore,
-                  sopScore: calibForm.sopScore,
-                  competencyScore: calibForm.compScore,
-                  coreValuesScore: calibForm.valuesScore,
-                  potentialScore: calibForm.potentialScore,
-                });
-                const quad = nineBoxCopy(preview.nineBoxQuadrant).name;
-
-                return (
-                  <div className="p-3.5 rounded-xl bg-[#e0f2fe] border border-[#bae6fd] flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-[#0369a1] uppercase tracking-wider block">
-                        Prediksi Penempatan 9-Box
-                      </span>
-                      <p className="text-xs text-[#0f172a] font-bold mt-0.5">
-                        {quad} &bull; GPA: {preview.compositeGPA}
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-bold text-[#0284c7] bg-white px-2.5 py-1 rounded-lg border border-[#bae6fd]">
-                      Status: Valid
-                    </span>
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#f1f5f9]">
-                {calibrateModalError && (
-                  <div role="alert" className="flex-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] border border-[#f5c6c0] rounded-lg px-3 py-2">
-                    {calibrateModalError}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsCalibrateModalOpen(false)}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-[#64748b] hover:bg-[#f1f5f9] rounded-lg"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCalibrating}
-                  className="px-4 py-2 text-xs font-bold text-white bg-[#0284c7] hover:bg-[#0369a1] rounded-lg shadow-sm flex items-center gap-1.5"
-                >
-                  <Scale className="h-3.5 w-3.5" />
-                  <span>{isCalibrating ? 'Memvalidasi...' : 'Sahkan Kalibrasi &amp; Simpan'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
 
     </div>
   );

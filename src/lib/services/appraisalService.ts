@@ -3,13 +3,11 @@ import type { Db } from '@/lib/db/client';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan, can } from '@/lib/auth/rbac';
 import { resolveVisibleEmployeeIds, assertEmployeeVisible } from '@/lib/auth/scope';
-import { NotFoundError, ImmutableRecordError, BusinessRuleError, ForbiddenError } from '@/lib/auth/errors';
+import { BusinessRuleError } from '@/lib/auth/errors';
 import { calculateCompositeGPA } from '@/lib/engines/gpa-engine';
 import {
   selectAppraisalByEmployee,
-  selectAppraisalById,
   upsertPerformanceAppraisal,
-  setAppraisalCalibrated,
 } from '@/lib/repositories/appraisalRepository';
 import { logAction } from './auditService';
 import { deriveKpiScore } from './kpiScoreDerivationService';
@@ -35,10 +33,6 @@ export interface CalculateGPAInput {
 
 export async function getAppraisalByEmployee(db: Db, employeeId: string, periodId: string) {
   return selectAppraisalByEmployee(db, employeeId, periodId);
-}
-
-export async function getAppraisalById(db: Db, id: string) {
-  return selectAppraisalById(db, id);
 }
 
 /**
@@ -84,31 +78,6 @@ export async function calculateAndSaveGPA(
   assertEmployeeVisible(scope, input.employeeId);
 
   const existing = await selectAppraisalByEmployee(db, input.employeeId, input.periodId);
-  const isAuthorizedCalibrator = can(session.role, 'appraisal:calibrate');
-
-  // `approve` (default true) = sekaligus mengunci nilai. Hanya pemegang
-  // `appraisal:calibrate` yang boleh mengunci; peran lain (mis. PEOPLE_MANAGER)
-  // hanya MENYIMPAN hasil kalkulasi tanpa mengunci — itulah alur evaluasi
-  // kinerja di Manager Cockpit. Tanpa pemisahan ini, penjagaan "hanya
-  // kalibrator boleh menyimpan" mematikan alur evaluasi manajer, sedangkan
-  // membiarkannya tanpa penjagaan membuat tombol "Sahkan Kalibrasi" berbohong.
-  const approve = input.approve ?? true;
-
-  if (approve && !isAuthorizedCalibrator) {
-    throw new ForbiddenError(
-      `Peran '${session.role}' tidak memiliki otorisasi 'appraisal:calibrate' untuk mengesahkan nilai. ` +
-        'Gunakan penyimpanan tanpa pengesahan (approve: false).'
-    );
-  }
-
-  // Baris yang sudah disahkan tidak boleh ditimpa oleh siapa pun; satu-satunya
-  // jalan adalah unlock_appraisal() (PRD §6.2).
-  if (existing?.isCalibrated) {
-    throw new ImmutableRecordError(
-      `Nilai penilaian karyawan ${input.employeeId} pada periode ${input.periodId} telah disahkan dan berstatus immutable. ` +
-        'Gunakan unlock_appraisal() untuk membukanya.'
-    );
-  }
 
   const kpiDerived = await deriveKpiScore(db, input.employeeId, input.periodId);
   const kpiScore = input.kpiScore ?? kpiDerived.value;
@@ -126,7 +95,7 @@ export async function calculateAndSaveGPA(
     potentialScore: input.potentialScore ?? 3.5,
   });
 
-  const saved = await upsertPerformanceAppraisal(
+  const finalSaved = await upsertPerformanceAppraisal(
     db,
     {
       periodId: input.periodId,
@@ -143,63 +112,16 @@ export async function calculateAndSaveGPA(
     },
     true
   );
-
-  const finalSaved = approve
-    ? await setAppraisalCalibrated(
-        db,
-        saved.id,
-        session.userId,
-        input.notes ?? existing?.calibrationNotes ?? 'Dimoderasi oleh Komite Penilai'
-      )
-    : saved;
-
   await logAction(db, {
     userId: session.userId,
-    actionType: approve ? 'CALIBRATE' : 'UPDATE',
+    actionType: 'UPDATE',
     entityName: 'performance_appraisals',
     recordId: finalSaved.id,
     oldData: existing,
     newData: finalSaved,
-    description: `Kalkulasi Composite GPA (${result.compositeGPA}) dan 9-Box Grid (${result.nineBoxQuadrant}) — skor KPI ${kpiScore.toFixed(2)} (${input.kpiScore === undefined ? 'diturunkan dari KPI' : 'input manual'}) — ${approve ? 'disahkan & dikunci' : 'disimpan tanpa pengesahan'}`,
+    description: `Kalkulasi Composite GPA (${result.compositeGPA}) dan 9-Box Grid (${result.nineBoxQuadrant}) — skor KPI ${kpiScore.toFixed(2)} (${input.kpiScore === undefined ? 'diturunkan dari KPI' : 'input manual'})`,
   });
 
   return finalSaved;
 }
 
-export async function calibrateAppraisal(
-  db: Db,
-  session: SessionPayload,
-  appraisalId: string,
-  notes?: string
-) {
-  assertCan(session, 'appraisal:calibrate');
-
-  const appraisal = await selectAppraisalById(db, appraisalId);
-  if (!appraisal) {
-    throw new NotFoundError(`Appraisal dengan ID '${appraisalId}' tidak ditemukan.`);
-  }
-
-  if (appraisal.isCalibrated) {
-    throw new ImmutableRecordError(
-      `Nilai penilaian ID '${appraisalId}' telah disahkan oleh Komite Kalibrasi dan berstatus immutable.`
-    );
-  }
-
-  // 409 di atas didahulukan; baru setelah itu scope diperiksa.
-  const scope = await resolveVisibleEmployeeIds(db, session);
-  assertEmployeeVisible(scope, appraisal.employeeId);
-
-  const calibrated = await setAppraisalCalibrated(db, appraisalId, session.userId, notes);
-
-  await logAction(db, {
-    userId: session.userId,
-    actionType: 'CALIBRATE',
-    entityName: 'performance_appraisals',
-    recordId: appraisalId,
-    oldData: appraisal,
-    newData: calibrated,
-    description: `Pengesahan nilai akhir oleh Komite Kalibrasi: ${notes ?? 'Disahkan'}`,
-  });
-
-  return calibrated;
-}

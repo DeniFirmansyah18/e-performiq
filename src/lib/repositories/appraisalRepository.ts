@@ -121,39 +121,3 @@ export async function upsertPerformanceAppraisal(
   }
 }
 
-export async function setAppraisalCalibrated(
-  db: Db,
-  id: string,
-  calibratorUserId: string,
-  notes?: string
-) {
-  await db.execute(sql`SELECT set_config('eperformiq.allow_appraisal_update', 'on', false)`);
-  try {
-    const result = await db.execute(sql`
-      UPDATE performance_appraisals
-         SET is_calibrated = TRUE,
-             calibrated_by = ${calibratorUserId}::uuid,
-             calibrated_at = CURRENT_TIMESTAMP,
-             calibration_notes = ${notes ?? 'Dikalibrasi oleh Komite Kinerja'},
-             updated_at = CURRENT_TIMESTAMP
-       WHERE id = ${id}::uuid
-      RETURNING id, period_id as "periodId", employee_id as "employeeId",
-                kpi_composite_score as "kpiCompositeScore",
-                sop_compliance_score as "sopComplianceScore",
-                competency_score as "competencyScore",
-                core_values_score as "coreValuesScore",
-                total_percentage_score as "totalPercentageScore",
-                composite_gpa as "compositeGPA",
-                performance_rating as "performanceRating",
-                potential_score as "potentialScore",
-                nine_box_quadrant as "nineBoxQuadrant",
-                is_calibrated as "isCalibrated",
-                calibrated_by as "calibratedBy",
-                calibrated_at as "calibratedAt",
-                calibration_notes as "calibrationNotes"
-    `);
-    return formatAppraisal(result.rows[0]);
-  } finally {
-    await db.execute(sql`SELECT set_config('eperformiq.allow_appraisal_update', 'off', false)`);
-  }
-}

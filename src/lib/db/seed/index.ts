@@ -17,7 +17,6 @@ export const SEED_USER_EMAILS: ReadonlyArray<{ email: string; role: UserRole }> 
 { email: 'siti.nurhaliza@eperformiq.co.id', role: 'HR_MANAGER' },
 { email: 'danu.tech@eperformiq.co.id', role: 'PEOPLE_MANAGER' },
 { email: 'budi.pratama@eperformiq.co.id', role: 'EMPLOYEE' },
-{ email: 'bambang.audit@eperformiq.co.id', role: 'AUDITOR' },
 { email: 'admin@eperformiq.co.id', role: 'SUPER_ADMIN' },
 { email: 'aris.assessor@eperformiq.co.id', role: 'PEOPLE_MANAGER' },
 ];
@@ -64,8 +63,7 @@ INSERT INTO employees (id, employee_code, full_name, email, phone_number,
                        department_id, position_id, manager_id, status,
                        base_salary, join_date) VALUES
   ('b0000000-0000-4000-8000-000000000002','HRM-2018-0002','Siti Nurhaliza, S.Psi., M.M.','siti.nurhaliza@eperformiq.co.id','+62 811-0002-0002','a0000000-0000-4000-8000-000000000102','a0000000-0000-4000-8000-000000000202','b0000000-0000-4000-8000-000000000001','PERMANENT',72000000,'2018-03-01'),
-  ('b0000000-0000-4000-8000-000000000003','MGR-2020-0001','Raden Mas Danu, S.T., M.Kom.','danu.tech@eperformiq.co.id','+62 811-0003-0003','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000203','b0000000-0000-4000-8000-000000000001','PERMANENT',68000000,'2020-02-01'),
-  ('b0000000-0000-4000-8000-000000000005','AUD-2017-0005','Bambang Soeprapto, Ak., CA','bambang.audit@eperformiq.co.id','+62 811-0005-0005','a0000000-0000-4000-8000-000000000104','a0000000-0000-4000-8000-000000000205','b0000000-0000-4000-8000-000000000001','PERMANENT',70000000,'2017-07-01')
+  ('b0000000-0000-4000-8000-000000000003','MGR-2020-0001','Raden Mas Danu, S.T., M.Kom.','danu.tech@eperformiq.co.id','+62 811-0003-0003','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000203','b0000000-0000-4000-8000-000000000001','PERMANENT',68000000,'2020-02-01')
 ON CONFLICT (id) DO NOTHING;
 
 -- Level 3: Individual Contributors (reports to Danu or Siti)
@@ -94,7 +92,6 @@ INSERT INTO users (id, employee_id, email, password_hash, role, is_active) VALUE
   ('e0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000002','siti.nurhaliza@eperformiq.co.id','${hash}','HR_MANAGER',TRUE),
   ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE),
   ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','${hash}','EMPLOYEE',TRUE),
-  ('e0000000-0000-4000-8000-000000000005','b0000000-0000-4000-8000-000000000005','bambang.audit@eperformiq.co.id','${hash}','AUDITOR',TRUE),
   ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE),
   ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE)
 ON CONFLICT (id) DO NOTHING;
@@ -187,7 +184,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Budi's Performance Appraisal (PRD §11.3 values)
 INSERT INTO performance_appraisals (id, period_id, employee_id, kpi_composite_score, sop_compliance_score, competency_score, core_values_score, total_percentage_score, composite_gpa, performance_rating, potential_score, nine_box_quadrant, is_calibrated, calibrated_by, calibrated_at, calibration_notes) VALUES
-  ('40000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004',92.50,96.00,85.00,90.00,91.70,3.67,'A',4.20,'FUTURE_LEADER',TRUE,'e0000000-0000-4000-8000-000000000002','2026-09-18T10:00:00Z','Dikalibrasi oleh Komite Kinerja Human Capital')
+  ('40000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000004',92.50,96.00,85.00,90.00,91.70,3.67,'A',4.20,'FUTURE_LEADER',FALSE,NULL,NULL,NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Initial Audit Log
@@ -514,7 +511,7 @@ INSERT INTO activity_events (id, employee_id, event_type, summary, visibility, o
   ('86000000-0000-4000-8000-000000000009','b0000000-0000-4000-8000-000000000002','RECOGNITION','Penghargaan pegawai teladan kuartal','INTERNAL','2026-09-21T07:00:00Z'),
   ('86000000-0000-4000-8000-00000000000a','b0000000-0000-4000-8000-000000000008','ATTENDANCE','Check-in 08:12 WIB','INTERNAL','2026-09-20T01:12:00Z'),
   ('86000000-0000-4000-8000-00000000000b','b0000000-0000-4000-8000-000000000008','LEAVE','Pengajuan cuti tahunan 2 hari','INTERNAL','2026-09-20T03:00:00Z'),
-  ('86000000-0000-4000-8000-00000000000c','b0000000-0000-4000-8000-000000000005','DISCIPLINARY','Catatan pemeriksaan internal (rahasia)','RESTRICTED','2026-09-19T04:00:00Z')
+  ('86000000-0000-4000-8000-00000000000c','b0000000-0000-4000-8000-000000000006','DISCIPLINARY','Catatan pemeriksaan internal (rahasia)','RESTRICTED','2026-09-19T04:00:00Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO payroll_runs (id, period_code, period_start, period_end, status, is_thr_month, total_gross, total_deductions, total_net, note, approved_at) VALUES

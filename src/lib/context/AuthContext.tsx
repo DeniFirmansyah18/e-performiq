@@ -21,8 +21,7 @@ const ROLE_EMAILS: Record<UserRole, string> = {
   BOD: 'hendra.gunawan@eperformiq.co.id',
   HR_MANAGER: 'siti.nurhaliza@eperformiq.co.id',
   PEOPLE_MANAGER: 'danu.tech@eperformiq.co.id',
-  EMPLOYEE: 'budi.pratama@eperformiq.co.id',
-  AUDITOR: 'bambang.audit@eperformiq.co.id',
+  EMPLOYEE: 'budi.pratama@eperformiq.co.id',
   SUPER_ADMIN: 'admin@eperformiq.co.id',
 };
 

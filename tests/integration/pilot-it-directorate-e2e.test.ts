@@ -6,7 +6,7 @@ import { runSeed } from '@/lib/db/seed';
 import type { Db } from '@/lib/db/client';
 import { saveEntry, verifyEntry } from '@/lib/services/dailyKpiService';
 import { storeSnapshot, getRecap } from '@/lib/services/dailyPerformanceService';
-import { verifyAuditChain, insertAuditLog } from '@/lib/repositories/auditRepository';
+import { insertAuditLog } from '@/lib/repositories/auditRepository';
 import { sql } from 'drizzle-orm';
 
 describe('Pilot Testing: Direktorat IT & Engineering (Full Cycle)', () => {
@@ -116,10 +116,9 @@ describe('Pilot Testing: Direktorat IT & Engineering (Full Cycle)', () => {
     expect(recap.period).toBe('monthly');
   });
 
-  it('4. Audit Keamanan: Rantai Hash Audit Trail Utuh (Anti-Tampering)', async () => {
-    const auditStatus = await verifyAuditChain(db);
-    expect(auditStatus.ok).toBe(true);
-    expect(auditStatus.firstBrokenId).toBeNull();
-    expect(auditStatus.checked).toBeGreaterThanOrEqual(2);
+  it('4. Audit Keamanan: log audit tetap tercatat setelah modul audit dihapus', async () => {
+    // Modul audit & hash chain dihapus; yang dipastikan: log tetap tercatat.
+    const logs = await db.execute(sql`SELECT count(*)::int AS n FROM audit_logs`);
+    expect((logs as unknown as { rows: Array<{ n: number }> }).rows[0].n).toBeGreaterThanOrEqual(2);
   });
 });

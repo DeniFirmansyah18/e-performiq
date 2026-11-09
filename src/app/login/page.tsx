@@ -19,11 +19,11 @@ import {
 /** Rute dashboard default per role (redirect setelah login). */
 function dashboardForRole(role: UserRole): string {
   switch (role) {
+    case 'SUPER_ADMIN': return '/dashboard/account-management';
     case 'BOD': return '/dashboard/executive';
     case 'HR_MANAGER': return '/dashboard/hr-command';
     case 'PEOPLE_MANAGER': return '/dashboard/manager-cockpit';
     case 'EMPLOYEE': return '/dashboard/employee-portal';
-    case 'AUDITOR': return '/dashboard/audit-governance';
     default: return '/dashboard/executive';
   }
 }

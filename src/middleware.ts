@@ -5,27 +5,26 @@ import type { UserRole } from '@/types';
 
 // Peta segmen dashboard -> role yang diizinkan (selaras dengan Sidebar.tsx).
 const DASHBOARD_ROLES: Record<string, readonly UserRole[]> = {
-  executive: ['BOD', 'SUPER_ADMIN', 'AUDITOR'],
+  executive: ['BOD', 'SUPER_ADMIN'],
   'hr-command': ['HR_MANAGER', 'SUPER_ADMIN', 'BOD'],
   'manager-cockpit': ['PEOPLE_MANAGER', 'SUPER_ADMIN', 'HR_MANAGER'],
-  'employee-portal': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR', 'SUPER_ADMIN'],
+  'employee-portal': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'SUPER_ADMIN'],
   'ninebox-matrix': ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'SUPER_ADMIN'],
-  'audit-governance': ['AUDITOR', 'BOD', 'SUPER_ADMIN', 'HR_MANAGER'],
   'account-management': ['SUPER_ADMIN'],
 };
 
 // Dashboard utama per role (untuk redirect saat mengakses halaman terlarang).
 function homeForRole(role: UserRole): string {
   switch (role) {
-    case 'BOD':
     case 'SUPER_ADMIN':
+      // Super Admin hanya mengelola hak akses; tidak punya dashboard fungsional.
+      return '/dashboard/account-management';
+    case 'BOD':
       return '/dashboard/executive';
     case 'HR_MANAGER':
       return '/dashboard/hr-command';
     case 'PEOPLE_MANAGER':
       return '/dashboard/manager-cockpit';
-    case 'AUDITOR':
-      return '/dashboard/audit-governance';
     default:
       return '/dashboard/employee-portal';
   }
@@ -44,6 +43,12 @@ export async function middleware(request: NextRequest) {
       const res = NextResponse.redirect(loginUrl);
       if (token) res.cookies.delete(SESSION_COOKIE_NAME); // token rusak/kedaluwarsa
       return res;
+    }
+
+    // Super Admin difokuskan ke panel hak akses: segmen lain dialihkan ke sana.
+    // Izin RBAC tidak diubah, sehingga API tetap dapat dipanggil untuk kebutuhan administratif.
+    if (session.role === 'SUPER_ADMIN' && pathname !== '/dashboard/account-management') {
+      return NextResponse.redirect(new URL('/dashboard/account-management', request.url));
     }
 
     // Gating per-segmen: role yang tidak berhak diarahkan ke dashboard-nya.

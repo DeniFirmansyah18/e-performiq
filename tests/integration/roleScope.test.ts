@@ -31,7 +31,6 @@ describe('Scope & RBAC per role setelah penyederhanaan 6 peran', () => {
 
   it('role ASSESSOR sudah tidak ada di matriks RBAC', () => {
     // Setiap permission harus menolak string role yang tak terdaftar.
-    expect(can('ASSESSOR' as UserRole, 'appraisal:calibrate')).toBe(false);
     expect(can('ASSESSOR' as UserRole, 'kpi:read')).toBe(false);
   });
 
@@ -54,12 +53,11 @@ describe('Scope & RBAC per role setelah penyederhanaan 6 peran', () => {
 
   it('EMPLOYEE boleh mengubah profilnya sendiri namun tidak mengkalibrasi', () => {
     expect(can('EMPLOYEE', 'profile:write')).toBe(true);
-    expect(can('EMPLOYEE', 'appraisal:calibrate')).toBe(false);
     expect(can('EMPLOYEE', 'appraisal:calculate')).toBe(false);
   });
 
   it('peran org-wide melihat seluruh organisasi', async () => {
-    for (const role of ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'AUDITOR']) {
+    for (const role of ['SUPER_ADMIN', 'BOD', 'HR_MANAGER']) {
       expect(await resolveVisibleEmployeeIds(db, sess(role, null))).toBe('ALL');
     }
   });
@@ -69,15 +67,15 @@ describe('Scope & RBAC per role setelah penyederhanaan 6 peran', () => {
     expect(can('EMPLOYEE', 'employment:read')).toBe(true);
     // Direktori mencakup SELURUH perusahaan, jadi EMPLOYEE tidak boleh.
     expect(can('EMPLOYEE', 'directory:read')).toBe(false);
-    for (const role of ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'AUDITOR'] as UserRole[]) {
+    for (const role of ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'] as UserRole[]) {
       expect(can(role, 'directory:read'), `${role} harus bisa membaca direktori`).toBe(true);
     }
   });
 
-  it('manajemen akun hanya milik SUPER_ADMIN, bukan HR/BOD/AUDITOR', () => {
+  it('manajemen akun hanya milik SUPER_ADMIN, bukan HR/BOD', () => {
     expect(can('SUPER_ADMIN', 'user:manage')).toBe(true);
     expect(can('SUPER_ADMIN', 'user:read')).toBe(true);
-    for (const role of ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE', 'AUDITOR'] as UserRole[]) {
+    for (const role of ['BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'] as UserRole[]) {
       expect(can(role, 'user:manage'), `${role} tak boleh mengelola akun`).toBe(false);
       expect(can(role, 'user:read'), `${role} tak boleh membaca akun`).toBe(false);
     }

@@ -86,8 +86,8 @@ const PKWT_EMPLOYEES: PkwtSeedRow[] = [
     fullName: 'Fajar Nugroho, S.Ak.',
     email: 'fajar.nugroho@eperformiq.co.id',
     departmentId: 'a0000000-0000-4000-8000-000000000104',
+    managerId: 'b0000000-0000-4000-8000-000000000001',
     positionId: 'a0000000-0000-4000-8000-000000000205',
-    managerId: 'b0000000-0000-4000-8000-000000000005',
     baseSalary: 16000000,
     joinDate: '2025-01-15',
     daysRemaining: 47,
@@ -228,9 +228,6 @@ const COMPETENCIES: CompetencySeedRow[] = [
   { id: '20000000-0000-4000-8000-000000000112', employeeId: 'b0000000-0000-4000-8000-000000000002', skillName: 'Business Acumen', skillCategory: 'SOFT', requiredLevel: 5, actualLevel: 4, score: 82.0 },
   { id: '20000000-0000-4000-8000-000000000113', employeeId: 'b0000000-0000-4000-8000-000000000002', skillName: 'Stakeholder Management', skillCategory: 'SOFT', requiredLevel: 5, actualLevel: 5, score: 90.0 },
 
-  // Bambang (Chief Internal Auditor -> CEO).
-  { id: '20000000-0000-4000-8000-000000000114', employeeId: 'b0000000-0000-4000-8000-000000000005', skillName: 'Audit Methodology', skillCategory: 'HARD', requiredLevel: 5, actualLevel: 5, score: 95.0 },
-  { id: '20000000-0000-4000-8000-000000000115', employeeId: 'b0000000-0000-4000-8000-000000000005', skillName: 'Risk Governance', skillCategory: 'HARD', requiredLevel: 5, actualLevel: 4, score: 84.0 },
 
   // Rina (HR System Administrator -> VP of HC).
   { id: '20000000-0000-4000-8000-000000000116', employeeId: 'b0000000-0000-4000-8000-000000000006', skillName: 'HR Administration', skillCategory: 'HARD', requiredLevel: 4, actualLevel: 5, score: 91.5 },
@@ -260,7 +257,6 @@ interface AppraisalSeedRow {
 const APPRAISALS: AppraisalSeedRow[] = [
   { id: '40000000-0000-4000-8000-000000000101', employeeId: 'b0000000-0000-4000-8000-000000000003', compositeGpa: 3.58, performanceRating: 'A', potentialScore: 4.10, nineBox: 'FUTURE_LEADER', totalPercentage: 90.20 },
   { id: '40000000-0000-4000-8000-000000000102', employeeId: 'b0000000-0000-4000-8000-000000000002', compositeGpa: 3.72, performanceRating: 'A', potentialScore: 4.40, nineBox: 'HIGH_IMPACT', totalPercentage: 93.10 },
-  { id: '40000000-0000-4000-8000-000000000103', employeeId: 'b0000000-0000-4000-8000-000000000005', compositeGpa: 3.65, performanceRating: 'A', potentialScore: 3.90, nineBox: 'HIGH_IMPACT', totalPercentage: 91.40 },
   { id: '40000000-0000-4000-8000-000000000104', employeeId: 'b0000000-0000-4000-8000-000000000006', compositeGpa: 3.40, performanceRating: 'B', potentialScore: 3.60, nineBox: 'HIGH_IMPACT', totalPercentage: 85.60 },
   { id: '40000000-0000-4000-8000-000000000105', employeeId: 'b0000000-0000-4000-8000-000000000008', compositeGpa: 3.30, performanceRating: 'B', potentialScore: 3.50, nineBox: 'CORE_PLAYER', totalPercentage: 84.10 },
   { id: '40000000-0000-4000-8000-000000000106', employeeId: 'b0000000-0000-4000-8000-000000000007', compositeGpa: 3.28, performanceRating: 'B', potentialScore: 3.45, nineBox: 'CORE_PLAYER', totalPercentage: 83.20 },

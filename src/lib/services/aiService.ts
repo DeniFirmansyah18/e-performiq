@@ -334,8 +334,7 @@ const ROLE_HINT: Record<string, string> = {
   BOD: 'Dewan Direksi (fokus strategis & GCG)',
   HR_MANAGER: 'HR Manager (fokus lifecycle SDM)',
   PEOPLE_MANAGER: 'People Manager (fokus tim langsung)',
-  EMPLOYEE: 'Karyawan (fokus pengembangan diri)',
-  AUDITOR: 'Auditor Internal (fokus kepatuhan)',
+  EMPLOYEE: 'Karyawan (fokus pengembangan diri)',
 };
 
 /** Menganalisis konteks yang sudah dirakit pemanggil (dipakai endpoint ber-cache). */

@@ -118,7 +118,6 @@ const USER = {
   siti: 'e0000000-0000-4000-8000-000000000002',
   danu: 'e0000000-0000-4000-8000-000000000003',
   budi: 'e0000000-0000-4000-8000-000000000004',
-  bambang: 'e0000000-0000-4000-8000-000000000005',
   rina: 'e0000000-0000-4000-8000-000000000006',
 } as const;
 
@@ -127,7 +126,6 @@ const EMP = {
   siti: 'b0000000-0000-4000-8000-000000000002',
   danu: 'b0000000-0000-4000-8000-000000000003',
   budi: 'b0000000-0000-4000-8000-000000000004',
-  bambang: 'b0000000-0000-4000-8000-000000000005',
   rina: 'b0000000-0000-4000-8000-000000000006',
   anisa: 'b0000000-0000-4000-8000-000000000007',
   dimas: 'b0000000-0000-4000-8000-000000000008',
@@ -340,7 +338,6 @@ export async function seedLifecycle(client: SqlClient, opts: LifecycleSeedOption
     ('15000000-0000-4000-8000-00000000000b', ${q(EMP.hendra)}, NULL, 'DURING', ${dt('2019-01-01')}, 'Karyawan aktif sejak tanggal bergabung.', ${q(USER.siti)}, ${ts('2019-01-01T01:00:00Z')}),
     ('15000000-0000-4000-8000-00000000000c', ${q(EMP.siti)}, NULL, 'DURING', ${dt('2018-01-01')}, 'Karyawan aktif sejak tanggal bergabung.', ${q(USER.siti)}, ${ts('2018-01-01T01:00:00Z')}),
     ('15000000-0000-4000-8000-00000000000d', ${q(EMP.danu)}, NULL, 'DURING', ${dt('2020-02-01')}, 'Karyawan aktif sejak tanggal bergabung.', ${q(USER.siti)}, ${ts('2020-02-01T01:00:00Z')}),
-    ('15000000-0000-4000-8000-00000000000e', ${q(EMP.bambang)}, NULL, 'DURING', ${dt('2017-07-01')}, 'Karyawan aktif sejak tanggal bergabung.', ${q(USER.hendra)}, ${ts('2017-07-01T01:00:00Z')}),
     ('15000000-0000-4000-8000-00000000000f', ${q(EMP.aris)}, NULL, 'DURING', ${dt('2020-05-01')}, 'Karyawan aktif sejak tanggal bergabung.', ${q(USER.hendra)}, ${ts('2020-05-01T01:00:00Z')}),
     ('15000000-0000-4000-8000-000000000010', ${q(EMP.rian)}, NULL, 'PRE', ${dt('2024-02-15')}, 'Masa percobaan diperpanjang; onboarding pra-penempatan belum tuntas.', ${q(USER.siti)}, ${ts('2024-02-15T01:00:00Z')})
     ON CONFLICT (id) DO NOTHING;`);

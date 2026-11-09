@@ -385,8 +385,7 @@ export type EmployeeLifecycleEvent =
   | 'FINALIZATION_REQUESTED'   // permintaan finalisasi nilai → HR
   | 'CALIBRATION_PENDING'      // hasil siap dikalibrasi → Komite Kalibrasi
   | 'CLEARANCE_PENDING'        // serah terima menunggu verifikasi → Atasan
-  | 'CANDIDATE_HIRED'          // kandidat dikonversi → HR + Atasan terkait
-  | 'AUDIT_EVENT';             // peristiwa sensitif yang tercatat → Auditor
+  | 'CANDIDATE_HIRED';          // kandidat dikonversi → HR + Atasan terkait
 
 /** Metadata bawaan (kategori + severity + label aksi) per event siklus hidup. */
 const EMPLOYEE_EVENT_META: Record<EmployeeLifecycleEvent, { category: string; severity: NotificationSeverity; ctaLabel?: string; actionUrl?: string }> = {
@@ -410,7 +409,6 @@ const EMPLOYEE_EVENT_META: Record<EmployeeLifecycleEvent, { category: string; se
   CALIBRATION_PENDING: { category: 'APPRAISAL', severity: 'INFO', ctaLabel: 'Kalibrasi', actionUrl: '/dashboard/ninebox-matrix' },
   CLEARANCE_PENDING: { category: 'OFFBOARDING', severity: 'INFO', ctaLabel: 'Verifikasi Serah Terima', actionUrl: '/dashboard/manager-cockpit' },
   CANDIDATE_HIRED: { category: 'HIRING', severity: 'SUCCESS', ctaLabel: 'Lihat Karyawan', actionUrl: '/dashboard/hr-command' },
-  AUDIT_EVENT: { category: 'AUDIT', severity: 'INFO', ctaLabel: 'Lihat Log Audit', actionUrl: '/dashboard/audit-governance' },
 };
 
 /** Penerima notifikasi: karyawan, user tertentu, dan/atau seluruh peran. */

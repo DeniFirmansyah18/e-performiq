@@ -23,8 +23,7 @@ const ROLES: readonly UserRole[] = [
   'HR_MANAGER',
   'PEOPLE_MANAGER',
   'EMPLOYEE',
-  'AUDITOR',
-];
+  ];
 
 const CreateUserSchema = z.object({
   email: z.string().trim().email('Format email tidak valid.'),

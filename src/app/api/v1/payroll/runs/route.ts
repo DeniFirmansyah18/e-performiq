@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Notifikasi HR/BOD/Auditor: run payroll baru siap ditinjau (best-effort).
     try {
       const { notifyRoles } = await import('@/lib/services/notificationService');
-      await notifyRoles(db, ['HR_MANAGER', 'BOD', 'AUDITOR'], {
+      await notifyRoles(db, ['HR_MANAGER', 'BOD'], {
         eventType: 'PAYROLL_RUN_READY',
         title: 'Run Payroll Siap Ditinjau',
         body: `Run payroll periode ${parsed.data.periodCode} telah dibuat dan menunggu persetujuan.`,
