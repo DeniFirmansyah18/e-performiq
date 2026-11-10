@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Wallet, ShieldCheck, Clock, Receipt } from 'lucide-react';
+import { formatRupiah } from '@/lib/utils/wibDate';
 
 async function fetchJson(url: string): Promise<any> {
   const res = await fetch(url);
@@ -14,8 +15,7 @@ async function fetchJson(url: string): Promise<any> {
   return json;
 }
 
-const rupiah = (value: number | null | undefined) =>
-  `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;
+const rupiah = (value: number | null | undefined) => formatRupiah(value ?? 0);
 
 export default function BoardCostPanel() {
   const [data, setData] = useState<any>(null);
@@ -67,7 +67,7 @@ export default function BoardCostPanel() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 bg-white rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Wallet className="w-4 h-4 text-indigo-600" /> Payroll Net
+            <Wallet className="w-4 h-4 text-indigo-600" /> Total Gaji Bersih (Net)
           </div>
           <div className="text-lg font-bold text-slate-800">
             {rupiah(data?.payroll?.latest?.totalNet)}
@@ -77,17 +77,17 @@ export default function BoardCostPanel() {
           </div>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 mb-1">Biaya per Pegawai</div>
+          <div className="text-xs font-semibold text-slate-500 mb-1">Rata-rata Biaya per Karyawan</div>
           <div className="text-lg font-bold text-slate-800">
             {rupiah(data?.analysis?.costPerEmployee)}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">
-            {data?.sampleSize ?? 0} pegawai
+            {data?.sampleSize ?? 0} pegawai aktif
           </div>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Clock className="w-4 h-4 text-amber-600" /> Lembur
+            <Clock className="w-4 h-4 text-amber-600" /> Biaya & Jam Lembur
           </div>
           <div className="text-lg font-bold text-slate-800">{data?.overtime?.totalHours ?? 0} jam</div>
           <div className="text-[11px] text-slate-500 mt-1">
@@ -96,16 +96,16 @@ export default function BoardCostPanel() {
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Receipt className="w-4 h-4 text-emerald-600" /> Biaya Operasional
+            <Receipt className="w-4 h-4 text-emerald-600" /> Beban Operasional & Klaim
           </div>
           <div className="text-lg font-bold text-slate-800">
             {rupiah(data?.operational?.totalAmount)}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">
-                      {data?.analysis?.topDecileEmployeeCount
-                        ? `${data.analysis.topDecileEmployeeCount} pegawai termahal (${data.analysis.topDecileStaffPercentage}% staf) = ${data.analysis.topDecileCostShare}% biaya`
-                        : 'Belum ada rincian biaya per pegawai'}
-                    </div>
+            {data?.analysis?.topDecileEmployeeCount
+              ? `${data.analysis.topDecileEmployeeCount} pegawai teratas (${data.analysis.topDecileStaffPercentage}% staf) = ${data.analysis.topDecileCostShare}% biaya`
+              : 'Belum ada rincian biaya operasional'}
+          </div>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export default function BoardCostPanel() {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               <div className="p-3 border-b border-slate-100 flex items-center justify-between gap-3">
                 <div className="text-xs font-semibold text-slate-700">
-                  Rincian Payroll per Pegawai (Halaman {data?.employeesPagination?.page ?? page} dari{' '}
+                  Daftar Rincian Gaji per Karyawan (Halaman {data?.employeesPagination?.page ?? page} dari{' '}
                   {totalPages})
                 </div>
                 <div className="flex items-center gap-2">

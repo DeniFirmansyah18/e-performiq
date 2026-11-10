@@ -21,6 +21,13 @@ const FIT_CLASS: Record<string, string> = {
   NO_TEMPLATE: 'bg-slate-100 text-slate-600',
 };
 
+const FIT_LABEL: Record<string, string> = {
+  COMPLIANT: 'Sesuai Kriteria',
+  PARTIAL: 'Perlu Pembinaan',
+  NOT_COMPLIANT: 'Belum Memenuhi',
+  NO_TEMPLATE: 'Belum Ada Standar',
+};
+
 export default function BoardPositionFitPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -77,20 +84,20 @@ export default function BoardPositionFitPanel() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700">
-          Ringkasan per Posisi
+          Kesesuaian Jabatan Struktural
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
-                <th className="p-3">Posisi</th>
+                <th className="p-3">Posisi Jabatan</th>
                 <th className="p-3">Grade</th>
-                <th className="p-3">Pemegang</th>
-                <th className="p-3">Patuh</th>
-                <th className="p-3">Template KPI</th>
-                <th className="p-3">Coverage</th>
+                <th className="p-3">Jumlah Pejabat</th>
+                <th className="p-3">Pejabat Sesuai</th>
+                <th className="p-3">Standar KPI</th>
+                <th className="p-3">Cakupan</th>
                 <th className="p-3">Capaian</th>
-                <th className="p-3">Status</th>
+                <th className="p-3">Status Kepatuhan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -109,7 +116,7 @@ export default function BoardPositionFitPanel() {
                         FIT_CLASS[p.status] ?? 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {p.status}
+                      {FIT_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
                 </tr>
@@ -121,16 +128,16 @@ export default function BoardPositionFitPanel() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700">
-          Rincian per Pegawai
+          Daftar Evaluasi Karyawan per Jabatan
         </div>
         <div className="overflow-x-auto max-h-96 overflow-y-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
-                <th className="p-3">Pegawai</th>
+                <th className="p-3">Nama Pegawai</th>
                 <th className="p-3">Posisi</th>
                 <th className="p-3">KPI Cocok</th>
-                <th className="p-3">Coverage</th>
+                <th className="p-3">Cakupan</th>
                 <th className="p-3">Capaian</th>
                 <th className="p-3">GPA</th>
                 <th className="p-3">Status</th>
@@ -156,7 +163,7 @@ export default function BoardPositionFitPanel() {
                         FIT_CLASS[e.status] ?? 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {e.status}
+                      {FIT_LABEL[e.status] ?? e.status}
                     </span>
                   </td>
                 </tr>

@@ -28,6 +28,7 @@ import ActionCard from '@/components/ui/ActionCard';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+import { formatDateTimeWib, todayInJakarta } from '@/lib/utils/wibDate';
 import FlightRiskHeatmap from '@/components/governance/FlightRiskHeatmap';
 import BoardTabNav, { type BoardTab } from '@/components/executive/BoardTabNav';
 import BoardActivityPanel from '@/components/executive/BoardActivityPanel';
@@ -38,7 +39,7 @@ import BoardDrilldownPanel from '@/components/executive/BoardDrilldownPanel';
 
 type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession' | 'drilldown';
 
-const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'activity', 'vision', 'position-fit', 'cost'];
+const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'vision', 'cost', 'position-fit', 'activity'];
 
 /** Membaca `?tab=` agar tautan langsung membuka tab yang tepat. */
 function resolveInitialTab(): BoardTab {
@@ -99,12 +100,12 @@ export default function ExecutiveBoardroomPage() {
   /** Ekspor ringkasan; hanya tersedia saat scorecard termuat (tanpa angka cadangan). */
   const downloadExecutiveSummary = () => {
     if (!scorecardReady) return;
-    const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${gcgFactor ?? '-'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
+    const summaryText = `RINGKASAN EKSEKUTIF VMAI SCORECARD (KAPLAN & NORTON BSC)\nPT PERFORMA INTEGRA NUSANTARA\nTanggal Ekspor: ${formatDateTimeWib(new Date())}\n\nVMAI Indeks Korporasi: ${vmai}%\nTolok Ukur Industri: 85.0% (Variansi: +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%)\nFaktor Tata Kelola GCG: ${gcgFactor ?? '-'}\n\nPerspektif Finansial: ${financialScore}%\nPerspektif Pelanggan: ${customerScore}%\nPerspektif Proses Internal: ${internalScore}%\nPembelajaran & Pertumbuhan: ${learningScore}%\n\nStatus Kuorum Evaluasi: 100% Terverifikasi Dewan Komisaris.`;
     const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Ringkasan_Eksekutif_BOD_VMAI_${new Date().toISOString().slice(0, 10)}.txt`;
+    link.download = `Ringkasan_Eksekutif_BOD_VMAI_${todayInJakarta()}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -112,15 +113,15 @@ export default function ExecutiveBoardroomPage() {
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
-      
+
       {/* 1. Breadcrumb & Title Section */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs text-[#64748b] mb-1.5">
-            <span>Dashboard Eksekutif</span>
+            <span>Ruang Eksekutif</span>
             <span>&rsaquo;</span>
-            <span>Tata Kelola & Strategi</span>
+            <span>Evaluasi Kinerja & Strategi Bisnis</span>
             <span>&rsaquo;</span>
             <span className="font-semibold text-[#007a5a] bg-[#e6f4ea] px-2 py-0.5 rounded">
               Q3-2026 Tinjauan Fiskal
@@ -128,17 +129,20 @@ export default function ExecutiveBoardroomPage() {
           </div>
 
           {/* Title & GCG Factor Pill */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
-              Executive Boardroom & GCG Cockpit
+              Ruang Kerja Direktur Utama (CEO)
             </h1>
             {gcgFactor && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]" title="Tata Kelola Perusahaan (GCG): Kepatuhan terhadap prinsip audit dan transparansi">
                 <span className="text-[10px] font-bold">GCG</span>
-                <span>Terverifikasi: Faktor {gcgFactor}</span>
+                <span>Terverifikasi Baik: Indeks {gcgFactor}</span>
               </span>
             )}
           </div>
+          <p className="text-xs text-[#64748b] mt-1">
+            Pusat kendali evaluasi performa bisnis, efisiensi anggaran, dan kesiapan talenta perusahaan secara terpadu.
+          </p>
         </div>
 
         {/* Right Controls */}
@@ -146,7 +150,7 @@ export default function ExecutiveBoardroomPage() {
           {/* Filter Tahunan (statis: periode buku aktif) */}
           <div className="relative">
             <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-[#f8fafc] text-xs font-medium text-[#334155]">
-              <span>Semua Pilar Korporat (4 Pilar BSC)</span>
+              <span>Semua Pilar Bisnis (4 Pilar)</span>
             </span>
           </div>
 
@@ -159,27 +163,67 @@ export default function ExecutiveBoardroomPage() {
           </div>
 
           {/* Print Button */}
-          <button 
+          <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc] cursor-pointer">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc] cursor-pointer"
+            title="Cetak ringkasan laporan dewan direksi">
             <Printer className="h-3.5 w-3.5 text-[#64748b]" />
-            <span>Cetak Risalah BOD</span>
+            <span>Cetak Laporan Direksi</span>
           </button>
 
-          {/* Download Button — hanya dirender bila scorecard benar-benar termuat,
-              agar berkas tidak pernah mengklaim verifikasi tanpa data. */}
+          {/* Download Button */}
           {scorecardReady && (
-            <button 
+            <button
               onClick={downloadExecutiveSummary}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              title="Unduh berkas teks ringkasan hasil evaluasi">
               <Download className="h-3.5 w-3.5 text-white" />
-              <span>Unduh Ringkasan Eksekutif</span>
+              <span>Unduh Ringkasan Hasil Evaluasi</span>
             </button>
           )}
         </div>
       </div>
 
       <BoardTabNav active={mainTab} onChange={setMainTab} />
+
+      {/* SOP Stepper Banner: Panduan 5 Langkah Evaluasi Eksekutif */}
+      {/* <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-xl p-3 shadow-xs text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#007a5a] text-white font-bold text-[10px]">
+              SOP
+            </span>
+            <span className="text-xs font-semibold text-slate-200">
+              Alur Evaluasi Direktur Utama (5 Langkah Berurutan):
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1 text-[11px]">
+            {[
+              { key: 'overview', step: '1', title: 'Kesehatan Bisnis' },
+              { key: 'vision', step: '2', title: 'Strategi & Visi' },
+              { key: 'cost', step: '3', title: 'Biaya & Gaji' },
+              { key: 'position-fit', step: '4', title: 'Peta Talenta' },
+              { key: 'activity', step: '5', title: 'Kepatuhan Tim' },
+            ].map((s, idx) => (
+              <React.Fragment key={s.key}>
+                {idx > 0 && <span className="text-slate-600 px-0.5">›</span>}
+                <button
+                  type="button"
+                  onClick={() => setMainTab(s.key as BoardTab)}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer text-xs font-medium ${
+                    mainTab === s.key
+                      ? 'bg-[#007a5a] text-white font-bold shadow-2xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                  }`}
+                >
+                  <span className="opacity-70 mr-1">{s.step}.</span>
+                  {s.title}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div> */}
 
       {loading && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 animate-pulse">
@@ -197,586 +241,625 @@ export default function ExecutiveBoardroomPage() {
       {/* 2. Feature Card Grid (click to open) */}
       {mainTab === 'overview' && !loadError && !loading && (
         <>
-          <TargetAchievementCard title="Indikator Pencapaian Target Strategis Korporasi (BSC)" />
+          <TargetAchievementCard title="Pencapaian Target Strategis Perusahaan (4 Pilar Bisnis)" />
           <FeatureGrid>
-        <FeatureCard
-          icon={ShieldCheck}
-          title="VMAI Indeks Korporasi"
-          metric={`${vmai}%`}
-          tag="Terverifikasi"
-          description={`Indeks Keselarasan Visi & Misi. Tolok ukur industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%).`}
-          onOpen={() => setOpenFeature('vmai')}
-        />
-        <FeatureCard
-          icon={PieChart}
-          title="Perspektif BSC"
-          metric={`${financialScore}%`}
-          tag="4 Pilar"
-          description="Skor empat perspektif Balanced Scorecard: Finansial, Pelanggan, Proses Internal, dan Pembelajaran & Pertumbuhan."
-          onOpen={() => setOpenFeature('perspectives')}
-        />
-        <FeatureCard
-          icon={LineChart}
-          title="Tren Strategis VMAI"
-          metric="6 Bulan"
-          tag="Analitik"
-          description="Analisis tren komparasi terhadap ambang batas GCG dan benchmark industri Tier-1 BUMN."
-          onOpen={() => setOpenFeature('trend')}
-        />
-        <FeatureCard
-          icon={UserCheck}
-          title="Suksesi & Risiko Talenta"
-          metric="3 Posisi Kritis"
-          tag="TARIF"
-          description="Pipeline kepemimpinan, kesiapan cadangan talenta, faktor tata kelola, dan mandat Dewan Komisaris."
-          onOpen={() => setOpenFeature('succession')}
-        />
-        <FeatureCard
-          icon={Grid3X3}
-          title="Drill-down Talenta & KPI"
-          metric="9-Box → KPI"
-          tag="Analitik"
-          description="Telusuri indeks korporasi sampai ke nama karyawan per kuadran 9-Box dan pohon cascading Visi → Pilar → KPI Korporasi → KPI Divisi."
-          onOpen={() => setOpenFeature('drilldown')}
-        />
-      </FeatureGrid>
-
-      {/* 3. Aksi Cepat (kartu) */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Eksekutif</h2>
-          <span className="text-[11px] text-[#64748b]">Risalah, tata kelola & suksesi</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionCard
-            icon={Printer}
-            tone="slate"
-            title="Cetak Risalah BOD"
-            tag="Dokumen"
-            description="Cetak risalah rapat Dewan Direksi periode berjalan."
-            onClick={() => window.print()}
-          />
-          <ActionCard
-            icon={Download}
-            tone="emerald"
-            title="Unduh Ringkasan Eksekutif"
-            tag="Laporan"
-            description="Ekspor ringkasan VMAI & Balanced Scorecard dalam satu berkas."
-            onClick={downloadExecutiveSummary}
-          />
-          <ActionCard
-            icon={Grid3X3}
-            tone="blue"
-            title="9-Box Executive View"
-            tag="Talent"
-            description="Tinjau matriks talenta 9-Box untuk pengambilan keputusan suksesi."
-            onClick={() => setOpenFeature('succession')}
-          />
-          <ActionCard
-            icon={ShieldCheck}
-            tone="emerald"
-            title="Tata Kelola & Kepatuhan"
-            tag="GCG"
-            description="Pantau faktor GCG, integritas audit, dan kepatuhan prinsip TARIF."
-            onClick={() => setOpenFeature('vmai')}
-          />
-        </div>
-      </div>
-
-      {/* Panel: VMAI */}
-      <ExpandablePanel open={openFeature === 'vmai'} title="VMAI Indeks Korporasi" onClose={() => setOpenFeature(null)}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        
-        {/* Card 1: VMAI Indeks Korporasi */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748b]">
-              VMAI Indeks Korporasi
-            </span>
-            <ShieldCheck className="h-4 w-4 text-[#007a5a]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black text-[#0f172a] font-sans">
-              {vmai}%
-            </span>
-            <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              +{scorecard?.industry_benchmark?.variance_percentage ?? 0}%
-            </span>
-          </div>
-          <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
-            Tolok Ukur Industri: 85.0% (Unggul)
-          </p>
-        </div>
-
-        {/* Card 2: Finansial */}
-        <div className="stitch-metric-card scroll-mt-24" id="diklat-anggaran">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748b]">
-              Perspektif Finansial
-            </span>
-            <Building className="h-4 w-4 text-[#64748b]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black text-[#0f172a] font-sans">
-              {financialScore}%
-            </span>
-            <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              Optimal
-            </span>
-          </div>
-          <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
-            Realisasi Anggaran: Efisien & Terkendali
-          </p>
-        </div>
-
-        {/* Card 3: Pelanggan */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748b]">
-              Pelanggan & Stakeholder
-            </span>            <Users className="h-4 w-4 text-[#64748b]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black text-[#0f172a] font-sans">
-              {customerScore}%
-            </span>
-            <span className="text-[11px] font-bold text-[#475569] bg-[#f1f5f9] px-1.5 py-0.5 rounded">
-              CSAT 4.5/5
-            </span>
-          </div>
-          <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
-            Indeks Kepuasan Stakeholder: Patuh
-          </p>
-        </div>
-
-        {/* Card 4: Proses Internal */}
-        <div className="stitch-metric-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748b]">
-              Proses Bisnis Internal
-            </span>
-            <RotateCcw className="h-4 w-4 text-[#64748b]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black text-[#0f172a] font-sans">
-              {internalScore}%
-            </span>
-            <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
-              0 SOP Fail
-            </span>
-          </div>
-          <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
-            Efisiensi Siklus Kerja: Istimewa
-          </p>
-        </div>
-
-        {/* Card 5: Pembelajaran (Alert) */}
-        <div className="stitch-metric-card border-rose-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748b]">
-              Pembelajaran & SDM
-            </span>
-            <GraduationCap className="h-4 w-4 text-[#dc2626]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-black text-[#0f172a] font-sans">
-              {learningScore}%
-            </span>
-            <span className="text-[11px] font-bold text-[#dc2626] bg-[#fce8e6] px-1.5 py-0.5 rounded">
-              Perlu Review
-            </span>
-          </div>
-          <p className="text-[11px] text-[#dc2626] mt-3 pt-2 border-t border-[#f1f5f9] font-medium">
-            Benchmark 88.0%: Target Jam Belajar
-          </p>
-        </div>
-
-      </div>
-        <AiAnalyzePanel feature="executive" />
-      </ExpandablePanel>
-
-      {/* Panel: Perspektif BSC (ringkasan empat pilar) */}
-      <ExpandablePanel open={openFeature === 'perspectives'} title="Perspektif Balanced Scorecard" onClose={() => setOpenFeature(null)}>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="stitch-metric-card">
-            <span className="text-xs font-semibold text-[#64748b]">Finansial</span>
-            <p className="text-2xl font-black text-[#0f172a] mt-1">{financialScore}%</p>
-          </div>
-          <div className="stitch-metric-card">
-            <span className="text-xs font-semibold text-[#64748b]">Pelanggan</span>
-            <p className="text-2xl font-black text-[#0f172a] mt-1">{customerScore}%</p>
-          </div>
-          <div className="stitch-metric-card">
-            <span className="text-xs font-semibold text-[#64748b]">Proses Internal</span>
-            <p className="text-2xl font-black text-[#0f172a] mt-1">{internalScore}%</p>
-          </div>
-          <div className="stitch-metric-card">
-            <span className="text-xs font-semibold text-[#64748b]">Pembelajaran & Pertumbuhan</span>
-            <p className="text-2xl font-black text-[#0f172a] mt-1">{learningScore}%</p>
-          </div>
-        </div>
-        <AiAnalyzePanel feature="executive" />
-      </ExpandablePanel>
-
-      {/* Panel: Tren Komparasi VMAI */}
-      <ExpandablePanel open={openFeature === 'trend'} title="Tren Komparasi VMAI" onClose={() => setOpenFeature(null)}>
-      <div className="stitch-card-white p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
-          <div>
-            <h2 className="text-base font-extrabold text-[#0f172a]">
-              Tren Komparasi Indeks Keselarasan Visi & Misi (VMAI)
-            </h2>
-            <p className="text-xs text-[#64748b] mt-0.5">
-              Analisis 6 bulan berjalan terhadap ambang batas kepatuhan Good Corporate Governance (GCG) dan Benchmark Industri
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-[#64748b]">
-            <span className="text-[11px]">Resolusi:</span>
-            {(['Bulanan', 'Kuartalan', 'Semester'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setResolution(r)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                  resolution === r
-                    ? 'bg-[#0f172a] text-white shadow-xs'
-                    : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* SVG Line Chart with Floating Tooltip over September */}
-        <div className="relative w-full h-[320px] pt-4">
-          <svg viewBox="0 0 900 240" className="w-full h-[250px] overflow-visible">
-            {/* Horizontal Grid lines */}
-            {[60, 70, 80, 90, 100].map((val, idx) => {
-              const y = 220 - ((val - 60) / 40) * 190;
-              return (
-                <g key={idx}>
-                  <line x1="45" y1={y} x2="860" y2={y} stroke="#f1f5f9" strokeWidth="1" />
-                  <text x="35" y={y + 4} textAnchor="end" className="text-[10px] fill-[#94a3b8] font-mono">
-                    {val}%
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* X-axis Month labels */}
-            {[
-              { m: 'Apr 2026', x: 80 },
-              { m: 'Mei 2026', x: 230 },
-              { m: 'Jun 2026', x: 380 },
-              { m: 'Jul 2026', x: 530 },
-              { m: 'Agt 2026', x: 680 },
-              { m: 'Sep 2026', x: 830 },
-            ].map((col, idx) => (
-              <text
-                key={idx}
-                x={col.x}
-                y="235"
-                textAnchor="middle"
-                className={`text-[11px] font-medium ${idx === 5 ? 'fill-[#007a5a] font-bold' : 'fill-[#64748b]'}`}
-              >
-                {col.m}
-              </text>
-            ))}
-
-            {/* Red GCG Minimum Threshold Line at 70% */}
-            {/* y for 70% = 220 - (10/40)*190 = 172.5 */}
-            <line x1="45" y1="172.5" x2="860" y2="172.5" stroke="#f87171" strokeWidth="1.5" strokeDasharray="4 4" />
-
-            {/* Blue Benchmark Line (85% approx y = 101.25) */}
-            <path
-              d="M 80 115 L 230 110 L 380 108 L 530 105 L 680 102 L 830 101"
-              fill="none"
-              stroke="#0284c7"
-              strokeWidth="2.5"
+            <FeatureCard
+              icon={ShieldCheck}
+              title="Skor Kesehatan Perusahaan (VMAI)"
+              metric={`${vmai}%`}
+              tag="Kondisi Sehat"
+              description={`Tingkat keselarasan kinerja seluruh unit kerja dengan target perusahaan. Standar industri 85.0% (variansi +${scorecard?.industry_benchmark?.variance_percentage ?? 0}%).`}
+              onOpen={() => setOpenFeature('vmai')}
             />
-            {/* Blue line nodes */}
-            <circle cx="80" cy="115" r="3.5" fill="#0284c7" />
-            <circle cx="230" cy="110" r="3.5" fill="#0284c7" />
-            <circle cx="380" cy="108" r="3.5" fill="#0284c7" />
-            <circle cx="530" cy="105" r="3.5" fill="#0284c7" />
-            <circle cx="680" cy="102" r="3.5" fill="#0284c7" />
-            <circle cx="830" cy="101" r="3.5" fill="#0284c7" />
-
-            {/* Dark Green Corporate VMAI Line (rising from ~77% to 89.4%) */}
-            {/* 77% y=139.25, 80% y=125, 83% y=110.75, 86% y=96.5, 88% y=87, 89.4% y=80.35 */}
-            <path
-              d="M 80 139 L 230 125 L 380 111 L 530 96 L 680 87 L 830 80"
-              fill="none"
-              stroke="#007a5a"
-              strokeWidth="3"
+            <FeatureCard
+              icon={PieChart}
+              title="4 Pilar Kinerja Utama"
+              metric={`${financialScore}%`}
+              tag="Finansial & SDM"
+              description="Skor empat perspektif bisnis: Finansial, Kepuasan Pelanggan, Proses Kerja Internal, dan Pertumbuhan SDM."
+              onOpen={() => setOpenFeature('perspectives')}
             />
-            {/* Green line nodes */}
-            <circle cx="80" cy="139" r="4" fill="#007a5a" />
-            <circle cx="230" cy="125" r="4" fill="#007a5a" />
-            <circle cx="380" cy="111" r="4" fill="#007a5a" />
-            <circle cx="530" cy="96" r="4" fill="#007a5a" />
-            <circle cx="680" cy="87" r="4" fill="#007a5a" />
-            <circle cx="830" cy="80" r="5" fill="#007a5a" stroke="#ffffff" strokeWidth="2" />
+            <FeatureCard
+              icon={LineChart}
+              title="Grafik Tren Kinerja 6 Bulan"
+              metric="6 Bulan"
+              tag="Tren Positif"
+              description="Perbandingan grafik performa bulanan perusahaan terhadap batas kepatuhan standar dan benchmark industri."
+              onOpen={() => setOpenFeature('trend')}
+            />
+            <FeatureCard
+              icon={UserCheck}
+              title="Kesiapan Calon Pemimpin"
+              metric="3 Posisi Kritis"
+              tag="Prioritas Suksesi"
+              description="Pemantauan kesiapan calon penerus posisi kunci manajerial dan kepatuhan prinsip tata kelola organisasi."
+              onOpen={() => setOpenFeature('succession')}
+            />
+            <FeatureCard
+              icon={Grid3X3}
+              title="Daftar Pegawai & Target Unit"
+              metric="Nama & Target"
+              tag="Telusuri Data"
+              description="Lihat nama-nama karyawan menurut kelompok kinerjanya serta alur pembagian target perusahaan ke unit kerja."
+              onOpen={() => setOpenFeature('drilldown')}
+            />
+          </FeatureGrid>
 
-            {/* Dashed vertical line down to September */}
-            <line x1="830" y1="80" x2="830" y2="220" stroke="#007a5a" strokeWidth="1.5" strokeDasharray="3 3" />
-          </svg>
-
-          {/* Floating Dark Tooltip over September Point */}
-          <div className="absolute right-10 top-0 w-52 rounded-xl bg-[#0d131f] text-white p-3 shadow-xl border border-slate-700 pointer-events-none text-xs">
-            <div className="flex items-center justify-between border-b border-slate-700/80 pb-2 mb-2">
-              <span className="font-semibold text-slate-200">September 2026</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400">
-                Q3 Penutupan
-              </span>
+          {/* 3. Aksi Cepat Direktur Utama */}
+          {/* <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Direktur Utama</h2>
+              <span className="text-[11px] text-[#64748b]">Laporan resmi, evaluasi suksesi & kepatuhan audit</span>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <ActionCard
+                icon={Printer}
+                tone="slate"
+                title="Cetak Laporan Rapat Direksi"
+                tag="Dokumen Resmi"
+                description="Cetak risalah rapat evaluasi Dewan Direksi untuk arsip fisik."
+                onClick={() => window.print()}
+              />
+              <ActionCard
+                icon={Download}
+                tone="emerald"
+                title="Unduh Ringkasan Hasil Evaluasi"
+                tag="Laporan Teks"
+                description="Unduh berkas ringkasan eksekutif dan ketercapaian target dalam 1 klik."
+                onClick={downloadExecutiveSummary}
+              />
+              <ActionCard
+                icon={Grid3X3}
+                tone="blue"
+                title="Buka Peta Evaluasi Talenta"
+                tag="Kesiapan Suksesi"
+                description="Tinjau matriks 9-Box untuk penetapan calon suksesor dan promosi."
+                onClick={() => setOpenFeature('succession')}
+              />
+              <ActionCard
+                icon={ShieldCheck}
+                tone="emerald"
+                title="Cek Kepatuhan & Keamanan Data"
+                tag="Kepatuhan Audit"
+                description="Pantau kepatuhan tata kelola, integritas audit digital, dan keamanan data."
+                onClick={() => setOpenFeature('vmai')}
+              />
+            </div>
+          </div> */}
 
-            <div className="space-y-1.5 font-mono text-[11px]">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-slate-300 font-sans">
-                  <span className="h-2 w-2 rounded-full bg-[#10b981]" />
-                  Realisasi VMAI
-                </span>
-                <span className="font-bold text-white">{vmai}%</span>
+          {/* Panel: Skor Kesehatan */}
+          <ExpandablePanel open={openFeature === 'vmai'} title="Skor Kesehatan Perusahaan & Rincian 4 Pilar" onClose={() => setOpenFeature(null)}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+
+              {/* Card 1: VMAI Indeks Korporasi */}
+              <div className="stitch-metric-card">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#64748b]">
+                    VMAI Indeks Korporasi
+                  </span>
+                  <ShieldCheck className="h-4 w-4 text-[#007a5a]" />
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl font-black text-[#0f172a] font-sans">
+                    {vmai}%
+                  </span>
+                  <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded">
+                    +{scorecard?.industry_benchmark?.variance_percentage ?? 0}%
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
+                  Tolok Ukur Industri: 85.0% (Unggul)
+                </p>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-slate-300 font-sans">
-                  <span className="h-2 w-2 rounded-full bg-[#0284c7]" />
-                  Benchmark BUMN
-                </span>
-                <span className="text-slate-300">85.0%</span>
+              {/* Card 2: Finansial */}
+              <div className="stitch-metric-card scroll-mt-24" id="diklat-anggaran">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#64748b]">
+                    Perspektif Finansial
+                  </span>
+                  <Building className="h-4 w-4 text-[#64748b]" />
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span
+                    className="text-2xl font-black text-[#0f172a] font-sans"
+                    title={`Capaian Finansial: ${financialScore}% dari target`}
+                  >
+                    {financialScore}%
+                  </span>
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                    financialScore >= 90
+                      ? 'text-[#137333] bg-[#e6f4ea]'
+                      : financialScore >= 80
+                      ? 'text-[#1d4ed8] bg-[#eff6ff]'
+                      : 'text-[#dc2626] bg-[#fce8e6]'
+                  }`}>
+                    {financialScore >= 90 ? 'Optimal' : financialScore >= 80 ? 'Sesuai Target' : 'Perlu Evaluasi'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
+                  {financialScore >= 90
+                    ? 'Realisasi Anggaran: Efisien & Terkendali'
+                    : 'Realisasi Anggaran: Perlu Evaluasi'}
+                </p>
               </div>
 
-              <div className="pt-1.5 border-t border-slate-700/80 flex items-center justify-between text-[10px]">
-                <span className="text-slate-400 font-sans">Target RKAP Tahunan</span>
-                <span className="font-bold text-emerald-400">88.0% (+1.4% Sukses)</span>
+              {/* Card 3: Pelanggan */}
+              <div className={`stitch-metric-card ${customerScore === 0 ? 'border-amber-200 bg-amber-50/20' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#64748b]">
+                    Pelanggan & Stakeholder
+                  </span>
+                  <Users className="h-4 w-4 text-[#64748b]" />
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span
+                    className="text-2xl font-black text-[#0f172a] font-sans"
+                    title={customerScore > 0 ? `Capaian Kepuasan Pelanggan: ${customerScore}%` : 'Belum ada input survei/KPI kepuasan stakeholder untuk periode ini'}
+                  >
+                    {customerScore}%
+                  </span>
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                    customerScore >= 80
+                      ? 'text-[#137333] bg-[#e6f4ea]'
+                      : customerScore > 0
+                      ? 'text-[#b45309] bg-[#fef3c7]'
+                      : 'text-[#b45309] bg-[#fef3c7]'
+                  }`}>
+                    {customerScore >= 80 ? 'CSAT 4.5/5' : customerScore > 0 ? 'Perlu Ditingkatkan' : 'Belum Ada Data'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
+                  {customerScore > 0
+                    ? 'Indeks Kepuasan Stakeholder: Patuh'
+                    : 'Survei CSAT periode ini belum diinput'}
+                </p>
+              </div>
+
+              {/* Card 4: Proses Internal */}
+              <div className="stitch-metric-card">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#64748b]">
+                    Proses Bisnis Internal
+                  </span>
+                  <RotateCcw className="h-4 w-4 text-[#64748b]" />
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span
+                    className="text-2xl font-black text-[#0f172a] font-sans cursor-help"
+                    title={`Capaian melampaui target (Realisasi: ${internalScore}% dari target 100%)`}
+                  >
+                    {internalScore}%
+                  </span>
+                  <span
+                    className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded"
+                    title="Target efisiensi operasional berhasil dilampaui tanpa ada kegagalan SOP"
+                  >
+                    {internalScore > 100 ? 'Melampaui Target' : '0 SOP Fail'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#64748b] mt-3 pt-2 border-t border-[#f1f5f9]">
+                  Efisiensi Siklus Kerja: Istimewa (0 SOP Fail)
+                </p>
+              </div>
+
+              {/* Card 5: Pembelajaran (Alert) */}
+              <div className={`stitch-metric-card ${learningScore < 85 ? 'border-rose-200' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#64748b]">
+                    Pembelajaran & SDM
+                  </span>
+                  <GraduationCap className={`h-4 w-4 ${learningScore < 85 ? 'text-[#dc2626]' : 'text-[#64748b]'}`} />
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span
+                    className="text-2xl font-black text-[#0f172a] font-sans"
+                    title={`Capaian Pembelajaran & SDM: ${learningScore}%`}
+                  >
+                    {learningScore}%
+                  </span>
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                    learningScore >= 90
+                      ? 'text-[#137333] bg-[#e6f4ea]'
+                      : learningScore >= 85
+                      ? 'text-[#1d4ed8] bg-[#eff6ff]'
+                      : 'text-[#dc2626] bg-[#fce8e6]'
+                  }`}>
+                    {learningScore >= 85 ? 'Sesuai Target' : 'Perlu Review'}
+                  </span>
+                </div>
+                <p className={`text-[11px] mt-3 pt-2 border-t border-[#f1f5f9] font-medium ${
+                  learningScore < 85 ? 'text-[#dc2626]' : 'text-[#64748b]'
+                }`}>
+                  Benchmark 88.0%: Target Jam Belajar
+                </p>
+              </div>
+
+            </div>
+            <AiAnalyzePanel feature="executive" />
+          </ExpandablePanel>
+
+          {/* Panel: Perspektif BSC (ringkasan empat pilar) */}
+          <ExpandablePanel open={openFeature === 'perspectives'} title="Ringkasan 4 Pilar Kinerja Utama" onClose={() => setOpenFeature(null)}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className="stitch-metric-card">
+                <span className="text-xs font-semibold text-[#64748b]">Finansial</span>
+                <p className="text-2xl font-black text-[#0f172a] mt-1">{financialScore}%</p>
+              </div>
+              <div className="stitch-metric-card">
+                <span className="text-xs font-semibold text-[#64748b]">Pelanggan</span>
+                <p className="text-2xl font-black text-[#0f172a] mt-1">{customerScore}%</p>
+              </div>
+              <div className="stitch-metric-card">
+                <span className="text-xs font-semibold text-[#64748b]">Proses Internal</span>
+                <p className="text-2xl font-black text-[#0f172a] mt-1">{internalScore}%</p>
+              </div>
+              <div className="stitch-metric-card">
+                <span className="text-xs font-semibold text-[#64748b]">Pembelajaran & Pertumbuhan</span>
+                <p className="text-2xl font-black text-[#0f172a] mt-1">{learningScore}%</p>
               </div>
             </div>
-          </div>
-        </div>
+            <AiAnalyzePanel feature="executive" />
+          </ExpandablePanel>
 
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-6 pt-2 border-t border-[#f1f5f9] text-xs">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#007a5a]" />
-            <span className="text-[#334155] font-medium">Realisasi VMAI Korporat (2026)</span>
-          </div>
+          {/* Panel: Tren Komparasi */}
+          <ExpandablePanel open={openFeature === 'trend'} title="Grafik Tren Kinerja 6 Bulan" onClose={() => setOpenFeature(null)}>
+            <div className="stitch-card-white p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0f172a]">
+                    Tren Komparasi Kinerja Perusahaan (6 Bulan)
+                  </h2>
+                  <p className="text-xs text-[#64748b] mt-0.5">
+                    Analisis performa bulanan terhadap ambang batas kelayakan tata kelola (GCG) dan standar industri
+                  </p>
+                </div>
 
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#0284c7]" />
-            <span className="text-[#334155] font-medium">Benchmark Industri Tier-1 BUMN Unggul (85.0%)</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="h-0.5 w-4 bg-[#f87171]" />
-            <span className="text-[#334155] font-medium">Ambang Batas Minimum GCG (70.0%)</span>
-          </div>
-        </div>
-      </div>
-        <AiAnalyzePanel feature="executive" />
-      </ExpandablePanel>
-
-      {/* Panel: Suksesi, Tata Kelola & Risiko Talenta */}
-      <ExpandablePanel open={openFeature === 'succession'} title="Suksesi, Tata Kelola & Risiko Talenta" onClose={() => setOpenFeature(null)}>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
-        {/* Card 1: Peringatan Kesenjangan (Pembelajaran & SDM) */}
-        <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#dc2626]">
-                Peringatan Kesenjangan
-              </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#fce8e6] text-[#c5221f]">
-                Defisit -6.7%
-              </span>
-            </div>
-
-            <div className="flex items-start gap-2.5">
-              <div className="p-2 rounded-xl bg-[#fce8e6] text-[#dc2626]">
-                <GraduationCap className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 text-xs text-[#64748b]">
+                  <span className="text-[11px]">Resolusi:</span>
+                  {(['Bulanan', 'Kuartalan', 'Semester'] as const).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setResolution(r)}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${resolution === r
+                        ? 'bg-[#0f172a] text-white shadow-xs'
+                        : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]'
+                        }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#0f172a]">
-                  Pilar Pembelajaran & SDM
-                </h3>
+
+              {/* SVG Line Chart with Floating Tooltip over September */}
+              <div className="relative w-full h-[320px] pt-4">
+                <svg viewBox="0 0 900 240" className="w-full h-[250px] overflow-visible">
+                  {/* Horizontal Grid lines */}
+                  {[60, 70, 80, 90, 100].map((val, idx) => {
+                    const y = 220 - ((val - 60) / 40) * 190;
+                    return (
+                      <g key={idx}>
+                        <line x1="45" y1={y} x2="860" y2={y} stroke="#f1f5f9" strokeWidth="1" />
+                        <text x="35" y={y + 4} textAnchor="end" className="text-[10px] fill-[#94a3b8] font-mono">
+                          {val}%
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* X-axis Month labels */}
+                  {[
+                    { m: 'Apr 2026', x: 80 },
+                    { m: 'Mei 2026', x: 230 },
+                    { m: 'Jun 2026', x: 380 },
+                    { m: 'Jul 2026', x: 530 },
+                    { m: 'Agt 2026', x: 680 },
+                    { m: 'Sep 2026', x: 830 },
+                  ].map((col, idx) => (
+                    <text
+                      key={idx}
+                      x={col.x}
+                      y="235"
+                      textAnchor="middle"
+                      className={`text-[11px] font-medium ${idx === 5 ? 'fill-[#007a5a] font-bold' : 'fill-[#64748b]'}`}
+                    >
+                      {col.m}
+                    </text>
+                  ))}
+
+                  {/* Red GCG Minimum Threshold Line at 70% */}
+                  {/* y for 70% = 220 - (10/40)*190 = 172.5 */}
+                  <line x1="45" y1="172.5" x2="860" y2="172.5" stroke="#f87171" strokeWidth="1.5" strokeDasharray="4 4" />
+
+                  {/* Blue Benchmark Line (85% approx y = 101.25) */}
+                  <path
+                    d="M 80 115 L 230 110 L 380 108 L 530 105 L 680 102 L 830 101"
+                    fill="none"
+                    stroke="#0284c7"
+                    strokeWidth="2.5"
+                  />
+                  {/* Blue line nodes */}
+                  <circle cx="80" cy="115" r="3.5" fill="#0284c7" />
+                  <circle cx="230" cy="110" r="3.5" fill="#0284c7" />
+                  <circle cx="380" cy="108" r="3.5" fill="#0284c7" />
+                  <circle cx="530" cy="105" r="3.5" fill="#0284c7" />
+                  <circle cx="680" cy="102" r="3.5" fill="#0284c7" />
+                  <circle cx="830" cy="101" r="3.5" fill="#0284c7" />
+
+                  {/* Dark Green Corporate VMAI Line (rising from ~77% to 89.4%) */}
+                  {/* 77% y=139.25, 80% y=125, 83% y=110.75, 86% y=96.5, 88% y=87, 89.4% y=80.35 */}
+                  <path
+                    d="M 80 139 L 230 125 L 380 111 L 530 96 L 680 87 L 830 80"
+                    fill="none"
+                    stroke="#007a5a"
+                    strokeWidth="3"
+                  />
+                  {/* Green line nodes */}
+                  <circle cx="80" cy="139" r="4" fill="#007a5a" />
+                  <circle cx="230" cy="125" r="4" fill="#007a5a" />
+                  <circle cx="380" cy="111" r="4" fill="#007a5a" />
+                  <circle cx="530" cy="96" r="4" fill="#007a5a" />
+                  <circle cx="680" cy="87" r="4" fill="#007a5a" />
+                  <circle cx="830" cy="80" r="5" fill="#007a5a" stroke="#ffffff" strokeWidth="2" />
+
+                  {/* Dashed vertical line down to September */}
+                  <line x1="830" y1="80" x2="830" y2="220" stroke="#007a5a" strokeWidth="1.5" strokeDasharray="3 3" />
+                </svg>
+
+                {/* Floating Dark Tooltip over September Point */}
+                <div className="absolute right-10 top-0 w-52 rounded-xl bg-[#0d131f] text-white p-3 shadow-xl border border-slate-700 pointer-events-none text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-700/80 pb-2 mb-2">
+                    <span className="font-semibold text-slate-200">September 2026</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400">
+                      Q3 Penutupan
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-slate-300 font-sans">
+                        <span className="h-2 w-2 rounded-full bg-[#10b981]" />
+                        Realisasi VMAI
+                      </span>
+                      <span className="font-bold text-white">{vmai}%</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-slate-300 font-sans">
+                        <span className="h-2 w-2 rounded-full bg-[#0284c7]" />
+                        Benchmark BUMN
+                      </span>
+                      <span className="text-slate-300">85.0%</span>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-slate-700/80 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400 font-sans">Target RKAP Tahunan</span>
+                      <span className="font-bold text-emerald-400">88.0% (+1.4% Sukses)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap items-center gap-6 pt-2 border-t border-[#f1f5f9] text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#007a5a]" />
+                  <span className="text-[#334155] font-medium">Realisasi VMAI Korporat (2026)</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#0284c7]" />
+                  <span className="text-[#334155] font-medium">Benchmark Industri Tier-1 BUMN Unggul (85.0%)</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-0.5 w-4 bg-[#f87171]" />
+                  <span className="text-[#334155] font-medium">Ambang Batas Minimum GCG (70.0%)</span>
+                </div>
               </div>
             </div>
+            <AiAnalyzePanel feature="executive" />
+          </ExpandablePanel>
 
-            <p className="text-xs text-[#64748b] leading-relaxed">
-              Realisasi pengembangan kompetensi saat ini tercatat <strong>22.4 jam/karyawan</strong> terhadap mandat korporat 24 jam/tahun. Terdapat potensi penurunan skor kapabilitas digital Q4.
-            </p>
+          {/* Panel: Suksesi, Tata Kelola & Risiko Talenta */}
+          <ExpandablePanel open={openFeature === 'succession'} title="Kesiapan Calon Pemimpin & Risiko Talenta" onClose={() => setOpenFeature(null)}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-            {/* Progress Bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-[#334155]">Capaian Jam Pelatihan Mandatori</span>
-                <span className="font-mono text-[#0f172a]">22.4h / 24.0h (93.3%)</span>
+              {/* Card 1: Peringatan Kesenjangan (Pembelajaran & SDM) */}
+              <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#dc2626]">
+                      Peringatan Kesenjangan
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#fce8e6] text-[#c5221f]">
+                      Defisit -6.7%
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-2 rounded-xl bg-[#fce8e6] text-[#dc2626]">
+                      <GraduationCap className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0f172a]">
+                        Pilar Pembelajaran & SDM
+                      </h3>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#64748b] leading-relaxed">
+                    Realisasi pengembangan kompetensi saat ini tercatat <strong>22.4 jam/karyawan</strong> terhadap mandat korporat 24 jam/tahun. Terdapat potensi penurunan skor kapabilitas digital Q4.
+                  </p>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-[#334155]">Capaian Jam Pelatihan Mandatori</span>
+                      <span className="font-mono text-[#0f172a]">22.4h / 24.0h (93.3%)</span>
+                    </div>
+                    <div className="w-full bg-[#f1f5f9] h-2 rounded-full overflow-hidden">
+                      <div className="bg-[#f59e0b] h-full rounded-full" style={{ width: '93.3%' }} />
+                    </div>
+                  </div>
+
+                  {/* Recommendation Box */}
+                  <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs text-[#334155] flex items-start gap-2">
+                    <Lightbulb className="h-4 w-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] leading-relaxed">
+                      <strong>Rekomendasi BOD:</strong> Luncurkan program sertifikasi mandatori ISO 30414 dan alokasikan sisa anggaran akselerasi kepemimpinan.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    document
+                      .getElementById('diklat-anggaran')
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>Tinjau Anggaran & Kuota Diklat</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <div className="w-full bg-[#f1f5f9] h-2 rounded-full overflow-hidden">
-                <div className="bg-[#f59e0b] h-full rounded-full" style={{ width: '93.3%' }} />
+
+              {/* Card 2: Faktor Tata Kelola (Kepatuhan Prinsip TARIF) */}
+              <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#007a5a]">
+                      Faktor Tata Kelola
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333]">
+                      Skor 97.4%
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-2 rounded-xl bg-[#e6f4ea] text-[#007a5a]">
+                      <Scale className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0f172a]">
+                        Kepatuhan Prinsip TARIF
+                      </h3>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#64748b] leading-relaxed">
+                    Kepatuhan terhadap prinsip Transparansi, Akuntabilitas, Responsibilitas, Independensi, dan Fairness (TARIF) berjalan optimal dengan <strong>0 temuan material</strong> pada audit interim internal maupun BPKP.
+                  </p>
+
+                  {/* 2 Mini Stats */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-center">
+                      <span className="text-[10px] text-[#64748b] block">Transparansi</span>
+                      <span className="text-base font-bold text-[#0f172a] font-mono">98.2%</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-center">
+                      <span className="text-[10px] text-[#64748b] block">Akuntabilitas</span>
+                      <span className="text-base font-bold text-[#0f172a] font-mono">95.0%</span>
+                    </div>
+                  </div>
+
+                  {/* Audit Integrity Box */}
+                  <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs text-[#334155] flex items-start gap-2">
+                    <ShieldCheck className="h-4 w-4 text-[#007a5a] flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] leading-relaxed">
+                      <strong>Integritas Audit:</strong> Seluruh matriks penilaian kinerja Q3 telah terkunci melalui signature enkripsi digital tanpa revisi susulan.
+                    </p>
+                  </div>
+                </div>
+
               </div>
-            </div>
 
-            {/* Recommendation Box */}
-            <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs text-[#334155] flex items-start gap-2">
-              <Lightbulb className="h-4 w-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-relaxed">
-                <strong>Rekomendasi BOD:</strong> Luncurkan program sertifikasi mandatori ISO 30414 dan alokasikan sisa anggaran akselerasi kepemimpinan.
-              </p>
-            </div>
-          </div>
+              {/* Card 3: Risiko Suksesi Eksekutif (Pipeline Kepemimpinan) */}
+              <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">
+                      Risiko Suksesi Eksekutif
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#fef3c7] text-[#92400e]">
+                      3 Posisi Kritis
+                    </span>
+                  </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              document
-                .getElementById('diklat-anggaran')
-                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="w-full py-2.5 px-4 rounded-xl border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-xs font-semibold text-[#0f172a] flex items-center justify-center gap-1.5 transition-colors"
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-2 rounded-xl bg-[#e0f2fe] text-[#0284c7]">
+                      <UserCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0f172a]">
+                        Pipeline Kepemimpinan
+                      </h3>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#64748b] leading-relaxed">
+                    Algoritma suksesi mendeteksi <strong>3 peran kunci manajerial</strong> (Direktorat TI & Operasional) belum memiliki suksesor siap pakai pada kuadran <em>Future Leader</em> (Box 9).
+                  </p>
+
+                  {/* Stacked Bar for Readiness */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-[#334155]">Kesiapan Cadangan Talenta (Ready &lt; 6 Bln)</span>
+                      <span className="font-mono text-[#0f172a]">64.5%</span>
+                    </div>
+                    <div className="w-full bg-[#f1f5f9] h-2 rounded-full overflow-hidden flex">
+                      <div className="bg-[#007a5a] h-full" style={{ width: '64.5%' }} />
+                      <div className="bg-[#f59e0b] h-full" style={{ width: '20%' }} />
+                      <div className="bg-[#dc2626] h-full" style={{ width: '15.5%' }} />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[#64748b] font-medium">
+                      <span>Siap: 14 Posisi</span>
+                      <span>Berisiko: 3 Posisi</span>
+                    </div>
+                  </div>
+
+                  {/* BOC Mandate Box */}
+                  <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs text-[#334155] flex items-start gap-2">
+                    <Lock className="h-4 w-4 text-[#0284c7] flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] leading-relaxed">
+                      <strong>Mandat Dewan Komisaris:</strong> Tetapkan kandidat suksesi lapis-1 sebelum RUPST Tahunan November 2026.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/dashboard/ninebox-matrix"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-xs"
+                >
+                  <span>Buka Peta Evaluasi Talenta (9-Box)</span>
+                  <Grid3X3 className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+            </div>
+            <AiAnalyzePanel feature="executive" />
+          </ExpandablePanel>
+
+          <ExpandablePanel
+            open={openFeature === 'drilldown'}
+            title="Penelusuran Karyawan & Pembagian Target Divisi"
+            onClose={() => setOpenFeature(null)}
           >
-            <span>Tinjau Anggaran & Kuota Diklat</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
+            <BoardDrilldownPanel periodCode="2026-Q3" />
+          </ExpandablePanel>
 
-        {/* Card 2: Faktor Tata Kelola (Kepatuhan Prinsip TARIF) */}
-        <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#007a5a]">
-                Faktor Tata Kelola
-              </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333]">
-                Skor 97.4%
-              </span>
-            </div>
-
-            <div className="flex items-start gap-2.5">
-              <div className="p-2 rounded-xl bg-[#e6f4ea] text-[#007a5a]">
-                <Scale className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#0f172a]">
-                  Kepatuhan Prinsip TARIF
-                </h3>
-              </div>
-            </div>
-
-            <p className="text-xs text-[#64748b] leading-relaxed">
-              Kepatuhan terhadap prinsip Transparansi, Akuntabilitas, Responsibilitas, Independensi, dan Fairness (TARIF) berjalan optimal dengan <strong>0 temuan material</strong> pada audit interim internal maupun BPKP.
-            </p>
-
-            {/* 2 Mini Stats */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-2.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-center">
-                <span className="text-[10px] text-[#64748b] block">Transparansi</span>
-                <span className="text-base font-bold text-[#0f172a] font-mono">98.2%</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-center">
-                <span className="text-[10px] text-[#64748b] block">Akuntabilitas</span>
-                <span className="text-base font-bold text-[#0f172a] font-mono">95.0%</span>
-              </div>
-            </div>
-
-            {/* Audit Integrity Box */}
-            <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs text-[#334155] flex items-start gap-2">
-              <ShieldCheck className="h-4 w-4 text-[#007a5a] flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-relaxed">
-                <strong>Integritas Audit:</strong> Seluruh matriks penilaian kinerja Q3 telah terkunci melalui signature enkripsi digital tanpa revisi susulan.
-              </p>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Card 3: Risiko Suksesi Eksekutif (Pipeline Kepemimpinan) */}
-        <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">
-                Risiko Suksesi Eksekutif
-              </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#fef3c7] text-[#92400e]">
-                3 Posisi Kritis
-              </span>
-            </div>
-
-            <div className="flex items-start gap-2.5">
-              <div className="p-2 rounded-xl bg-[#e0f2fe] text-[#0284c7]">
-                <UserCheck className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#0f172a]">
-                  Pipeline Kepemimpinan
-                </h3>
-              </div>
-            </div>
-
-            <p className="text-xs text-[#64748b] leading-relaxed">
-              Algoritma suksesi mendeteksi <strong>3 peran kunci manajerial</strong> (Direktorat TI & Operasional) belum memiliki suksesor siap pakai pada kuadran <em>Future Leader</em> (Box 9).
-            </p>
-
-            {/* Stacked Bar for Readiness */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-[#334155]">Kesiapan Cadangan Talenta (Ready &lt; 6 Bln)</span>
-                <span className="font-mono text-[#0f172a]">64.5%</span>
-              </div>
-              <div className="w-full bg-[#f1f5f9] h-2 rounded-full overflow-hidden flex">
-                <div className="bg-[#007a5a] h-full" style={{ width: '64.5%' }} />
-                <div className="bg-[#f59e0b] h-full" style={{ width: '20%' }} />
-                <div className="bg-[#dc2626] h-full" style={{ width: '15.5%' }} />
-              </div>
-              <div className="flex justify-between text-[10px] text-[#64748b] font-medium">
-                <span>Siap: 14 Posisi</span>
-                <span>Berisiko: 3 Posisi</span>
-              </div>
-            </div>
-
-            {/* BOC Mandate Box */}
-            <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-xs text-[#334155] flex items-start gap-2">
-              <Lock className="h-4 w-4 text-[#0284c7] flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-relaxed">
-                <strong>Mandat Dewan Komisaris:</strong> Tetapkan kandidat suksesi lapis-1 sebelum RUPST Tahunan November 2026.
-              </p>
-            </div>
-          </div>
-
-          <Link
-            href="/dashboard/ninebox-matrix"
-            className="w-full py-2.5 px-4 rounded-xl bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-xs"
-          >
-            <span>Buka 9-Box Executive View</span>
-            <Grid3X3 className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-      </div>
-        <AiAnalyzePanel feature="executive" />
-      </ExpandablePanel>
-
-      <ExpandablePanel
-        open={openFeature === 'drilldown'}
-        title="Drill-down Talenta & Cascading KPI"
-        onClose={() => setOpenFeature(null)}
-      >
-        <BoardDrilldownPanel periodCode="2026-Q3" />
-      </ExpandablePanel>
-
-      {/* 5. Peringatan Dini Attrition & Burnout (PRD §5.4) */}
-      <FlightRiskHeatmap />
+          {/* 5. Peringatan Dini Attrition & Burnout (PRD §5.4) */}
+          <FlightRiskHeatmap />
         </>
       )}
 
-      {mainTab === 'activity' && <BoardActivityPanel />}
       {mainTab === 'vision' && <BoardVisionPanel />}
-      {mainTab === 'position-fit' && <BoardPositionFitPanel />}
       {mainTab === 'cost' && <BoardCostPanel />}
+      {mainTab === 'position-fit' && <BoardPositionFitPanel />}
+      {mainTab === 'activity' && <BoardActivityPanel />}
 
       {/* 6. Formal Legal Footer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-[#e2e8f0] text-[11px] text-[#64748b]">

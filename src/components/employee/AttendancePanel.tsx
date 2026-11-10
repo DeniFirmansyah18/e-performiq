@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock, Camera, LogIn, LogOut, MapPin, CheckCircle2, AlertCircle, Send } from 'lucide-react';
+import { todayInJakarta, formatTimeWib } from '@/lib/utils/wibDate';
 
 interface AttendanceLog {
   id: string;
@@ -149,10 +150,10 @@ export default function AttendancePanel() {
     setBusy(false); await load();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInJakarta();
   const todayLog = logs.find((l) => l.workDate?.slice(0, 10) === today);
   const isWorking = todayLog?.status === 'OPEN';
-  const fmtTime = (v: string | null) => (v ? new Date(v).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '–');
+  const fmtTime = (v: string | null) => (v ? formatTimeWib(v) : '–');
 
   return (
     <div className="stitch-card-white p-6 space-y-4">

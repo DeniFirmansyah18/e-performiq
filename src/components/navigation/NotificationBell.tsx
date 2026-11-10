@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Check, Inbox } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
+import { formatDateTimeWib } from '@/lib/utils/wibDate';
 
 interface NotifItem {
   id: string;
@@ -141,7 +142,7 @@ export default function NotificationBell() {
                         </div>
                         {n.body && <p className="mt-0.5 text-[10px] text-slate-400 line-clamp-2">{n.body}</p>}
                         <p className="mt-1 text-[9px] text-slate-500 uppercase tracking-wide">
-                          {n.category ?? 'GENERAL'} · {new Date(n.createdAt).toLocaleString('id-ID')}
+                          {n.category ?? 'UMUM'} · {formatDateTimeWib(n.createdAt)}
                         </p>
                       </div>
                     </div>

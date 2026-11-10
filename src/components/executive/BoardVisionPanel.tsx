@@ -81,38 +81,35 @@ export default function BoardVisionPanel() {
             </div>
           </div>
           <div className="ml-auto text-right">
-                      <p className="text-[10px] font-semibold text-slate-500">
-                        Capaian Resmi (seluruh pilar)
-                      </p>
-                      <p className="text-3xl font-extrabold text-emerald-700">
-                        {data?.overallAchievementPercentage ?? 0}%
-                      </p>
-                      <p className="text-[10px] text-slate-500">
-                        {data?.sampleSize ?? 0} KPI individual
-                        {data?.periodCode ? ` · periode ${data.periodCode}` : ''}
-                      </p>
-                      {/* Dua angka ini sengaja dipisah: satu capaian tidak boleh
-                          memikul dua arti ("gagal" vs "belum diukur"). */}
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Cakupan pengukuran{' '}
-                        <span className="font-semibold text-slate-700">
-                          {data?.measurementCoveragePercentage ?? 0}%
-                        </span>{' '}
-                        bobot
-                        {typeof data?.measuredWeight === 'number' && typeof data?.totalWeight === 'number'
-                          ? ` (${data.measuredWeight}/${data.totalWeight})`
-                          : ''}
-                      </p>
-                      {data?.measurementCoveragePercentage < 100 && (
-                        <p className="text-[10px] text-slate-500">
-                          Pada bagian terukur:{' '}
-                          <span className="font-semibold text-slate-700">
-                            {data?.measuredAchievementPercentage ?? 0}%
-                          </span>{' '}
-                          — bukan angka resmi
-                        </p>
-                      )}
-                    </div>
+            <p className="text-[10px] font-semibold text-slate-500">
+              Capaian Target Resmi (Seluruh Pilar)
+            </p>
+            <p className="text-3xl font-extrabold text-emerald-700">
+              {data?.overallAchievementPercentage ?? 0}%
+            </p>
+            <p className="text-[10px] text-slate-500">
+              {data?.sampleSize ?? 0} target individual
+              {data?.periodCode ? ` · periode ${data.periodCode}` : ''}
+            </p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Cakupan target terukur:{' '}
+              <span className="font-semibold text-slate-700">
+                {data?.measurementCoveragePercentage ?? 0}%
+              </span>{' '}
+              bobot
+              {typeof data?.measuredWeight === 'number' && typeof data?.totalWeight === 'number'
+                ? ` (${data.measuredWeight}/${data.totalWeight})`
+                : ''}
+            </p>
+            {data?.measurementCoveragePercentage < 100 && (
+              <p className="text-[10px] text-slate-500">
+                Pada target yang sudah dinilai:{' '}
+                <span className="font-semibold text-slate-700">
+                  {data?.measuredAchievementPercentage ?? 0}%
+                </span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -163,7 +160,7 @@ export default function BoardVisionPanel() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
-          <Target className="w-3.5 h-3.5 text-indigo-600" /> Sasaran RJMP (diturunkan dari roll-up pilar)
+          <Target className="w-3.5 h-3.5 text-indigo-600" /> Sasaran Strategis Perusahaan (Rencana Jangka Menengah / RJMP)
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
@@ -224,7 +221,7 @@ export default function BoardVisionPanel() {
               <div className="bg-white rounded-xl border border-amber-200 overflow-hidden">
                 <div className="p-3 border-b border-amber-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
                   <ListChecks className="w-3.5 h-3.5 text-amber-600" />
-                  Register Cascade — KPI Korporat tanpa KPI Individual
+                  Daftar Target Perusahaan yang Belum Diturunkan ke Karyawan
                 </div>
                 <div className="divide-y divide-slate-100">
                   {(data.cascadeGaps ?? []).map((g: any) => (

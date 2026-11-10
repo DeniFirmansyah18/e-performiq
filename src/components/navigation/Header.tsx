@@ -53,7 +53,7 @@ export default function Header() {
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search governance metrics, employee KPI, code..."
+            placeholder="Cari metrik tata kelola, KPI karyawan, kode..."
             className="w-full h-9 pl-9 pr-14 rounded-lg bg-[#161f30] border border-slate-700/60 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#007a5a]"
           />
           <div className="absolute right-2.5 top-2 px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-400 border border-slate-700">

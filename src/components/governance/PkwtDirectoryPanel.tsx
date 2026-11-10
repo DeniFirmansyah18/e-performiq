@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { can } from '@/lib/auth/rbac';
+import { todayInJakarta } from '@/lib/utils/wibDate';
 
 type Urgency = 'EXPIRED' | 'CRITICAL_30' | 'WARNING_60' | 'SAFE';
 
@@ -115,7 +116,7 @@ export default function PkwtDirectoryPanel({ initialSearch }: { initialSearch?: 
   }, [loadSummary]);
 
   const openExtend = (item: PkwtAlert) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayInJakarta();
     const base = item.contractEndDate > today ? item.contractEndDate : today;
     setNotice(null);
     setForm({

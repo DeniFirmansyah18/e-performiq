@@ -52,7 +52,7 @@ export default function BoardActivityPanel() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 bg-white rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Activity className="w-4 h-4 text-indigo-600" /> Total Aktivitas
+            <Activity className="w-4 h-4 text-indigo-600" /> Total Catatan Aktivitas
           </div>
           <div className="text-2xl font-bold text-slate-800">{data?.totalEvents ?? 0}</div>
           <div className="text-[11px] text-slate-500 mt-1">
@@ -61,7 +61,7 @@ export default function BoardActivityPanel() {
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Users className="w-4 h-4 text-emerald-600" /> Coverage Pegawai
+            <Users className="w-4 h-4 text-emerald-600" /> Tingkat Partisipasi Karyawan
           </div>
           <div className="text-2xl font-bold text-slate-800">
             {data?.analysis?.coveragePercentage ?? 0}%
@@ -72,7 +72,7 @@ export default function BoardActivityPanel() {
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Building2 className="w-4 h-4 text-amber-600" /> Departemen Teraktif
+            <Building2 className="w-4 h-4 text-amber-600" /> Unit Kerja Paling Produktif
           </div>
           <div className="text-lg font-bold text-slate-800 truncate">
             {data?.analysis?.busiestDepartment ?? '-'}
@@ -84,7 +84,7 @@ export default function BoardActivityPanel() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h3 className="text-xs font-semibold text-slate-700 mb-2">Temuan Analisis</h3>
+        <h3 className="text-xs font-semibold text-slate-700 mb-2">Temuan & Catatan Produktivitas Tim</h3>
         <ul className="space-y-1">
           {(data?.analysis?.highlights ?? []).map((h: string, i: number) => (
             <li key={i} className="text-[11px] text-slate-600 flex gap-2">
@@ -97,7 +97,7 @@ export default function BoardActivityPanel() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-xs font-semibold text-slate-700 mb-2">Per Tipe Event</h3>
+          <h3 className="text-xs font-semibold text-slate-700 mb-2">Berdasarkan Jenis Aktivitas</h3>
           <ul className="space-y-1.5">
             {(data?.byEventType ?? []).map((row: any) => (
               <li key={row.eventType} className="flex items-center justify-between text-[11px]">
@@ -110,7 +110,7 @@ export default function BoardActivityPanel() {
           </ul>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-xs font-semibold text-slate-700 mb-2">Per Peran Pemilik</h3>
+          <h3 className="text-xs font-semibold text-slate-700 mb-2">Berdasarkan Tingkat Jabatan/Role</h3>
           <ul className="space-y-1.5">
             {(data?.byOwnerRole ?? []).map((row: any) => (
               <li key={row.role} className="flex items-center justify-between text-[11px]">

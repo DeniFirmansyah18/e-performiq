@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Users, Briefcase, GraduationCap, Clock, Wallet, TrendingUp, LogOut, Sparkles } from 'lucide-react';
+import { formatDateTimeWib, formatRupiah } from '@/lib/utils/wibDate';
 
 interface HrDashboard {
   workforce: { total: number; permanent: number; probation: number; contract: number; resigned: number };
@@ -18,7 +19,7 @@ interface PostEmployment {
   lifetimeContributions: { total: number; byType: Record<string, number> };
 }
 
-const idr = (n: number | null) => (n == null ? '–' : 'Rp ' + Math.round(n).toLocaleString('id-ID'));
+const idr = (n: number | null) => (n == null ? '–' : formatRupiah(Math.round(n)));
 
 function Card({ icon, label, value, sub, accent }: { icon: React.ReactNode; label: string; value: string | number; sub?: string; accent: string }) {
   return (
@@ -54,7 +55,7 @@ export default function HrDashboardCards() {
           <Sparkles className="h-4 w-4 text-[#007a5a]" />
           <h2 className="text-base font-extrabold text-[#0f172a]">Ringkasan SDM &amp; Pasca-Kerja</h2>
         </div>
-        <span className="text-[10px] text-[#94a3b8]">{new Date(dash.workforce ? Date.now() : Date.now()).toLocaleString('id-ID')}</span>
+        <span className="text-[10px] text-[#94a3b8]">{formatDateTimeWib(new Date())}</span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

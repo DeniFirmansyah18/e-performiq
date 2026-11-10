@@ -59,6 +59,9 @@ function createDb() {
       idle_timeout: 20,
       connect_timeout: 15,
       prepare: false, // kompatibel dengan connection pooler (pgbouncer/Supavisor)
+      connection: {
+        TimeZone: 'Asia/Jakarta',
+      },
     });
     globalForDb.__eperformiqSql = postgresToSql(client);
     return drizzlePostgres(client);
@@ -75,6 +78,8 @@ function createDb() {
   }
 
   const client = new PGlite(process.env.PGLITE_DATA_DIR ?? resolve(process.cwd(), '.pglite'));
+  // Set default timezone ke Asia/Jakarta (WIB, UTC+7)
+  client.exec("SET timezone = 'Asia/Jakarta';").catch(() => {});
   globalForDb.__eperformiqSql = pgliteToSql(client);
   return drizzlePglite(client);
 }

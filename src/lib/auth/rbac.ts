@@ -106,7 +106,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'career:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'social_security:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'disciplinary:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
-'analytics:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'analytics:manage': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD'],
 'system:health': ['SUPER_ADMIN', 'HR_MANAGER'],
 'letter:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'letter:manage': ['SUPER_ADMIN', 'HR_MANAGER'],

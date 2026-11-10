@@ -8,6 +8,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { BusinessRuleError, NotFoundError } from '@/lib/auth/errors';
+import { todayInJakarta } from '@/lib/utils/wibDate';
 
 const MS_PER_DAY = 86_400_000;
 
@@ -69,7 +70,7 @@ const ACTIVE_PREDICATE = sql`
 `;
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayInJakarta();
 }
 
 function daysBetween(fromIso: string, toIso: string): number {

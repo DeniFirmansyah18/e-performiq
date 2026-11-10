@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { formatDateTimeWib } from '@/lib/utils/wibDate';
 
 interface Event {
   id: string;
@@ -44,7 +45,7 @@ export default function CompanyActivityFeed() {
             {' · '}
             <span className="text-[#475569]">{LABEL[e.eventType] ?? e.eventType}: {e.summary}</span>
             <span className="ml-2 text-[10px] text-[#94a3b8]">
-              {new Date(e.occurredAt).toLocaleString('id-ID')}
+              {formatDateTimeWib(e.occurredAt)}
             </span>
           </li>
         ))}

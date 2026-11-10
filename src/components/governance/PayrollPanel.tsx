@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Wallet, Plus, Sparkles, CheckCircle2, Download, RefreshCw, Save } from 'lucide-react';
 import { renderRichText } from '@/components/ai/RichText';
+import { formatRupiah, todayInJakarta } from '@/lib/utils/wibDate';
 
 interface PayrollRun {
   id: string;
@@ -49,7 +50,7 @@ const STATUS_COLOR: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600', PROCESSING: 'bg-amber-50 text-amber-700',
   APPROVED: 'bg-indigo-50 text-indigo-700', PAID: 'bg-emerald-50 text-emerald-700',
 };
-const idr = (n: number) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+const idr = (n: number) => formatRupiah(Math.round(n || 0));
 
 /** Panel Payroll HR (WS-10): buat run, lihat rincian, AI advisory, setujui, ekspor CSV. */
 export default function PayrollPanel() {
@@ -62,7 +63,7 @@ export default function PayrollPanel() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7));
+  const [period, setPeriod] = useState(() => todayInJakarta().slice(0, 7));
   const [thr, setThr] = useState(false);
 
   const [tab, setTab] = useState<'runs' | 'employees'>('runs');

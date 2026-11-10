@@ -12,6 +12,7 @@
  */
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { todayInJakarta } from '@/lib/utils/wibDate';
 
 export interface GeoPoint {
   lat?: number | null;
@@ -51,7 +52,7 @@ export interface AttendanceLogRow {
   totalOvertimeHours: number | null;
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayInJakarta();
 
 /** Hitung jam kerja & lembur dari total jam (asumsi 8 jam reguler). */
 export function computeWorkAndOvertime(hours: number, regularHours = 8): { work: number; overtime: number } {

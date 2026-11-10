@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { ShieldAlert, AlertTriangle, RefreshCw } from 'lucide-react';
+import { formatDateShortWib } from '@/lib/utils/wibDate';
 
 type Band = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
 
@@ -36,6 +37,13 @@ const BAND_BAR: Record<Band, string> = {
   HIGH: 'bg-orange-500',
   MODERATE: 'bg-amber-400',
   LOW: 'bg-emerald-500',
+};
+
+const BAND_LABEL: Record<Band, string> = {
+  CRITICAL: 'Kritis',
+  HIGH: 'Tinggi',
+  MODERATE: 'Sedang',
+  LOW: 'Rendah',
 };
 
 const BAND_ORDER: Band[] = ['LOW', 'MODERATE', 'HIGH', 'CRITICAL'];
@@ -211,12 +219,14 @@ export default function FlightRiskHeatmap() {
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-slate-500">snapshot {item.snapshotDate}</span>
+                  <span className="text-[10px] text-slate-500">
+                    {item.snapshotDate ? `Per ${formatDateShortWib(item.snapshotDate)}` : ''}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <ScoreBar label="Attrition" score={item.attritionScore} band={item.attritionBand} />
-                  <ScoreBar label="Burnout" score={item.burnoutScore} band={item.burnoutBand} />
+                  <ScoreBar label="Risiko Resign" score={item.attritionScore} band={item.attritionBand} />
+                  <ScoreBar label="Risiko Kelelahan (Burnout)" score={item.burnoutScore} band={item.burnoutBand} />
                 </div>
 
                 {drivers.length > 0 && (
@@ -246,7 +256,7 @@ function ScoreBar({ label, score, band }: { label: string; score: number; band: 
         <span className="flex items-center gap-1.5">
           <span className="font-mono font-bold text-slate-800">{score}</span>
           <span className={`px-1.5 py-0.5 rounded-full border font-bold ${BAND_STYLE[band]}`}>
-            {band}
+            {BAND_LABEL[band]}
           </span>
         </span>
       </div>
