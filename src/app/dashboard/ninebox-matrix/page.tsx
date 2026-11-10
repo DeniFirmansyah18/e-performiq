@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
-import ActionCard from '@/components/ui/ActionCard';
+
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -379,32 +379,6 @@ export default function NineBoxMatrixPage() {
           onOpen={() => setOpenFeature('simulasi')}
         />
       </FeatureGrid>
-
-      {/* Aksi Cepat (kartu) */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Talenta</h2>
-          <span className="text-[11px] text-[#64748b]">Kesiapan suksesi</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionCard
-            icon={Plus}
-            tone="emerald"
-            title="Muat ulang data"
-            tag="Suksesi"
-            description="Ambil ulang sebaran karyawan terbaru dari database."
-            onClick={handleRunAi}
-          />
-          <ActionCard
-            icon={Grid3X3}
-            tone="violet"
-            title="Matriks 9-Box"
-            tag="Talenta"
-            description="Buka matriks 9-Box dan panel inspeksi kandidat."
-            onClick={() => setOpenFeature('inspection')}
-          />
-        </div>
-      </div>
 
       {/* Ringkasan pemula — selalu terlihat, bukan di dalam panel yang harus dibuka */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
