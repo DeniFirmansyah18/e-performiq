@@ -21,11 +21,15 @@ describe('menu datar', () => {
     expect(screen.queryByText(/Modul & Tata Kelola/i)).toBeNull();
   });
 
-  it('menu relevan tampil langsung sebagai tautan top-level', () => {
+  it('menu relevan tampil datar; HR Command Center & tab-nya tidak diduplikasi di bilah atas', () => {
     render(<NavMenu />);
-    expect(screen.getByRole('link', { name: /HR Ops Command Center/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Offboarding & Clearance/i })).toBeTruthy();
-    // 9-Box dipindah ke tab Ringkasan HR Command Center, bukan bilah atas.
+    // HR memakai tab di dalam halaman untuk Ringkasan & Kontrol 3-Fase.
+    expect(screen.queryByRole('link', { name: /HR Ops Command Center/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Offboarding & Clearance/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /9-Box/i })).toBeNull();
+    // Employee tetap punya portalnya sendiri.
+    expect(screen.queryByRole('link', { name: /Employee Growth Portal/i })).toBeNull();
+    expect(screen.queryByText(/^Portals$/i)).toBeNull();
+    expect(screen.queryByText(/Modul & Tata Kelola/i)).toBeNull();
   });
 });

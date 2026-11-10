@@ -23,33 +23,38 @@ describe('menu per peran', () => {
     expect(screen.getByRole('link', { name: /Employee Growth Portal/i })).toBeTruthy();
   });
 
-  it('HR tidak melihat Employee Portal di bilah atas', () => {
+  it('HR tidak lagi melihat HR Ops maupun Offboarding (keduanya ada sebagai tab di dalam halaman)', () => {
     renderFor('HR_MANAGER');
+    expect(screen.queryByRole('link', { name: /HR Ops Command Center/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Offboarding & Clearance/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /Employee Growth Portal/i })).toBeNull();
-    expect(screen.getByRole('link', { name: /HR Ops Command Center/i })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /9-Box/i })).toBeNull();
+    // Tab Ringkasan & Kontrol 3-Fase tetap ada di dalam halaman HR Command Center.
   });
 
-  it('BOD tidak melihat 9-Box maupun HR Ops, tetapi tetap punya jalan ke HR Command Center', () => {
+  it('BOD tetap punya Executive Boardroom, tanpa HR Ops/Offboarding', () => {
     renderFor('BOD');
-    expect(screen.queryByRole('link', { name: /9-Box/i })).toBeNull();
+    expect(screen.getByRole('link', { name: /Executive Boardroom/i })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /HR Ops Command Center/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /Employee Growth Portal/i })).toBeNull();
-    const offboarding = screen.getByRole('link', { name: /Offboarding & Clearance/i });
-    expect(offboarding.getAttribute('href')).toContain('/dashboard/hr-command');
+    expect(screen.queryByRole('link', { name: /Offboarding & Clearance/i })).toBeNull();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('PEOPLE_MANAGER tetap punya Manager Evaluation Cockpit', () => {
+    renderFor('PEOPLE_MANAGER');
+    expect(screen.getByRole('link', { name: /Manager Evaluation Cockpit/i })).toBeTruthy();
   });
 
   it('SUPER_ADMIN hanya melihat Manajemen Akun (tanpa tautan mati)', () => {
     renderFor('SUPER_ADMIN');
     expect(screen.getByRole('link', { name: /Manajemen Akun/i })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /Employee Growth Portal/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /HR Ops Command Center/i })).toBeNull();
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
   it('label teks disembunyikan tetapi nama aksesibel tetap ada', () => {
-    renderFor('HR_MANAGER');
-    const link = screen.getByRole('link', { name: /HR Ops Command Center/i });
-    expect(link.getAttribute('title')).toBe('HR Ops Command Center');
+    renderFor('PEOPLE_MANAGER');
+    const link = screen.getByRole('link', { name: /Manager Evaluation Cockpit/i });
+    expect(link.getAttribute('title')).toBe('Manager Evaluation Cockpit');
     expect(link.textContent?.trim()).toBe('');
   });
 
