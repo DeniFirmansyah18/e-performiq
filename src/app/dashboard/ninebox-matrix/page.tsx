@@ -39,7 +39,7 @@ interface CandidateProfile {
   nip: string;
   tenure: string;
   currentRole: string;
-  readinessBadge: 'Ready Now' | 'Ready 1-2 Yrs' | 'Ready > 2 Yrs' | 'Under Observation';
+  readinessBadge: ReadinessLevel;
   targetRole: string;
   compositeIndex: string;
   competencyReadiness: string;
@@ -47,6 +47,17 @@ interface CandidateProfile {
   idp: string;
   avatarUrl: string;
 }
+
+/** Tingkat kesiapan seorang kandidat untuk naik ke posisi berikutnya. */
+export type ReadinessLevel = 'SIAP_SEKARANG' | 'SIAP_1_2_TAHUN' | 'SIAP_LEBIH_2_TAHUN' | 'PERLU_PEMANTAUAN';
+
+/** Label yang ditampilkan ke pengguna (bahasa Indonesia). */
+const READINESS_LABEL: Record<ReadinessLevel, string> = {
+  SIAP_SEKARANG: 'Siap sekarang',
+  SIAP_1_2_TAHUN: 'Siap 1–2 tahun lagi',
+  SIAP_LEBIH_2_TAHUN: 'Siap lebih dari 2 tahun',
+  PERLU_PEMANTAUAN: 'Perlu dipantau',
+};
 
 interface QuadrantData {
   id: number;
@@ -372,10 +383,10 @@ export default function NineBoxMatrixPage() {
         />
         <FeatureCard
           icon={ListOrdered}
-          title="Kesiapan Suksesi"
-          metric="Bench Strength"
+          title="Calon Pengganti Posisi Kunci"
+          metric="Kesiapan"
           tag="Suksesi"
-          description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Pencocokan Kaderisasi Otomatis."
+          description="Melihat siapa yang siap menggantikan pejabat pada posisi kunci bila berhenti atau pensiun."
           onOpen={() => setOpenFeature('simulasi')}
         />
       </FeatureGrid>
@@ -497,7 +508,7 @@ export default function NineBoxMatrixPage() {
                 Distribusi 9-Box Talent Placement
               </h2>
               <p className="text-[11px] text-[#64748b] mt-0.5">
-                Klik kuadran untuk menginspeksi rincian pegawai, readiness gap, dan aksi intervensi HR.
+                Klik kuadran untuk menginspeksi rincian pegawai, kesenjangan kesiapan, dan aksi intervensi HR.
               </p>
             </div>
             
@@ -752,13 +763,13 @@ export default function NineBoxMatrixPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-[#0f172a]">{cand.name}</span>
                           <span className={`text-[10px] font-semibold px-2 py-0.2 rounded-full ${
-                            cand.readinessBadge === 'Ready Now'
+                            cand.readinessBadge === 'SIAP_SEKARANG'
                               ? 'bg-[#dcfce7] text-[#166534]'
-                              : cand.readinessBadge === 'Ready 1-2 Yrs'
+                              : cand.readinessBadge === 'SIAP_1_2_TAHUN'
                               ? 'bg-[#e0f2fe] text-[#0369a1]'
                               : 'bg-[#fee2e2] text-[#dc2626]'
                           }`}>
-                            {cand.readinessBadge}
+                            {READINESS_LABEL[cand.readinessBadge]}
                           </span>
                         </div>
                         <p className="text-[10px] text-[#64748b]">
@@ -857,131 +868,36 @@ export default function NineBoxMatrixPage() {
       </ExpandablePanel>
 
       {/* Panel: Kesiapan Suksesi (Bench Strength Table) */}
-      <ExpandablePanel open={openFeature === 'simulasi'} title="Kesiapan Suksesi" onClose={() => setOpenFeature(null)}>
+      {/* Panel: Calon Pengganti Posisi Kunci */}
+      <ExpandablePanel open={openFeature === 'simulasi'} title="Calon Pengganti Posisi Kunci" onClose={() => setOpenFeature(null)}>
       <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-xs space-y-4">
-        
-        {/* Table Title & Target note */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-bold text-[#0f172a]">
-              Succession Bench Strength Summary
-            </h3>
-            <p className="text-xs text-[#64748b] mt-0.5">
-              Kesiapan suksesi posisi kunci organ perusahaan sesuai regulasi Kementerian BUMN / OJK GCG.
-            </p>
-          </div>
-          <div className="text-[11px] font-semibold text-[#007a5a] bg-[#e6f4ea] px-3 py-1 rounded-md">
-            Target Coverage: &gt; 2 Ready Successors per Key Position
-          </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-[#0f172a]">Ringkasan Kesiapan Pengganti</h3>
+          <p className="text-xs text-[#64748b] mt-0.5">
+            Menunjukkan siapa yang siap menggantikan pejabat pada posisi kunci bila yang bersangkutan
+            berhenti atau pensiun.
+          </p>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#f8fafc] border-b border-[#e2e8f0] text-[11px] font-bold text-[#64748b] uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-4">POSISI KUNCI</th>
-                <th className="py-3 px-4">PEMEGANG SAAT INI</th>
-                <th className="py-3 px-4">PERKIRAAN PENSIUN</th>
-                <th className="py-3 px-4">CALON PENGGANTI (SIAP SEKARANG)</th>
-                <th className="py-3 px-4">CALON PENGGANTI (SIAP 1-2 TAHUN)</th>
-                <th className="py-3 px-4 text-center">STATUS KETERSEDIAAN</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f1f5f9]">
-              
-              {/* Row 1: CTO */}
-              <tr className="hover:bg-[#f8fafc] transition-colors">
-                <td className="py-3.5 px-4 font-bold text-[#0f172a]">
-                  Chief Technology Officer (CTO)
-                </td>
-                <td className="py-3.5 px-4 text-[#334155]">
-                  Ir. Hendra Wijaya (Pensiun 2027)
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569] font-medium text-[11px]">
-                    &lt; 14 Bulan
-                  </span>
-                </td>
-                <td className="py-3.5 px-4">
-                  <div className="flex items-center gap-1.5 font-semibold text-[#007a5a]">
-                    <span className="w-2 h-2 rounded-full bg-[#007a5a]"></span>
-                    <span>Budi Pratama</span>
-                  </div>
-                </td>
-                <td className="py-3.5 px-4 text-[#475569]">
-                  Dimas Prasetyo, Kevin Wardhana
-                </td>
-                <td className="py-3.5 px-4 text-center">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#dcfce7] text-[#166534]">
-                    Robust (3:1)
-                  </span>
-                </td>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#334155]">
+          <span className="font-semibold text-[#007a5a] bg-[#e6f4ea] px-3 py-1 rounded-md">
+            Target: minimal 2 calon siap untuk setiap posisi kunci
+          </span>
+        </div>
 
-              </tr>
-
-              {/* Row 2: VP Enterprise Commercial */}
-              <tr className="hover:bg-[#f8fafc] transition-colors">
-                <td className="py-3.5 px-4 font-bold text-[#0f172a]">
-                  VP of Enterprise Commercial
-                </td>
-                <td className="py-3.5 px-4 text-[#334155]">
-                  Raden Mas Aditya
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569] font-medium text-[11px]">
-                    24 Bulan
-                  </span>
-                </td>
-                <td className="py-3.5 px-4">
-                  <div className="flex items-center gap-1.5 font-semibold text-[#007a5a]">
-                    <span className="w-2 h-2 rounded-full bg-[#007a5a]"></span>
-                    <span>Siti Rahmawati</span>
-                  </div>
-                </td>
-                <td className="py-3.5 px-4 text-[#475569]">
-                  Amanda Kusumo, Reza Fauzi
-                </td>
-                <td className="py-3.5 px-4 text-center">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1]">
-                    Adequate (3:1)
-                  </span>
-                </td>
-
-              </tr>
-
-              {/* Row 3: Head of Internal Audit & Risk */}
-              <tr className="hover:bg-[#fff5f5] transition-colors">
-                <td className="py-3.5 px-4 font-bold text-[#0f172a]">
-                  Head of Internal Audit &amp; Risk
-                </td>
-                <td className="py-3.5 px-4 text-[#334155]">
-                  Dewi Lestari, Ak., CA
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className="px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626] font-bold text-[11px]">
-                    &lt; 6 Bulan
-                  </span>
-                </td>
-                <td className="py-3.5 px-4">
-                  <div className="flex items-center gap-1.5 font-bold text-[#dc2626]">
-                    <span className="w-2 h-2 rounded-full bg-[#dc2626]"></span>
-                    <span>Belum Ada (Gap Suksesi)</span>
-                  </div>
-                </td>
-                <td className="py-3.5 px-4 text-[#475569]">
-                  Farhan Hakim (Readiness 72%)
-                </td>
-                <td className="py-3.5 px-4 text-center">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#fee2e2] text-[#dc2626]">
-                    Vulnerable (0:1)
-                  </span>
-                </td>
-
-              </tr>
-
-            </tbody>
-          </table>
+        {/* Keadaan kosong yang jujur: fitur belum terhubung ke data kepegawaian. */}
+        <div
+          role="status"
+          className="p-4 rounded-xl bg-[#f8fafc] border border-dashed border-[#cbd5e1] text-center space-y-1.5"
+        >
+          <p className="text-xs font-bold text-[#334155]">Data belum terhubung ke database</p>
+          <p className="text-[11px] text-[#64748b] leading-relaxed max-w-2xl mx-auto">
+            Daftar calon pengganti belum tersedia karena data posisi kunci, perkiraan pensiun, dan
+            kesiapan kader belum diisi. Setelah data itu tersedia, tabel akan menampilkan posisi kunci,
+            pemegang saat ini, perkiraan pensiun, calon pengganti yang siap sekarang, calon yang siap
+            1–2 tahun lagi, serta status ketersediaannya.
+          </p>
         </div>
 
       </div>
