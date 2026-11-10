@@ -276,7 +276,7 @@ export default function NineBoxMatrixPage() {
         <div>
           {/* Breadcrumb & GCG Tag */}
           <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">
-            <span className="font-semibold tracking-wider text-[#64748b]">TALENT INTELLIGENCE & SUCCESSION</span>
+            <span className="font-semibold tracking-wider text-[#64748b]">GAMBARAN TALENTA & KADERISASI</span>
             <span>/</span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#dcfce7] text-[#166534] font-semibold text-[11px]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#16a34a]"></span>
@@ -286,7 +286,7 @@ export default function NineBoxMatrixPage() {
 
           {/* Page Title */}
           <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
-            9-Box Potential vs Performance Matrix
+            Matriks 9-Box: Hasil Kerja dan Kemampuan Naik Level
           </h1>
           <p className="text-xs text-[#64748b] mt-1 max-w-3xl">
             Pemetaan analitik suksesi manajerial, kesiapan talent pipeline 2026-2028, dan standardisasi intervensi human capital berbasis Good Corporate Governance.
@@ -375,7 +375,7 @@ export default function NineBoxMatrixPage() {
           title="Kesiapan Suksesi"
           metric="Bench Strength"
           tag="Suksesi"
-          description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Automated Succession Matcher."
+          description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Pencocokan Kaderisasi Otomatis."
           onOpen={() => setOpenFeature('simulasi')}
         />
       </FeatureGrid>
@@ -417,7 +417,7 @@ export default function NineBoxMatrixPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-[#b7e1cd] p-4 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Potensi tinggi</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Siap naik level</span>
           <div data-testid="summary-promosi" className="text-2xl font-black text-[#137333] mt-1">
             {summary ? `${summaryPromosi} orang` : 'Data belum tersedia'}
           </div>
@@ -429,7 +429,7 @@ export default function NineBoxMatrixPage() {
           <div data-testid="summary-dijaga" className="text-2xl font-black text-[#0f172a] mt-1">
             {summary ? `${summaryDijaga} orang` : 'Data belum tersedia'}
           </div>
-          <p className="text-[11px] text-[#64748b]">Kotak 4–6 · kinerja stabil</p>
+          <p className="text-[11px] text-[#64748b]">Kotak 4–6 · hasil kerja stabil</p>
         </div>
       </div>
 
@@ -457,7 +457,7 @@ export default function NineBoxMatrixPage() {
         {/* Metric 2: Future Leaders (Box 9) */}
         <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">FUTURE LEADERS (BOX 9)</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Pemimpin Masa Depan (Kotak 9)</span>
             <div className="w-7 h-7 rounded-full bg-[#dcfce7] flex items-center justify-center text-[#007a5a]">
               <Target className="w-4 h-4" />
             </div>
@@ -468,13 +468,13 @@ export default function NineBoxMatrixPage() {
               3.4% Populasi
             </span>
           </div>
-          <p className="text-[11px] text-[#64748b]">Kandidat VP & Director succession bench</p>
+          <p className="text-[11px] text-[#64748b]">Calon kuat untuk posisi pimpinan puncak</p>
         </div>
 
         {/* Metric 3: Core Backbone (Box 5) */}
         <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">CORE BACKBONE (BOX 5)</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Penggerak Inti (Kotak 5)</span>
             <div className="w-7 h-7 rounded-full bg-[#e0f2fe] flex items-center justify-center text-[#0284c7]">
               <Network className="w-4 h-4" />
             </div>
@@ -491,7 +491,7 @@ export default function NineBoxMatrixPage() {
         {/* Metric 4: Underperformer (Box 1) */}
         <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">UNDERPERFORMER (BOX 1)</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Perlu Pembinaan (Kotak 1)</span>
             <div className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center text-[#dc2626]">
               <AlertTriangle className="w-4 h-4" />
             </div>
@@ -547,18 +547,18 @@ export default function NineBoxMatrixPage() {
           {/* Grid Layout with Y-Axis and X-Axis */}
           <div className="mt-4 flex">
             
-            {/* Y-Axis Labeling */}
+            {/* Y-Axis Labeling — memakai bahasa sehari-hari, bukan istilah teknis */}
             <div className="w-12 flex-shrink-0 flex flex-col justify-between py-6 text-[10px] font-bold text-[#64748b] tracking-wider select-none pr-2 text-right">
               <div className="flex items-center justify-end gap-0.5 text-[#007a5a]">
                 <span className="text-xs">↑</span>
-                <span className="writing-vertical -rotate-90 origin-center translate-y-3 whitespace-nowrap">POTENSI TINGGI</span>
+                <span className="writing-vertical -rotate-90 origin-center translate-y-3 whitespace-nowrap">SIAP NAIK LEVEL</span>
               </div>
               <div className="flex items-center justify-end">
-                <span className="writing-vertical -rotate-90 origin-center whitespace-nowrap">POTENSI SEDANG</span>
+                <span className="writing-vertical -rotate-90 origin-center whitespace-nowrap">CUKUP SIAP</span>
               </div>
               <div className="flex items-center justify-end gap-0.5 text-[#dc2626]">
                 <span className="text-xs">↓</span>
-                <span className="writing-vertical -rotate-90 origin-center -translate-y-3 whitespace-nowrap">POTENSI RENDAH</span>
+                <span className="writing-vertical -rotate-90 origin-center -translate-y-3 whitespace-nowrap">BELUM SIAP</span>
               </div>
             </div>
 
@@ -653,13 +653,13 @@ export default function NineBoxMatrixPage() {
               {/* X-Axis Labeling */}
               <div className="grid grid-cols-3 gap-2.5 mt-3 text-center text-[10px] font-bold text-[#64748b] tracking-wider select-none">
                 <div className="text-left text-[#dc2626] pl-1">
-                  ← KINERJA RENDAH
+                  ← HASIL KERJA RENDAH
                 </div>
                 <div className="text-center text-[#64748b]">
-                  KINERJA SEDANG
+                  HASIL KERJA SEDANG
                 </div>
                 <div className="text-right text-[#007a5a] pr-1">
-                  KINERJA TINGGI →
+                  HASIL KERJA TINGGI →
                 </div>
               </div>
 
@@ -677,10 +677,10 @@ export default function NineBoxMatrixPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#64748b]">
-                  PANEL INSPEKSI
+                  RINCIAN KOTAK
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#166534]">
-                  Box {selectedBox} Selected
+                  Kotak {selectedBox} dipilih
                 </span>
               </div>
             </div>
@@ -698,6 +698,38 @@ export default function NineBoxMatrixPage() {
             {/* Panduan untuk HRD pemula */}
             {showHelp && (
               <div className="mt-3 space-y-2.5">
+                {/* Cara sistem menilai — penempatan otomatis, bukan penilaian manual */}
+                <div className="p-3 rounded-xl bg-[#eff6ff] border border-[#bfdbfe]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#1d4ed8] mb-1">
+                    Bagaimana kotak ini ditentukan
+                  </p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed mb-2">
+                    Kotak diisi <strong>otomatis oleh sistem</strong>, bukan dipilih oleh HRD. Sistem melihat dua hal
+                    pada setiap karyawan, lalu menempatkannya ke salah satu dari sembilan kotak.
+                  </p>
+                  <ul className="space-y-1.5 text-[11px] text-[#334155] leading-relaxed">
+                    <li>
+                      <strong>Hasil kerja</strong> — seberapa jauh target kerja tercapai. Dihitung dari nilai
+                      kinerja keseluruhan karyawan.
+                      <span className="block text-[10px] text-[#64748b]">
+                        Rendah: di bawah 75 · Sedang: 75 sampai 89 · Tinggi: 90 ke atas
+                      </span>
+                    </li>
+                    <li>
+                      <strong>Kemampuan naik level</strong> — kesiapan memegang tanggung jawab yang lebih besar.
+                      Dinilai oleh atasan pada skala 1 sampai 5.
+                      <span className="block text-[10px] text-[#64748b]">
+                        Rendah: di bawah 3 · Sedang: 3 sampai 3,9 · Tinggi: 4 ke atas
+                      </span>
+                    </li>
+                  </ul>
+                  <p className="mt-2 text-[10px] text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-lg px-2 py-1.5">
+                    Bila kemampuan naik level belum pernah dinilai, sistem memakai nilai tengah (3,5). Karyawan itu
+                    akan tampil di kolom <strong>sedang</strong> — bukan karena dinilai sedang, tetapi karena datanya
+                    belum ada.
+                  </p>
+                </div>
+
                 <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">Sedang terjadi</p>
                   <p className="text-[11px] text-[#334155] leading-relaxed">
@@ -803,7 +835,7 @@ export default function NineBoxMatrixPage() {
             </div>
           </div>
 
-          {/* Automated Succession Matcher Card (Bottom of panel) */}
+          {/* Pencocokan Kaderisasi Otomatis Card (Bottom of panel) */}
           <div className="mt-4 pt-3 border-t border-[#f1f5f9]">
             <div className="bg-[#f1f5f9] rounded-xl p-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
@@ -811,8 +843,8 @@ export default function NineBoxMatrixPage() {
                   <Compass className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#0f172a]">Automated Succession Matcher</h4>
-                  <p className="text-[10px] text-[#64748b]">Kesiapan mengikuti penilaian tersimpan</p>
+                  <h4 className="text-xs font-bold text-[#0f172a]">Pencocokan Kaderisasi Otomatis</h4>
+                  <p className="text-[10px] text-[#64748b]">Mengikuti hasil penilaian yang tersimpan</p>
                 </div>
               </div>
               <button
@@ -874,12 +906,12 @@ export default function NineBoxMatrixPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#f8fafc] border-b border-[#e2e8f0] text-[11px] font-bold text-[#64748b] uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-4">POSISI KUNCI (KEY ROLE)</th>
-                <th className="py-3 px-4">INCUMBENT SAAT INI</th>
-                <th className="py-3 px-4">RETIREMENT HORIZON</th>
-                <th className="py-3 px-4">BENCH POOL (READY NOW)</th>
-                <th className="py-3 px-4">BENCH POOL (READY 1-2 Y)</th>
-                <th className="py-3 px-4 text-center">COVERAGE STATUS</th>
+                <th className="py-3 px-4">POSISI KUNCI</th>
+                <th className="py-3 px-4">PEMEGANG SAAT INI</th>
+                <th className="py-3 px-4">PERKIRAAN PENSIUN</th>
+                <th className="py-3 px-4">CALON PENGGANTI (SIAP SEKARANG)</th>
+                <th className="py-3 px-4">CALON PENGGANTI (SIAP 1-2 TAHUN)</th>
+                <th className="py-3 px-4 text-center">STATUS KETERSEDIAAN</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
