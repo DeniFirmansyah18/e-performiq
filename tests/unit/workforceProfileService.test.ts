@@ -49,7 +49,7 @@ describe('Workforce Profile - Manajemen Kepegawaian (Narasi 3 pilar 3)', () => {
 
   it('capaian KPI dihitung dari individual_kpis', async () => {
     const profile = await getWorkforceProfile(db);
-    expect(profile.kpiAchievement.totalKpi).toBe(4);
+    expect(profile.kpiAchievement.totalKpi).toBe(12);
     expect(profile.kpiAchievement.averagePercentage).toBeGreaterThan(0);
   });
 

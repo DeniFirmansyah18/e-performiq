@@ -72,7 +72,10 @@ import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet';
 
 export default function EmployeePortalPage() {
-const { currentUser } = useAuth();
+  const { currentUser } = useAuth();
+  // BOD hanya memantau dan tidak dinilai: modul penilaian diri disembunyikan
+  // agar tidak muncul halaman KPI/Self-Appraisal yang selalu kosong.
+  const isPengawas = currentUser?.role === 'BOD';
 const [openFeature, setOpenFeature] = useState<EmployeeFeature | null>(null);
 const [kpis, setKpis] = useState<any[]>([]);
 const [scorecard, setScorecard] = useState<any | null>(null);
@@ -863,12 +866,17 @@ return (
   {/* ==== FASE: Saat Kerja ==== */}
   {activePhase === 'DURING' && (
     <>
+  {/* BOD memantau, tidak dinilai: modul penilaian diri disembunyikan. */}
+  {!isPengawas && (
+    <>
   {/* 1. Employee Daily Cockpit (PRD v2 §7.5) */}
   <div className="grid gap-3 lg:grid-cols-2">
     <DailyStatusCard />
     <DailyKpiChecklist />
   </div>
   <PerformanceRecapTabs />
+    </>
+  )}
 
   {/* 1b. Layanan mandiri (PRD v2 §5.6) */}
   <div className="grid gap-3 lg:grid-cols-2">
@@ -885,14 +893,17 @@ return (
 
   {/* 2. Feature Card Grid (click to open) */}
   <FeatureGrid>
-    <FeatureCard
-      icon={Compass}
-      title="Nilai Kinerja"
-      metric="4-Pilar"
-      tag="Model GCG"
-      description="Ringkasan nilai Anda: Target Kerja (50%), Kepatuhan Prosedur (20%), Kemampuan & Pelatihan (15%), Sikap & Penilaian Rekan (15%)."
-      onOpen={() => setOpenFeature('scorecard')}
-    />
+    {!isPengawas && (
+      <FeatureCard
+        icon={Compass}
+        title="Nilai Kinerja"
+        metric="4-Pilar"
+        tag="Model GCG"
+        description="Ringkasan nilai Anda: Target Kerja (50%), Kepatuhan Prosedur (20%), Kemampuan & Pelatihan (15%), Sikap & Penilaian Rekan (15%)."
+        onOpen={() => setOpenFeature('scorecard')}
+      />
+    )}
+    {!isPengawas && (
     <FeatureCard
       icon={Target}
       title="Target Kerja"
@@ -901,6 +912,7 @@ return (
       description="Sasaran kerja aktif yang terhubung hierarkis ke Balanced Scorecard perusahaan, lengkap dengan input realisasi."
       onOpen={() => setOpenFeature('okr')}
     />
+    )}
     <FeatureCard
       icon={GraduationCap}
       title="Pengembangan & Pembelajaran"
