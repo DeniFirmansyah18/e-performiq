@@ -6,6 +6,7 @@ import { nineBoxCopy } from '@/lib/employee/nineBoxLabels';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
+  ArrowLeft,
   Building2,
   Filter,
   Calendar,
@@ -191,16 +192,44 @@ export default function NineBoxMatrixPage() {
   const [isReloading, setIsReloading] = useState(false);
   const [reloadOk, setReloadOk] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number> } | null>(null);
+  const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number>; talent_quadrants?: any[] } | null>(null);
+
+  // Pegawai per kuadran dari API — dipakai panel inspeksi (data nyata, bukan contoh).
+  const [pegawaiPerKotak, setPegawaiPerKotak] = useState<Record<string, any[]>>({});
+
+/** Mengubah respons API menjadi peta "kode kuadran" -> daftar pegawai. */
+  const petakanPegawai = (data: any) => {
+    const peta: Record<string, any[]> = {};
+    const daftar: any[] = Array.isArray(data?.talent_quadrants) ? data.talent_quadrants : [];
+    for (const q of daftar) {
+      if (q && typeof q.quadrant === 'string' && Array.isArray(q.employees)) {
+        peta[q.quadrant] = q.employees;
+      }
+    }
+    return peta;
+  };
 
   // Task 8: jumlah per kuadran dari DB (bukan konstanta 1,240/42/180/12).
   useEffect(() => {
     let active = true;
+    // Daftar pegawai per kotak hanya ada di endpoint distribusi (bukan summary).
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/analytics/nine-box-distribution');
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        if (active) setPegawaiPerKotak(petakanPegawai(json?.data));
+      } catch {
+        /* panel tetap menampilkan keadaan kosong bila API tidak tersedia */
+      }
+    })();
     (async () => {
       try {
         const res = await fetch('/api/v1/performance/nine-box-summary');
         if (!res.ok) return;
         const json = await res.json();
+        // Hanya ringkasan angka; daftar pegawai berasal dari endpoint distribusi
+        // di atas agar tidak tertimpa peta kosong.
         if (active) setSummary(json?.data ?? null);
       } catch {
         /* biarkan nilai demo bila API tidak tersedia */
@@ -233,7 +262,10 @@ export default function NineBoxMatrixPage() {
     });
   };
 
-  const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];;
+  const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
+
+  /** Daftar pegawai nyata untuk kotak yang sedang dipilih. */
+  const pegawaiKotakIni: any[] = pegawaiPerKotak[currentQuadrant.quadrantKey] ?? [];
 
   /** Jumlah karyawan per kotak; "—" bila ringkasan belum dimuat (0 berarti kosong, beda arti). */
   const boxCount = (code: string): string => {
@@ -285,6 +317,12 @@ export default function NineBoxMatrixPage() {
       {/* 1. Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
+          <Link
+            href="/dashboard/hr-command"
+            className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke HR Command Center
+          </Link>
           {/* Breadcrumb & GCG Tag */}
           <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">
             <span className="font-semibold tracking-wider text-[#64748b]">GAMBARAN TALENTA & KADERISASI</span>
@@ -736,85 +774,45 @@ export default function NineBoxMatrixPage() {
               </div>
             )}
 
-            {/* Candidate Cards List */}
+            {/* Daftar pegawai nyata pada kotak terpilih (dari API 9-Box) */}
             <div className="mt-4 space-y-3">
-              {currentQuadrant.candidates.length === 0 && (
+              {pegawaiKotakIni.length === 0 && (
                 <div className="p-4 rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc]/50 text-center">
                   <p className="text-[11px] text-[#64748b]">
-                    Detail kandidat per kuadran belum tersedia. Skor 9-Box dihitung dari hasil penilaianrasi
-                    penilaian kinerja; daftar kandidat akan tampil setelah penilaian tersimpan.
+                    {summary ? 'Belum ada karyawan di kotak ini.' : 'Memuat data karyawan…'}
                   </p>
                 </div>
               )}
-              {currentQuadrant.candidates.map((cand) => (
-                <div 
-                  key={cand.id} 
-                  className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]/50 hover:bg-white hover:border-[#cbd5e1] hover:shadow-xs transition-all space-y-2.5"
+
+              {pegawaiKotakIni.map((p) => (
+                <div
+                  key={String(p.employee_id)}
+                  className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]/50 hover:bg-white hover:border-[#cbd5e1] hover:shadow-xs transition-all space-y-2"
                 >
-                  {/* Avatar & Top Info */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <img
-                        src={cand.avatarUrl}
-                        alt={cand.name}
-                        className="w-9 h-9 rounded-full object-cover border border-[#e2e8f0] shadow-xs"
-                      />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-[#0f172a]">{cand.name}</span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.2 rounded-full ${
-                            cand.readinessBadge === 'SIAP_SEKARANG'
-                              ? 'bg-[#dcfce7] text-[#166534]'
-                              : cand.readinessBadge === 'SIAP_1_2_TAHUN'
-                              ? 'bg-[#e0f2fe] text-[#0369a1]'
-                              : 'bg-[#fee2e2] text-[#dc2626]'
-                          }`}>
-                            {READINESS_LABEL[cand.readinessBadge]}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-[#64748b]">
-                          NIP: {cand.nip} • Masa Kerja: {cand.tenure}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Target Succession & Score */}
-                  <div className="text-[11px] grid grid-cols-2 gap-2 pt-1 border-t border-[#f1f5f9]">
                     <div>
-                      <span className="text-[#64748b] text-[10px] block">Target Jabatan Suksesi:</span>
-                      <span className="font-bold text-[#1e293b] text-[11px]">{cand.targetRole}</span>
+                      <p className="text-xs font-bold text-[#0f172a]">{p.full_name}</p>
+                      <p className="text-[10px] text-[#64748b]">
+                        NIP: {p.employee_code ?? '—'}
+                        {p.position ? ` • ${p.position}` : ''}
+                      </p>
+                      {p.department && (
+                        <p className="text-[10px] text-[#64748b]">{p.department}</p>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <span className="text-[#64748b] text-[10px] block">Composite Performance:</span>
-                      <span className="font-bold text-[#007a5a] text-[11px]">{cand.compositeIndex}</span>
-                    </div>
+                    {p.performance_rating && (
+                      <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333]">
+                        Peringkat {p.performance_rating}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Competency Gap Analysis */}
-                  <div className="text-[11px] bg-white rounded-lg p-2 border border-[#f1f5f9]">
-                    <div className="flex items-center justify-between text-[10px] mb-1">
-                      <span className="text-[#64748b]">Kesiapan Kompetensi (Gap Analysis):</span>
-                      <span className="font-bold text-[#0f172a]">{cand.competencyReadiness}</span>
-                    </div>
-                    <p className="text-[10px] text-[#b45309] font-medium">
-                      Gap: {cand.competencyGap}
-                    </p>
+                  <div className="text-[11px] flex items-center justify-between pt-2 border-t border-[#f1f5f9]">
+                    <span className="text-[#64748b] text-[10px]">Nilai kinerja keseluruhan</span>
+                    <span className="font-bold text-[#007a5a]">
+                      {typeof p.composite_gpa === 'number' ? p.composite_gpa.toFixed(2) : '—'}
+                    </span>
                   </div>
-
-                  {/* IDP & Detail Link */}
-                  <div className="flex items-center justify-between pt-1 text-[11px]">
-                    <div className="text-[10px] text-[#64748b]">
-                      <span className="font-medium text-[#334155]">IDP:</span> {cand.idp}
-                    </div>
-                    <Link
-                      href="/dashboard/employee-portal"
-                      className="text-[10px] font-bold text-[#007a5a] hover:underline inline-flex items-center gap-0.5"
-                    >
-                      Detail Dossier <ArrowRight className="w-2.5 h-2.5" />
-                    </Link>
-                  </div>
-
                 </div>
               ))}
             </div>
