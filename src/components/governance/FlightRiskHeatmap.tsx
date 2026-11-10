@@ -135,7 +135,7 @@ export default function FlightRiskHeatmap() {
               Peringatan Dini Attrition &amp; Burnout
             </h3>
             <p className="text-[11px] text-slate-500">
-              PRD §5.4 — dihitung dari absensi, lembur, DPI harian, penilaian 360, dan masa kontrak
+              Dihitung dari absensi, lembur, DPI harian, penilaian 360, dan masa kontrak
             </p>
           </div>
         </div>

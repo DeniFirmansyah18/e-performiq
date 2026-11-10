@@ -5,15 +5,15 @@ import { assertCan } from '@/lib/auth/rbac';
 import { BusinessRuleError } from '@/lib/auth/errors';
 import {
   selectMppSummary,
-  insertAssessment,
   selectOnboardingList,
   updateProbationStatus,
-  CreateAssessmentInput,
 } from '@/lib/repositories/preEmploymentRepository';
 import { logAction } from './auditService';
 
 export async function getMppSummaryData(db: Db, fiscalYear = 2026) {
-  const { plans, assessments } = await selectMppSummary(db, fiscalYear);
+  // FPTK/asesmen rekrutmen dihapus: tabel recruitment_assessments tidak lagi dibaca.
+  const { plans } = await selectMppSummary(db, fiscalYear);
+  const assessments: Array<{ computedQoH?: unknown; timeToFillDays?: unknown }> = [];
 
   const totalApprovedQuota = plans.reduce((acc, p) => acc + Number(p.approvedQuota), 0);
   const totalHired = plans.reduce((acc, p) => acc + Number(p.hiredCount), 0);
@@ -77,36 +77,6 @@ export async function getMppSummaryData(db: Db, fiscalYear = 2026) {
   };
 }
 
-export async function registerCandidateAssessment(
-  db: Db,
-  session: SessionPayload,
-  data: CreateAssessmentInput
-) {
-  if (!['SUPER_ADMIN', 'HR_MANAGER'].includes(session.role)) {
-    throw new BusinessRuleError('Hanya HR_MANAGER atau SUPER_ADMIN yang dapat mendaftarkan skor seleksi kandidat.');
-  }
-
-  // Calculate QoH weighted average: Psychometric (30%) + Technical (40%) + Interview (30%)
-  const computedQoH = Number(
-    (data.psychometricScore * 0.30 + data.technicalTestScore * 0.40 + data.competencyInterviewScore * 0.30).toFixed(2)
-  );
-
-  const created = await insertAssessment(db, {
-    ...data,
-    computedQohScore: computedQoH,
-  });
-
-  await logAction(db, {
-    userId: session.userId,
-    actionType: 'CREATE',
-    entityName: 'recruitment_assessments',
-    recordId: created.id,
-    newData: created,
-    description: `Asesmen seleksi kandidat '${data.candidateName}' (QoH: ${computedQoH})`,
-  });
-
-  return created;
-}
 
 export async function getOnboardingMilestones(db: Db) {
   return selectOnboardingList(db);

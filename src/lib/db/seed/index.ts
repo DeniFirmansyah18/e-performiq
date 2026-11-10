@@ -207,13 +207,6 @@ INSERT INTO hiring_requisitions (id, manpower_plan_id, requisition_code, request
   ('51000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000003','FPTK-2026-SPI-003','2026-06-15','2026-06-18',35)
 ON CONFLICT (id) DO NOTHING;
 
--- 3. Recruitment Assessments
-INSERT INTO recruitment_assessments (id, candidate_name, applied_position_id, hiring_requisition_id, psychometric_score, technical_test_score, competency_interview_score, computed_qoh_score, recruitment_cost, time_to_fill_days, hiring_status) VALUES
-  ('52000000-0000-4000-8000-000000000001','Annisa Rahmawati, S.Kom.','a0000000-0000-4000-8000-000000000204','51000000-0000-4000-8000-000000000001',88.00,92.50,86.00,88.80,6500000,22,'HIRED'),
-  ('52000000-0000-4000-8000-000000000002','Bambang Wicaksono, S.T.','a0000000-0000-4000-8000-000000000204','51000000-0000-4000-8000-000000000001',90.00,94.00,89.00,91.00,8200000,28,'OFFERED'),
-  ('52000000-0000-4000-8000-000000000003','Citra Melinda, CFA','a0000000-0000-4000-8000-000000000205','51000000-0000-4000-8000-000000000003',78.00,82.00,80.00,80.00,7000000,35,'INTERVIEWED')
-ON CONFLICT (id) DO NOTHING;
-
 -- 4. Onboarding Milestones (Rian Hidayat)
 INSERT INTO onboarding_milestones (id, employee_id, day_30_score, day_60_score, day_90_score, manager_notes, probation_passed, conversion_date) VALUES
   ('53000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000009',88.00,86.50,89.00,'Adaptasi budaya sangat cepat. Pemahaman arsitektur komponen sangat matang. Direkomendasikan konversi ke Karyawan Tetap (PKWTT).',TRUE,'2026-10-01')

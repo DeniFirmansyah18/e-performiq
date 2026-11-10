@@ -28,40 +28,12 @@ export async function selectMppSummary(db: Db, fiscalYear = 2026) {
      ORDER BY d.department_name ASC
   `);
 
-  const assessmentsResult = await db.execute(sql`
-    SELECT id, candidate_name as "candidateName", computed_qoh_score as "computedQoH",
-           time_to_fill_days as "timeToFillDays", hiring_status as "hiringStatus",
-           recruitment_cost as "recruitmentCost"
-      FROM recruitment_assessments
-  `);
 
   return {
     plans: plansResult.rows as any[],
-    assessments: assessmentsResult.rows as any[],
   };
 }
 
-export async function insertAssessment(db: Db, input: CreateAssessmentInput) {
-  const result = await db.execute(sql`
-    INSERT INTO recruitment_assessments (
-      candidate_name, applied_position_id, hiring_requisition_id,
-      psychometric_score, technical_test_score, competency_interview_score,
-      computed_qoh_score, recruitment_cost, time_to_fill_days, hiring_status
-    ) VALUES (
-      ${input.candidateName},
-      ${input.appliedPositionId}::uuid,
-      ${input.hiringRequisitionId}::uuid,
-      ${input.psychometricScore},
-      ${input.technicalTestScore},
-      ${input.competencyInterviewScore},
-      ${input.computedQohScore},
-      ${input.recruitmentCost ?? 0},
-      ${input.timeToFillDays ?? 0},
-      ${input.hiringStatus ?? 'HIRED'}
-    ) RETURNING id, candidate_name as "candidateName", computed_qoh_score as "computedQoH", hiring_status as "hiringStatus"
-  `);
-  return result.rows[0] as any;
-}
 
 export async function selectOnboardingList(db: Db) {
   const result = await db.execute(sql`
