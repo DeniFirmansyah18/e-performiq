@@ -43,13 +43,20 @@ function StatGrid({ items }: { items: Counted[] }) {
 export default function HrLifecycleControlPanel({
   phase: controlledPhase,
   showPhaseSwitch = false,
+  onPhaseChange,
 }: {
   phase?: WorkPhase;
   showPhaseSwitch?: boolean;
+  /** Dipanggil saat pengguna memilih tahap lain dari kartu tahap. */
+  onPhaseChange?: (phase: WorkPhase) => void;
 } = {}) {
   const [localPhase, setLocalPhase] = useState<WorkPhase>('PRE');
   const phase = controlledPhase ?? localPhase;
-  const setPhase = setLocalPhase;
+  // Mode terkendali: perubahan diteruskan ke induk. Mode lokal: simpan sendiri.
+  const setPhase = (next: WorkPhase) => {
+    if (onPhaseChange) onPhaseChange(next);
+    else setLocalPhase(next);
+  };
   const [summary, setSummary] = useState<LifecycleSummary | null>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
