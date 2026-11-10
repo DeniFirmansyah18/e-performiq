@@ -132,9 +132,10 @@ export async function approveKpi(
     throw new NotFoundError(`KPI dengan ID '${kpiId}' tidak ditemukan.`);
   }
 
-  // Employee cannot approve their own KPI
-  if (session.employeeId === kpi.employeeId && session.role === 'EMPLOYEE') {
-    throw new ForbiddenError('Karyawan tidak memiliki wewenang untuk menyetujui KPI miliknya sendiri.');
+  // Menyetujui KPI adalah menilai orang lain, jadi berlaku untuk SEMUA peran:
+  // HR dan People Manager pun tidak boleh menyetujui KPI miliknya sendiri.
+  if (session.employeeId && session.employeeId === kpi.employeeId) {
+    throw new ForbiddenError('Anda tidak dapat menyetujui KPI milik sendiri.');
   }
 
   const scope = await resolveVisibleEmployeeIds(db, session);
