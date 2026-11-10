@@ -839,8 +839,9 @@ export default function HROperationsPage() {
 
                   {mainTab === 'overview' && (
                     <div className="space-y-6">
-                      <TargetAchievementCard title="Indikator Pencapaian Target Organisasi" />
+                      {/* Ringkasan & sebaran talenta lebih dulu, indikator target menyusul. */}
                       <HrOverviewAnalyticsPanel />
+                      <TargetAchievementCard title="Indikator Pencapaian Target Organisasi" />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <CostOfWorkforceCard />
                         <FlightRiskHeatmap />
@@ -851,7 +852,7 @@ export default function HROperationsPage() {
 
                   {mainTab === 'lifecycle' && (
                     <div className="space-y-3" ref={phaseBlockRef}>
-                      <HrLifecycleControlPanel phase={activePhase ?? 'PRE'} />
+                      <HrLifecycleControlPanel phase={activePhase ?? 'PRE'} showPhaseSwitch />
                       {/* Pemilih fase tunggal: tiga tombol selalu tampil, dan hanya
                           isi di bawahnya yang berganti sesuai fase terpilih. */}
                       <div

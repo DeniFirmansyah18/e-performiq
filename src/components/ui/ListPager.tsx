@@ -25,6 +25,8 @@ export interface ListPagerProps<T> {
   searchPlaceholder?: string;
   /** Jumlah baris per halaman (default 10). */
   pageSize?: number;
+  /** Jumlah tombol nomor halaman yang ditampilkan sekaligus (default 5). */
+  maxPageButtons?: number;
   /** Tinggi maksimum area gulir (default 420px). */
   maxHeight?: string;
   /** Label satuan, mis. "alumni". */
@@ -46,6 +48,7 @@ export default function ListPager<T>({
   searchText,
   searchPlaceholder,
   pageSize = 10,
+  maxPageButtons = 5,
   maxHeight = '420px',
   itemLabel = 'data',
   emptyMessage = 'Belum ada data.',
@@ -67,6 +70,14 @@ export default function ListPager<T>({
     setQuery(v);
     setPage(1);
   };
+
+  // Jendela nomor halaman: maksimal `maxPageButtons`, mengikuti halaman aktif.
+  const jendela = Math.max(1, Math.floor(maxPageButtons));
+  const mulaiNomor = Math.max(1, Math.min(safePage - Math.floor(jendela / 2), totalPages - jendela + 1));
+  const nomorHalaman = Array.from(
+    { length: Math.min(jendela, totalPages) },
+    (_, i) => mulaiNomor + i
+  );
 
   // Data terlalu sedikit: tidak perlu kotak pencarian maupun paginasi.
   const perluKontrol = items.length > pageSize;
@@ -118,9 +129,29 @@ export default function ListPager<T>({
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <span className="font-semibold text-[#334155]">
+
+            {/* Nomor halaman, dibatasi `maxPageButtons` (bawaan 5) dan digeser
+                agar halaman aktif selalu terlihat. */}
+            {nomorHalaman.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPage(n)}
+                aria-label={`Halaman ${n}`}
+                aria-current={n === safePage ? 'page' : undefined}
+                className={`min-w-[26px] h-[26px] rounded-lg border text-[11px] font-semibold transition-colors ${
+                  n === safePage
+                    ? 'bg-[#007a5a] border-[#007a5a] text-white'
+                    : 'bg-white border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc]'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            <span className="font-semibold text-[#334155] ml-1">
               Halaman {safePage} / {totalPages}
             </span>
+
             <button
               type="button"
               onClick={() => setPage(safePage + 1)}
