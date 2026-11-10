@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { runSeed } from '@/lib/db/seed';
 import { getDb } from '@/lib/db/client';
 import { NextRequest } from 'next/server';
@@ -97,5 +97,14 @@ describe('Self-service referensi organisasi: departemen & posisi', () => {
     const j = await (await listPlans(getReq('/x', hrCookie))).json();
     expect(j.data.departments.some((d: any) => d.id === newDeptId)).toBe(true);
     expect(j.data.positions.some((p: any) => p.departmentId === newDeptId && p.title === posName)).toBe(true);
+  });
+
+  // Tes ini memakai database bersama, jadi wajib membersihkan dirinya sendiri:
+  // tanpa ini, setiap run meninggalkan satu "Direktorat Uji ..." yang muncul
+  // sebagai departemen palsu pada kartu Indikator Pencapaian Target.
+  afterAll(async () => {
+    const client = await getDb();
+    await client.query('DELETE FROM job_positions WHERE department_id = $1', [newDeptId]).catch(() => {});
+    await client.query('DELETE FROM departments WHERE id = $1', [newDeptId]).catch(() => {});
   });
 });
