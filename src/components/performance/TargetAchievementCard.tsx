@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import AnalisisCapaianAi from '@/components/performance/AnalisisCapaianAi';
 import {
   Target,
   TrendingUp,
@@ -39,6 +40,8 @@ export default function TargetAchievementCard({
   const [expanded, setExpanded] = useState(!compact);
   const [activeTab, setActiveTab] = useState<'TEAM' | 'MY_OWN'>('TEAM');
   const [selectedDept, setSelectedDept] = useState<string>(initialDeptId || '');
+  // Paginasi daftar departemen (organisasi bisa punya puluhan divisi).
+  const [halamanDept, setHalamanDept] = useState(1);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -107,6 +110,24 @@ export default function TargetAchievementCard({
   const teamMembers = data.teamMembers ?? [];
   const perspectives = data.perspectives ?? [];
   const departments = data.departments ?? [];
+
+  // Paginasi: 5 departemen per halaman, nomor halaman maksimal 5.
+  const UKURAN_DEPT = 5;
+  const totalHalamanDept = Math.max(1, Math.ceil(departments.length / UKURAN_DEPT));
+  const halamanDeptAman = Math.min(halamanDept, totalHalamanDept);
+  const deptTampil = departments.slice(
+    (halamanDeptAman - 1) * UKURAN_DEPT,
+    halamanDeptAman * UKURAN_DEPT
+  );
+  const jendelaDept = 5;
+  const mulaiDept = Math.max(
+    1,
+    Math.min(halamanDeptAman - Math.floor(jendelaDept / 2), totalHalamanDept - jendelaDept + 1)
+  );
+  const nomorDept = Array.from(
+    { length: Math.min(jendelaDept, totalHalamanDept) },
+    (_, i) => mulaiDept + i
+  );
 
   const pct = data.overallPercentage ?? 0;
   const barWidth = Math.min(100, Math.max(0, pct));
@@ -476,7 +497,7 @@ export default function TargetAchievementCard({
               </div>
 
               <div className="space-y-2">
-                {departments.map((d) => (
+                {deptTampil.map((d) => (
                   <div key={d.departmentId} className="p-3 rounded-xl border border-[#e2e8f0] bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <p className="text-xs font-bold text-[#0f172a]">{d.departmentName}</p>
@@ -510,6 +531,55 @@ export default function TargetAchievementCard({
                   </div>
                 ))}
               </div>
+
+              {/* Navigasi halaman daftar departemen */}
+              {totalHalamanDept > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[#64748b]">
+                  <span>
+                    Menampilkan {(halamanDeptAman - 1) * UKURAN_DEPT + 1}–
+                    {Math.min(halamanDeptAman * UKURAN_DEPT, departments.length)} dari {departments.length} departemen
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setHalamanDept(halamanDeptAman - 1)}
+                      disabled={halamanDeptAman <= 1}
+                      aria-label="Halaman departemen sebelumnya"
+                      className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+                    >
+                      Sebelumnya
+                    </button>
+                    {nomorDept.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setHalamanDept(n)}
+                        aria-label={`Halaman departemen ${n}`}
+                        aria-current={n === halamanDeptAman ? 'page' : undefined}
+                        className={`min-w-[26px] h-[26px] rounded-lg border text-[11px] font-semibold transition-colors ${
+                          n === halamanDeptAman
+                            ? 'bg-[#007a5a] border-[#007a5a] text-white'
+                            : 'bg-white border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setHalamanDept(halamanDeptAman + 1)}
+                      disabled={halamanDeptAman >= totalHalamanDept}
+                      aria-label="Halaman departemen berikutnya"
+                      className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+                    >
+                      Berikutnya
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Bantuan analisis AI: rekomendasi tindakan berdasarkan capaian. */}
+              <AnalisisCapaianAi periodId={periodId} />
 
               {/* Rincian Karyawan di Departemen Terpilih */}
               {selectedDept && teamMembers && teamMembers.length > 0 && (
