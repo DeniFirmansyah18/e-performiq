@@ -8,6 +8,7 @@ import {
   Download,
   Scale,
   UserPlus,
+  UserCheck,
   Inbox,
   Activity,
   ShieldCheck,
@@ -302,15 +303,6 @@ const MPP_PANELS: ReadonlyArray<{
     icon: GraduationCap,
     metric: 'Moodle',
     tag: 'LMS',
-  },
-  {
-    feature: 'appraisal-calibration',
-    title: 'Kalibrasi Nilai Semester',
-    description: 'Moderasi distribusi nilai kinerja sesuai kurva Gaussian korporat.',
-    Panel: () => null,
-    icon: Scale,
-    metric: 'Gaussian',
-    tag: 'Kalibrasi',
   },
   {
     feature: 'cost',
@@ -782,8 +774,6 @@ export default function HROperationsPage() {
             <PositionCourseMappingPanel />
           </div>
         );
-      case 'appraisal-calibration':
-        return <p className="text-xs text-[#64748b]">Kalibrasi dibuka melalui panel Lifecycle Pipeline.</p>;
       case 'cost':
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -833,14 +823,14 @@ export default function HROperationsPage() {
             <span>Ekspor ISO 30414</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => openPanelAtTop('appraisal-calibration')}
+          <Link
+            href="/dashboard/employee-portal"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+            title="Buka Employee Growth Portal untuk melihat data pribadi Anda"
           >
-            <Scale className="h-3.5 w-3.5 text-[#64748b]" />
-            <span>Kalibrasi Nilai Semester</span>
-          </button>
+            <UserCheck className="h-3.5 w-3.5 text-[#64748b]" />
+            <span>Portal Saya</span>
+          </Link>
 
           <button 
             onClick={() => setIsFptkModalOpen(true)}
