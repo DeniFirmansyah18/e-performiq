@@ -982,43 +982,40 @@ export default function HROperationsPage() {
                             );
                           })()}
                         </div>
+                        {/* PANEL_IN_FASE: panel terbuka di bawah kartu fase ini. */}
+                        {openFeature && phasePanels.some((p) => p.feature === openFeature && !p.action) && (
+                          <div className="mt-4">
+                            {phasePanels
+                              .filter((panel) => !panel.action && panel.feature === openFeature)
+                              .map((panel) => (
+                                <ExpandablePanel
+                                  key={`fase-${panel.feature}`}
+                                  open
+                                  title={panel.title}
+                                  onClose={() => setOpenFeature(null)}
+                                >
+                                  <div className="space-y-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenFeature(null)}
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
+                                    >
+                                      <ChevronLeft className="h-3.5 w-3.5" /> Tutup dan kembali ke daftar fitur
+                                    </button>
+                                    <panel.Panel />
+                                    {renderFeatureContent(panel.feature)}
+                                    <AiAnalyzePanel feature="hr" />
+                                  </div>
+                                </ExpandablePanel>
+                              ))}
+                          </div>
+                        )}
                         </div>
                       )}
                     </div>
                   )}
                   <div className="space-y-3">
 
-                  {/* Panel fitur hanya hidup di tab Siklus Karyawan: begitu pengguna
-                      pindah tab, panel otomatis tidak dirender sehingga tidak
-                      terbawa ke tab lain. */}
-                  {mainTab === 'lifecycle' && activePhase !== null &&
-                    phasePanels
-                      .filter((panel) => !panel.action)
-                      .map((panel) => (
-                        <ExpandablePanel
-                          key={panel.feature}
-                          open={openFeature === panel.feature}
-                          title={panel.title}
-                          onClose={() => setOpenFeature(null)}
-                        >
-                          {phaseOf(panel.feature) !== activePhase ? (
-                            <p className="text-xs text-[#64748b]">Pilih fase siklus karyawan terlebih dahulu.</p>
-                          ) : (
-                            <div className="space-y-4">
-                              <button
-                                type="button"
-                                onClick={() => setOpenFeature(null)}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
-                              >
-                                <ChevronLeft className="h-3.5 w-3.5" /> Kembali ke daftar fitur fase
-                              </button>
-                              <panel.Panel />
-                              {renderFeatureContent(panel.feature)}
-                              <AiAnalyzePanel feature="hr" />
-                            </div>
-                          )}
-                        </ExpandablePanel>
-                      ))}
 
       {/* Panel: Lifecycle Pipeline */}
       <ExpandablePanel open={mainTab === 'lifecycle' && openFeature === 'pipeline'} title="Tahapan Siklus & Pipeline Operasional" onClose={() => setOpenFeature(null)}>
