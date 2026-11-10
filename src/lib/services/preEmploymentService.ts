@@ -10,6 +10,22 @@ import {
 } from '@/lib/repositories/preEmploymentRepository';
 import { logAction } from './auditService';
 
+/** True bila `managerEmployeeId` adalah atasan langsung `subordinateEmployeeId`. */
+async function isDirectManagerOf(
+  db: Db,
+  managerEmployeeId: string,
+  subordinateEmployeeId: string
+): Promise<boolean> {
+  if (!subordinateEmployeeId) return false;
+  const res = (await db.execute(sql`
+    SELECT 1 FROM employees
+     WHERE id = ${subordinateEmployeeId}::uuid
+       AND manager_id = ${managerEmployeeId}::uuid
+     LIMIT 1
+  `)) as unknown as { rows: unknown[] };
+  return (res.rows?.length ?? 0) > 0;
+}
+
 export async function getMppSummaryData(db: Db, fiscalYear = 2026) {
   // FPTK/asesmen rekrutmen dihapus: tabel recruitment_assessments tidak lagi dibaca.
   const { plans } = await selectMppSummary(db, fiscalYear);
@@ -94,8 +110,32 @@ export async function evaluateProbationMilestone(
     probationPassed?: boolean;
   }
 ) {
-  if (!['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'].includes(session.role)) {
+  if (!['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'].includes(session.role)) {
     throw new BusinessRuleError('Anda tidak memiliki wewenang untuk mengisi evaluasi probation.');
+  }
+
+  // Evaluasi probation menilai orang, jadi harus oleh pihak lain:
+  // atasan langsungnya, atau HR/Super Admin sebagai pengelola kepegawaian.
+  const pemilik = await db.execute(sql`
+    SELECT employee_id AS "employeeId" FROM onboarding_milestones WHERE id = ${onboardingId}::uuid
+  `);
+  const employeeId = (pemilik as unknown as { rows: Array<{ employeeId: string }> }).rows?.[0]?.employeeId;
+
+  if (employeeId && session.employeeId && employeeId === session.employeeId) {
+    throw new BusinessRuleError('Anda tidak dapat mengevaluasi probation milik sendiri.');
+  }
+
+  const boleh =
+    session.role === 'SUPER_ADMIN' ||
+    session.role === 'HR_MANAGER' ||
+    (session.employeeId
+      ? await isDirectManagerOf(db, session.employeeId, employeeId ?? '')
+      : false);
+
+  if (!boleh) {
+    throw new BusinessRuleError(
+      'Hanya atasan langsung (atau HR) yang boleh mengevaluasi probation karyawan ini.'
+    );
   }
 
   const conversionDate = scores.probationPassed ? new Date().toISOString().split('T')[0] : undefined;
