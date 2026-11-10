@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import HrOverviewAnalyticsPanel from '@/components/governance/HrOverviewAnalyticsPanel';
@@ -147,30 +147,32 @@ describe('HrLifecycleControlPanel (pilar 1 & 6)', () => {
     expect(screen.getByText('50%')).toBeTruthy();
   });
 
-  it('berpindah ke saat-kerja dan menampilkan log aktivitas', async () => {
+  it('berpindah ke saat-kerja dan menampilkan ringkasan, tanpa log aktivitas duplikat', async () => {
     render(<HrLifecycleControlPanel showPhaseSwitch />);
-    await waitFor(() => expect(screen.getByText('Sebelum Kerja')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText(/Sebelum Kerja/)[0]).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Saat Kerja' }));
-    await waitFor(() => expect(screen.getByText(/Log Aktivitas Terbaru/)).toBeTruthy());
-    expect(screen.getByText(/mengisi KPI harian/)).toBeTruthy();
-    expect(screen.getByText(/Budi Pratama/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Saat Kerja/ }));
+    await waitFor(() =>
+      expect(screen.getByText(/Tahap 2 — Saat Kerja/i)).toBeTruthy()
+    );
+    // Log aktivitas penuh sudah ada di tab Ringkasan & Analitik.
+    expect(screen.queryByText(/Log Aktivitas Terbaru/i)).toBeNull();
   });
 
   it('berpindah ke pasca-kerja dan menampilkan progres clearance', async () => {
     render(<HrLifecycleControlPanel showPhaseSwitch />);
-    await waitFor(() => expect(screen.getByText('Sebelum Kerja')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText(/Sebelum Kerja/)[0]).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Setelah Kerja' }));
+    fireEvent.click(screen.getByRole('button', { name: /Setelah Kerja/ }));
     await waitFor(() => expect(screen.getByText(/Rizky Pratama/)).toBeTruthy());
     expect(screen.getByText('100%')).toBeTruthy();
   });
 
   it('tidak menampilkan entitas HTML mentah seperti &bull; pada keterangan', async () => {
     render(<HrLifecycleControlPanel showPhaseSwitch />);
-    await waitFor(() => expect(screen.getByText('Sebelum Kerja')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText(/Sebelum Kerja/)[0]).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Setelah Kerja' }));
+    fireEvent.click(screen.getByRole('button', { name: /Setelah Kerja/ }));
     await waitFor(() => expect(screen.getByText(/Rizky Pratama/)).toBeTruthy());
 
     const body = document.body.textContent ?? '';
@@ -198,8 +200,8 @@ describe('HrLifecycleControlPanel (pilar 1 & 6)', () => {
     });
 
     render(<HrLifecycleControlPanel showPhaseSwitch />);
-    await waitFor(() => expect(screen.getByText('Sebelum Kerja')).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Setelah Kerja' }));
+    await waitFor(() => expect(screen.getAllByText(/Sebelum Kerja/)[0]).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /Setelah Kerja/ }));
     await waitFor(() => expect(screen.getAllByText(/Hendra Gunawan/).length).toBe(2));
 
     const duplicateKey = errors.filter((e) => e.includes('same key'));

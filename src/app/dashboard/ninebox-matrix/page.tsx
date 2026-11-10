@@ -187,6 +187,8 @@ const QUADRANTS: QuadrantData[] = [
 export default function NineBoxMatrixPage() {
   const [openFeature, setOpenFeature] = useState<NineboxFeature | null>(null);
   const [selectedBox, setSelectedBox] = useState<number>(9);
+  // Halaman daftar pegawai pada panel inspeksi (5 per halaman).
+  const [halamanPegawai, setHalamanPegawai] = useState(1);
   const [activeDirectorate, setActiveDirectorate] = useState('Semua Direktorat (Holding)');
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
   const [isReloading, setIsReloading] = useState(false);
@@ -266,6 +268,24 @@ export default function NineBoxMatrixPage() {
 
   /** Daftar pegawai nyata untuk kotak yang sedang dipilih. */
   const pegawaiKotakIni: any[] = pegawaiPerKotak[currentQuadrant.quadrantKey] ?? [];
+
+  // Paginasi daftar pegawai: 5 per halaman, nomor halaman maksimal 5.
+  const UKURAN_HALAMAN_PEGAWAI = 5;
+  const totalHalamanPegawai = Math.max(1, Math.ceil(pegawaiKotakIni.length / UKURAN_HALAMAN_PEGAWAI));
+  const halamanPegawaiAman = Math.min(halamanPegawai, totalHalamanPegawai);
+  const pegawaiTampil = pegawaiKotakIni.slice(
+    (halamanPegawaiAman - 1) * UKURAN_HALAMAN_PEGAWAI,
+    halamanPegawaiAman * UKURAN_HALAMAN_PEGAWAI
+  );
+  const jendelaPegawai = 5;
+  const mulaiNomorPegawai = Math.max(
+    1,
+    Math.min(halamanPegawaiAman - Math.floor(jendelaPegawai / 2), totalHalamanPegawai - jendelaPegawai + 1)
+  );
+  const nomorPegawai = Array.from(
+    { length: Math.min(jendelaPegawai, totalHalamanPegawai) },
+    (_, i) => mulaiNomorPegawai + i
+  );
 
   /** Jumlah karyawan per kotak; "—" bila ringkasan belum dimuat (0 berarti kosong, beda arti). */
   const boxCount = (code: string): string => {
@@ -596,7 +616,11 @@ export default function NineBoxMatrixPage() {
                   return (
                     <div
                       key={quad.id}
-                      onClick={() => setSelectedBox(quad.boxNumber)}
+                      onClick={() => {
+                        setSelectedBox(quad.boxNumber);
+                        // Kotak lain punya daftar berbeda: mulai dari halaman 1.
+                        setHalamanPegawai(1);
+                      }}
                       className={`relative p-3.5 rounded-xl border transition-all cursor-pointer select-none min-h-[125px] flex flex-col justify-between ${
                         isSelected
                           ? 'border-[#007a5a] ring-2 ring-[#007a5a]/20 bg-[#f8fdfa] shadow-xs'
@@ -784,7 +808,7 @@ export default function NineBoxMatrixPage() {
                 </div>
               )}
 
-              {pegawaiKotakIni.map((p) => (
+              {pegawaiTampil.map((p) => (
                 <div
                   key={String(p.employee_id)}
                   className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]/50 hover:bg-white hover:border-[#cbd5e1] hover:shadow-xs transition-all space-y-2"
@@ -815,6 +839,53 @@ export default function NineBoxMatrixPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Navigasi halaman daftar pegawai: nomor maksimal 5. */}
+              {totalHalamanPegawai > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[#64748b]">
+                  <span>
+                    Menampilkan {(halamanPegawaiAman - 1) * UKURAN_HALAMAN_PEGAWAI + 1}–
+                    {Math.min(halamanPegawaiAman * UKURAN_HALAMAN_PEGAWAI, pegawaiKotakIni.length)} dari{' '}
+                    {pegawaiKotakIni.length} pegawai
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setHalamanPegawai(halamanPegawaiAman - 1)}
+                      disabled={halamanPegawaiAman <= 1}
+                      aria-label="Halaman pegawai sebelumnya"
+                      className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+                    >
+                      Sebelumnya
+                    </button>
+                    {nomorPegawai.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setHalamanPegawai(n)}
+                        aria-label={`Halaman pegawai ${n}`}
+                        aria-current={n === halamanPegawaiAman ? 'page' : undefined}
+                        className={`min-w-[26px] h-[26px] rounded-lg border text-[11px] font-semibold transition-colors ${
+                          n === halamanPegawaiAman
+                            ? 'bg-[#007a5a] border-[#007a5a] text-white'
+                            : 'bg-white border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setHalamanPegawai(halamanPegawaiAman + 1)}
+                      disabled={halamanPegawaiAman >= totalHalamanPegawai}
+                      aria-label="Halaman pegawai berikutnya"
+                      className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+                    >
+                      Berikutnya
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
