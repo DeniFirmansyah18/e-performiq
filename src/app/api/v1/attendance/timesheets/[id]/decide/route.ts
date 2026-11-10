@@ -26,6 +26,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
     const row = await decideTimesheet(db, {
       timesheetId: ctx.params.id,
       approverUserId: session.userId,
+      approverEmployeeId: session.employeeId,
       decision: parsed.data.decision,
       note: parsed.data.note,
     });

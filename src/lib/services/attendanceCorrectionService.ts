@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
-import { BusinessRuleError } from '@/lib/auth/errors';
+import { BusinessRuleError, ForbiddenError } from '@/lib/auth/errors';
 
 export interface CorrectionRow {
   id: string;
@@ -58,7 +58,13 @@ export async function requestCorrection(
 
 export async function decideCorrection(
   db: Db,
-  input: { id: string; deciderId: string; decision: 'APPROVED' | 'REJECTED'; note?: string },
+  input: {
+    id: string;
+    deciderId: string;
+    deciderEmployeeId?: string | null;
+    decision: 'APPROVED' | 'REJECTED';
+    note?: string;
+  },
 ): Promise<CorrectionRow> {
   const current = (await db.execute(sql`
     SELECT status, attendance_log_id AS "attendanceLogId",
@@ -76,6 +82,18 @@ export async function decideCorrection(
   if (!row) throw new BusinessRuleError('Pengajuan koreksi tidak ditemukan.');
   if (row.status !== 'SUBMITTED') {
     throw new BusinessRuleError(`Koreksi sudah diputuskan (${row.status}).`);
+  }
+
+  // Memutuskan koreksi adalah keputusan atas orang lain: pemohon tidak boleh
+  // memutuskan koreksinya sendiri meski memegang izin persetujuan.
+  if (input.deciderEmployeeId) {
+    const pemohon = (await db.execute(sql`
+      SELECT employee_id AS "employeeId" FROM attendance_corrections WHERE id = ${input.id}::uuid
+    `)) as unknown as { rows: Array<{ employeeId: string }> };
+    const owner = pemohon.rows?.[0]?.employeeId;
+    if (owner && owner === input.deciderEmployeeId) {
+      throw new ForbiddenError('Anda tidak dapat memutuskan koreksi absensi milik sendiri.');
+    }
   }
 
   if (input.decision === 'APPROVED') {
