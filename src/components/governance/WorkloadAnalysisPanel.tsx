@@ -48,6 +48,9 @@ export default function WorkloadAnalysisPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | EmployeeWorkload['status']>('ALL');
+  // Paginasi di level data: tabel & filter status tetap utuh.
+  const [cari, setCari] = useState('');
+  const [halaman, setHalaman] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -75,6 +78,19 @@ export default function WorkloadAnalysisPanel() {
     const list = data?.employees ?? [];
     return statusFilter === 'ALL' ? list : list.filter((e) => e.status === statusFilter);
   }, [data, statusFilter]);
+
+  // Pencarian + paginasi 10 baris (549 karyawan pada cakupan HR).
+  const UKURAN_HALAMAN = 10;
+  const tersaring = useMemo(() => {
+    const q = cari.trim().toLowerCase();
+    if (!q) return employees;
+    return employees.filter((e) =>
+      `${e.fullName} ${e.employeeCode ?? ''} ${e.departmentName ?? ''}`.toLowerCase().includes(q)
+    );
+  }, [employees, cari]);
+  const totalHalaman = Math.max(1, Math.ceil(tersaring.length / UKURAN_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const tampil = tersaring.slice((halamanAman - 1) * UKURAN_HALAMAN, halamanAman * UKURAN_HALAMAN);
 
   if (loading) {
     return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat ringkasan beban kerja...</div>;
@@ -163,6 +179,17 @@ export default function WorkloadAnalysisPanel() {
             ))}
           </div>
         </div>
+        <input
+          type="search"
+          value={cari}
+          onChange={(e) => {
+            setCari(e.target.value);
+            setHalaman(1);
+          }}
+          placeholder={`Cari dari ${employees.length} pegawai (nama / NIK / unit)...`}
+          aria-label="Cari pegawai"
+          className="w-full h-9 px-3 rounded-lg border border-[#cbd5e1] bg-white text-xs text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+        />
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
@@ -178,14 +205,14 @@ export default function WorkloadAnalysisPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {employees.length === 0 ? (
+              {tersaring.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-6 text-center text-slate-400">
-                    Tidak ada pegawai dengan status ini.
+                    {cari ? 'Tidak ada pegawai yang cocok dengan pencarian.' : 'Tidak ada pegawai dengan status ini.'}
                   </td>
                 </tr>
               ) : (
-                employees.map((emp) => (
+                tampil.map((emp) => (
                   <tr key={emp.employeeId} className="hover:bg-slate-50">
                     <td className="p-3 font-medium text-slate-800">
                       {emp.fullName}
@@ -207,9 +234,42 @@ export default function WorkloadAnalysisPanel() {
                   </tr>
                 ))
               )}
-            </tbody>
+          </tbody>
           </table>
         </div>
+
+        {tersaring.length > UKURAN_HALAMAN && (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#64748b]">
+            <span>
+              {tersaring.length === 0
+                ? '0 pegawai'
+                : `Menampilkan ${(halamanAman - 1) * UKURAN_HALAMAN + 1}–${Math.min(halamanAman * UKURAN_HALAMAN, tersaring.length)} dari ${tersaring.length} pegawai`}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setHalaman(halamanAman - 1)}
+                disabled={halamanAman <= 1}
+                aria-label="Halaman sebelumnya"
+                className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+              >
+                Sebelumnya
+              </button>
+              <span className="font-semibold text-[#334155]">
+                Halaman {halamanAman} / {totalHalaman}
+              </span>
+              <button
+                type="button"
+                onClick={() => setHalaman(halamanAman + 1)}
+                disabled={halamanAman >= totalHalaman}
+                aria-label="Halaman berikutnya"
+                className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -75,6 +75,7 @@ export default function KpiIndicatorPanel({
   periodId?: string;
 }) {
   const [selectedId, setSelectedId] = useState<string>('');
+  const [cariAnggota, setCariAnggota] = useState('');
   const [kpis, setKpis] = useState<ApiKpi[]>([]);
   const [selectedKpiId, setSelectedKpiId] = useState<string>('');
   const [indicators, setIndicators] = useState<ApiIndicator[]>([]);
@@ -297,6 +298,13 @@ export default function KpiIndicatorPanel({
     );
   };
 
+  // Pencarian anggota: dropdown berisi ratusan karyawan pada cakupan HR.
+  const anggotaTersaring = members.filter((m) => {
+    const q = cariAnggota.trim().toLowerCase();
+    if (!q) return true;
+    return `${m.fullName} ${m.employeeCode ?? ''} ${m.department ?? ''}`.toLowerCase().includes(q);
+  });
+
   return (
     <div className="space-y-4">
       {/* Pemilih anggota */}
@@ -315,13 +323,23 @@ export default function KpiIndicatorPanel({
             className="w-full rounded-lg border border-[#cbd5e1] bg-white px-3 py-2 text-xs font-semibold text-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a]"
           >
             {members.length === 0 && <option value="">Tidak ada anggota dalam cakupan</option>}
-            {members.map((m) => (
+            {anggotaTersaring.map((m) => (
               <option key={m.employeeId} value={m.employeeId}>
                 {m.fullName}
                 {m.employeeCode ? ` — ${m.employeeCode}` : ''}
               </option>
             ))}
           </select>
+              {members.length > 10 && (
+                <input
+                  type="search"
+                  value={cariAnggota}
+                  onChange={(e) => setCariAnggota(e.target.value)}
+                  placeholder={`Cari dari ${members.length} karyawan (nama / NIK / unit)...`}
+                  aria-label="Cari anggota"
+                  className="mt-1.5 w-full h-8 px-2.5 rounded-lg border border-[#cbd5e1] bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+                />
+              )}
         </div>
         <div className="flex gap-2">
           <button
