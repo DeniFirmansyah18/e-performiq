@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Users, Check } from 'lucide-react';
+import DataTable from '@/components/ui/DataTable';
 import { useAuth } from '@/lib/context/AuthContext';
 
 interface DirRow {
@@ -88,8 +89,6 @@ export default function ManagerAssignmentPanel() {
             </p>
           </div>
         </div>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama / NIP / unit…"
-          className="rounded-lg border border-[#e2e8f0] px-3 py-1.5 text-xs w-56" />
       </div>
 
       {err && <p className="text-[11px] font-semibold text-rose-600 mb-2">{err}</p>}
@@ -98,43 +97,43 @@ export default function ManagerAssignmentPanel() {
       {loading ? (
         <p className="text-xs text-[#64748b]">Memuat…</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-left text-[10px] uppercase tracking-wide text-[#94a3b8] border-b border-[#e2e8f0]">
-                <th className="py-2 pr-3">NIP</th>
-                <th className="py-2 pr-3">Nama</th>
-                <th className="py-2 pr-3">Unit</th>
-                <th className="py-2 pr-3">Atasan Langsung</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.employeeId} className="border-b border-[#f1f5f9] hover:bg-[#f8fafc]">
-                  <td className="py-2 pr-3 font-mono text-[#334155]">{r.employeeCode ?? '—'}</td>
-                  <td className="py-2 pr-3 font-semibold text-[#0f172a]">{r.fullName}</td>
-                  <td className="py-2 pr-3 text-[#64748b]">{r.department ?? '—'}</td>
-                  <td className="py-2 pr-3">
-                    <select
-                      value={r.managerId ?? ''}
-                      disabled={!canWrite || busyId === r.employeeId}
-                      onChange={(e) => assign(r.employeeId, e.target.value || null)}
-                      className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-xs bg-white disabled:opacity-60 disabled:bg-[#f8fafc] min-w-[190px]"
-                    >
-                      <option value="">— Belum ditetapkan —</option>
-                      {rows
-                        .filter((c) => c.employeeId !== r.employeeId)
-                        .map((c) => (
-                          <option key={c.employeeId} value={c.employeeId}>{c.fullName}</option>
-                        ))}
-                    </select>
-                    {busyId === r.employeeId && <Check className="inline h-3 w-3 ml-2 text-[#137333]" />}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          rows={filtered}
+          rowKey={(r) => r.employeeId}
+          searchPlaceholder="Cari nama / NIP / unit…"
+          initialSearch={search}
+          itemLabel="karyawan"
+          emptyMessage="Belum ada data karyawan."
+          columns={[
+            { key: 'nip', header: 'NIP', value: (r) => r.employeeCode, render: (r) => <span className="font-mono text-[#334155]">{r.employeeCode ?? '—'}</span> },
+            { key: 'nama', header: 'Nama', value: (r) => r.fullName, render: (r) => <span className="font-semibold text-[#0f172a]">{r.fullName}</span> },
+            { key: 'unit', header: 'Unit', value: (r) => r.department, render: (r) => <span className="text-[#64748b]">{r.department ?? '—'}</span> },
+            {
+              key: 'atasan',
+              header: 'Atasan Langsung',
+              value: (r) => rows.find((c) => c.employeeId === r.managerId)?.fullName ?? '',
+              render: (r) => (
+                <div className="flex items-center">
+                  <select
+                    value={r.managerId ?? ''}
+                    disabled={!canWrite || busyId === r.employeeId}
+                    onChange={(e) => assign(r.employeeId, e.target.value || null)}
+                    aria-label={`Atasan langsung ${r.fullName}`}
+                    className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-xs bg-white disabled:opacity-60 disabled:bg-[#f8fafc] min-w-[190px]"
+                  >
+                    <option value="">— Belum ditetapkan —</option>
+                    {rows
+                      .filter((c) => c.employeeId !== r.employeeId)
+                      .map((c) => (
+                        <option key={c.employeeId} value={c.employeeId}>{c.fullName}</option>
+                      ))}
+                  </select>
+                  {busyId === r.employeeId && <Check className="inline h-3 w-3 ml-2 text-[#137333]" />}
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
     </div>
   );
