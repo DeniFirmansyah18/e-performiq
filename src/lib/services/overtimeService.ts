@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
-import { BusinessRuleError } from '@/lib/auth/errors';
+import { BusinessRuleError, ForbiddenError } from '@/lib/auth/errors';
 import { appendActivity } from './activityFeedService';
 
 export type OvertimeStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
@@ -103,10 +103,22 @@ export async function listPendingOvertime(db: Db): Promise<OvertimeRow[]> {
 
 export async function decideOvertime(
   db: Db,
-  input: { id: string; approverId: string; decision: 'APPROVED' | 'REJECTED'; reason?: string },
+  input: { id: string; approverId: string; approverEmployeeId?: string | null; decision: 'APPROVED' | 'REJECTED'; reason?: string },
 ): Promise<OvertimeRow> {
   if (input.decision === 'REJECTED' && !input.reason) {
     throw new BusinessRuleError('Penolakan lembur wajib menyertakan alasan.');
+  }
+
+  // Menyetujui lembur adalah keputusan atas orang lain: pemohon tidak boleh
+  // menyetujui pengajuannya sendiri meski memegang izin `overtime:approve`.
+  if (input.approverEmployeeId) {
+    const pemilik = (await db.execute(sql`
+      SELECT employee_id AS "employeeId" FROM overtime_requests WHERE id = ${input.id}::uuid
+    `)) as unknown as { rows: Array<{ employeeId: string }> };
+    const pemohon = pemilik.rows?.[0]?.employeeId;
+    if (pemohon && pemohon === input.approverEmployeeId) {
+      throw new ForbiddenError('Anda tidak dapat menyetujui lembur milik sendiri.');
+    }
   }
 
   const res = (await db.execute(sql`
