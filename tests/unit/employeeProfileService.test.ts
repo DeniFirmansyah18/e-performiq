@@ -31,9 +31,16 @@ describe('getMyProfile — konteks kepegawaian', () => {
     expect(p.managerName).toBe('Raden Mas Danu, S.T., M.Kom.');
   });
 
-  it('menghitung bawahan langsung untuk People Manager', async () => {
-    const p = await getMyProfile(db, DANU);
-    expect(p.directReportCount).toBeGreaterThan(0);
+  it('menghitung bawahan langsung aktif (mengecualikan RESIGNED/RETIRED)', async () => {
+    // Seed: Danu membina 1 PROBATION + 3 PERMANENT + 3 CONTRACT = 7 aktif.
+    // CONTRACT ikut terhitung — inilah yang menahan ruling status enum.
+    const danu = await getMyProfile(db, DANU);
+    expect(danu.directReportCount).toBe(7);
+
+    // CEO punya 6 bawahan, satu RESIGNED -> harus terhitung 5.
+    // Angka ini yang menahan filter status; tanpa filter, hasilnya 6.
+    const ceo = await getMyProfile(db, HENDRA);
+    expect(ceo.directReportCount).toBe(5);
   });
 
   it('tidak mengirim gaji pokok ke klien', async () => {

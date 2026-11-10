@@ -61,12 +61,16 @@ describe('Profil Saya per peran', () => {
     expect(screen.queryByText(/Dinilai oleh/i)).toBeNull();
   });
 
-  it('gaji pokok tidak pernah dirender', async () => {
+  it('nilai gaji pokok tidak pernah muncul di DOM terlepas dari labelnya', async () => {
+    // Angka sengaja unik (99.000.000) agar dapat dicari apa pun label yang dipakai.
     stub({ ...profilDasar, baseSalary: 99000000 });
     roleRef.current = 'HR_MANAGER';
     render(<MyProfileModal isOpen onClose={() => {}} />);
     await waitFor(() => expect(screen.getByText('Kepegawaian')).toBeTruthy());
-    expect(screen.queryByText(/gaji pokok/i)).toBeNull();
+    const teks = document.body.textContent || '';
+    // Cocokkan angkanya, bukan kata "gaji pokok": 99000000 / 99.000.000 / 99,000,000.
+    expect(teks).not.toMatch(/9\s?9\s?[.,]?\s?0\s?0\s?0\s?[.,]?\s?0\s?0\s?0/);
+    expect(teks).not.toContain('99000000');
   });
 
   it('joinDate kosong tidak menghasilkan NaN', async () => {
