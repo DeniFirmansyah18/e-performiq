@@ -6,27 +6,25 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { UserRole } from '@/types';
 import {
-  LineChart,
-  Network,
+  LineChart,
   CheckSquare,
-  UserCheck,
-  ClipboardCheck,
+  UserCheck,
   ShieldCheck,
 } from 'lucide-react';
 
 type NavItem = { name: string; href: string; icon: any; roles: UserRole[] };
 
 /**
- * Menu bilah atas. Tiap entri hanya untuk peran yang benar-benar membutuhkannya:
- * HR Command Center khusus HR (baca & tulis); BOD memantau lewat Offboarding &
- * Clearance (RBAC-nya read-only). SUPER_ADMIN hanya Manajemen Akun karena
- * middleware mengalihkannya dari segmen lain.
+ * Menu bilah atas. Hanya entri yang benar-benar perlu jalan pintas:
+ * - HR Command Center dan tab Kontrol Siklus 3-Fase dicapai lewat tab di dalam
+ *   halaman HR Command Center itu sendiri (Ringkasan & Analitik / Kontrol 3-Fase),
+ *   jadi tidak diduplikasi di sini.
+ * - SUPER_ADMIN hanya Manajemen Akun karena middleware mengalihkannya dari
+ *   segmen lain.
  */
 const NAV_ITEMS: NavItem[] = [
   { name: 'Executive Boardroom', href: '/dashboard/executive', icon: LineChart, roles: ['BOD'] },
-  { name: 'HR Ops Command Center', href: '/dashboard/hr-command', icon: Network, roles: ['HR_MANAGER'] },
   { name: 'Manager Evaluation Cockpit', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER'] },
-  { name: 'Offboarding & Clearance', href: '/dashboard/hr-command?tab=lifecycle&phase=POST', icon: ClipboardCheck, roles: ['HR_MANAGER', 'BOD'] },
   { name: 'Manajemen Akun', href: '/dashboard/account-management', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
 ];
 
