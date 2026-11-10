@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Search, Users, X, Target, Award } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
 
@@ -49,6 +50,7 @@ export default function EmployeeDirectoryPanel({
 }: { initialSearch?: string } = {}) {
   const [employees, setEmployees] = useState<DirectoryEmployee[]>([]);
   const [search, setSearch] = useState(initialSearch ?? '');
+  const [filterDept, setFilterDept] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,17 +75,25 @@ export default function EmployeeDirectoryPanel({
     };
   }, []);
 
+  // Daftar departemen unik untuk pilihan filter.
+  const daftarDept = useMemo(
+    () => Array.from(new Set(employees.map((e) => e.department).filter(Boolean) as string[])).sort(),
+    [employees]
+  );
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return employees.slice(0, 50);
-    return employees
+    // Filter departemen lebih dulu, lalu pencarian teks di dalamnya.
+    const basis = filterDept ? employees.filter((e) => e.department === filterDept) : employees;
+    if (!term) return basis.slice(0, 50);
+    return basis
       .filter((e) =>
         [e.fullName, e.employeeCode, e.department, e.position]
           .filter(Boolean)
           .some((field) => String(field).toLowerCase().includes(term))
       )
       .slice(0, 50);
-  }, [employees, search]);
+  }, [employees, search, filterDept]);
 
   async function openDetail(employeeId: string) {
     setDetailLoading(true);
@@ -120,7 +130,37 @@ export default function EmployeeDirectoryPanel({
           </h3>
         </div>
 
-        <div className="border-t border-slate-100 pt-3">
+        <div className="border-t border-slate-100 pt-3 space-y-3">
+          {/* Filter departemen: menyaring daftar sebelum pencarian teks. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="filter-dept" className="text-[11px] font-semibold text-slate-600">
+              Departemen
+            </label>
+            <select
+              id="filter-dept"
+              aria-label="Filter departemen"
+              value={filterDept}
+              onChange={(e) => setFilterDept(e.target.value)}
+              className="text-[11px] rounded-lg border border-[#cbd5e1] px-2 py-1.5 bg-white font-medium text-[#334155] min-w-[12rem]"
+            >
+              <option value="">Semua departemen</option>
+              {daftarDept.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            {filterDept && (
+              <button
+                type="button"
+                onClick={() => setFilterDept('')}
+                className="text-[11px] font-semibold text-[#007a5a] hover:underline"
+              >
+                Hapus filter
+              </button>
+            )}
+          </div>
+
           <DataTable
             rows={filtered}
             rowKey={(emp) => emp.employeeId}
@@ -139,12 +179,20 @@ export default function EmployeeDirectoryPanel({
                 header: 'Detail',
                 value: () => '',
                 render: (e) => (
-                  <button
-                    onClick={() => openDetail(e.employeeId)}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                  >
-                    Lihat kontribusi
-                  </button>
+                  <div className="flex items-center gap-2.5 whitespace-nowrap">
+                    <Link
+                      href={`/dashboard/employees/${e.employeeId}`}
+                      className="text-xs font-bold text-[#007a5a] hover:underline"
+                    >
+                      Detail Pegawai
+                    </Link>
+                    <button
+                      onClick={() => openDetail(e.employeeId)}
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                    >
+                      Lihat kontribusi
+                    </button>
+                  </div>
                 ),
               },
             ]}
