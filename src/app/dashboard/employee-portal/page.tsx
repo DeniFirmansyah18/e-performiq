@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import { useAuth } from '@/lib/context/AuthContext';
 import {
+  ArrowLeft,
 Download,
 Send,
 Target,
@@ -76,6 +78,18 @@ export default function EmployeePortalPage() {
   // BOD hanya memantau dan tidak dinilai: modul penilaian diri disembunyikan
   // agar tidak muncul halaman KPI/Self-Appraisal yang selalu kosong.
   const isPengawas = currentUser?.role === 'BOD';
+  // HR menilai karyawan, bukan dinilai lewat portal: kartu Indikator Pencapaian
+  // Target dan modul penilaian diri tidak ditampilkan untuknya.
+  const isPenilai = currentUser?.role === 'HR_MANAGER';
+  const sembunyikanPenilaian = isPengawas || isPenilai;
+  // Dashboard asal per peran, untuk tombol kembali.
+  const dashboardAsal: Record<string, { href: string; label: string }> = {
+    HR_MANAGER: { href: '/dashboard/hr-command', label: 'HR Command Center' },
+    PEOPLE_MANAGER: { href: '/dashboard/manager-cockpit', label: 'Manager Cockpit' },
+    BOD: { href: '/dashboard/executive', label: 'Executive Boardroom' },
+    SUPER_ADMIN: { href: '/dashboard/account-management', label: 'Manajemen Akun' },
+  };
+  const kembali = currentUser?.role ? dashboardAsal[currentUser.role] : undefined;
 const [openFeature, setOpenFeature] = useState<EmployeeFeature | null>(null);
 const [kpis, setKpis] = useState<any[]>([]);
 const [scorecard, setScorecard] = useState<any | null>(null);
@@ -580,6 +594,14 @@ return (
       
   {/* 0. Header */}
   <div>
+    {kembali && (
+      <Link
+        href={kembali.href}
+        className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke {kembali.label}
+      </Link>
+    )}
     <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">
       <span className="font-bold uppercase tracking-wider text-[#64748b]">
         Employee Growth Portal
@@ -1072,8 +1094,9 @@ return (
     </>
   )}
 
-  {/* Indikator Pencapaian Target Individu — selalu tampil, di luar panel yang harus dibuka */}
-  <TargetAchievementCard periodId={selectedPeriod} />
+  {/* Indikator Pencapaian Target Individu — kartu penilaian diri; tidak
+      ditampilkan untuk HR (penilai) maupun BOD (pemantau). */}
+  {!sembunyikanPenilaian && <TargetAchievementCard periodId={selectedPeriod} />}
 
   {/* Panel: Nilai Kinerja */}
   <ExpandablePanel open={openFeature === 'scorecard'} title="Nilai Kinerja (Scorecard)" onClose={() => setOpenFeature(null)}>
