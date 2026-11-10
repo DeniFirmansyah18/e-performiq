@@ -11,6 +11,7 @@
  * factor) agar keduanya koeksis. Deterministik, driver-agnostic, best-effort.
  */
 import { sql } from 'drizzle-orm';
+import { ForbiddenError, BusinessRuleError } from '@/lib/auth/errors';
 import type { Db } from '@/lib/db/client';
 
 export interface GeoPoint {
@@ -278,8 +279,26 @@ export async function listPendingTimesheets(db: Db, managerEmployeeId: string): 
 /** Approve/reject timesheet oleh atasan. */
 export async function decideTimesheet(
   db: Db,
-  payload: { timesheetId: string; approverUserId: string; decision: 'APPROVED' | 'REJECTED'; note?: string },
+  payload: {
+    timesheetId: string;
+    approverUserId: string;
+    approverEmployeeId?: string | null;
+    decision: 'APPROVED' | 'REJECTED';
+    note?: string;
+  },
 ): Promise<TimesheetRow | null> {
+  // Menyetujui timesheet adalah keputusan atas orang lain: pemilik timesheet
+  // tidak boleh menyetujui miliknya sendiri meski memegang `attendance:approve`.
+  if (payload.approverEmployeeId) {
+    const pemilik = (await db.execute(sql`
+      SELECT employee_id AS "employeeId" FROM daily_timesheets WHERE id = ${payload.timesheetId}::uuid
+    `)) as unknown as { rows: Array<{ employeeId: string }> };
+    const owner = pemilik.rows?.[0]?.employeeId;
+    if (owner && owner === payload.approverEmployeeId) {
+      throw new ForbiddenError('Anda tidak dapat menyetujui timesheet milik sendiri.');
+    }
+  }
+
   const res = (await db.execute(sql`
     UPDATE daily_timesheets
        SET approval_status = ${payload.decision}, approved_by = ${payload.approverUserId}::uuid,
