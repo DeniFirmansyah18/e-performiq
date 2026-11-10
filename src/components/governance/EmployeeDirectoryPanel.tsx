@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Users, X, Target, Award } from 'lucide-react';
+import DataTable from '@/components/ui/DataTable';
 
 interface DirectoryEmployee {
   employeeId: string;
@@ -117,60 +118,37 @@ export default function EmployeeDirectoryPanel({
           <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-600" /> Direktori Pegawai
           </h3>
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari nama, NIK, departemen, atau posisi..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
         </div>
 
-        <div className="overflow-x-auto border-t border-slate-100 pt-3">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">NIK</th>
-                <th className="p-3">Nama</th>
-                <th className="p-3">Departemen</th>
-                <th className="p-3">Posisi</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Detail</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-400">
-                    Tidak ada pegawai yang cocok dengan pencarian.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((emp) => (
-                  <tr key={emp.employeeId} className="hover:bg-slate-50">
-                    <td className="p-3 font-mono text-[11px] text-slate-500">
-                      {emp.employeeCode ?? '-'}
-                    </td>
-                    <td className="p-3 font-medium text-slate-800">{emp.fullName}</td>
-                    <td className="p-3">{emp.department ?? '-'}</td>
-                    <td className="p-3">{emp.position ?? '-'}</td>
-                    <td className="p-3">{emp.status ?? '-'}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => openDetail(emp.employeeId)}
-                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                      >
-                        Lihat kontribusi
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border-t border-slate-100 pt-3">
+          <DataTable
+            rows={filtered}
+            rowKey={(emp) => emp.employeeId}
+            searchPlaceholder="Cari nama, NIK, departemen, atau posisi..."
+            initialSearch={search}
+            itemLabel="pegawai"
+            emptyMessage="Belum ada data pegawai."
+            columns={[
+              { key: 'nik', header: 'NIK', value: (e) => e.employeeCode, render: (e) => <span className="font-mono text-[11px] text-slate-500">{e.employeeCode ?? '-'}</span> },
+              { key: 'nama', header: 'Nama', value: (e) => e.fullName, render: (e) => <span className="font-medium text-slate-800">{e.fullName}</span> },
+              { key: 'dept', header: 'Departemen', value: (e) => e.department, render: (e) => e.department ?? '-' },
+              { key: 'pos', header: 'Posisi', value: (e) => e.position, render: (e) => e.position ?? '-' },
+              { key: 'status', header: 'Status', value: (e) => e.status, render: (e) => e.status ?? '-' },
+              {
+                key: 'detail',
+                header: 'Detail',
+                value: () => '',
+                render: (e) => (
+                  <button
+                    onClick={() => openDetail(e.employeeId)}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                  >
+                    Lihat kontribusi
+                  </button>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
 
