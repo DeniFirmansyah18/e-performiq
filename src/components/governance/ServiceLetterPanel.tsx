@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { FileSignature, Stamp } from 'lucide-react';
+import ListPager from '@/components/ui/ListPager';
 
 /** Panel penerbitan surat keterangan kerja (paklaring) dan verifikasinya. */
 const LETTER_TYPES = [
@@ -191,23 +192,30 @@ export default function ServiceLetterPanel() {
         <p className="text-[11px] font-bold text-[#0f172a]">Surat terbit ({letters.length})</p>
         {loading ? (
           <p className="text-[11px] text-[#64748b]">Memuat daftar surat...</p>
-        ) : letters.length === 0 ? (
-          <p className="text-[11px] text-[#64748b] p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
-            Belum ada surat yang diterbitkan.
-          </p>
         ) : (
-          letters.map((l) => (
-            <div key={l.id} className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] text-[11px]">
-              <p className="font-bold text-[#0f172a]">
-                {l.letterTypeLabel} · {l.employeeName}
-              </p>
-              <p className="text-[#64748b]">
-                Nomor {l.letterNumber} · terbit {l.issuedDate}
-                {l.verificationCode ? ` · kode ${l.verificationCode}` : ''}
-                {l.purpose ? ` · ${l.purpose}` : ''}
-              </p>
-            </div>
-          ))
+          <ListPager
+            items={letters}
+            itemKey={(l) => l.id}
+            itemLabel="surat"
+            emptyMessage="Belum ada surat yang diterbitkan."
+            searchPlaceholder="Cari nama pegawai, jenis surat, atau nomor..."
+            searchText={(l) =>
+              `${l.letterTypeLabel} ${l.employeeName} ${l.letterNumber} ${l.verificationCode ?? ''} ${l.purpose ?? ''}`
+            }
+            maxHeight="440px"
+            renderItem={(l) => (
+              <div className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] text-[11px]">
+                <p className="font-bold text-[#0f172a]">
+                  {l.letterTypeLabel} · {l.employeeName}
+                </p>
+                <p className="text-[#64748b]">
+                  Nomor {l.letterNumber} · terbit {l.issuedDate}
+                  {l.verificationCode ? ` · kode ${l.verificationCode}` : ''}
+                  {l.purpose ? ` · ${l.purpose}` : ''}
+                </p>
+              </div>
+            )}
+          />
         )}
       </div>
     </div>

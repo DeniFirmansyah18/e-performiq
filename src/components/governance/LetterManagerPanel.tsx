@@ -58,6 +58,9 @@ export default function LetterManagerPanel() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Paginasi di level data: tidak mengubah struktur JSX daftar (yang bersarang).
+  const [cari, setCari] = useState('');
+  const [halaman, setHalaman] = useState(1);
 
   const [form, setForm] = useState({
     agendaNumber: '',
@@ -158,6 +161,22 @@ export default function LetterManagerPanel() {
     }
   };
 
+  // Penyaringan + paginasi daftar surat (10 per halaman).
+  const UKURAN_HALAMAN = 10;
+  const suratTersaring = letters.filter((l) => {
+    const q = cari.trim().toLowerCase();
+    if (!q) return true;
+    return `${l.agendaNumber} ${l.subject} ${l.sender ?? ''} ${l.classification}`
+      .toLowerCase()
+      .includes(q);
+  });
+  const totalHalaman = Math.max(1, Math.ceil(suratTersaring.length / UKURAN_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const suratTampil = suratTersaring.slice(
+    (halamanAman - 1) * UKURAN_HALAMAN,
+    halamanAman * UKURAN_HALAMAN
+  );
+
   return (
     <div className="p-5 rounded-2xl border border-[#e2e8f0] bg-white space-y-4">
       <div className="flex items-center justify-between">
@@ -256,8 +275,22 @@ export default function LetterManagerPanel() {
       {/* Register */}
       {loading && <p className="text-[11px] text-[#64748b]">Memuat surat…</p>}
 
+      {!loading && letters.length > 10 && (
+        <input
+          type="search"
+          value={cari}
+          onChange={(e) => {
+            setCari(e.target.value);
+            setHalaman(1);
+          }}
+          placeholder="Cari nomor agenda, perihal, atau pengirim..."
+          aria-label="Cari nomor agenda, perihal, atau pengirim..."
+          className="w-full h-9 px-3 rounded-lg border border-[#cbd5e1] bg-white text-xs text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+        />
+      )}
+
       <ul className="divide-y divide-[#e2e8f0]">
-        {letters.map((l) => (
+        {suratTampil.map((l) => (
           <li key={l.id} className="py-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-bold text-[#0f172a]">{l.agendaNumber}</span>
@@ -386,7 +419,43 @@ export default function LetterManagerPanel() {
         {!loading && letters.length === 0 && (
           <li className="py-3 text-[11px] text-[#64748b]">Belum ada surat terdaftar.</li>
         )}
+        {!loading && letters.length > 0 && suratTersaring.length === 0 && (
+          <li className="py-3 text-[11px] text-[#64748b]">Tidak ada surat yang cocok dengan pencarian.</li>
+        )}
       </ul>
+
+      {letters.length > UKURAN_HALAMAN && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#64748b]">
+          <span>
+            {suratTersaring.length === 0
+              ? '0 surat'
+              : `Menampilkan ${(halamanAman - 1) * UKURAN_HALAMAN + 1}–${Math.min(halamanAman * UKURAN_HALAMAN, suratTersaring.length)} dari ${suratTersaring.length} surat`}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setHalaman(halamanAman - 1)}
+              disabled={halamanAman <= 1}
+              aria-label="Halaman sebelumnya"
+              className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+            >
+              Sebelumnya
+            </button>
+            <span className="font-semibold text-[#334155]">
+              Halaman {halamanAman} / {totalHalaman}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHalaman(halamanAman + 1)}
+              disabled={halamanAman >= totalHalaman}
+              aria-label="Halaman berikutnya"
+              className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+            >
+              Berikutnya
+            </button>
+          </div>
+        </div>
+      )}
 
       <p className="flex items-center gap-1 text-[10px] text-[#94a3b8]">
         <Lock className="h-3 w-3" aria-hidden="true" />

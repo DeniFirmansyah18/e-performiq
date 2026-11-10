@@ -19,6 +19,8 @@ const ASSET_CATEGORIES = [
 export default function ClearanceAssetPanel() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [employeeId, setEmployeeId] = useState('');
+  // Pencarian karyawan: dropdown berisi ratusan orang pada cakupan HR.
+  const [cariKaryawan, setCariKaryawan] = useState('');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -157,6 +159,14 @@ export default function ClearanceAssetPanel() {
   const summary = data?.summary;
   const departments = ['HR', 'IT', 'FINANCE', 'MANAGER', 'LEGAL'];
 
+  // Penyaringan pilihan karyawan (aset per-orang, jadi yang besar adalah dropdown).
+  const anggotaTersaring = employees.filter((emp) => {
+    const q = cariKaryawan.trim().toLowerCase();
+    if (!q) return true;
+    const nama = String(emp.fullName ?? emp.full_name ?? emp.name ?? '');
+    return `${nama} ${emp.employeeCode ?? ''}`.toLowerCase().includes(q);
+  });
+
   return (
     <div className="p-5 rounded-2xl border border-[#e2e8f0] bg-white space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -184,13 +194,23 @@ export default function ClearanceAssetPanel() {
           className="mt-1 w-full text-[11px] px-2 py-1.5 border border-[#e2e8f0] rounded-lg"
         >
           <option value="">— Pilih karyawan —</option>
-          {employees.map((emp) => (
+          {anggotaTersaring.map((emp) => (
             <option key={emp.employeeId ?? emp.id} value={emp.employeeId ?? emp.id}>
               {emp.fullName ?? emp.full_name ?? emp.name}
               {emp.employeeCode ? ` (${emp.employeeCode})` : ''}
             </option>
           ))}
         </select>
+        {employees.length > 10 && (
+          <input
+            type="search"
+            value={cariKaryawan}
+            onChange={(e) => setCariKaryawan(e.target.value)}
+            placeholder={`Cari dari ${employees.length} karyawan...`}
+            aria-label="Cari karyawan"
+            className="mt-1.5 w-full h-8 px-2.5 rounded-lg border border-[#e2e8f0] bg-white text-[11px] focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+          />
+        )}
       </label>
 
       {notice && (

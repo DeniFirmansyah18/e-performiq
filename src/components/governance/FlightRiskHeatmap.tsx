@@ -75,6 +75,9 @@ export default function FlightRiskHeatmap() {
   const [loading, setLoading] = useState(true);
   const [recomputing, setRecomputing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Paginasi + pencarian daftar karyawan berisiko.
+  const [cari, setCari] = useState('');
+  const [halaman, setHalaman] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,6 +126,17 @@ export default function FlightRiskHeatmap() {
     (i) => atLeast(i.attritionBand, 'HIGH') || atLeast(i.burnoutBand, 'HIGH'),
   ).length;
 
+  // Penyaringan + paginasi 10 baris.
+  const UKURAN_HALAMAN = 10;
+  const tersaring = items.filter((it) => {
+    const q = cari.trim().toLowerCase();
+    if (!q) return true;
+    return `${it.fullName} ${it.departmentName ?? ''}`.toLowerCase().includes(q);
+  });
+  const totalHalaman = Math.max(1, Math.ceil(tersaring.length / UKURAN_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const tampil = tersaring.slice((halamanAman - 1) * UKURAN_HALAMAN, halamanAman * UKURAN_HALAMAN);
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
@@ -135,7 +149,7 @@ export default function FlightRiskHeatmap() {
               Peringatan Dini Attrition &amp; Burnout
             </h3>
             <p className="text-[11px] text-slate-500">
-              PRD §5.4 — dihitung dari absensi, lembur, DPI harian, penilaian 360, dan masa kontrak
+              Dihitung dari absensi, lembur, DPI harian, penilaian 360, dan masa kontrak
             </p>
           </div>
         </div>
@@ -195,7 +209,21 @@ export default function FlightRiskHeatmap() {
 
       {!loading && !error && items.length > 0 && (
         <div className="space-y-2.5">
-          {items.map((item) => {
+          <input
+            type="search"
+            value={cari}
+            onChange={(e) => {
+              setCari(e.target.value);
+              setHalaman(1);
+            }}
+            placeholder="Cari nama karyawan atau departemen..."
+            aria-label="Cari karyawan berisiko"
+            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+          />
+          {tersaring.length === 0 && (
+            <p className="text-xs text-slate-500 p-2">Tidak ada karyawan yang cocok dengan pencarian.</p>
+          )}
+          {tampil.map((item) => {
             const drivers = topFactors(item.factors);
             return (
               <div
@@ -231,6 +259,37 @@ export default function FlightRiskHeatmap() {
               </div>
             );
           })}
+          {tersaring.length > UKURAN_HALAMAN && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 pt-1">
+              <span>
+                Menampilkan {(halamanAman - 1) * UKURAN_HALAMAN + 1}–
+                {Math.min(halamanAman * UKURAN_HALAMAN, tersaring.length)} dari {tersaring.length} karyawan
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setHalaman(halamanAman - 1)}
+                  disabled={halamanAman <= 1}
+                  aria-label="Halaman sebelumnya"
+                  className="px-2 py-1 rounded-lg border border-slate-200 bg-white disabled:opacity-40"
+                >
+                  Sebelumnya
+                </button>
+                <span className="font-semibold">
+                  Halaman {halamanAman} / {totalHalaman}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setHalaman(halamanAman + 1)}
+                  disabled={halamanAman >= totalHalaman}
+                  aria-label="Halaman berikutnya"
+                  className="px-2 py-1 rounded-lg border border-slate-200 bg-white disabled:opacity-40"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

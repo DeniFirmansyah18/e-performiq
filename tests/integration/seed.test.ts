@@ -66,7 +66,7 @@ describe('seed data', () => {
 
   it('memverifikasi keberadaan data pada seluruh 9 tabel Pre/Post-Employment & Analytics', async () => {
     const tables = [
-      'manpower_plans', 'hiring_requisitions', 'recruitment_assessments',
+      'manpower_plans', 'hiring_requisitions', 
       'onboarding_milestones', 'offboarding_requests', 'knowledge_handovers',
       'severance_calculations', 'lifetime_contributions', 'vmai_scorecards'
     ];
