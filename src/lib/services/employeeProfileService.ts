@@ -17,13 +17,25 @@ export const EDITABLE_PROFILE_FIELDS = [
 export type EditableProfileField = (typeof EDITABLE_PROFILE_FIELDS)[number];
 
 const SELECT_PROFILE = (db: Db, employeeId: string) => sql`
-  SELECT id, employee_code AS "employeeCode", full_name AS "fullName", email,
-         phone_number AS "phoneNumber", department_id AS "departmentId", position_id AS "positionId",
-         status, base_salary AS "baseSalary", join_date AS "joinDate",
-         date_of_birth AS "dateOfBirth", address, emergency_contact_name AS "emergencyContactName",
-         emergency_contact_phone AS "emergencyContactPhone", photo_url AS "photoUrl", bio,
-         gender, nik
-    FROM employees WHERE id = ${employeeId}::uuid
+  SELECT e.id, e.employee_code AS "employeeCode", e.full_name AS "fullName", e.email,
+         e.phone_number AS "phoneNumber", e.department_id AS "departmentId", e.position_id AS "positionId",
+         e.status, e.join_date AS "joinDate",
+         e.date_of_birth AS "dateOfBirth", e.address,
+         e.emergency_contact_name AS "emergencyContactName",
+         e.emergency_contact_phone AS "emergencyContactPhone", e.photo_url AS "photoUrl", e.bio,
+         e.gender, e.nik,
+         d.department_name AS "departmentName",
+         jp.position_title AS "positionTitle",
+         m.full_name AS "managerName",
+         m.employee_code AS "managerCode",
+         (SELECT COUNT(*)::int FROM employees c
+           WHERE c.manager_id = e.id
+             AND c.status IN ('PERMANENT','PROBATION','CONTRACT')) AS "directReportCount"
+    FROM employees e
+    LEFT JOIN departments d ON d.id = e.department_id
+    LEFT JOIN job_positions jp ON jp.id = e.position_id
+    LEFT JOIN employees m ON m.id = e.manager_id
+   WHERE e.id = ${employeeId}::uuid
 `;
 
 export async function getMyProfile(db: Db, employeeId: string) {
