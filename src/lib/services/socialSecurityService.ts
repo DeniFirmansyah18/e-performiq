@@ -10,6 +10,8 @@ export interface SocialSecurityMasked {
   bpjsTkStatus: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   bpjsKesStatus: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   registeredAt: string | null;
+  /** false bila pegawai belum punya baris BPJS — bukan kondisi error. */
+  registered: boolean;
 }
 
 /** Menyembunyikan semua digit kecuali 4 terakhir; aman untuk nilai pendek/null. */
@@ -18,6 +20,31 @@ export function maskNumber(value: string | null): string | null {
   const digits = value.replace(/\s+/g, '');
   if (digits.length <= 4) return '•'.repeat(digits.length);
   return '•'.repeat(digits.length - 4) + digits.slice(-4);
+}
+
+/**
+ * Membentuk kartu BPJS. `null` (belum terdaftar) menghasilkan kartu kosong
+ * bertanda `registered: false` agar endpoint dapat menjawab 200 tanpa
+ * memicu log error di browser.
+ */
+export function buildCard(row: SocialSecurityMasked | null): SocialSecurityMasked {
+  if (!row) {
+    return {
+      bpjsTkNumber: null,
+      bpjsKesNumber: null,
+      bpjsKesClass: null,
+      bpjsTkStatus: 'PENDING',
+      bpjsKesStatus: 'PENDING',
+      registeredAt: null,
+      registered: false,
+    };
+  }
+  return {
+    ...row,
+    bpjsTkNumber: maskNumber(row.bpjsTkNumber),
+    bpjsKesNumber: maskNumber(row.bpjsKesNumber),
+    registered: true,
+  };
 }
 
 export async function getSocialSecurity(db: Db, employeeId: string): Promise<SocialSecurityMasked | null> {
@@ -35,6 +62,7 @@ export async function getSocialSecurity(db: Db, employeeId: string): Promise<Soc
     ...row,
     bpjsTkNumber: maskNumber(row.bpjsTkNumber),
     bpjsKesNumber: maskNumber(row.bpjsKesNumber),
+    registered: true,
   };
 }
 
