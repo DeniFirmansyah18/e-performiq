@@ -92,6 +92,11 @@ export default function WorkloadAnalysisPanel() {
   const halamanAman = Math.min(halaman, totalHalaman);
   const tampil = tersaring.slice((halamanAman - 1) * UKURAN_HALAMAN, halamanAman * UKURAN_HALAMAN);
 
+  // Jendela nomor halaman: maksimal 5 tombol, mengikuti halaman aktif.
+  const jendela = 5;
+  const mulaiNomor = Math.max(1, Math.min(halamanAman - Math.floor(jendela / 2), totalHalaman - jendela + 1));
+  const nomorHalaman = Array.from({ length: Math.min(jendela, totalHalaman) }, (_, i) => mulaiNomor + i);
+
   if (loading) {
     return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat ringkasan beban kerja...</div>;
   }
@@ -179,17 +184,21 @@ export default function WorkloadAnalysisPanel() {
             ))}
           </div>
         </div>
-        <input
-          type="search"
-          value={cari}
-          onChange={(e) => {
-            setCari(e.target.value);
-            setHalaman(1);
-          }}
-          placeholder={`Cari dari ${employees.length} pegawai (nama / NIK / unit)...`}
-          aria-label="Cari pegawai"
-          className="w-full h-9 px-3 rounded-lg border border-[#cbd5e1] bg-white text-xs text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
-        />
+
+        {/* Pencarian di dalam kartu, dengan padding & garis pemisah. */}
+        <div className="px-4 py-3 border-b border-slate-100">
+          <input
+            type="search"
+            value={cari}
+            onChange={(e) => {
+              setCari(e.target.value);
+              setHalaman(1);
+            }}
+            placeholder={`Cari dari ${employees.length} pegawai (nama / NIK / unit)...`}
+            aria-label="Cari pegawai"
+            className="w-full h-9 px-3 rounded-lg border border-[#cbd5e1] bg-white text-xs text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
@@ -238,8 +247,9 @@ export default function WorkloadAnalysisPanel() {
           </table>
         </div>
 
+        {/* Navigasi halaman: padding di dalam kartu, nomor halaman maksimal 5. */}
         {tersaring.length > UKURAN_HALAMAN && (
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#64748b]">
+          <div className="px-4 py-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#64748b]">
             <span>
               {tersaring.length === 0
                 ? '0 pegawai'
@@ -255,7 +265,23 @@ export default function WorkloadAnalysisPanel() {
               >
                 Sebelumnya
               </button>
-              <span className="font-semibold text-[#334155]">
+              {nomorHalaman.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setHalaman(n)}
+                  aria-label={`Halaman ${n}`}
+                  aria-current={n === halamanAman ? 'page' : undefined}
+                  className={`min-w-[26px] h-[26px] rounded-lg border text-[11px] font-semibold transition-colors ${
+                    n === halamanAman
+                      ? 'bg-[#007a5a] border-[#007a5a] text-white'
+                      : 'bg-white border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <span className="font-semibold text-[#334155] ml-0.5">
                 Halaman {halamanAman} / {totalHalaman}
               </span>
               <button

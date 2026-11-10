@@ -390,6 +390,27 @@ function resolveInitialTab(): MainTab {
   return (MAIN_TABS as string[]).includes(tab ?? '') ? (tab as MainTab) : 'overview';
 }
 
+/** Penggolongan kotak fitur per fase, agar mudah dipahami orang awam. */
+/** Penggolongan kotak fitur per fase, agar mudah dipahami orang awam. */
+const PANEL_GROUPS: Record<"PRE" | "DURING" | "POST", Array<{ judul: string; ket: string; fitur: string[] }>> = {
+  PRE: [
+    { judul: "Perencanaan Kebutuhan", ket: "Menentukan berapa orang yang dibutuhkan dan untuk posisi apa.", fitur: ["mpp"] },
+    { judul: "Seleksi & Rekrutmen", ket: "Menarik pelamar, menguji kemampuan, dan menjadwalkan wawancara.", fitur: ["recruitment", "interview", "technical-test"] },
+    { judul: "Penerimaan & Berkas", ket: "Mendaftarkan karyawan baru dan memeriksa kelengkapan berkasnya.", fitur: ["registration", "document-verification"] },
+  ],
+  DURING: [
+    { judul: "Administrasi & Kehadiran", ket: "Urusan harian: atasan langsung, cuti, gaji, surat, dan SOP.", fitur: ["manager-assignment", "leave", "payroll", "e-letter", "policy"] },
+    { judul: "Kesejahteraan & Kepatuhan", ket: "Jaminan sosial karyawan dan penanganan pelanggaran aturan.", fitur: ["bpjs", "disciplinary"] },
+    { judul: "Pengembangan Kinerja", ket: "Mengatur jenjang karier dan memantau capaian kinerja.", fitur: ["career-ladder", "scorecard"] },
+    { judul: "Pantauan & Wawasan", ket: "Gambaran menyeluruh untuk pengambilan keputusan.", fitur: ["pipeline", "learning", "cost"] },
+  ],
+  POST: [
+    { judul: "Serah Terima & Pelaporan", ket: "Menyelesaikan aset, clearance, dan laporan sesuai regulasi.", fitur: ["iso-30414", "hr-dashboard", "clearance"] },
+    { judul: "Hak & Dokumen Karyawan", ket: "Menyiapkan surat keterangan dan memenuhi kewajiban pasca-kerja.", fitur: ["service-letter", "offboarding-compliance"] },
+    { judul: "Kaderisasi & Analitik", ket: "Menyiapkan pengganti, mendata alumni, dan menganalisis biaya keluar.", fitur: ["retirement", "alumni", "exit-analytics"] },
+  ],
+};
+
 export default function HROperationsPage() {
   const [mainTab, setMainTab] = useState<MainTab>('overview');
   const [pipelineTab, setPipelineTab] = useState<WorkPhase>('PRE');
@@ -852,33 +873,13 @@ export default function HROperationsPage() {
 
                   {mainTab === 'lifecycle' && (
                     <div className="space-y-3" ref={phaseBlockRef}>
-                      <HrLifecycleControlPanel phase={activePhase ?? 'PRE'} showPhaseSwitch />
-                      {/* Pemilih fase tunggal: tiga tombol selalu tampil, dan hanya
-                          isi di bawahnya yang berganti sesuai fase terpilih. */}
-                      <div
-                        role="group"
-                        aria-label="Pilih fase siklus karyawan"
-                        className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-[#e2e8f0] bg-white p-1.5"
-                      >
-                        {PHASES.map((phase) => {
-                          const active = phase === activePhase;
-                          return (
-                            <button
-                              key={phase}
-                              type="button"
-                              aria-pressed={active}
-                              onClick={() => selectPhase(phase)}
-                              className={`flex flex-1 min-w-[7rem] items-center justify-center rounded-xl px-3 py-2 text-xs font-bold transition ${
-                                active
-                                  ? 'bg-[#007a5a] text-white shadow-sm'
-                                  : 'text-[#007a5a] hover:bg-[#e6f4ea]'
-                              }`}
-                            >
-                              {PHASE_LABEL[phase]}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {/* Kartu tahap di dalam panel sudah menjadi pemilih fase —
+                          tidak perlu tombol fase tambahan di bawahnya. */}
+                      <HrLifecycleControlPanel
+                        phase={activePhase ?? 'PRE'}
+                        showPhaseSwitch
+                        onPhaseChange={(next) => selectPhase(next)}
+                      />
 
                       {activePhase === null ? (
                         <div className="rounded-2xl border border-dashed border-[#cbd5e1] bg-white px-5 py-8 text-center">
@@ -905,33 +906,82 @@ export default function HROperationsPage() {
                           <p className="text-[11px] text-[#64748b]">{PHASE_SUBTITLE[activePhase]}</p>
                         </div>
                       </div>
-                        <div className="p-4 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {phasePanels.map((panel) =>
-                          panel.action ? (
-                            <ActionCard
-                              key={panel.feature}
-                              icon={panel.icon}
-                              tone="emerald"
-                              title={panel.title}
-                              tag={panel.tag}
-                              description={panel.description}
-                              onClick={() =>
-                                panel.feature === 'iso-30414' ? handleExportIso() : undefined
-                              }
-                            />
-                          ) : (
-                            <FeatureCard
-                              key={panel.feature}
-                              icon={panel.icon}
-                              title={panel.title}
-                              metric={panel.metric}
-                              tag={panel.tag}
-                              description={panel.description}
-                              onOpen={() => openPanelAtTop(panel.feature)}
-                            />
-                          )
-                        )}
-                      </div>
+                        <div className="p-4 space-y-5">
+                          {/* Kotak dikelompokkan per tujuan agar tidak campur aduk.
+                              Fitur yang tidak masuk golongan mana pun ditampung di akhir. */}
+                          {(() => {
+                            const grupFase = PANEL_GROUPS[activePhase];
+                            const sudahDitampung = new Set<string>(grupFase.flatMap((g) => g.fitur));
+                            const sisa = phasePanels.filter((p) => !sudahDitampung.has(p.feature));
+
+                            const renderKotak = (panel: any) =>
+                              panel.action ? (
+                                <ActionCard
+                                  key={panel.feature}
+                                  icon={panel.icon}
+                                  tone="emerald"
+                                  title={panel.title}
+                                  tag={panel.tag}
+                                  description={panel.description}
+                                  onClick={() =>
+                                    panel.feature === 'iso-30414' ? handleExportIso() : undefined
+                                  }
+                                />
+                              ) : (
+                                <FeatureCard
+                                  key={panel.feature}
+                                  icon={panel.icon}
+                                  title={panel.title}
+                                  metric={panel.metric}
+                                  tag={panel.tag}
+                                  description={panel.description}
+                                  onOpen={() => openPanelAtTop(panel.feature)}
+                                />
+                              );
+
+                            return (
+                              <>
+                                {grupFase.map((grup, gi) => {
+                                  const isi = grup.fitur
+                                    .map((kode) => phasePanels.find((p) => p.feature === kode))
+                                    .filter(Boolean);
+                                  if (isi.length === 0) return null;
+                                  return (
+                                    <section key={grup.judul}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6f4ea] text-[10px] font-extrabold text-[#137333]">
+                                          {gi + 1}
+                                        </span>
+                                        <h4 className="text-xs font-extrabold text-[#0f172a]">{grup.judul}</h4>
+                                      </div>
+                                      <p className="text-[11px] text-[#64748b] mb-2.5">{grup.ket}</p>
+                                      <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        {isi.map(renderKotak)}
+                                      </div>
+                                    </section>
+                                  );
+                                })}
+
+                                {sisa.length > 0 && (
+                                  <section>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f1f5f9] text-[10px] font-extrabold text-[#475569]">
+                                        {grupFase.length + 1}
+                                      </span>
+                                      <h4 className="text-xs font-extrabold text-[#0f172a]">Lainnya</h4>
+                                    </div>
+                                    <p className="text-[11px] text-[#64748b] mb-2.5">
+                                      Fitur tambahan yang tidak termasuk golongan di atas.
+                                    </p>
+                                    <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                      {sisa.map(renderKotak)}
+                                    </div>
+                                  </section>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
                         </div>
                       )}
                     </div>
