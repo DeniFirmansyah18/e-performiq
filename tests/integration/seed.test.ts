@@ -41,12 +41,13 @@ describe('seed data', () => {
     expect(Number(res.rows[0].total)).toBe(100);
   });
 
-  it('membuat 4 KPI milik Budi dengan total bobot 100', async () => {
+  it('membuat KPI untuk Budi, HR Manager, dan People Manager (12 baris, tiap orang 100%)', async () => {
     const res = await client.query<{ total: string; count: string }>(
       'SELECT sum(kpi_weight)::text AS total, count(*)::text AS count FROM individual_kpis'
     );
-    expect(Number(res.rows[0].count)).toBe(4);
-    expect(Number(res.rows[0].total)).toBe(100);
+    // 4 KPI x 3 karyawan yang dinilai (Budi, Siti/HR, Danu/People Manager).
+    expect(Number(res.rows[0].count)).toBe(12);
+    expect(Number(res.rows[0].total)).toBe(300);
   });
 
   it('menetapkan manager_id Budi ke Danu', async () => {
