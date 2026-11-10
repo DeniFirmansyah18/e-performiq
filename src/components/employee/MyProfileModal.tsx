@@ -132,7 +132,7 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between p-4 sticky top-0 bg-gradient-to-r from-[#0f172a] to-[#134e4a] text-white">
           <h3 className="text-sm font-extrabold text-white">Profil Saya</h3>

@@ -753,10 +753,10 @@ export default function HROperationsPage() {
 
           <Link
             href="/dashboard/employee-portal"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#007a5a] bg-[#007a5a] text-xs font-semibold text-white shadow-xs hover:bg-[#00684a] transition-colors"
             title="Buka Employee Growth Portal untuk melihat data pribadi Anda"
           >
-            <UserCheck className="h-3.5 w-3.5 text-[#64748b]" />
+            <UserCheck className="h-3.5 w-3.5 text-white" />
             <span>Portal Saya</span>
           </Link>
         </div>
