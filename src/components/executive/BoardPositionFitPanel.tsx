@@ -1,4 +1,6 @@
 'use client';
+
+import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState } from 'react';
 import { Briefcase } from 'lucide-react';
 
@@ -79,44 +81,32 @@ export default function BoardPositionFitPanel() {
         <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700">
           Ringkasan per Posisi
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">Posisi</th>
-                <th className="p-3">Grade</th>
-                <th className="p-3">Pemegang</th>
-                <th className="p-3">Patuh</th>
-                <th className="p-3">Template KPI</th>
-                <th className="p-3">Coverage</th>
-                <th className="p-3">Capaian</th>
-                <th className="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {(data?.byPosition ?? []).map((p: any) => (
-                <tr key={p.positionId} className="hover:bg-slate-50">
-                  <td className="p-3 font-medium text-slate-800">{p.positionTitle}</td>
-                  <td className="p-3">{p.jobGrade ?? '-'}</td>
-                  <td className="p-3">{p.holders}</td>
-                  <td className="p-3">{p.compliantHolders}</td>
-                  <td className="p-3">{p.templateKpiCount}</td>
-                  <td className="p-3">{p.coveragePercentage}%</td>
-                  <td className="p-3">{p.achievementPercentage}%</td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        FIT_CLASS[p.status] ?? 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {p.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={(data?.byPosition ?? [])}
+            rowKey={(p) => p.positionId}
+            searchPlaceholder="Cari posisi, grade, atau status..."
+            itemLabel="posisi"
+            emptyMessage="Belum ada data posisi."
+            columns={[
+            { key: 'posisi', header: 'Posisi', value: (p: any) => p.positionTitle, render: (p: any) => <span className="font-medium text-slate-800">{p.positionTitle}</span> },
+            { key: 'grade', header: 'Grade', value: (p: any) => p.jobGrade, render: (p: any) => p.jobGrade ?? '-' },
+            { key: 'pemegang', header: 'Pemegang', value: (p: any) => p.holders, render: (p: any) => p.holders },
+            { key: 'patuh', header: 'Patuh', value: (p: any) => p.compliantHolders, render: (p: any) => p.compliantHolders },
+            { key: 'kpi', header: 'Template KPI', value: (p: any) => p.templateKpiCount, render: (p: any) => p.templateKpiCount },
+            { key: 'cover', header: 'Coverage', value: (p: any) => p.coveragePercentage, render: (p: any) => `${p.coveragePercentage}%` },
+            { key: 'capaian', header: 'Capaian', value: (p: any) => p.achievementPercentage, render: (p: any) => `${p.achievementPercentage}%` },
+            {
+              key: 'status',
+              header: 'Status',
+              value: (p: any) => p.status,
+              render: (p: any) => (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${FIT_CLASS[p.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                  {p.status}
+                </span>
+              ),
+            },
+            ]}
+          />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

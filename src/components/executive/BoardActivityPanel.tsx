@@ -1,4 +1,6 @@
 'use client';
+
+import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState } from 'react';
 import { Activity, Users, Building2 } from 'lucide-react';
 
@@ -128,30 +130,20 @@ export default function BoardActivityPanel() {
         <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700">
           Aktivitas Terbaru
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">Pegawai</th>
-                <th className="p-3">Departemen</th>
-                <th className="p-3">Tipe</th>
-                <th className="p-3">Ringkasan</th>
-                <th className="p-3">Waktu</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {(data?.recent ?? []).map((row: any) => (
-                <tr key={row.id} className="hover:bg-slate-50">
-                  <td className="p-3 font-medium text-slate-800">{row.employeeName}</td>
-                  <td className="p-3">{row.departmentName}</td>
-                  <td className="p-3">{row.eventType}</td>
-                  <td className="p-3">{row.summary}</td>
-                  <td className="p-3 text-slate-500">{String(row.occurredAt).slice(0, 10)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={(data?.recent ?? [])}
+            rowKey={(row) => row.id}
+            searchPlaceholder="Cari pegawai, departemen, atau ringkasan..."
+            itemLabel="aktivitas"
+            emptyMessage="Belum ada aktivitas."
+            columns={[
+            { key: 'pegawai', header: 'Pegawai', value: (row: any) => row.employeeName, render: (row: any) => <span className="font-medium text-slate-800">{row.employeeName}</span> },
+            { key: 'dept', header: 'Departemen', value: (row: any) => row.departmentName, render: (row: any) => row.departmentName },
+            { key: 'tipe', header: 'Tipe', value: (row: any) => row.eventType, render: (row: any) => row.eventType },
+            { key: 'ringkas', header: 'Ringkasan', value: (row: any) => row.summary, render: (row: any) => row.summary },
+            { key: 'waktu', header: 'Waktu', value: (row: any) => String(row.occurredAt).slice(0, 10), render: (row: any) => <span className="text-slate-500">{String(row.occurredAt).slice(0, 10)}</span> },
+            ]}
+          />
       </div>
     </div>
   );

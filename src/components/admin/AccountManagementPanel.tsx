@@ -1,5 +1,7 @@
 'use client';
 
+import DataTable from '@/components/ui/DataTable';
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, UserPlus, KeyRound, RefreshCw, Search, Ban, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -294,118 +296,93 @@ export default function AccountManagementPanel() {
       )}
 
       <div className="rounded-xl border border-[#e2e8f0] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e8f0] p-3">
-          <div className="flex items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-2.5 py-1.5">
-            <Search className="h-3.5 w-3.5 text-[#94a3b8]" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari email, nama, atau peran…"
-              className="w-56 bg-transparent text-xs text-[#0f172a] outline-none"
-            />
-          </div>
-          <p className="text-[11px] font-semibold text-[#94a3b8]">
-            {filtered.length} dari {rows.length} akun
-          </p>
-        </div>
 
         {loading ? (
           <p className="p-6 text-center text-xs text-[#64748b]">Memuat akun…</p>
-        ) : filtered.length === 0 ? (
-          <p className="p-6 text-center text-xs text-[#64748b]">Tidak ada akun yang cocok.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#f8fafc] text-[10px] uppercase tracking-wide text-[#94a3b8]">
-                <tr>
-                  <th className="px-3 py-2 font-semibold">Email</th>
-                  <th className="px-3 py-2 font-semibold">Karyawan</th>
-                  <th className="px-3 py-2 font-semibold">Peran</th>
-                  <th className="px-3 py-2 font-semibold">Status</th>
-                  <th className="px-3 py-2 font-semibold">Login Terakhir</th>
-                  {canManage && <th className="px-3 py-2 font-semibold">Aksi</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((row) => (
-                  <tr key={row.id} className="border-t border-[#f1f5f9]">
-                    <td className="px-3 py-2 font-semibold text-[#0f172a]">{row.email}</td>
-                    <td className="px-3 py-2 text-[#475569]">
-                      {row.employeeName ?? <span className="text-[#94a3b8]">— tidak tertaut —</span>}
-                      {row.employeeCode && (
-                        <span className="ml-1 text-[10px] text-[#94a3b8]">({row.employeeCode})</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {canManage ? (
-                        <select
-                          value={row.role}
-                          disabled={busyId === row.id}
-                          onChange={(e) =>
-                            patch(row.id, { role: e.target.value }, `Peran ${row.email} diperbarui.`)
-                          }
-                          className="rounded-lg border border-[#e2e8f0] bg-white px-2 py-1 text-[11px] font-semibold text-[#0f172a]"
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="font-semibold text-[#475569]">{ROLE_LABEL[row.role]}</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          row.isActive
-                            ? 'bg-[#e6f4ea] text-[#137333]'
-                            : 'bg-[#f1f5f9] text-[#64748b]'
-                        }`}
+          <div className="p-3">
+            <DataTable
+              rows={filtered}
+              rowKey={(r) => r.id}
+              searchPlaceholder="Cari email, nama, atau peran…"
+              initialSearch={search}
+              itemLabel="akun"
+              emptyMessage="Tidak ada akun yang cocok."
+              maxHeight="440px"
+              columns={[
+            { key: 'email', header: 'Email', value: (r) => r.email, render: (r) => <span className="font-semibold text-[#0f172a]">{r.email}</span> },
+            {
+              key: 'karyawan',
+              header: 'Karyawan',
+              value: (r) => r.employeeName ?? r.employeeCode ?? '',
+              render: (r) => (
+                <span className="text-[#475569]">
+                  {r.employeeName ?? <span className="text-[#94a3b8]">— tidak tertaut —</span>}
+                  {r.employeeCode && <span className="ml-1 text-[10px] text-[#94a3b8]">({r.employeeCode})</span>}
+                </span>
+              ),
+            },
+            {
+              key: 'peran',
+              header: 'Peran',
+              value: (r) => ROLE_LABEL[r.role] ?? r.role,
+              render: (r) =>
+                canManage ? (
+                  <select
+                    value={r.role}
+                    disabled={busyId === r.id}
+                    onChange={(e) => patch(r.id, { role: e.target.value }, `Peran ${r.email} diperbarui.`)}
+                    aria-label={`Peran ${r.email}`}
+                    className="rounded-lg border border-[#e2e8f0] bg-white px-2 py-1 text-[11px] font-semibold text-[#0f172a]"
+                  >
+                    {ROLES.map((role) => (
+                      <option key={role} value={role}>{ROLE_LABEL[role]}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-semibold text-[#475569]">{ROLE_LABEL[r.role]}</span>
+                ),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              value: (r) => (r.isActive ? 'Aktif' : 'Nonaktif'),
+              render: (r) => (
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${r.isActive ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#f1f5f9] text-[#64748b]'}`}>
+                  {r.isActive ? <CheckCircle2 className="h-3 w-3" /> : <Ban className="h-3 w-3" />}
+                  {r.isActive ? 'Aktif' : 'Nonaktif'}
+                </span>
+              ),
+            },
+            { key: 'login', header: 'Login Terakhir', value: (r) => fmtDate(r.lastLoginAt), render: (r) => <span className="text-[#475569]">{fmtDate(r.lastLoginAt)}</span> },
+            ...(canManage
+              ? [{
+                  key: 'aksi',
+                  header: 'Aksi',
+                  value: () => '',
+                  render: (r: any) => (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => resetPassword(r)}
+                        disabled={busyId === r.id}
+                        className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white px-2 py-1 text-[10px] font-semibold text-[#475569] hover:bg-[#f8fafc] disabled:opacity-50"
                       >
-                        {row.isActive ? (
-                          <CheckCircle2 className="h-3 w-3" />
-                        ) : (
-                          <Ban className="h-3 w-3" />
-                        )}
-                        {row.isActive ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-[#475569]">{fmtDate(row.lastLoginAt)}</td>
-                    {canManage && (
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => resetPassword(row)}
-                            disabled={busyId === row.id}
-                            className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white px-2 py-1 text-[10px] font-semibold text-[#475569] hover:bg-[#f8fafc] disabled:opacity-50"
-                          >
-                            <KeyRound className="h-3 w-3" />
-                            Reset Sandi
-                          </button>
-                          <button
-                            onClick={() =>
-                              patch(
-                                row.id,
-                                { isActive: !row.isActive },
-                                `Akun ${row.email} ${row.isActive ? 'dinonaktifkan' : 'diaktifkan'}.`
-                              )
-                            }
-                            disabled={busyId === row.id}
-                            className={`rounded-lg px-2 py-1 text-[10px] font-semibold disabled:opacity-50 ${
-                              row.isActive
-                                ? 'border border-[#fecaca] bg-[#fee2e2] text-[#b91c1c]'
-                                : 'border border-[#b7e1cd] bg-[#e6f4ea] text-[#137333]'
-                            }`}
-                          >
-                            {row.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <KeyRound className="h-3 w-3" />
+                        Reset Sandi
+                      </button>
+                      <button
+                        onClick={() => patch(r.id, { isActive: !r.isActive }, `Akun ${r.email} ${r.isActive ? 'dinonaktifkan' : 'diaktifkan'}.`)}
+                        disabled={busyId === r.id}
+                        className={`rounded-lg px-2 py-1 text-[10px] font-semibold disabled:opacity-50 ${r.isActive ? 'border border-[#fecaca] bg-[#fee2e2] text-[#b91c1c]' : 'border border-[#b7e1cd] bg-[#e6f4ea] text-[#137333]'}`}
+                      >
+                        {r.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                      </button>
+                    </div>
+                  ),
+                }]
+              : []),
+              ]}
+            />
           </div>
         )}
       </div>
