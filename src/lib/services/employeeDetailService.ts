@@ -211,6 +211,15 @@ export async function getDetailPegawai(db: Db, session: SessionPayload, id: stri
      ORDER BY ap.period_code DESC NULLS LAST
   `)) as unknown as { rows: any[] };
 
+  // Berkas kepegawaian: dipakai untuk menandai dokumen yang belum lengkap.
+  const dokumen = (await db.execute(sql`
+    SELECT document_type AS "documentType", verification_status AS "verificationStatus",
+           expiry_date::text AS "expiryDate"
+      FROM employee_documents
+     WHERE employee_id = ${id}::uuid
+     ORDER BY document_type
+  `)) as unknown as { rows: any[] };
+
   // Kontribusi per pilar BSC — dipindah dari modal "Lihat kontribusi".
   let kontribusi: any = null;
   try {
@@ -266,6 +275,11 @@ export async function getDetailPegawai(db: Db, session: SessionPayload, id: stri
       gpa: Number(r.gpa ?? 0),
       rating: r.rating ?? '-',
       total: Number(r.total ?? 0),
+    })),
+    dokumen: (dokumen.rows ?? []).map((r) => ({
+      documentType: r.documentType ?? '-',
+      verificationStatus: r.verificationStatus ?? 'PENDING',
+      expiryDate: r.expiryDate ?? null,
     })),
   };
 }
