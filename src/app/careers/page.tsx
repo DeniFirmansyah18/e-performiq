@@ -1,7 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  Search,
+  Building2,
+  Briefcase,
+  MapPin,
+  GraduationCap,
+  RotateCcw,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import ApplicationForm from '@/components/careers/ApplicationForm';
 import CandidateTopBar from '@/components/careers/CandidateTopBar';
 
@@ -30,6 +40,48 @@ export default function CareersPage() {
   const [redirecting, setRedirecting] = useState(false);
   const [statusQuery, setStatusQuery] = useState('');
   const [statusResult, setStatusResult] = useState<string | null>(null);
+
+  // Filter & Pencarian Lowongan
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState('ALL');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('ALL');
+
+  const departmentList = useMemo(() => {
+    const s = new Set<string>();
+    postings.forEach((p) => {
+      if (p.department) s.add(p.department);
+    });
+    return Array.from(s).sort();
+  }, [postings]);
+
+  const filteredPostings = useMemo(() => {
+    return postings.filter((p) => {
+      if (selectedDeptFilter !== 'ALL' && p.department !== selectedDeptFilter) return false;
+      if (selectedTypeFilter !== 'ALL' && p.employmentType !== selectedTypeFilter) return false;
+      if (searchKeyword.trim()) {
+        const q = searchKeyword.toLowerCase();
+        const skills = skillsList(p.requiredSkills).join(' ').toLowerCase();
+        const matchTitle = p.postingTitle?.toLowerCase().includes(q);
+        const matchDept = p.department?.toLowerCase().includes(q);
+        const matchPos = p.position?.toLowerCase().includes(q);
+        const matchLoc = p.workLocation?.toLowerCase().includes(q);
+        const matchDesc = p.description?.toLowerCase().includes(q);
+        const matchSkill = skills.includes(q);
+        if (!matchTitle && !matchDept && !matchPos && !matchLoc && !matchDesc && !matchSkill) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [postings, searchKeyword, selectedDeptFilter, selectedTypeFilter]);
+
+  const hasActiveJobFilters = searchKeyword.trim() !== '' || selectedDeptFilter !== 'ALL' || selectedTypeFilter !== 'ALL';
+
+  const resetJobFilters = () => {
+    setSearchKeyword('');
+    setSelectedDeptFilter('ALL');
+    setSelectedTypeFilter('ALL');
+  };
 
   useEffect(() => {
     fetch('/api/v1/careers/postings')
@@ -67,60 +119,179 @@ export default function CareersPage() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-6">
-        <section>
-          <h2 className="text-sm font-extrabold mb-2">Lowongan Terbuka</h2>
-          {postings.length === 0 ? (
-            <p className="text-xs text-[#64748b]">Belum ada lowongan publik saat ini.</p>
+        <section className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-extrabold text-[#0f172a]">Lowongan Terbuka</h2>
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#007a5a]">
+                  {filteredPostings.length} Posisi
+                </span>
+              </div>
+              <p className="text-xs text-[#64748b] mt-0.5">
+                Jelajahi berbagai posisi strategis di bidang teknologi, human capital, audit, dan tata kelola perusahaan.
+              </p>
+            </div>
+          </div>
+
+          {/* Toolbar Filter & Pencarian */}
+          <div className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+              {/* Quick Search */}
+              <div className="sm:col-span-5 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="Cari posisi, divisi, skill, atau kata kunci..."
+                  className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 bg-slate-50/50 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#007a5a] focus:ring-1 focus:ring-[#007a5a] transition-colors"
+                />
+              </div>
+
+              {/* Filter Departemen */}
+              <div className="sm:col-span-4 relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={selectedDeptFilter}
+                  onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                  className="w-full h-9 pl-9 pr-7 rounded-lg border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-none focus:border-[#007a5a] focus:ring-1 focus:ring-[#007a5a] cursor-pointer"
+                  title="Filter per departemen"
+                >
+                  <option value="ALL">Semua Departemen ({postings.length})</option>
+                  {departmentList.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter Tipe Pekerjaan */}
+              <div className="sm:col-span-3 relative flex items-center gap-1.5">
+                <select
+                  value={selectedTypeFilter}
+                  onChange={(e) => setSelectedTypeFilter(e.target.value)}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-none focus:border-[#007a5a] focus:ring-1 focus:ring-[#007a5a] cursor-pointer"
+                  title="Filter tipe pekerjaan"
+                >
+                  <option value="ALL">Semua Tipe Kerja</option>
+                  <option value="TETAP (PKWTT)">Tetap (PKWTT)</option>
+                  <option value="KONTRAK (PKWT)">Kontrak (PKWT)</option>
+                  <option value="MAGANG (INTERNSHIP)">Magang</option>
+                </select>
+
+                {hasActiveJobFilters && (
+                  <button
+                    type="button"
+                    onClick={resetJobFilters}
+                    className="h-9 px-2.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-semibold shrink-0 transition-colors cursor-pointer"
+                    title="Reset seluruh filter pencarian"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {filteredPostings.length === 0 ? (
+            <div className="p-8 text-center rounded-xl border border-slate-200 bg-white">
+              <p className="text-sm font-bold text-slate-700">Tidak ada lowongan yang sesuai kriteria pencarian.</p>
+              <p className="text-xs text-slate-500 mt-1">Coba ubah kata kunci atau reset filter pencarian di atas.</p>
+              {hasActiveJobFilters && (
+                <button
+                  type="button"
+                  onClick={resetJobFilters}
+                  className="mt-3 px-3.5 py-1.5 rounded-lg text-xs font-bold text-[#007a5a] bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                >
+                  Reset Filter
+                </button>
+              )}
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {postings.map((p) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {filteredPostings.map((p) => {
                 const avail = p.availability ?? 'AVAILABLE';
                 const skillArr = skillsList(p.requiredSkills);
                 const quota = p.quota ?? 0;
                 const remaining = p.remaining ?? quota;
                 return (
-                  <div key={p.id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-2 flex flex-col">
+                  <div
+                    key={p.id}
+                    className="p-4 rounded-xl border border-[#e2e8f0] bg-white hover:border-emerald-300 hover:shadow-xs transition-all space-y-2.5 flex flex-col"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-xs font-bold">{p.postingTitle}</p>
-                        <p className="text-[11px] text-[#64748b]">{p.department} · {p.position}</p>
+                        <p className="text-xs font-bold text-[#0f172a] hover:text-[#007a5a] transition-colors">{p.postingTitle}</p>
+                        <p className="text-[11px] text-[#64748b] mt-0.5">{p.department} · {p.position}</p>
                       </div>
                       {avail === 'AVAILABLE' ? (
-                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Tersedia</span>
+                        <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Tersedia
+                        </span>
                       ) : avail === 'FILLED' ? (
-                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Kuota Terisi</span>
+                        <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                          Kuota Terisi
+                        </span>
                       ) : (
-                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">Ditutup</span>
+                        <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                          Ditutup
+                        </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-[#334155] line-clamp-3">{p.description}</p>
+                    <p className="text-[11px] text-[#334155] line-clamp-3 leading-relaxed">{p.description}</p>
 
                     {skillArr.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 pt-0.5">
                         {skillArr.map((s) => (
-                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{s}</span>
+                          <span
+                            key={s}
+                            className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-medium"
+                          >
+                            {s}
+                          </span>
                         ))}
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#64748b]">
-                      {p.minEducation && <span>Pendidikan: <strong className="text-[#334155]">{p.minEducation}</strong></span>}
-                      {p.minExperienceYears != null && <span>Pengalaman: <strong className="text-[#334155]">{p.minExperienceYears} thn</strong></span>}
-                      {p.workLocation && <span>Lokasi: <strong className="text-[#334155]">{p.workLocation}</strong></span>}
-                      {p.employmentType && <span>{p.employmentType}</span>}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#64748b] pt-1 border-t border-slate-100">
+                      {p.minEducation && (
+                        <span>
+                          Pendidikan: <strong className="text-[#334155]">{p.minEducation}</strong>
+                        </span>
+                      )}
+                      {p.minExperienceYears != null && (
+                        <span>
+                          Pengalaman: <strong className="text-[#334155]">{p.minExperienceYears} thn</strong>
+                        </span>
+                      )}
+                      {p.workLocation && (
+                        <span>
+                          Lokasi: <strong className="text-[#334155]">{p.workLocation}</strong>
+                        </span>
+                      )}
+                      {p.employmentType && (
+                        <span className="font-semibold text-emerald-700">{p.employmentType}</span>
+                      )}
                     </div>
 
                     {quota > 0 && (
                       <p className="text-[10px] text-[#64748b]">
-                        Kuota: <strong className="text-[#0f172a]">{p.hired ?? 0}/{quota}</strong> terisi · Sisa <strong className="text-[#007a5a]">{remaining}</strong>
+                        Kuota: <strong className="text-[#0f172a]">{p.hired ?? 0}/{quota}</strong> terisi · Sisa{' '}
+                        <strong className="text-[#007a5a]">{remaining}</strong>
                       </p>
                     )}
 
-                    <div className="pt-1 mt-auto">
+                    <div className="pt-2 mt-auto">
                       <button
                         disabled={avail !== 'AVAILABLE'}
-                        onClick={() => { setSelectedPosting(p.id); document.getElementById('form-lamaran')?.scrollIntoView({ behavior: 'smooth' }); }}
-                        className="w-full px-3 py-2 text-[11px] font-bold text-white bg-[#007a5a] rounded-lg hover:bg-[#006347] disabled:opacity-40 disabled:cursor-not-allowed">
+                        onClick={() => {
+                          setSelectedPosting(p.id);
+                          document.getElementById('form-lamaran')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="w-full px-3 py-2 text-[11px] font-bold text-white bg-[#007a5a] hover:bg-[#006347] rounded-lg transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
                         {avail === 'AVAILABLE' ? 'Lamar Posisi Ini' : 'Tidak Tersedia'}
                       </button>
                     </div>

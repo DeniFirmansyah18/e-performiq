@@ -6,6 +6,7 @@ import { ASSESSMENT_TEMPLATES, type SeedQuestion } from './assessment-seed';
 import { SEED_MAJORS, SEED_INSTITUTIONS } from './education-seed';
 import { seedLifecycle } from './lifecycle-seed';
 import { seedTalentAndContracts } from './talent-contract-seed';
+import { seedJobPostings } from './career-seed';
 
 export const DEMO_PASSWORD = 'enterprise2026';
 /** PIN slip gaji demo untuk seluruh karyawan seed (disimpan sebagai hash bcrypt). */
@@ -561,6 +562,7 @@ ON CONFLICT (id) DO NOTHING;
   await seedEducationReference(client);
   await seedLifecycle(client, { hash });
   await seedTalentAndContracts(client);
+  await seedJobPostings(client);
 
   // BPJS harus di-insert SETELAH semua karyawan dibuat: seedLifecycle dan
   // seedTalentAndContracts menambah karyawan, sehingga FK belum terpenuhi di

@@ -3,6 +3,15 @@
 import React, { useRef, useState } from 'react';
 import SearchableSelect from '@/components/careers/SearchableSelect';
 import AddressSelect, { emptyAddr, type AddressValue } from '@/components/careers/AddressSelect';
+import {
+  Video,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Trash2,
+  FileCheck,
+} from 'lucide-react';
 
 export interface PostingOption { id: string; postingTitle: string }
 
@@ -523,60 +532,94 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
       </div>
 
       {/* ==== VIDEO PERKENALAN DIRI (UNJUK SPESIALISASI) - WAJIB ==== */}
-      <div id="video-perkenalan-section" className="p-4 rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-bold text-[#0f172a]">Video Perkenalan Diri (Unjuk Spesialisasi)</p>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">Wajib</span>
+      <div
+        id="video-perkenalan-section"
+        className="p-4 sm:p-5 rounded-2xl border-2 border-emerald-300/80 bg-gradient-to-br from-emerald-50/70 via-teal-50/30 to-white shadow-2xs space-y-3.5 transition-all"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-[#007a5a] flex items-center justify-center shrink-0 shadow-2xs border border-emerald-200">
+              <Video className="w-5 h-5 text-[#007a5a]" />
             </div>
-            <p className="text-[11px] text-[#475569] mt-0.5">
-              Unggah video singkat untuk memperkenalkan diri dan memaparkan keahlian / spesialisasi yang Anda kuasai.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-[#0f172a]">Video Perkenalan Diri (Unjuk Spesialisasi)</p>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#007a5a] border border-emerald-200">
+                  Wajib
+                </span>
+              </div>
+              <p className="text-[11px] text-[#475569] mt-0.5 leading-relaxed">
+                Unggah video singkat (maks. 2 menit) untuk memperkenalkan diri dan memaparkan keahlian serta spesialisasi yang Anda kuasai.
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1 text-[10px]">
-            <span className="px-2 py-0.5 rounded bg-white border border-[#cbd5e1] font-semibold text-[#334155]">Maks. 10 MB</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#cbd5e1] font-semibold text-[#334155]">Maks. 2 Menit</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#cbd5e1] font-semibold text-[#334155]">MP4, WebM, MOV</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] sm:self-start">
+            <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold text-emerald-800 shadow-2xs">
+              Maks. 10 MB
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold text-emerald-800 shadow-2xs">
+              Maks. 2 Menit
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold text-emerald-800 shadow-2xs">
+              MP4, WebM, MOV
+            </span>
           </div>
         </div>
 
         {!videoFile ? (
-          <div>
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleVideoSelect(f);
-              }}
-              disabled={videoUploading}
-              className="block w-full text-[11px] text-[#334155] file:mr-2 file:rounded-lg file:border-0 file:bg-[#1d4ed8] file:px-3 file:py-1.5 file:text-[11px] file:font-bold file:text-white hover:file:bg-[#1e40af] cursor-pointer disabled:opacity-50"
-            />
+          <div className="space-y-2">
+            <div className="rounded-xl border-2 border-dashed border-emerald-300 hover:border-[#007a5a] bg-white/80 hover:bg-emerald-50/40 p-4 transition-all">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 text-xs text-[#334155]">
+                  <UploadCloud className="w-5 h-5 text-[#007a5a] shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-800">Pilih berkas rekaman video Anda</p>
+                    <p className="text-[10px] text-slate-500">Batas durasi 120 detik, format MP4 / WebM / QuickTime MOV</p>
+                  </div>
+                </div>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleVideoSelect(f);
+                  }}
+                  disabled={videoUploading}
+                  className="block text-xs text-slate-600 file:mr-2.5 file:rounded-lg file:border-0 file:bg-[#007a5a] file:px-3.5 file:py-1.5 file:text-xs file:font-bold file:text-white hover:file:bg-[#006347] cursor-pointer disabled:opacity-50 transition-colors shadow-2xs"
+                />
+              </div>
+            </div>
             {videoUploading && (
-              <p className="text-[11px] text-indigo-700 font-semibold mt-1 animate-pulse">
-                Mengunggah &amp; memverifikasi video…
-              </p>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#007a5a] animate-pulse">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                <span>Mengunggah &amp; memverifikasi durasi berkas video…</span>
+              </div>
             )}
           </div>
         ) : (
-          <div className="space-y-2 p-3 rounded-lg bg-white border border-indigo-100 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span className="text-xs font-bold text-[#0f172a] truncate max-w-[200px] sm:max-w-md">{videoFile.name}</span>
-                <span className="text-[10px] text-[#64748b]">
+          <div className="space-y-2.5 p-3.5 rounded-xl bg-white border border-emerald-200 shadow-2xs">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-900 truncate max-w-[220px] sm:max-w-md">
+                  {videoFile.name}
+                </span>
+                <span className="text-[11px] font-medium text-slate-500 shrink-0">
                   ({(videoFile.size / (1024 * 1024)).toFixed(1)} MB
-                  {videoFile.duration ? ` · ${Math.floor(videoFile.duration / 60)}:${String(Math.floor(videoFile.duration % 60)).padStart(2, '0')}` : ''})
+                  {videoFile.duration
+                    ? ` · ${Math.floor(videoFile.duration / 60)}:${String(Math.floor(videoFile.duration % 60)).padStart(2, '0')}`
+                    : ''})
                 </span>
               </div>
               <button
                 type="button"
                 onClick={removeVideo}
-                className="text-[11px] font-semibold text-rose-600 hover:text-rose-800"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer shrink-0"
+                title="Hapus video ini dan pilih berkas baru"
               >
-                Ganti / Hapus
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Ganti / Hapus</span>
               </button>
             </div>
 
@@ -585,16 +628,21 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
               playsInline
               preload="metadata"
               src={videoFile.localPreviewUrl || videoFile.url}
-              className="w-full max-h-56 rounded-lg bg-black object-contain"
+              className="w-full max-h-60 rounded-lg bg-black object-contain shadow-inner border border-slate-200"
             >
               Peramban Anda tidak mendukung pemutar video.
             </video>
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50/80 px-2.5 py-1 rounded-md border border-emerald-100">
+              <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Video perkenalan terverifikasi dan siap dilampirkan bersama berkas lamaran.</span>
+            </div>
           </div>
         )}
 
         {videoError && (
-          <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-semibold">
-            {videoError}
+          <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{videoError}</span>
           </div>
         )}
       </div>

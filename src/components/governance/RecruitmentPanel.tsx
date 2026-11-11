@@ -508,7 +508,7 @@ function CandidateProfile({ profile }: { profile: any }) {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-medium">
                 {d.docType === 'INTRODUCTION_VIDEO' ? (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">Video Perkenalan</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-[#007a5a]">Video Perkenalan</span>
                 ) : (
                   <span>{d.docType}</span>
                 )}
