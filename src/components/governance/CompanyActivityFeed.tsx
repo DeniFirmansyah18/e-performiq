@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDateTimeWib } from '@/lib/utils/wibDate';
+import ListPager from '@/components/ui/ListPager';
 
 interface Event {
   id: string;
@@ -38,21 +39,26 @@ export default function CompanyActivityFeed() {
         Kejadian lintas modul. Data gaji, BPJS, dan chat pribadi tidak pernah muncul di sini.
       </p>
 
-      <ul className="mt-3 divide-y divide-[#e2e8f0]">
-        {items.map((e) => (
-          <li key={e.id} className="py-2 text-xs">
-            <span className="font-semibold text-[#0f172a]">{e.employeeName}</span>
-            {' · '}
-            <span className="text-[#475569]">{LABEL[e.eventType] ?? e.eventType}: {e.summary}</span>
-            <span className="ml-2 text-[10px] text-[#94a3b8]">
-              {formatDateTimeWib(e.occurredAt)}
-            </span>
-          </li>
-        ))}
-        {loaded && items.length === 0 && (
-          <li className="py-2 text-xs text-[#64748b]">Belum ada aktivitas.</li>
-        )}
-      </ul>
+      <div className="mt-3">
+        <ListPager
+          items={items}
+          itemKey={(e) => e.id}
+          itemLabel="aktivitas"
+          emptyMessage={loaded ? 'Belum ada aktivitas.' : 'Memuat aktivitas…'}
+          searchPlaceholder="Cari nama pegawai atau ringkasan aktivitas..."
+          searchText={(e) => `${e.employeeName} ${LABEL[e.eventType] ?? e.eventType} ${e.summary}`}
+          maxHeight="420px"
+          renderItem={(e) => (
+            <div className="py-2 text-xs border-b border-[#f1f5f9]">
+              <span className="font-semibold text-[#0f172a]">{e.employeeName}</span>
+              <span className="text-[#475569]"> · {LABEL[e.eventType] ?? e.eventType}: {e.summary}</span>
+              <span className="ml-2 text-[10px] text-[#94a3b8]">
+                {formatDateTimeWib(e.occurredAt)}
+              </span>
+            </div>
+          )}
+        />
+      </div>
     </section>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { UserPlus, Users2 } from 'lucide-react';
+import ListPager from '@/components/ui/ListPager';
 
 /**
  * Panel direktori alumni: karyawan yang sudah keluar, kelayakan dipekerjakan
@@ -156,18 +157,23 @@ export default function AlumniDirectoryPanel() {
 
       {loading ? (
         <p className="text-[11px] text-[#64748b]">Memuat direktori alumni...</p>
-      ) : rows.length === 0 ? (
-        <p className="text-[11px] text-[#64748b] p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
-          Belum ada alumni terdaftar.
-        </p>
       ) : (
-        <div className="space-y-2">
-          {rows.map((a) => (
-            <div key={a.id} className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] space-y-2">
+        <ListPager
+          items={rows}
+          itemKey={(a) => a.id}
+          itemLabel="alumni"
+          emptyMessage="Belum ada alumni terdaftar."
+          searchPlaceholder="Cari nama, posisi, atau departemen..."
+          searchText={(a) =>
+            `${a.employeeName} ${a.lastPosition ?? ''} ${a.lastDepartment ?? ''} ${a.exitDate} ${a.contactEmail ?? ''}`
+          }
+          maxHeight="460px"
+          renderItem={(a) => (
+            <div className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] space-y-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="text-[11px]">
                   <p className="font-bold text-[#0f172a]">
-                    {a.employeeName} &middot; {a.lastPosition || '-'}
+                    {a.employeeName} · {a.lastPosition || '-'}
                   </p>
                   <p className="text-[#64748b]">
                     Keluar {a.exitDate}
@@ -209,8 +215,8 @@ export default function AlumniDirectoryPanel() {
                 </p>
               )}
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );

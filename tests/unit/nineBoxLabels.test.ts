@@ -20,8 +20,9 @@ describe('nineBoxLabels', () => {
   });
 
   it('ENIGMA memakai nama posisional, bukan nama puitis', () => {
-    expect(nineBoxLabel('ENIGMA')).toBe('Potensi Tinggi, Kinerja Rendah');
-    expect(NINE_BOX_COPY.ENIGMA.position).toBe('potensi tinggi · kinerja rendah');
+    // Nama posisional dengan istilah sehari-hari: kemampuan vs hasil kerja.
+    expect(nineBoxLabel('ENIGMA')).toBe('Siap Naik Level, Hasil Kerja Rendah');
+    expect(NINE_BOX_COPY.ENIGMA.position).toBe('siap naik level · hasil kerja rendah');
   });
 
   it('kode tak dikenal dikembalikan sebagai kotak tidak dikenali, bukan crash', () => {

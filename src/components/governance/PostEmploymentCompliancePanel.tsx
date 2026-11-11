@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { ClipboardList, Plus, ShieldCheck } from 'lucide-react';
+import ListPager from '@/components/ui/ListPager';
 
 /**
  * Panel kewajiban pasca-kerja (BPJS, 1721-A1, DPLK, penutupan berkas).
@@ -161,23 +162,23 @@ export default function PostEmploymentCompliancePanel() {
 
       {loading ? (
         <p className="text-[11px] text-[#64748b]">Memuat daftar kewajiban...</p>
-      ) : rows.length === 0 ? (
-        <p className="text-[11px] text-[#64748b] p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex items-center gap-2">
-          <ClipboardList className="h-3.5 w-3.5" /> Belum ada kewajiban pasca-kerja tercatat.
-        </p>
       ) : (
-        <div className="space-y-2">
-          {rows.map((o) => (
-            <div
-              key={o.id}
-              className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex flex-wrap items-center justify-between gap-2"
-            >
+        <ListPager
+          items={rows}
+          itemKey={(o) => o.id}
+          itemLabel="kewajiban"
+          emptyMessage="Belum ada kewajiban pasca-kerja tercatat."
+          searchPlaceholder="Cari judul kewajiban atau nama karyawan..."
+          searchText={(o) => `${o.title} ${o.employeeName} ${o.statusLabel} ${o.status} ${o.dueDate}`}
+          maxHeight="460px"
+          renderItem={(o) => (
+            <div className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex flex-wrap items-center justify-between gap-2">
               <div className="text-[11px]">
                 <p className="font-bold text-[#0f172a]">
-                  {o.title} &middot; {o.employeeName}
+                  {o.title} · {o.employeeName}
                 </p>
                 <p className="text-[#64748b]">
-                  Jatuh tempo {o.dueDate} &middot;{' '}
+                  Jatuh tempo {o.dueDate} ·{' '}
                   <span className={`font-semibold ${statusTone[o.status] ?? ''}`}>{o.statusLabel}</span>
                   {o.daysRemaining >= 0 && !o.isCompleted ? ` · sisa ${o.daysRemaining} hari` : ''}
                 </p>
@@ -195,8 +196,8 @@ export default function PostEmploymentCompliancePanel() {
                 {o.isCompleted ? 'Batalkan' : 'Tandai selesai'}
               </button>
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );

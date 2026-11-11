@@ -1,5 +1,7 @@
 'use client';
 
+import DataTable from '@/components/ui/DataTable';
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, CheckCircle2, Users, Send } from 'lucide-react';
@@ -197,63 +199,69 @@ export default function RecruitmentPanel() {
       ) : rows.length === 0 ? (
         <p className="text-xs text-[#64748b]">Belum ada pelamar.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-left text-[#64748b] border-b border-[#e2e8f0]">
-                <th className="py-2">No. Lamaran</th>
-                <th className="py-2">Nama</th>
-                <th className="py-2">Posisi</th>
-                <th className="py-2">Status</th>
-                <th className="py-2 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-[#f1f5f9]">
-                  <td className="py-2 font-mono text-[10px]">{r.applicationNo}</td>
-                  <td className="py-2">
-                    <p className="font-bold text-[#0f172a]">{r.fullName}</p>
-                    <span className="text-[10px] text-[#64748b]">{r.email}</span>
-                  </td>
-                  <td className="py-2">{r.postingTitle}</td>
-                  <td className="py-2">
-                    <select value={r.status} onChange={(e) => changeStatus(r.id, e.target.value)}
-                      className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]">
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </td>
-                  <td className="py-2 text-right">
-                    <div className="flex gap-1.5 justify-end">
-                      <button onClick={() => openProfile(r.id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-[#334155] text-[11px] font-semibold hover:bg-slate-200">
-                        Detail
-                      </button>
-                      <button onClick={() => openReview(r.id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0f172a] text-white text-[11px] font-semibold hover:bg-[#1e293b]">
-                        <Sparkles className="h-3 w-3" /> Review
-                      </button>
-                                        {/* Penawaran: saat OFFERED → respons; selain itu → terbitkan. */}
-                                        <button
-                                          onClick={() =>
-                                            setOfferModal({
-                                              applicationId: r.id,
-                                              candidateName: r.fullName,
-                                              postingTitle: r.postingTitle,
-                                              mode: r.status === 'OFFERED' ? 'respond' : 'offer',
-                                            })
-                                          }
-                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold hover:bg-[#00684a]"
-                                        >
-                                          <Send className="h-3 w-3" />
-                                          {r.status === 'OFFERED' ? 'Respons' : 'Penawaran'}
-                                        </button>
-                                      </div>
-                                    </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <DataTable
+            rows={rows}
+            rowKey={(r) => r.id}
+            searchPlaceholder="Cari nama, email, posisi, atau status..."
+            itemLabel="pelamar"
+            emptyMessage="Belum ada pelamar."
+            columns={[
+            { key: 'no', header: 'No. Lamaran', value: (r) => r.applicationNo, render: (r) => <span className="font-mono text-[10px]">{r.applicationNo}</span> },
+            {
+              key: 'nama',
+              header: 'Nama',
+              value: (r) => `${r.fullName} ${r.email}`,
+              render: (r) => (
+                <>
+                  <p className="font-bold text-[#0f172a]">{r.fullName}</p>
+                  <span className="text-[10px] text-[#64748b]">{r.email}</span>
+                </>
+              ),
+            },
+            { key: 'posisi', header: 'Posisi', value: (r) => r.postingTitle, render: (r) => r.postingTitle },
+            {
+              key: 'status',
+              header: 'Status',
+              value: (r) => r.status,
+              render: (r) => (
+                <select value={r.status} onChange={(e) => changeStatus(r.id, e.target.value)} aria-label={`Status ${r.fullName}`}
+                  className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]">
+                  {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              ),
+            },
+            {
+              key: 'aksi',
+              header: 'Aksi',
+              className: 'text-right',
+              value: () => '',
+              render: (r) => (
+                <div className="flex gap-1.5 justify-end">
+                  <button onClick={() => openProfile(r.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-[#334155] text-[11px] font-semibold">
+                    Detail
+                  </button>
+                  <button onClick={() => openReview(r.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0f172a] text-white text-[11px] font-semibold">
+                    <Sparkles className="h-3 w-3" /> Review
+                  </button>
+                  <button
+                    onClick={() => setOfferModal({
+                      applicationId: r.id,
+                      candidateName: r.fullName,
+                      postingTitle: r.postingTitle,
+                      mode: r.status === 'OFFERED' ? 'respond' : 'offer',
+                    })}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold">
+                    <Send className="h-3 w-3" />
+                    {r.status === 'OFFERED' ? 'Respons' : 'Penawaran'}
+                  </button>
+                </div>
+              ),
+            },
+            ]}
+          />
           {msg && <p className="text-[11px] font-semibold text-[#137333] mt-2">{msg}</p>}
           <p className="text-[10px] text-[#64748b] mt-2">
             Tip: untuk memindahkan pelamar ke tahap <strong>INTERVIEW</strong>, buat jadwal & tautan rapat

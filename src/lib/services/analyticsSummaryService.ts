@@ -52,11 +52,8 @@ export async function getBenchmarkGap(db: Db, periodCode?: string) {
     },
   ];
 
-  // Quality of Hire nyata dari recruitment_assessments
-  const qoh = (await db.execute(sql`
-    SELECT COALESCE(AVG(computed_qoh_score), 0) AS "avg" FROM recruitment_assessments
-  `)) as unknown as { rows: Array<{ avg: string | number }> };
-  metrics[1].actual = Number(Number(qoh.rows[0]?.avg ?? 0).toFixed(2));
+  // FPTK/recruitment_assessments dihapus: Quality of Hire tidak lagi tersedia.
+  metrics[1].actual = 0;
   metrics[1].variance = Number((metrics[1].actual - metrics[1].benchmark).toFixed(2));
 
   // VMAI nyata dari scorecard (bukan 0 hardcoded).
@@ -124,10 +121,8 @@ export async function getLifecycleSummary(db: Db) {
     ? Number(((Number(mppRow.hired) / Number(mppRow.quota)) * 100).toFixed(1))
     : 0;
 
-  const qoh = (await db.execute(sql`
-    SELECT COALESCE(AVG(computed_qoh_score), 0) AS "avg" FROM recruitment_assessments
-  `)) as unknown as { rows: Array<{ avg: string | number }> };
-  const avgQoh = Number(Number(qoh.rows[0]?.avg ?? 0).toFixed(2));
+  // FPTK/recruitment_assessments dihapus: Quality of Hire tidak lagi tersedia.
+  const avgQoh = 0;
 
   const probation = (await db.execute(sql`
     SELECT COUNT(*)::int AS "total",

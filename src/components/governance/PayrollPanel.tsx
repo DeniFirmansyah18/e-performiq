@@ -1,5 +1,7 @@
 'use client';
 
+import DataTable from '@/components/ui/DataTable';
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Wallet, Plus, Sparkles, CheckCircle2, Download, RefreshCw, Save } from 'lucide-react';
 import { renderRichText } from '@/components/ai/RichText';
@@ -200,47 +202,69 @@ export default function PayrollPanel() {
       {tab === 'employees' ? (
         <div className="overflow-x-auto">
           <p className="text-[11px] text-[#64748b] mb-2">Atur gaji pokok &amp; PIN slip gaji tiap karyawan. Kosongkan field untuk tidak mengubah.</p>
-          <table className="w-full text-[11px]">
-            <thead>
-              <tr className="text-left text-[#64748b] border-b border-[#e2e8f0]">
-                <th className="py-2">Karyawan</th>
-                <th className="py-2 text-right">Gaji Pokok</th>
-                <th className="py-2">PIN Slip</th>
-                <th className="py-2 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((emp) => {
+<p className="text-[11px] text-[#64748b] mb-2">Atur gaji pokok &amp; PIN slip gaji tiap karyawan. Kosongkan field untuk tidak mengubah.</p>
+          <DataTable
+            rows={employees}
+            rowKey={(emp) => emp.employeeId}
+            searchPlaceholder="Cari karyawan atau departemen..."
+            itemLabel="karyawan"
+            emptyMessage="Belum ada data karyawan."
+            columns={[
+            {
+              key: 'karyawan',
+              header: 'Karyawan',
+              value: (emp) => `${emp.fullName} ${emp.employeeCode} ${emp.department ?? ''}`,
+              render: (emp) => (
+                <>
+                  <p className="font-semibold text-[#0f172a]">{emp.fullName}</p>
+                  <span className="text-[9px] text-[#64748b]">{emp.employeeCode} · {emp.department ?? '-'}</span>
+                </>
+              ),
+            },
+            {
+              key: 'gaji',
+              header: 'Gaji Pokok',
+              className: 'text-right',
+              value: (emp) => emp.baseSalary,
+              render: (emp) => {
                 const edit = empEdit[emp.employeeId];
                 return (
-                  <tr key={emp.employeeId} className="border-b border-[#f1f5f9]">
-                    <td className="py-2 pr-2">
-                      <p className="font-semibold text-[#0f172a]">{emp.fullName}</p>
-                      <span className="text-[9px] text-[#64748b]">{emp.employeeCode} · {emp.department ?? '-'}</span>
-                    </td>
-                    <td className="py-2 pr-2 text-right">
-                      <input type="number" min={0} placeholder={String(emp.baseSalary)}
-                        value={edit?.baseSalary ?? ''}
-                        onChange={(e) => setEmpEdit((s) => ({ ...s, [emp.employeeId]: { baseSalary: e.target.value, pin: s[emp.employeeId]?.pin ?? '' } }))}
-                        className="w-32 rounded-lg border border-[#e2e8f0] px-2 py-1 text-right text-[11px]" />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input type="password" inputMode="numeric" maxLength={6} placeholder={emp.hasPayslipPin ? '•••••• (set)' : 'belum diatur'}
-                        value={edit?.pin ?? ''}
-                        onChange={(e) => setEmpEdit((s) => ({ ...s, [emp.employeeId]: { baseSalary: s[emp.employeeId]?.baseSalary ?? '', pin: e.target.value.replace(/\D/g, '').slice(0, 6) } }))}
-                        className="w-28 rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]" />
-                    </td>
-                    <td className="py-2 text-right">
-                      <button disabled={busy || !edit} onClick={() => saveEmployee(emp)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold hover:bg-[#006347] disabled:opacity-50">
-                        <Save className="h-3 w-3" /> Simpan
-                      </button>
-                    </td>
-                  </tr>
+                  <input type="number" min={0} aria-label={`Gaji pokok ${emp.fullName}`} placeholder={String(emp.baseSalary)}
+                    value={edit?.baseSalary ?? ''}
+                    onChange={(ev) => setEmpEdit((s) => ({ ...s, [emp.employeeId]: { baseSalary: ev.target.value, pin: s[emp.employeeId]?.pin ?? '' } }))}
+                    className="w-32 rounded-lg border border-[#e2e8f0] px-2 py-1 text-right text-[11px]" />
                 );
-              })}
-            </tbody>
-          </table>
+              },
+            },
+            {
+              key: 'pin',
+              header: 'PIN Slip',
+              value: () => '',
+              render: (emp) => {
+                const edit = empEdit[emp.employeeId];
+                return (
+                  <input type="password" inputMode="numeric" maxLength={6} aria-label={`PIN slip ${emp.fullName}`}
+                    placeholder={emp.hasPayslipPin ? 'Tersimpan' : 'Belum ada'}
+                    value={edit?.pin ?? ''}
+                    onChange={(ev) => setEmpEdit((s) => ({ ...s, [emp.employeeId]: { baseSalary: s[emp.employeeId]?.baseSalary ?? '', pin: ev.target.value } }))}
+                    className="w-28 rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]" />
+                );
+              },
+            },
+            {
+              key: 'aksi',
+              header: 'Aksi',
+              className: 'text-right',
+              value: () => '',
+              render: (emp) => (
+                <button disabled={busy || !empEdit[emp.employeeId]} onClick={() => saveEmployee(emp)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold disabled:opacity-50">
+                  <Save className="h-3 w-3" /> Simpan
+                </button>
+              ),
+            },
+            ]}
+          />
         </div>
       ) : (
       <>

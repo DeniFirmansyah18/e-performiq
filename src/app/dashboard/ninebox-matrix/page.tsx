@@ -6,6 +6,7 @@ import { nineBoxCopy } from '@/lib/employee/nineBoxLabels';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
+  ArrowLeft,
   Building2,
   Filter,
   Calendar,
@@ -27,7 +28,7 @@ import {
 } from 'lucide-react';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
-import ActionCard from '@/components/ui/ActionCard';
+
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
@@ -39,7 +40,7 @@ interface CandidateProfile {
   nip: string;
   tenure: string;
   currentRole: string;
-  readinessBadge: 'Ready Now' | 'Ready 1-2 Yrs' | 'Ready > 2 Yrs' | 'Under Observation';
+  readinessBadge: ReadinessLevel;
   targetRole: string;
   compositeIndex: string;
   competencyReadiness: string;
@@ -47,6 +48,17 @@ interface CandidateProfile {
   idp: string;
   avatarUrl: string;
 }
+
+/** Tingkat kesiapan seorang kandidat untuk naik ke posisi berikutnya. */
+export type ReadinessLevel = 'SIAP_SEKARANG' | 'SIAP_1_2_TAHUN' | 'SIAP_LEBIH_2_TAHUN' | 'PERLU_PEMANTAUAN';
+
+/** Label yang ditampilkan ke pengguna (bahasa Indonesia). */
+const READINESS_LABEL: Record<ReadinessLevel, string> = {
+  SIAP_SEKARANG: 'Siap sekarang',
+  SIAP_1_2_TAHUN: 'Siap 1–2 tahun lagi',
+  SIAP_LEBIH_2_TAHUN: 'Siap lebih dari 2 tahun',
+  PERLU_PEMANTAUAN: 'Perlu dipantau',
+};
 
 interface QuadrantData {
   id: number;
@@ -175,21 +187,51 @@ const QUADRANTS: QuadrantData[] = [
 export default function NineBoxMatrixPage() {
   const [openFeature, setOpenFeature] = useState<NineboxFeature | null>(null);
   const [selectedBox, setSelectedBox] = useState<number>(9);
+  // Halaman daftar pegawai pada panel inspeksi (5 per halaman).
+  const [halamanPegawai, setHalamanPegawai] = useState(1);
   const [activeDirectorate, setActiveDirectorate] = useState('Semua Direktorat (Holding)');
   const [activeDepartment, setActiveDepartment] = useState('Semua Departemen');
   const [isReloading, setIsReloading] = useState(false);
   const [reloadOk, setReloadOk] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number> } | null>(null);
+  const [summary, setSummary] = useState<{ total: number; byQuadrant: Record<string, number>; talent_quadrants?: any[] } | null>(null);
+
+  // Pegawai per kuadran dari API — dipakai panel inspeksi (data nyata, bukan contoh).
+  const [pegawaiPerKotak, setPegawaiPerKotak] = useState<Record<string, any[]>>({});
+
+/** Mengubah respons API menjadi peta "kode kuadran" -> daftar pegawai. */
+  const petakanPegawai = (data: any) => {
+    const peta: Record<string, any[]> = {};
+    const daftar: any[] = Array.isArray(data?.talent_quadrants) ? data.talent_quadrants : [];
+    for (const q of daftar) {
+      if (q && typeof q.quadrant === 'string' && Array.isArray(q.employees)) {
+        peta[q.quadrant] = q.employees;
+      }
+    }
+    return peta;
+  };
 
   // Task 8: jumlah per kuadran dari DB (bukan konstanta 1,240/42/180/12).
   useEffect(() => {
     let active = true;
+    // Daftar pegawai per kotak hanya ada di endpoint distribusi (bukan summary).
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/analytics/nine-box-distribution');
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        if (active) setPegawaiPerKotak(petakanPegawai(json?.data));
+      } catch {
+        /* panel tetap menampilkan keadaan kosong bila API tidak tersedia */
+      }
+    })();
     (async () => {
       try {
         const res = await fetch('/api/v1/performance/nine-box-summary');
         if (!res.ok) return;
         const json = await res.json();
+        // Hanya ringkasan angka; daftar pegawai berasal dari endpoint distribusi
+        // di atas agar tidak tertimpa peta kosong.
         if (active) setSummary(json?.data ?? null);
       } catch {
         /* biarkan nilai demo bila API tidak tersedia */
@@ -222,7 +264,28 @@ export default function NineBoxMatrixPage() {
     });
   };
 
-  const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];;
+  const currentQuadrant = QUADRANTS.find((q) => q.boxNumber === selectedBox) || QUADRANTS[2];
+
+  /** Daftar pegawai nyata untuk kotak yang sedang dipilih. */
+  const pegawaiKotakIni: any[] = pegawaiPerKotak[currentQuadrant.quadrantKey] ?? [];
+
+  // Paginasi daftar pegawai: 5 per halaman, nomor halaman maksimal 5.
+  const UKURAN_HALAMAN_PEGAWAI = 5;
+  const totalHalamanPegawai = Math.max(1, Math.ceil(pegawaiKotakIni.length / UKURAN_HALAMAN_PEGAWAI));
+  const halamanPegawaiAman = Math.min(halamanPegawai, totalHalamanPegawai);
+  const pegawaiTampil = pegawaiKotakIni.slice(
+    (halamanPegawaiAman - 1) * UKURAN_HALAMAN_PEGAWAI,
+    halamanPegawaiAman * UKURAN_HALAMAN_PEGAWAI
+  );
+  const jendelaPegawai = 5;
+  const mulaiNomorPegawai = Math.max(
+    1,
+    Math.min(halamanPegawaiAman - Math.floor(jendelaPegawai / 2), totalHalamanPegawai - jendelaPegawai + 1)
+  );
+  const nomorPegawai = Array.from(
+    { length: Math.min(jendelaPegawai, totalHalamanPegawai) },
+    (_, i) => mulaiNomorPegawai + i
+  );
 
   /** Jumlah karyawan per kotak; "—" bila ringkasan belum dimuat (0 berarti kosong, beda arti). */
   const boxCount = (code: string): string => {
@@ -270,26 +333,32 @@ export default function NineBoxMatrixPage() {
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
-
+      
       {/* 1. Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
+          <Link
+            href="/dashboard/hr-command"
+            className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke HR Command Center
+          </Link>
           {/* Breadcrumb & GCG Tag */}
           <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">
-            <span className="font-semibold tracking-wider text-[#64748b]">MANAJEMEN TALENTA & SUKSESI</span>
+            <span className="font-semibold tracking-wider text-[#64748b]">GAMBARAN TALENTA & KADERISASI</span>
             <span>/</span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#dcfce7] text-[#166534] font-semibold text-[11px]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#16a34a]"></span>
-              Standar Tata Kelola (GCG)
+              GCG Compliant Cycle
             </span>
           </div>
 
           {/* Page Title */}
           <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
-            Peta Talenta & Calon Pemimpin (9-Box Matrix)
+            Matriks 9-Box: Hasil Kerja dan Kemampuan Naik Level
           </h1>
           <p className="text-xs text-[#64748b] mt-1 max-w-3xl">
-            Pemetaan potensi dan performa kerja karyawan untuk penetapan calon suksesor posisi kunci, promosi kepemimpinan, dan rencana pengembangan SDM.
+            Pemetaan analitik suksesi manajerial, kesiapan talent pipeline 2026-2028, dan standardisasi intervensi human capital berbasis Good Corporate Governance.
           </p>
         </div>
 
@@ -327,7 +396,7 @@ export default function NineBoxMatrixPage() {
           </button>
 
           {/* Muat ulang data 9-Box */}
-          <button
+          <button 
             onClick={handleRunAi}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#007a5a] text-white text-xs font-semibold shadow-xs hover:bg-[#00664b] transition-all"
           >
@@ -372,39 +441,13 @@ export default function NineBoxMatrixPage() {
         />
         <FeatureCard
           icon={ListOrdered}
-          title="Kesiapan Suksesi"
-          metric="Bench Strength"
+          title="Calon Pengganti Posisi Kunci"
+          metric="Kesiapan"
           tag="Suksesi"
-          description="Ringkasan kekuatan cadangan suksesi untuk posisi kritis dan Automated Succession Matcher."
+          description="Melihat siapa yang siap menggantikan pejabat pada posisi kunci bila berhenti atau pensiun."
           onOpen={() => setOpenFeature('simulasi')}
         />
       </FeatureGrid>
-
-      {/* Aksi Cepat (kartu) */}
-      {/* <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Talenta</h2>
-          <span className="text-[11px] text-[#64748b]">Kesiapan suksesi</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionCard
-            icon={Plus}
-            tone="emerald"
-            title="Muat ulang data"
-            tag="Suksesi"
-            description="Ambil ulang sebaran karyawan terbaru dari database."
-            onClick={handleRunAi}
-          />
-          <ActionCard
-            icon={Grid3X3}
-            tone="violet"
-            title="Matriks 9-Box"
-            tag="Talenta"
-            description="Buka matriks 9-Box dan panel inspeksi kandidat."
-            onClick={() => setOpenFeature('inspection')}
-          />
-        </div>
-      </div> */}
 
       {/* Ringkasan pemula — selalu terlihat, bukan di dalam panel yang harus dibuka */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -417,7 +460,7 @@ export default function NineBoxMatrixPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-[#b7e1cd] p-4 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Potensi tinggi</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#137333]">Siap naik level</span>
           <div data-testid="summary-promosi" className="text-2xl font-black text-[#137333] mt-1">
             {summary ? `${summaryPromosi} orang` : 'Data belum tersedia'}
           </div>
@@ -429,564 +472,504 @@ export default function NineBoxMatrixPage() {
           <div data-testid="summary-dijaga" className="text-2xl font-black text-[#0f172a] mt-1">
             {summary ? `${summaryDijaga} orang` : 'Data belum tersedia'}
           </div>
-          <p className="text-[11px] text-[#64748b]">Kotak 4–6 · kinerja stabil</p>
+          <p className="text-[11px] text-[#64748b]">Kotak 4–6 · hasil kerja stabil</p>
         </div>
       </div>
 
       {/* Panel: Distribusi */}
       <ExpandablePanel open={openFeature === 'distribusi'} title="Distribusi Kinerja Talenta" onClose={() => setOpenFeature(null)}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-          {/* Metric 1: Total Dinilai */}
-          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">TOTAL DINILAI</span>
-              <div className="w-7 h-7 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#64748b]">
-                <Users className="w-4 h-4" />
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        
+        {/* Metric 1: Total Dinilai */}
+        <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">TOTAL DINILAI</span>
+            <div className="w-7 h-7 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#64748b]">
+              <Users className="w-4 h-4" />
             </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-black text-[#0f172a]">{summary ? summary.total.toLocaleString('id-ID') : 'Data belum tersedia'}</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#e6f4ea] text-[#137333]">
-                100% Sensus
-              </span>
-            </div>
-            <p className="text-[11px] text-[#64748b]">Audit trail terverifikasi komite GCG</p>
           </div>
-
-          {/* Metric 2: Future Leaders (Box 9) */}
-          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">FUTURE LEADERS (BOX 9)</span>
-              <div className="w-7 h-7 rounded-full bg-[#dcfce7] flex items-center justify-center text-[#007a5a]">
-                <Target className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-black text-[#007a5a]">{summary ? (summary.byQuadrant?.FUTURE_LEADER ?? 0) : 'Data belum tersedia'}</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#166534]">
-                3.4% Populasi
-              </span>
-            </div>
-            <p className="text-[11px] text-[#64748b]">Kandidat VP & Director succession bench</p>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-black text-[#0f172a]">{summary ? summary.total.toLocaleString('id-ID') : 'Data belum tersedia'}</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#e6f4ea] text-[#137333]">
+              100% Sensus
+            </span>
           </div>
-
-          {/* Metric 3: Core Backbone (Box 5) */}
-          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">CORE BACKBONE (BOX 5)</span>
-              <div className="w-7 h-7 rounded-full bg-[#e0f2fe] flex items-center justify-center text-[#0284c7]">
-                <Network className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-black text-[#0f172a]">{summary ? (summary.byQuadrant?.CORE_PLAYER ?? 0) : 'Data belum tersedia'}</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569]">
-                14.5% Populasi
-              </span>
-            </div>
-            <p className="text-[11px] text-[#64748b]">Stabilitas performa operasional stabil</p>
-          </div>
-
-          {/* Metric 4: Underperformer (Box 1) */}
-          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">UNDERPERFORMER (BOX 1)</span>
-              <div className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center text-[#dc2626]">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-black text-[#dc2626]">{summary ? (summary.byQuadrant?.UNDERPERFORMER ?? 0) : 'Data belum tersedia'}</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626]">
-                1.0% Mandat PIP
-              </span>
-            </div>
-            <p className="text-[11px] text-[#64748b]">Intervensi mitigasi risiko human capital</p>
-          </div>
-
+          <p className="text-[11px] text-[#64748b]">Audit trail terverifikasi komite GCG</p>
         </div>
+
+        {/* Metric 2: Future Leaders (Box 9) */}
+        <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Pemimpin Masa Depan (Kotak 9)</span>
+            <div className="w-7 h-7 rounded-full bg-[#dcfce7] flex items-center justify-center text-[#007a5a]">
+              <Target className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-black text-[#007a5a]">{summary ? (summary.byQuadrant?.FUTURE_LEADER ?? 0) : 'Data belum tersedia'}</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#166534]">
+              3.4% Populasi
+            </span>
+          </div>
+          <p className="text-[11px] text-[#64748b]">Calon kuat untuk posisi pimpinan puncak</p>
+        </div>
+
+        {/* Metric 3: Core Backbone (Box 5) */}
+        <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Penggerak Inti (Kotak 5)</span>
+            <div className="w-7 h-7 rounded-full bg-[#e0f2fe] flex items-center justify-center text-[#0284c7]">
+              <Network className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-black text-[#0f172a]">{summary ? (summary.byQuadrant?.CORE_PLAYER ?? 0) : 'Data belum tersedia'}</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569]">
+              14.5% Populasi
+            </span>
+          </div>
+          <p className="text-[11px] text-[#64748b]">Stabilitas performa operasional stabil</p>
+        </div>
+
+        {/* Metric 4: Underperformer (Box 1) */}
+        <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b]">Perlu Pembinaan (Kotak 1)</span>
+            <div className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center text-[#dc2626]">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-black text-[#dc2626]">{summary ? (summary.byQuadrant?.UNDERPERFORMER ?? 0) : 'Data belum tersedia'}</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626]">
+              1.0% Mandat PIP
+            </span>
+          </div>
+          <p className="text-[11px] text-[#64748b]">Intervensi mitigasi risiko human capital</p>
+        </div>
+
+      </div>
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
       {/* Panel: Matriks 9-Box & Inspeksi */}
       <ExpandablePanel open={openFeature === 'inspection'} title="Matriks 9-Box & Panel Inspeksi" onClose={() => setOpenFeature(null)}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-          {/* Left Column: 9-Box Matrix Grid (7 cols) */}
-          <div className="lg:col-span-7 bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-xs">
-
-            {/* Header Row & Legend */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#f1f5f9]">
-              <div>
-                <h2 className="text-sm font-bold text-[#0f172a]">
-                  Distribusi 9-Box Talent Placement
-                </h2>
-                <p className="text-[11px] text-[#64748b] mt-0.5">
-                  Klik kuadran untuk menginspeksi rincian pegawai, readiness gap, dan aksi intervensi HR.
-                </p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Left Column: 9-Box Matrix Grid (7 cols) */}
+        <div className="lg:col-span-7 bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-xs">
+          
+          {/* Header Row & Legend */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#f1f5f9]">
+            <div>
+              <h2 className="text-sm font-bold text-[#0f172a]">
+                Distribusi 9-Box Talent Placement
+              </h2>
+              <p className="text-[11px] text-[#64748b] mt-0.5">
+                Klik kuadran untuk menginspeksi rincian pegawai, kesenjangan kesiapan, dan aksi intervensi HR.
+              </p>
+            </div>
+            
+            {/* Legend */}
+            <div className="flex items-center gap-3 text-[11px] text-[#475569]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#007a5a]"></span>
+                <span>Top Tier Successor</span>
               </div>
-
-              {/* Legend */}
-              <div className="flex items-center gap-3 text-[11px] text-[#475569]">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#007a5a]"></span>
-                  <span>Top Tier Successor</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#94a3b8]"></span>
-                  <span>Standard Intervensi</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#dc2626]"></span>
-                  <span>At Risk</span>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#94a3b8]"></span>
+                <span>Standard Intervensi</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#dc2626]"></span>
+                <span>At Risk</span>
               </div>
             </div>
-
-            {/* Grid Layout with Y-Axis and X-Axis */}
-            <div className="mt-4 flex">
-
-              {/* Y-Axis Labeling */}
-              <div className="w-12 flex-shrink-0 flex flex-col justify-between py-6 text-[10px] font-bold text-[#64748b] tracking-wider select-none pr-2 text-right">
-                <div className="flex items-center justify-end gap-0.5 text-[#007a5a]">
-                  <span className="text-xs">↑</span>
-                  <span className="writing-vertical -rotate-90 origin-center translate-y-3 whitespace-nowrap">POTENSI TINGGI</span>
-                </div>
-                <div className="flex items-center justify-end">
-                  <span className="writing-vertical -rotate-90 origin-center whitespace-nowrap">POTENSI SEDANG</span>
-                </div>
-                <div className="flex items-center justify-end gap-0.5 text-[#dc2626]">
-                  <span className="text-xs">↓</span>
-                  <span className="writing-vertical -rotate-90 origin-center -translate-y-3 whitespace-nowrap">POTENSI RENDAH</span>
-                </div>
-              </div>
-
-              {/* The 3x3 Grid */}
-              <div className="flex-1">
-                <div className="grid grid-cols-3 gap-2.5">
-                  {QUADRANTS.map((quad) => {
-                    const isSelected = selectedBox === quad.boxNumber;
-                    const isBox9 = quad.boxNumber === 9;
-                    const isBox1 = quad.boxNumber === 1;
-
-                    return (
-                      <div
-                        key={quad.id}
-                        onClick={() => setSelectedBox(quad.boxNumber)}
-                        className={`relative p-3.5 rounded-xl border transition-all cursor-pointer select-none min-h-[125px] flex flex-col justify-between ${isSelected
-                            ? 'border-[#007a5a] ring-2 ring-[#007a5a]/20 bg-[#f8fdfa] shadow-xs'
-                            : 'border-[#e2e8f0] bg-[#f8fafc]/60 hover:bg-white hover:border-[#cbd5e1]'
-                          } ${isBox9 && !isSelected ? 'border-[#bbf7d0] bg-[#f0fdf4]' : ''} ${isBox1 && !isSelected ? 'border-[#fecaca] bg-[#fff5f5]' : ''
-                          }`}
-                      >
-                        {/* Top Row: Name & Percentage */}
-                        <div className="flex items-start justify-between gap-1">
-                          <span className={`text-xs font-bold ${isBox9 ? 'text-[#007a5a]' : isBox1 ? 'text-[#dc2626]' : 'text-[#1e293b]'
-                            }`}>
-                            {nineBoxCopy(quad.quadrantKey).name}
-                          </span>
-
-                          {isBox9 ? (
-                            <span data-testid="box-percent" className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#007a5a] text-white">
-                              {boxPercent(quad.quadrantKey)}
-                            </span>
-                          ) : isBox1 ? (
-                            <span data-testid="box-percent" className="text-[10px] font-bold text-[#dc2626]">
-                              {boxPercent(quad.quadrantKey)}
-                            </span>
-                          ) : (
-                            <span data-testid="box-percent" className="text-[10px] font-medium text-[#64748b]">
-                              {boxPercent(quad.quadrantKey)}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Middle: Count */}
-                        <div className="my-1.5">
-                          <span data-testid="box-count" className="text-xl font-black text-[#0f172a]">
-                            {boxCount(quad.quadrantKey)}
-                          </span>
-                          <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
-                        </div>
-
-                        {/* Kalimat singkat untuk pemula — bisa disembunyikan */}
-                        {showHelp && (
-                          <p data-testid="quad-short" className="text-[10px] text-[#475569] leading-snug mb-1.5">
-                            {nineBoxCopy(quad.quadrantKey).short}
-                          </p>
-                        )}
-
-                        {/* Bottom Action Pill */}
-                        <div>
-                          {quad.actionType === 'primary' ? (
-                            <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-[#007a5a] text-white shadow-xs">
-                              <Award className="w-3 h-3 text-white" />
-                              <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
-                            </div>
-                          ) : quad.actionType === 'danger' ? (
-                            <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-[#dc2626] text-white shadow-xs">
-                              <AlertTriangle className="w-3 h-3 text-white" />
-                              <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-white border border-[#e2e8f0] text-[#475569]">
-                              {quad.boxNumber === 7 && <RefreshCw className="w-2.5 h-2.5 text-[#64748b]" />}
-                              {quad.boxNumber === 8 && <TrendingUp className="w-2.5 h-2.5 text-[#64748b]" />}
-                              {quad.boxNumber === 4 && <Target className="w-2.5 h-2.5 text-[#64748b]" />}
-                              {quad.boxNumber === 5 && <Shuffle className="w-2.5 h-2.5 text-[#64748b]" />}
-                              {quad.boxNumber === 6 && <Award className="w-2.5 h-2.5 text-[#64748b]" />}
-                              {quad.boxNumber === 2 && <Target className="w-2.5 h-2.5 text-[#64748b]" />}
-                              {quad.boxNumber === 3 && <ShieldCheck className="w-2.5 h-2.5 text-[#64748b]" />}
-                              <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* X-Axis Labeling */}
-                <div className="grid grid-cols-3 gap-2.5 mt-3 text-center text-[10px] font-bold text-[#64748b] tracking-wider select-none">
-                  <div className="text-left text-[#dc2626] pl-1">
-                    ← KINERJA RENDAH
-                  </div>
-                  <div className="text-center text-[#64748b]">
-                    KINERJA SEDANG
-                  </div>
-                  <div className="text-right text-[#007a5a] pr-1">
-                    KINERJA TINGGI →
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
           </div>
 
-          {/* Right Column: Inspection Panel (5 cols) */}
-          <div className="lg:col-span-5 bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-xs flex flex-col justify-between min-h-[500px]">
-
-            <div>
-              {/* Panel Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#64748b]">
-                    PANEL INSPEKSI
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#166534]">
-                    Kotak {selectedBox} Terpilih
-                  </span>
-                </div>
+          {/* Grid Layout with Y-Axis and X-Axis */}
+          <div className="mt-4 flex">
+            
+            {/* Y-Axis Labeling — memakai bahasa sehari-hari, bukan istilah teknis */}
+            <div className="w-12 flex-shrink-0 flex flex-col justify-between py-6 text-[10px] font-bold text-[#64748b] tracking-wider select-none pr-2 text-right">
+              <div className="flex items-center justify-end gap-0.5 text-[#007a5a]">
+                <span className="text-xs">↑</span>
+                <span className="writing-vertical -rotate-90 origin-center translate-y-3 whitespace-nowrap">SIAP NAIK LEVEL</span>
               </div>
-
-              {/* Title & Description */}
-              <div className="mt-3">
-                <h3 className="text-sm font-extrabold text-[#0f172a]">
-                  {nineBoxCopy(currentQuadrant.quadrantKey).name} ({boxCount(currentQuadrant.quadrantKey)} karyawan)
-                </h3>
-                <p className="text-[11px] text-[#64748b] mt-0.5">
-                  {nineBoxCopy(currentQuadrant.quadrantKey).position}
-                </p>
+              <div className="flex items-center justify-end">
+                <span className="writing-vertical -rotate-90 origin-center whitespace-nowrap">CUKUP SIAP</span>
               </div>
+              <div className="flex items-center justify-end gap-0.5 text-[#dc2626]">
+                <span className="text-xs">↓</span>
+                <span className="writing-vertical -rotate-90 origin-center -translate-y-3 whitespace-nowrap">BELUM SIAP</span>
+              </div>
+            </div>
 
-              {/* Panduan untuk HRD pemula */}
-              {showHelp && (
-                <div className="mt-3 space-y-2.5">
-                  <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">Sedang terjadi</p>
-                    <p className="text-[11px] text-[#334155] leading-relaxed">
-                      {nineBoxCopy(currentQuadrant.quadrantKey).happening}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#f0fdf4] border border-[#bbf7d0]">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#137333] mb-1">Langkah pertama</p>
-                    <p className="text-[11px] text-[#334155] leading-relaxed">
-                      {nineBoxCopy(currentQuadrant.quadrantKey).firstStep}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#fffbeb] border border-[#fde68a]">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#b45309] mb-1">Yang perlu dicek dulu</p>
-                    <p className="text-[11px] text-[#334155] leading-relaxed">
-                      {nineBoxCopy(currentQuadrant.quadrantKey).checkFirst}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Candidate Cards List */}
-              <div className="mt-4 space-y-3">
-                {currentQuadrant.candidates.length === 0 && (
-                  <div className="p-4 rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc]/50 text-center">
-                    <p className="text-[11px] text-[#64748b]">
-                      Detail kandidat per kuadran belum tersedia. Skor 9-Box dihitung dari hasil penilaian kinerja; daftar kandidat akan tampil setelah penilaian tersimpan.
-                    </p>
-                  </div>
-                )}
-                {currentQuadrant.candidates.map((cand) => {
-                  const readinessLabel =
-                    cand.readinessBadge === 'Ready Now'
-                      ? 'Siap Sekarang'
-                      : cand.readinessBadge === 'Ready 1-2 Yrs'
-                      ? 'Siap 1-2 Thn'
-                      : cand.readinessBadge === 'Ready > 2 Yrs'
-                      ? 'Siap > 2 Thn'
-                      : 'Dalam Pemantauan';
+            {/* The 3x3 Grid */}
+            <div className="flex-1">
+              <div className="grid grid-cols-3 gap-2.5">
+                {QUADRANTS.map((quad) => {
+                  const isSelected = selectedBox === quad.boxNumber;
+                  const isBox9 = quad.boxNumber === 9;
+                  const isBox1 = quad.boxNumber === 1;
 
                   return (
                     <div
-                      key={cand.id}
-                      className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]/50 hover:bg-white hover:border-[#cbd5e1] hover:shadow-xs transition-all space-y-2.5"
+                      key={quad.id}
+                      onClick={() => {
+                        setSelectedBox(quad.boxNumber);
+                        // Kotak lain punya daftar berbeda: mulai dari halaman 1.
+                        setHalamanPegawai(1);
+                      }}
+                      className={`relative p-3.5 rounded-xl border transition-all cursor-pointer select-none min-h-[125px] flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-[#007a5a] ring-2 ring-[#007a5a]/20 bg-[#f8fdfa] shadow-xs'
+                          : 'border-[#e2e8f0] bg-[#f8fafc]/60 hover:bg-white hover:border-[#cbd5e1]'
+                      } ${isBox9 && !isSelected ? 'border-[#bbf7d0] bg-[#f0fdf4]' : ''} ${
+                        isBox1 && !isSelected ? 'border-[#fecaca] bg-[#fff5f5]' : ''
+                      }`}
                     >
-                      {/* Avatar & Top Info */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={cand.avatarUrl}
-                            alt={cand.name}
-                            className="w-9 h-9 rounded-full object-cover border border-[#e2e8f0] shadow-xs"
-                          />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-[#0f172a]">{cand.name}</span>
-                              <span
-                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                  cand.readinessBadge === 'Ready Now'
-                                    ? 'bg-[#dcfce7] text-[#166534]'
-                                    : cand.readinessBadge === 'Ready 1-2 Yrs'
-                                    ? 'bg-[#e0f2fe] text-[#0369a1]'
-                                    : 'bg-[#fee2e2] text-[#dc2626]'
-                                }`}
-                              >
-                                {readinessLabel}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-[#64748b]">
-                              NIP: {cand.nip} • Masa Kerja: {cand.tenure}
-                            </p>
-                          </div>
-                        </div>
+                      {/* Top Row: Name & Percentage */}
+                      <div className="flex items-start justify-between gap-1">
+                        <span className={`text-xs font-bold ${
+                          isBox9 ? 'text-[#007a5a]' : isBox1 ? 'text-[#dc2626]' : 'text-[#1e293b]'
+                        }`}>
+                          {nineBoxCopy(quad.quadrantKey).name}
+                        </span>
+
+{isBox9 ? (
+                <span data-testid="box-percent" className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#007a5a] text-white">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              ) : isBox1 ? (
+                <span data-testid="box-percent" className="text-[10px] font-bold text-[#dc2626]">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              ) : (
+                <span data-testid="box-percent" className="text-[10px] font-medium text-[#64748b]">
+                  {boxPercent(quad.quadrantKey)}
+                </span>
+              )}
                       </div>
 
-                      {/* Target Succession & Score */}
-                      <div className="text-[11px] grid grid-cols-2 gap-2 pt-1 border-t border-[#f1f5f9]">
-                        <div>
-                          <span className="text-[#64748b] text-[10px] block">Target Jabatan Suksesi:</span>
-                          <span className="font-bold text-[#1e293b] text-[11px]">{cand.targetRole}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[#64748b] text-[10px] block">Kinerja Komposit:</span>
-                          <span className="font-bold text-[#007a5a] text-[11px]">{cand.compositeIndex}</span>
-                        </div>
+                      {/* Middle: Count */}
+                      <div className="my-1.5">
+                        <span data-testid="box-count" className="text-xl font-black text-[#0f172a]">
+                          {boxCount(quad.quadrantKey)}
+                        </span>
+                        <span className="text-[11px] text-[#64748b] ml-1">karyawan</span>
                       </div>
 
-                      {/* Competency Gap Analysis */}
-                      <div className="text-[11px] bg-white rounded-lg p-2 border border-[#f1f5f9]">
-                        <div className="flex items-center justify-between text-[10px] mb-1">
-                          <span className="text-[#64748b]">Kesiapan Kompetensi:</span>
-                          <span className="font-bold text-[#0f172a]">{cand.competencyReadiness}</span>
-                        </div>
-                        <p className="text-[10px] text-[#b45309] font-medium">
-                          Kesenjangan: {cand.competencyGap}
+                      {/* Kalimat singkat untuk pemula — bisa disembunyikan */}
+                      {showHelp && (
+                        <p data-testid="quad-short" className="text-[10px] text-[#475569] leading-snug mb-1.5">
+                          {nineBoxCopy(quad.quadrantKey).short}
                         </p>
-                      </div>
+                      )}
 
-                      {/* IDP & Detail Link */}
-                      <div className="flex items-center justify-between pt-1 text-[11px]">
-                        <div className="text-[10px] text-[#64748b]">
-                          <span className="font-medium text-[#334155]">IDP:</span> {cand.idp}
-                        </div>
-                        <Link
-                          href="/dashboard/employee-portal"
-                          className="text-[10px] font-bold text-[#007a5a] hover:underline inline-flex items-center gap-0.5"
-                        >
-                          Detail Portofolio <ArrowRight className="w-2.5 h-2.5" />
-                        </Link>
+                      {/* Bottom Action Pill */}
+                      <div>
+                        {quad.actionType === 'primary' ? (
+                          <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-[#007a5a] text-white shadow-xs">
+                            <Award className="w-3 h-3 text-white" />
+                            <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
+                          </div>
+                        ) : quad.actionType === 'danger' ? (
+                          <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-[#dc2626] text-white shadow-xs">
+                            <AlertTriangle className="w-3 h-3 text-white" />
+                            <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-white border border-[#e2e8f0] text-[#475569]">
+                            {quad.boxNumber === 7 && <RefreshCw className="w-2.5 h-2.5 text-[#64748b]" />}
+                            {quad.boxNumber === 8 && <TrendingUp className="w-2.5 h-2.5 text-[#64748b]" />}
+                            {quad.boxNumber === 4 && <Target className="w-2.5 h-2.5 text-[#64748b]" />}
+                            {quad.boxNumber === 5 && <Shuffle className="w-2.5 h-2.5 text-[#64748b]" />}
+                            {quad.boxNumber === 6 && <Award className="w-2.5 h-2.5 text-[#64748b]" />}
+                            {quad.boxNumber === 2 && <Target className="w-2.5 h-2.5 text-[#64748b]" />}
+                            {quad.boxNumber === 3 && <ShieldCheck className="w-2.5 h-2.5 text-[#64748b]" />}
+                            <span>{nineBoxCopy(quad.quadrantKey).shortAction}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
 
-            {/* Automated Succession Matcher Card (Bottom of panel) */}
-            <div className="mt-4 pt-3 border-t border-[#f1f5f9]">
-              <div className="bg-[#f1f5f9] rounded-xl p-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white border border-[#e2e8f0] flex items-center justify-center text-[#007a5a] shadow-xs">
-                    <Compass className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#0f172a]">Automated Succession Matcher</h4>
-                    <p className="text-[10px] text-[#64748b]">Kesiapan mengikuti penilaian tersimpan</p>
-                  </div>
+              {/* X-Axis Labeling */}
+              <div className="grid grid-cols-3 gap-2.5 mt-3 text-center text-[10px] font-bold text-[#64748b] tracking-wider select-none">
+                <div className="text-left text-[#dc2626] pl-1">
+                  ← HASIL KERJA RENDAH
                 </div>
-                <button
-                  onClick={handleRunAi}
-                  disabled={isReloading}
-                  className="px-3 py-1.5 rounded-lg bg-white border border-[#cbd5e1] text-xs font-semibold text-[#0f172a] hover:bg-[#f8fafc] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  {isReloading ? (
-                    <>
-                      <RefreshCw className="w-3 h-3 animate-spin text-[#007a5a]" />
-                      <span>Memetakan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Muat ulang data</span>
-                    </>
-                  )}
-                </button>
+                <div className="text-center text-[#64748b]">
+                  HASIL KERJA SEDANG
+                </div>
+                <div className="text-right text-[#007a5a] pr-1">
+                  HASIL KERJA TINGGI →
+                </div>
               </div>
-              {reloadError && (
-                <p role="alert" className="text-[10px] text-[#c5221f] font-semibold bg-[#fce8e6] rounded-md px-2 py-1 mt-2 text-center">
-                  {reloadError}
-                </p>
-              )}
-              {reloadOk && (
-                <p className="text-[10px] text-[#166534] font-semibold bg-[#dcfce7] rounded-md px-2 py-1 mt-2 text-center animate-fade-in">
-                  Data 9-Box berhasil dimuat ulang.
-                </p>
-              )}
+
             </div>
 
           </div>
 
         </div>
+
+        {/* Right Column: Inspection Panel (5 cols) */}
+        <div className="lg:col-span-5 bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-xs flex flex-col justify-between min-h-[500px]">
+          
+          <div>
+            {/* Panel Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#64748b]">
+                  RINCIAN KOTAK
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#166534]">
+                  Kotak {selectedBox} dipilih
+                </span>
+              </div>
+            </div>
+
+            {/* Title & Description */}
+            <div className="mt-3">
+              <h3 className="text-sm font-extrabold text-[#0f172a]">
+                {nineBoxCopy(currentQuadrant.quadrantKey).name} ({boxCount(currentQuadrant.quadrantKey)} karyawan)
+              </h3>
+              <p className="text-[11px] text-[#64748b] mt-0.5">
+                {nineBoxCopy(currentQuadrant.quadrantKey).position}
+              </p>
+            </div>
+
+            {/* Panduan untuk HRD pemula */}
+            {showHelp && (
+              <div className="mt-3 space-y-2.5">
+                {/* Cara sistem menilai — penempatan otomatis, bukan penilaian manual */}
+                <div className="p-3 rounded-xl bg-[#eff6ff] border border-[#bfdbfe]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#1d4ed8] mb-1">
+                    Bagaimana kotak ini ditentukan
+                  </p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed mb-2">
+                    Kotak diisi <strong>otomatis oleh sistem</strong>, bukan dipilih oleh HRD. Sistem melihat dua hal
+                    pada setiap karyawan, lalu menempatkannya ke salah satu dari sembilan kotak.
+                  </p>
+                  <ul className="space-y-1.5 text-[11px] text-[#334155] leading-relaxed">
+                    <li>
+                      <strong>Hasil kerja</strong> — seberapa jauh target kerja tercapai. Dihitung dari nilai
+                      kinerja keseluruhan karyawan.
+                      <span className="block text-[10px] text-[#64748b]">
+                        Rendah: di bawah 75 · Sedang: 75 sampai 89 · Tinggi: 90 ke atas
+                      </span>
+                    </li>
+                    <li>
+                      <strong>Kemampuan naik level</strong> — kesiapan memegang tanggung jawab yang lebih besar.
+                      Dinilai oleh atasan pada skala 1 sampai 5.
+                      <span className="block text-[10px] text-[#64748b]">
+                        Rendah: di bawah 3 · Sedang: 3 sampai 3,9 · Tinggi: 4 ke atas
+                      </span>
+                    </li>
+                  </ul>
+                  <p className="mt-2 text-[10px] text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-lg px-2 py-1.5">
+                    Bila kemampuan naik level belum pernah dinilai, sistem memakai nilai tengah (3,5). Karyawan itu
+                    akan tampil di kolom <strong>sedang</strong> — bukan karena dinilai sedang, tetapi karena datanya
+                    belum ada.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">Sedang terjadi</p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed">
+                    {nineBoxCopy(currentQuadrant.quadrantKey).happening}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#f0fdf4] border border-[#bbf7d0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#137333] mb-1">Langkah pertama</p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed">
+                    {nineBoxCopy(currentQuadrant.quadrantKey).firstStep}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#fffbeb] border border-[#fde68a]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#b45309] mb-1">Yang perlu dicek dulu</p>
+                  <p className="text-[11px] text-[#334155] leading-relaxed">
+                    {nineBoxCopy(currentQuadrant.quadrantKey).checkFirst}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Daftar pegawai nyata pada kotak terpilih (dari API 9-Box) */}
+            <div className="mt-4 space-y-3">
+              {pegawaiKotakIni.length === 0 && (
+                <div className="p-4 rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc]/50 text-center">
+                  <p className="text-[11px] text-[#64748b]">
+                    {summary ? 'Belum ada karyawan di kotak ini.' : 'Memuat data karyawan…'}
+                  </p>
+                </div>
+              )}
+
+              {pegawaiTampil.map((p) => (
+                <div
+                  key={String(p.employee_id)}
+                  className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc]/50 hover:bg-white hover:border-[#cbd5e1] hover:shadow-xs transition-all space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-[#0f172a]">{p.full_name}</p>
+                      <p className="text-[10px] text-[#64748b]">
+                        NIP: {p.employee_code ?? '—'}
+                        {p.position ? ` • ${p.position}` : ''}
+                      </p>
+                      {p.department && (
+                        <p className="text-[10px] text-[#64748b]">{p.department}</p>
+                      )}
+                    </div>
+                    {p.performance_rating && (
+                      <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333]">
+                        Peringkat {p.performance_rating}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] flex items-center justify-between pt-2 border-t border-[#f1f5f9]">
+                    <span className="text-[#64748b] text-[10px]">Nilai kinerja keseluruhan</span>
+                    <span className="font-bold text-[#007a5a]">
+                      {typeof p.composite_gpa === 'number' ? p.composite_gpa.toFixed(2) : '—'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Navigasi halaman daftar pegawai: nomor maksimal 5. */}
+              {totalHalamanPegawai > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[#64748b]">
+                  <span>
+                    Menampilkan {(halamanPegawaiAman - 1) * UKURAN_HALAMAN_PEGAWAI + 1}–
+                    {Math.min(halamanPegawaiAman * UKURAN_HALAMAN_PEGAWAI, pegawaiKotakIni.length)} dari{' '}
+                    {pegawaiKotakIni.length} pegawai
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setHalamanPegawai(halamanPegawaiAman - 1)}
+                      disabled={halamanPegawaiAman <= 1}
+                      aria-label="Halaman pegawai sebelumnya"
+                      className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+                    >
+                      Sebelumnya
+                    </button>
+                    {nomorPegawai.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setHalamanPegawai(n)}
+                        aria-label={`Halaman pegawai ${n}`}
+                        aria-current={n === halamanPegawaiAman ? 'page' : undefined}
+                        className={`min-w-[26px] h-[26px] rounded-lg border text-[11px] font-semibold transition-colors ${
+                          n === halamanPegawaiAman
+                            ? 'bg-[#007a5a] border-[#007a5a] text-white'
+                            : 'bg-white border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setHalamanPegawai(halamanPegawaiAman + 1)}
+                      disabled={halamanPegawaiAman >= totalHalamanPegawai}
+                      aria-label="Halaman pegawai berikutnya"
+                      className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+                    >
+                      Berikutnya
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pencocokan Kaderisasi Otomatis Card (Bottom of panel) */}
+          <div className="mt-4 pt-3 border-t border-[#f1f5f9]">
+            <div className="bg-[#f1f5f9] rounded-xl p-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white border border-[#e2e8f0] flex items-center justify-center text-[#007a5a] shadow-xs">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#0f172a]">Pencocokan Kaderisasi Otomatis</h4>
+                  <p className="text-[10px] text-[#64748b]">Mengikuti hasil penilaian yang tersimpan</p>
+                </div>
+              </div>
+              <button
+                onClick={handleRunAi}
+                disabled={isReloading}
+                className="px-3 py-1.5 rounded-lg bg-white border border-[#cbd5e1] text-xs font-semibold text-[#0f172a] hover:bg-[#f8fafc] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {isReloading ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 animate-spin text-[#007a5a]" />
+                    <span>Memetakan...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Muat ulang data</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {reloadError && (
+              <p role="alert" className="text-[10px] text-[#c5221f] font-semibold bg-[#fce8e6] rounded-md px-2 py-1 mt-2 text-center">
+                {reloadError}
+              </p>
+            )}
+            {reloadOk && (
+              <p className="text-[10px] text-[#166534] font-semibold bg-[#dcfce7] rounded-md px-2 py-1 mt-2 text-center animate-fade-in">
+                Data 9-Box berhasil dimuat ulang.
+              </p>
+            )}
+          </div>
+
+        </div>
+
+      </div>
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 
       {/* Panel: Kesiapan Suksesi (Bench Strength Table) */}
-      <ExpandablePanel open={openFeature === 'simulasi'} title="Kesiapan Suksesi Calon Pemimpin" onClose={() => setOpenFeature(null)}>
-        <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-xs space-y-4">
+      {/* Panel: Calon Pengganti Posisi Kunci */}
+      <ExpandablePanel open={openFeature === 'simulasi'} title="Calon Pengganti Posisi Kunci" onClose={() => setOpenFeature(null)}>
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-xs space-y-4">
 
-          {/* Table Title & Target note */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-bold text-[#0f172a]">
-                Ringkasan Kesiapan Calon Pemimpin (Bench Strength)
-              </h3>
-              <p className="text-xs text-[#64748b] mt-0.5">
-                Kesiapan suksesi dan calon pengganti posisi kunci perusahaan sesuai standar tata kelola organisasi.
-              </p>
-            </div>
-            <div className="text-[11px] font-semibold text-[#007a5a] bg-[#e6f4ea] px-3 py-1 rounded-md">
-              Target: Minimal 2 Calon Pengganti Siap per Posisi Kunci
-            </div>
-          </div>
-
-          {/* Table Content */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#f8fafc] border-b border-[#e2e8f0] text-[11px] font-bold text-[#64748b] uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Posisi Kunci</th>
-                  <th className="py-3 px-4">Pejabat Saat Ini</th>
-                  <th className="py-3 px-4">Estimasi Pensiun / Sisa Masa Jabatan</th>
-                  <th className="py-3 px-4">Calon Siap Sekarang</th>
-                  <th className="py-3 px-4">Calon Siap (1-2 Tahun)</th>
-                  <th className="py-3 px-4 text-center">Status Kesiapan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f1f5f9]">
-
-                {/* Row 1: CTO */}
-                <tr className="hover:bg-[#f8fafc] transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-[#0f172a]">
-                    Chief Technology Officer (CTO)
-                  </td>
-                  <td className="py-3.5 px-4 text-[#334155]">
-                    Ir. Hendra Wijaya (Pensiun 2027)
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569] font-medium text-[11px]">
-                      &lt; 14 Bulan
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1.5 font-semibold text-[#007a5a]">
-                      <span className="w-2 h-2 rounded-full bg-[#007a5a]"></span>
-                      <span>Budi Pratama</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#475569]">
-                    Dimas Prasetyo, Kevin Wardhana
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#dcfce7] text-[#166534]">
-                      Sangat Siap (3:1)
-                    </span>
-                  </td>
-
-                </tr>
-
-                {/* Row 2: VP Enterprise Commercial */}
-                <tr className="hover:bg-[#f8fafc] transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-[#0f172a]">
-                    VP of Enterprise Commercial
-                  </td>
-                  <td className="py-3.5 px-4 text-[#334155]">
-                    Raden Mas Aditya
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#475569] font-medium text-[11px]">
-                      24 Bulan
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1.5 font-semibold text-[#007a5a]">
-                      <span className="w-2 h-2 rounded-full bg-[#007a5a]"></span>
-                      <span>Siti Rahmawati</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#475569]">
-                    Amanda Kusumo, Reza Fauzi
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1]">
-                      Cukup Siap (3:1)
-                    </span>
-                  </td>
-
-                </tr>
-
-                {/* Row 3: Head of Internal Audit & Risk */}
-                <tr className="hover:bg-[#fff5f5] transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-[#0f172a]">
-                    Head of Internal Audit &amp; Risk
-                  </td>
-                  <td className="py-3.5 px-4 text-[#334155]">
-                    Dewi Lestari, Ak., CA
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#dc2626] font-bold text-[11px]">
-                      &lt; 6 Bulan
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1.5 font-bold text-[#dc2626]">
-                      <span className="w-2 h-2 rounded-full bg-[#dc2626]"></span>
-                      <span>Belum Ada (Gap Suksesi)</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#475569]">
-                    Farhan Hakim (Kesiapan 72%)
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#fee2e2] text-[#dc2626]">
-                      Kritis / Belum Siap (0:1)
-                    </span>
-                  </td>
-
-                </tr>
-
-              </tbody>
-            </table>
-          </div>
-
+        <div>
+          <h3 className="text-sm font-bold text-[#0f172a]">Ringkasan Kesiapan Pengganti</h3>
+          <p className="text-xs text-[#64748b] mt-0.5">
+            Menunjukkan siapa yang siap menggantikan pejabat pada posisi kunci bila yang bersangkutan
+            berhenti atau pensiun.
+          </p>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#334155]">
+          <span className="font-semibold text-[#007a5a] bg-[#e6f4ea] px-3 py-1 rounded-md">
+            Target: minimal 2 calon siap untuk setiap posisi kunci
+          </span>
+        </div>
+
+        {/* Keadaan kosong yang jujur: fitur belum terhubung ke data kepegawaian. */}
+        <div
+          role="status"
+          className="p-4 rounded-xl bg-[#f8fafc] border border-dashed border-[#cbd5e1] text-center space-y-1.5"
+        >
+          <p className="text-xs font-bold text-[#334155]">Data belum terhubung ke database</p>
+          <p className="text-[11px] text-[#64748b] leading-relaxed max-w-2xl mx-auto">
+            Daftar calon pengganti belum tersedia karena data posisi kunci, perkiraan pensiun, dan
+            kesiapan kader belum diisi. Setelah data itu tersedia, tabel akan menampilkan posisi kunci,
+            pemegang saat ini, perkiraan pensiun, calon pengganti yang siap sekarang, calon yang siap
+            1–2 tahun lagi, serta status ketersediaannya.
+          </p>
+        </div>
+
+      </div>
         <AiAnalyzePanel feature="ninebox" />
       </ExpandablePanel>
 

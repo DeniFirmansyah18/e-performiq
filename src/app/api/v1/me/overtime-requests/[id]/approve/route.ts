@@ -25,6 +25,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const row = await decideOvertime(db, {
       id: params.id,
       approverId: session.userId,
+      approverEmployeeId: session.employeeId,
       decision: parsed.data.decision,
       reason: parsed.data.reason,
     });

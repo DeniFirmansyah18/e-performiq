@@ -32,7 +32,7 @@ export interface NineBoxCopy {
 export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
   FUTURE_LEADER: {
     name: 'Pemimpin Masa Depan',
-    position: 'potensi tinggi · kinerja tinggi',
+    position: 'siap naik level · hasil kerja tinggi',
     short: 'Sudah berprestasi dan mampu memegang tanggung jawab yang lebih besar.',
     happening:
       'Orang ini memberi hasil di atas target sekaligus menunjukkan kemampuan memimpin. Biasanya inilah kandidat utama untuk posisi yang lebih tinggi.',
@@ -44,7 +44,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   GROWTH_STAR: {
     name: 'Bintang Berkembang',
-    position: 'potensi tinggi · kinerja sedang',
+    position: 'siap naik level · hasil kerja sedang',
     short: 'Punya kapasitas lebih, hasil kerjanya masih bisa dinaikkan.',
     happening:
       'Kemampuan dan tanda untuk naik level sudah tampak, tetapi hasil kerjanya baru pada tingkat memadai. Penyebabnya belum diketahui — bisa karena kurang tantangan, bisa karena hambatan lain.',
@@ -55,8 +55,8 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
   },
 
   ENIGMA: {
-    name: 'Potensi Tinggi, Kinerja Rendah',
-    position: 'potensi tinggi · kinerja rendah',
+    name: 'Siap Naik Level, Hasil Kerja Rendah',
+    position: 'siap naik level · hasil kerja rendah',
     short: 'Mampu naik level, tapi hasil kerjanya sekarang masih di bawah target.',
     happening:
       'Orang ini punya kapasitas untuk naik level, tapi hasil kerjanya sekarang belum sesuai target.',
@@ -69,7 +69,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   HIGH_IMPACT: {
     name: 'Pakar Berdampak',
-    position: 'potensi sedang · kinerja tinggi',
+    position: 'cukup siap · hasil kerja tinggi',
     short: 'Hasil kerjanya tinggi dan keahliannya sulit digantikan.',
     happening:
       'Hasil kerjanya konsisten di atas target dengan keahlian yang mendalam. Tanda untuk naik ke jenjang berikutnya baru pada tingkat sedang.',
@@ -81,7 +81,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   CORE_PLAYER: {
     name: 'Penggerak Inti',
-    position: 'potensi sedang · kinerja sedang',
+    position: 'cukup siap · hasil kerja sedang',
     short: 'Bekerja stabil sesuai target dan menjadi tulang punggung tim.',
     happening:
       'Orang ini mengerjakan tugasnya sesuai target secara konsisten. Inilah kelompok terbesar dan penopang operasional sehari-hari.',
@@ -93,7 +93,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   DILEMMA: {
     name: 'Perlu Penyesuaian',
-    position: 'potensi sedang · kinerja rendah',
+    position: 'cukup siap · hasil kerja rendah',
     short: 'Kemampuannya ada, tapi hasil kerjanya belum mencapai target.',
     happening:
       'Kemampuan dasarnya cukup, tetapi hasil kerjanya belum sesuai target. Bisa karena keterampilan yang belum lengkap, atau peran yang tidak cocok.',
@@ -105,7 +105,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   TRUSTED_PRO: {
     name: 'Profesional Andalan',
-    position: 'potensi rendah · kinerja tinggi',
+    position: 'belum siap · hasil kerja tinggi',
     short: 'Sangat andal di bidangnya, tapi tidak diarahkan memimpin orang.',
     happening:
       'Pekerjaannya rapi dan hasilnya tinggi pada bidang yang dikuasainya. Tanda untuk naik level belum terlihat pada penilaian.',
@@ -117,7 +117,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   EFFECTIVE_PRO: {
     name: 'Kontributor Terampil',
-    position: 'potensi rendah · kinerja sedang',
+    position: 'belum siap · hasil kerja sedang',
     short: 'Mengerjakan tugasnya dengan terampil sesuai standar harian.',
     happening:
       'Orang ini menjalankan pekerjaan operasional sesuai standar yang berlaku. Kontribusinya nyata, hanya belum ada tanda untuk naik ke tingkat berikutnya.',
@@ -129,7 +129,7 @@ export const NINE_BOX_COPY: Record<NineBoxQuadrant, NineBoxCopy> = {
 
   UNDERPERFORMER: {
     name: 'Perlu Pembinaan',
-    position: 'potensi rendah · kinerja rendah',
+    position: 'belum siap · hasil kerja rendah',
     short: 'Hasil kerjanya jauh di bawah target dan perlu pendampingan khusus.',
     happening:
       'Hasil kerja dan tanda kemampuan untuk naik level sama-sama di bawah harapan. Kelompok ini paling sedikit jumlahnya, tetapi paling perlu perhatian.',

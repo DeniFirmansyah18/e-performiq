@@ -3,7 +3,7 @@ import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
 import { ok, fail } from '@/lib/api/response';
 import { db } from '@/lib/db/client';
-import { getSocialSecurity } from '@/lib/services/socialSecurityService';
+import { buildCard, getSocialSecurity } from '@/lib/services/socialSecurityService';
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
     if (!session.employeeId) return fail('FORBIDDEN', 'Akun tidak memiliki ID karyawan.', 403);
 
     const card = await getSocialSecurity(db, session.employeeId);
-    if (!card) return fail('NOT_FOUND', 'Data BPJS belum terdaftar. Hubungi HRD.', 404);
-    return ok(card);
+    // "Belum terdaftar" bukan "tidak ditemukan": jawab 200 dengan
+    // registered=false agar browser tidak mencatat 404 palsu di konsol.
+    return ok(buildCard(card));
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;
     return fail(status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',

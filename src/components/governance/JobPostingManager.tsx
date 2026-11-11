@@ -1,4 +1,5 @@
 'use client';
+import ListPager from '@/components/ui/ListPager';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -130,12 +131,16 @@ export default function JobPostingManager() {
       {msg && <p className="text-xs text-[#047857] bg-[#ecfdf5] px-3 py-2 rounded-lg">{msg}</p>}
       {err && <p className="text-xs text-[#b91c1c] bg-[#fef2f2] px-3 py-2 rounded-lg">{err}</p>}
 
-      {rows.length === 0 ? (
-        <p className="text-xs text-[#64748b]">Belum ada lowongan. Klik &quot;Buat Lowongan&quot;.</p>
-      ) : (
-        <div className="space-y-2">
-          {rows.map((p) => (
-            <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-[#e2e8f0]">
+      <ListPager
+        items={rows}
+        itemKey={(p) => p.id}
+        itemLabel="lowongan"
+        emptyMessage="Belum ada lowongan. Klik 'Buat Lowongan' untuk menambah."
+        searchPlaceholder="Cari judul lowongan, departemen, atau posisi..."
+        searchText={(p) => `${p.postingTitle} ${p.department ?? ''} ${p.position ?? ''} ${p.status}`}
+        maxHeight="460px"
+        renderItem={(p) => (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-xs font-bold text-[#0f172a] truncate">{p.postingTitle}</p>
@@ -154,10 +159,9 @@ export default function JobPostingManager() {
                   <button disabled={busy} onClick={() => setStatus(p.id, 'CLOSED')} className="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 text-[10px] font-bold hover:bg-rose-100">Tutup</button>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      />
 
       {showForm && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">

@@ -14,6 +14,13 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
   beforeAll(async () => {
     ({ client } = await createTestDb());
     await runSeed(client);
+    // Seed kini berisi KPI untuk Budi, HR, dan People Manager. Agar angka capaian
+    // pilar tetap terukur dan stabil, tes ini memakai data terkontrol: hanya KPI
+    // milik Budi (yang memang dipakai untuk menghitung ekspektasi di bawah).
+    await client.exec(
+      `DELETE FROM individual_kpis
+        WHERE employee_id <> 'b0000000-0000-4000-8000-000000000004'`
+    );
     db = drizzle(client) as unknown as Db;
   }, 60000);
 
@@ -183,6 +190,16 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
         sql`SELECT id FROM strategic_pillars WHERE perspective = 'FINANCIAL' LIMIT 1`
       );
       const financialPillar = String((pillar.rows[0] as { id: string }).id);
+
+      // Seed mengisi keempat pilar pada Q3 (CUSTOMER termasuk, lewat KPI HR dan
+      // People Manager). Untuk menguji temuan "belum diukur dua periode",
+      // kosongkan CUSTOMER pada Q3 agar kedua periode benar-benar tanpa KPI.
+      await isoDb.execute(sql`
+        DELETE FROM individual_kpis
+         WHERE strategic_pillar_id IN (
+           SELECT id FROM strategic_pillars WHERE perspective = 'CUSTOMER'
+         )
+      `);
 
       // Periode sebelumnya (Q2) hanya punya KPI pada FINANCIAL.
       await isoDb.execute(sql`

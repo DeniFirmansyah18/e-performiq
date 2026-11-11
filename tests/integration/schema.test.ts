@@ -13,7 +13,7 @@ const EXPECTED_TABLES = [
   'offboarding_requests', 'onboarding_milestones', 'onboarding_programs', 'payroll_items', 'payroll_runs',
   'peer_reviews_360', 'performance_appraisals', 'policy_knowledge_base', 'position_courses', 'position_kpi_templates',
   'post_employment_obligations',
-  'recruitment_assessments', 'resume_parses', 'retirement_plans', 'salary_components', 'service_letters',
+  'resume_parses', 'retirement_plans', 'salary_components', 'service_letters',
   'severance_calculations',
   'sop_compliance_logs', 'strategic_pillars', 'users', 'vmai_scorecards', 'whatsapp_outbox',
   // Absensi & karier publik
@@ -63,7 +63,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 116 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 115 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'

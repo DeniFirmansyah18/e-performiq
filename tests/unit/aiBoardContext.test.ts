@@ -19,6 +19,16 @@ describe('Konteks AI Boardroom', () => {
   beforeAll(async () => {
     ({ client } = await createTestDb());
     await runSeed(client);
+    // Seed kini berisi KPI untuk Budi, HR, dan People Manager sehingga seluruh
+    // pilar terukur. Tes ini menguji perilaku "pilar belum dinilai", jadi pakai
+    // data terkontrol: hanya KPI Budi (4 pilar tetap seperti semula di bawah).
+    await client.exec(
+      `DELETE FROM individual_kpis
+        WHERE employee_id <> 'b0000000-0000-4000-8000-000000000004'
+           OR strategic_pillar_id IN (
+             SELECT id FROM strategic_pillars WHERE perspective = 'CUSTOMER'
+           )`
+    );
     db = drizzle(client) as unknown as Db;
   }, 60000);
 

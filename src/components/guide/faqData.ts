@@ -445,7 +445,7 @@ export const FAQ_DATA: FaqItem[] = [
     categoryColor: 'bg-[#F1F1F1] text-[#202223] border-[#E1E3E5]',
     roleTag: 'Pengelola Human Capital / HR Manager',
     question: 'Bagaimana panduan lengkap langkah demi langkah bagi peran HR MANAGER (Siti Nurhaliza)?',
-    summary: 'Mengelola formasi MPP, pendaftaran seleksi FPTK (QoH), clearance offboarding, pesangon, dan ekspor ISO.',
+    summary: 'Mengelola formasi MPP, pipeline pelamar, clearance offboarding, pesangon, dan ekspor ISO.',
     detail: {
       explanation: [
         'HR Manager memegang kendali penuh operasional lifecycle tenaga kerja, mulai dari hulu rekrutmen hingga hilir pemenuhan hak pesangon.',
@@ -453,7 +453,7 @@ export const FAQ_DATA: FaqItem[] = [
       steps: {
         title: 'Langkah Demi Langkah di HR Ops Command Center',
         items: [
-          'Langkah 1 (Pre-Employment): Di halaman HR Command, klik tombol "+ Rekrutmen Baru (FPTK)". Masukkan nama kandidat, posisi jabatan, skor psikometri (30%), skor tes teknis (40%), skor wawancara user (30%), biaya rekrutmen, dan time-to-fill. Sistem akan otomatis mengalkulasi indeks Quality of Hire (QoH).',
+          'Langkah 1 (Pre-Employment): Di halaman HR Command, gunakan panel Rekrutmen Kandidat. Masukkan nama kandidat, posisi jabatan, skor psikometri (30%), skor tes teknis (40%), skor wawancara user (30%), biaya rekrutmen, dan time-to-fill. Sistem akan otomatis mengalkulasi indeks Quality of Hire (QoH).',
           'Langkah 2 (Ekspor ISO 30414): Klik tombol "Ekspor ISO 30414" untuk mengunduh laporan realisasi anggaran rekrutmen, pemenuhan kuota formasi departemen, dan SLA dalam format CSV.',
           'Langkah 3 (Memantau Kurva Kinerja): Pada tab During-Employment, periksa grafik Gaussian Bell Curve untuk memastikan jumlah peraih nilai A, B, C, dan D berada dalam batas toleransi normal BUMN.',
           'Langkah 4 (Post-Employment & Pesangon): Buka tab Post-Employment. Klik "Kalkulator Pesangon (PP 35/2021)" untuk menghitung kompensasi pekerja keluar. Periksa juga daftar "Offboarding Clearance Pending" untuk memvalidasi checklist serah terima barang (BAST) dan pencabutan akses token SSO sebelum tanggal LWD (Last Working Day).',

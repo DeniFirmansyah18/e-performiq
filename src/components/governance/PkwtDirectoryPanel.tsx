@@ -1,4 +1,6 @@
 'use client';
+
+import DataTable from '@/components/ui/DataTable';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Search,
@@ -271,17 +273,6 @@ export default function PkwtDirectoryPanel({ initialSearch }: { initialSearch?: 
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
         <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari nama, NIK, departemen, atau posisi..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1"
-              style={{ outlineColor: BRAND }}
-            />
-          </div>
 
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
             {FILTERS.map((f) => (
@@ -301,74 +292,52 @@ export default function PkwtDirectoryPanel({ initialSearch }: { initialSearch?: 
           </div>
         </div>
 
-        <div className="overflow-x-auto border-t border-slate-100 pt-3">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">NIK</th>
-                <th className="p-3">Nama Pegawai</th>
-                <th className="p-3">Posisi</th>
-                <th className="p-3">Departemen</th>
-                <th className="p-3">Akhir Kontrak</th>
-                <th className="p-3">Sisa Waktu</th>
-                <th className="p-3">Status</th>
-                {canManage && <th className="p-3">Aksi</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={canManage ? 8 : 7} className="p-6 text-center text-slate-400">
-                    Tidak ditemukan data pegawai PKWT dengan kriteria ini.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((item) => (
-                  <tr key={item.employeeId} className="hover:bg-slate-50">
-                    <td className="p-3 font-mono text-[11px] text-slate-500">{item.employeeCode}</td>
-                    <td className="p-3 font-medium text-slate-800">{item.fullName}</td>
-                    <td className="p-3">{item.positionTitle}</td>
-                    <td className="p-3">{item.departmentName}</td>
-                    <td className="p-3 font-medium text-slate-700">{item.contractEndDate}</td>
-                    <td className="p-3">{daysLabel(item.daysRemaining)}</td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          URGENCY_META[item.urgency]?.className ?? 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {URGENCY_META[item.urgency]?.label ?? item.urgency}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      {canManage ? (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => openExtend(item)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
-                            title="Perpanjang kontrak PKWT"
-                          >
-                            <CalendarPlus className="w-3 h-3" /> Perpanjang
-                          </button>
-                          <button
-                            onClick={() => openConvert(item)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-white"
-                            style={{ backgroundColor: BRAND }}
-                            title="Angkat menjadi karyawan tetap (PKWTT)"
-                          >
-                            <BadgeCheck className="w-3 h-3" /> Tetap
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-slate-400">Hanya lihat</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={filtered}
+            rowKey={(r) => r.employeeId}
+            searchPlaceholder="Cari nama, NIK, departemen, atau posisi..."
+            initialSearch={searchTerm}
+            itemLabel="pegawai PKWT"
+            emptyMessage="Tidak ditemukan data pegawai PKWT dengan kriteria ini."
+            maxHeight="440px"
+            columns={[
+            { key: 'nik', header: 'NIK', value: (r) => r.employeeCode, render: (r) => <span className="font-mono text-[11px] text-slate-500">{r.employeeCode}</span> },
+            { key: 'nama', header: 'Nama Pegawai', value: (r) => r.fullName, render: (r) => <span className="font-medium text-slate-800">{r.fullName}</span> },
+            { key: 'posisi', header: 'Posisi', value: (r) => r.positionTitle, render: (r) => r.positionTitle },
+            { key: 'dept', header: 'Departemen', value: (r) => r.departmentName, render: (r) => r.departmentName },
+            { key: 'akhir', header: 'Akhir Kontrak', value: (r) => r.contractEndDate, render: (r) => <span className="font-medium text-slate-700">{r.contractEndDate}</span> },
+            { key: 'sisa', header: 'Sisa Waktu', value: (r) => daysLabel(r.daysRemaining), render: (r) => daysLabel(r.daysRemaining) },
+            {
+              key: 'status',
+              header: 'Status',
+              value: (r) => URGENCY_META[r.urgency]?.label ?? r.urgency,
+              render: (r) => (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${URGENCY_META[r.urgency]?.className ?? 'bg-slate-100 text-slate-700'}`}>
+                  {URGENCY_META[r.urgency]?.label ?? r.urgency}
+                </span>
+              ),
+            },
+            // Kolom aksi hanya ada bagi pemegang employment:manage; tanpa hak,
+            // kolom kosong justru membingungkan.
+            ...(canManage
+              ? [{
+                  key: 'aksi',
+                  header: 'Aksi',
+                  value: () => '',
+                  render: (r: PkwtAlert) => (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => openExtend(r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 text-[10px] font-semibold text-slate-700 hover:bg-slate-100" title="Perpanjang kontrak PKWT">
+                        <CalendarPlus className="w-3 h-3" /> Perpanjang
+                      </button>
+                      <button onClick={() => openConvert(r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-white" style={{ backgroundColor: BRAND }} title="Angkat menjadi karyawan tetap (PKWTT)">
+                        <BadgeCheck className="w-3 h-3" /> Tetap
+                      </button>
+                    </div>
+                  ),
+                }]
+              : []),
+            ]}
+          />
       </div>
 
       {form && (

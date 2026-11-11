@@ -1,4 +1,6 @@
 'use client';
+
+import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState } from 'react';
 import { Compass, Target, ShieldAlert, ListChecks } from 'lucide-react';
 import BoardAiInsight from './BoardAiInsight';
@@ -162,36 +164,21 @@ export default function BoardVisionPanel() {
         <div className="p-3 border-b border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
           <Target className="w-3.5 h-3.5 text-indigo-600" /> Sasaran Strategis Perusahaan (Rencana Jangka Menengah / RJMP)
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">Kode</th>
-                <th className="p-3">Sasaran</th>
-                <th className="p-3">Tahun</th>
-                <th className="p-3">Target</th>
-                <th className="p-3">Capaian Turunan</th>
-                <th className="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {(data?.rjmp ?? []).map((r: any) => (
-                <tr key={r.corporateKpiId} className="hover:bg-slate-50">
-                  <td className="p-3 font-mono text-[11px] text-slate-500">{r.kpiCode}</td>
-                  <td className="p-3">{r.kpiName}</td>
-                  <td className="p-3">{r.periodYear}</td>
-                  <td className="p-3">
-                    {r.targetValue} {r.unit}
-                  </td>
-                  <td className="p-3 font-semibold text-slate-800">
-                    {r.derivedAchievementPercentage}%
-                  </td>
-                  <td className="p-3">{STATUS_LABEL[r.status] ?? r.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={(data?.rjmp ?? [])}
+            rowKey={(r) => r.corporateKpiId}
+            searchPlaceholder="Cari kode atau sasaran..."
+            itemLabel="sasaran"
+            emptyMessage="Belum ada sasaran korporat."
+            columns={[
+            { key: 'kode', header: 'Kode', value: (r: any) => r.kpiCode, render: (r: any) => <span className="font-mono text-[11px] text-slate-500">{r.kpiCode}</span> },
+            { key: 'sasaran', header: 'Sasaran', value: (r: any) => r.kpiName, render: (r: any) => r.kpiName },
+            { key: 'tahun', header: 'Tahun', value: (r: any) => r.periodYear, render: (r: any) => r.periodYear },
+            { key: 'target', header: 'Target', value: (r: any) => `${r.targetValue} ${r.unit}`, render: (r: any) => `${r.targetValue} ${r.unit}` },
+            { key: 'capaian', header: 'Capaian Turunan', value: (r: any) => r.derivedAchievementPercentage, render: (r: any) => <span className="font-semibold text-slate-800">{r.derivedAchievementPercentage}%</span> },
+            { key: 'status', header: 'Status', value: (r: any) => STATUS_LABEL[r.status] ?? r.status, render: (r: any) => STATUS_LABEL[r.status] ?? r.status },
+            ]}
+          />
       </div>
 
             {(data?.analysis?.governanceFindings ?? []).length > 0 && (

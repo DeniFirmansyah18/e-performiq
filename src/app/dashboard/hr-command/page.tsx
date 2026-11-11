@@ -160,16 +160,6 @@ const MPP_PANELS: ReadonlyArray<{
     tag: 'Pra-Kerja',
   },
   {
-    feature: 'recruitment-fptk',
-    title: 'Rekrutmen Baru (FPTK)',
-    description: 'Buat Formulir Permintaan Tenaga Kerja baru untuk posisi yang dibutuhkan.',
-    Panel: () => null,
-    icon: FileSignature,
-    metric: 'FPTK Baru',
-    tag: 'Pra-Kerja',
-    action: true,
-  },
-  {
     feature: 'interview',
     title: 'Jadwal Wawancara',
     description: 'Penjadwalan wawancara dengan tautan meeting ke kandidat.',
@@ -400,6 +390,27 @@ function resolveInitialTab(): MainTab {
   return (MAIN_TABS as string[]).includes(tab ?? '') ? (tab as MainTab) : 'overview';
 }
 
+/** Penggolongan kotak fitur per fase, agar mudah dipahami orang awam. */
+/** Penggolongan kotak fitur per fase, agar mudah dipahami orang awam. */
+const PANEL_GROUPS: Record<"PRE" | "DURING" | "POST", Array<{ judul: string; ket: string; fitur: string[] }>> = {
+  PRE: [
+    { judul: "Perencanaan Kebutuhan", ket: "Menentukan berapa orang yang dibutuhkan dan untuk posisi apa.", fitur: ["mpp"] },
+    { judul: "Seleksi & Rekrutmen", ket: "Menarik pelamar, menguji kemampuan, dan menjadwalkan wawancara.", fitur: ["recruitment", "interview", "technical-test"] },
+    { judul: "Penerimaan & Berkas", ket: "Mendaftarkan karyawan baru dan memeriksa kelengkapan berkasnya.", fitur: ["registration", "document-verification"] },
+  ],
+  DURING: [
+    { judul: "Administrasi & Kehadiran", ket: "Urusan harian: atasan langsung, cuti, gaji, surat, dan SOP.", fitur: ["manager-assignment", "leave", "payroll", "e-letter", "policy"] },
+    { judul: "Kesejahteraan & Kepatuhan", ket: "Jaminan sosial karyawan dan penanganan pelanggaran aturan.", fitur: ["bpjs", "disciplinary"] },
+    { judul: "Pengembangan Kinerja", ket: "Mengatur jenjang karier dan memantau capaian kinerja.", fitur: ["career-ladder", "scorecard"] },
+    { judul: "Pantauan & Wawasan", ket: "Gambaran menyeluruh untuk pengambilan keputusan.", fitur: ["pipeline", "learning", "cost"] },
+  ],
+  POST: [
+    { judul: "Serah Terima & Pelaporan", ket: "Menyelesaikan aset, clearance, dan laporan sesuai regulasi.", fitur: ["iso-30414", "hr-dashboard", "clearance"] },
+    { judul: "Hak & Dokumen Karyawan", ket: "Menyiapkan surat keterangan dan memenuhi kewajiban pasca-kerja.", fitur: ["service-letter", "offboarding-compliance"] },
+    { judul: "Kaderisasi & Analitik", ket: "Menyiapkan pengganti, mendata alumni, dan menganalisis biaya keluar.", fitur: ["retirement", "alumni", "exit-analytics"] },
+  ],
+};
+
 export default function HROperationsPage() {
   const [mainTab, setMainTab] = useState<MainTab>('overview');
   const [pipelineTab, setPipelineTab] = useState<WorkPhase>('PRE');
@@ -537,68 +548,6 @@ export default function HROperationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // FPTK Modal State
-  const [isFptkModalOpen, setIsFptkModalOpen] = useState(false);
-  const [isFptkSubmitting, setIsFptkSubmitting] = useState(false);
-  const [fptkForm, setFptkForm] = useState({
-    candidateName: '',
-    appliedPositionId: 'a0000000-0000-4000-8000-000000000204',
-    hiringRequisitionId: '51000000-0000-4000-8000-000000000001',
-    psychometricScore: 88,
-    technicalTestScore: 92,
-    competencyInterviewScore: 86,
-    recruitmentCost: 6500000,
-    timeToFillDays: 21,
-    hiringStatus: 'HIRED',
-  });
-
-  const handleCreateFptk = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsFptkSubmitting(true);
-    setActionNotice(null);
-    try {
-      const res = await fetch('/api/v1/pre-employment/assessments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate_name: fptkForm.candidateName,
-          applied_position_id: fptkForm.appliedPositionId,
-          hiring_requisition_id: fptkForm.hiringRequisitionId,
-          psychometric_score: Number(fptkForm.psychometricScore),
-          technical_test_score: Number(fptkForm.technicalTestScore),
-          competency_interview_score: Number(fptkForm.competencyInterviewScore),
-          recruitment_cost: Number(fptkForm.recruitmentCost),
-          time_to_fill_days: Number(fptkForm.timeToFillDays),
-          hiring_status: fptkForm.hiringStatus,
-        }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setActionNotice(
-          `Kandidat '${fptkForm.candidateName}' berhasil didaftarkan! Skor Quality of Hire (QoH): ${json.data?.computedQoH || '88.8'} (Status: ${json.data?.hiringStatus || 'HIRED'}).`
-        );
-        setIsFptkModalOpen(false);
-        setFptkForm({
-          candidateName: '',
-          appliedPositionId: 'a0000000-0000-4000-8000-000000000204',
-          hiringRequisitionId: '51000000-0000-4000-8000-000000000001',
-          psychometricScore: 88,
-          technicalTestScore: 92,
-          competencyInterviewScore: 86,
-          recruitmentCost: 6500000,
-          timeToFillDays: 21,
-          hiringStatus: 'HIRED',
-        });
-        loadData();
-      } else {
-        setActionNotice(`Gagal: ${json.detail || 'Terjadi kesalahan'}`);
-      }
-    } catch (err: any) {
-      setActionNotice(`Error: ${err.message}`);
-    } finally {
-      setIsFptkSubmitting(false);
-    }
-  };
 
   const handleGenerateOnboarding = async () => {
     if (!onboardingEmployeeId) {
@@ -633,7 +582,7 @@ export default function HROperationsPage() {
   const handleExportIso = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      'Kode FPTK,Departemen,Posisi,Alokasi Budget IDR,Realisasi Budget IDR,Kuota Disetujui,Terisi,Status SLA\n' +
+      'Kode MPP,Departemen,Posisi,Alokasi Budget IDR,Realisasi Budget IDR,Kuota Disetujui,Terisi,Status SLA\n' +
       (mppData?.departmental_breakdown || [])
         .map(
           (p: any) =>
@@ -825,19 +774,12 @@ export default function HROperationsPage() {
 
           <Link
             href="/dashboard/employee-portal"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-medium text-[#334155] shadow-xs hover:bg-[#f8fafc]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#007a5a] bg-[#007a5a] text-xs font-semibold text-white shadow-xs hover:bg-[#00684a] transition-colors"
             title="Buka Employee Growth Portal untuk melihat data pribadi Anda"
           >
-            <UserCheck className="h-3.5 w-3.5 text-[#64748b]" />
+            <UserCheck className="h-3.5 w-3.5 text-white" />
             <span>Portal Saya</span>
           </Link>
-
-          <button 
-            onClick={() => setIsFptkModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
-            <UserPlus className="h-3.5 w-3.5 text-white" />
-            <span>+ Rekrutmen Baru (FPTK)</span>
-          </button>
         </div>
       </div>
 
@@ -918,8 +860,9 @@ export default function HROperationsPage() {
 
                   {mainTab === 'overview' && (
                     <div className="space-y-6">
-                      <TargetAchievementCard title="Indikator Pencapaian Target Organisasi" />
+                      {/* Ringkasan & sebaran talenta lebih dulu, indikator target menyusul. */}
                       <HrOverviewAnalyticsPanel />
+                      <TargetAchievementCard title="Indikator Pencapaian Target Organisasi" />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <CostOfWorkforceCard />
                         <FlightRiskHeatmap />
@@ -930,33 +873,13 @@ export default function HROperationsPage() {
 
                   {mainTab === 'lifecycle' && (
                     <div className="space-y-3" ref={phaseBlockRef}>
-                      <HrLifecycleControlPanel phase={activePhase ?? 'PRE'} />
-                      {/* Pemilih fase tunggal: tiga tombol selalu tampil, dan hanya
-                          isi di bawahnya yang berganti sesuai fase terpilih. */}
-                      <div
-                        role="group"
-                        aria-label="Pilih fase siklus karyawan"
-                        className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-[#e2e8f0] bg-white p-1.5"
-                      >
-                        {PHASES.map((phase) => {
-                          const active = phase === activePhase;
-                          return (
-                            <button
-                              key={phase}
-                              type="button"
-                              aria-pressed={active}
-                              onClick={() => selectPhase(phase)}
-                              className={`flex flex-1 min-w-[7rem] items-center justify-center rounded-xl px-3 py-2 text-xs font-bold transition ${
-                                active
-                                  ? 'bg-[#007a5a] text-white shadow-sm'
-                                  : 'text-[#007a5a] hover:bg-[#e6f4ea]'
-                              }`}
-                            >
-                              {PHASE_LABEL[phase]}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {/* Kartu tahap di dalam panel sudah menjadi pemilih fase —
+                          tidak perlu tombol fase tambahan di bawahnya. */}
+                      <HrLifecycleControlPanel
+                        phase={activePhase ?? 'PRE'}
+                        showPhaseSwitch
+                        onPhaseChange={(next) => selectPhase(next)}
+                      />
 
                       {activePhase === null ? (
                         <div className="rounded-2xl border border-dashed border-[#cbd5e1] bg-white px-5 py-8 text-center">
@@ -983,70 +906,116 @@ export default function HROperationsPage() {
                           <p className="text-[11px] text-[#64748b]">{PHASE_SUBTITLE[activePhase]}</p>
                         </div>
                       </div>
-                        <div className="p-4 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {phasePanels.map((panel) =>
-                          panel.action ? (
-                            <ActionCard
-                              key={panel.feature}
-                              icon={panel.icon}
-                              tone="emerald"
-                              title={panel.title}
-                              tag={panel.tag}
-                              description={panel.description}
-                              onClick={() =>
-                                panel.feature === 'iso-30414' ? handleExportIso() : setIsFptkModalOpen(true)
-                              }
-                            />
-                          ) : (
-                            <FeatureCard
-                              key={panel.feature}
-                              icon={panel.icon}
-                              title={panel.title}
-                              metric={panel.metric}
-                              tag={panel.tag}
-                              description={panel.description}
-                              onOpen={() => openPanelAtTop(panel.feature)}
-                            />
-                          )
+                        <div className="p-4 space-y-5">
+                          {/* Kotak dikelompokkan per tujuan agar tidak campur aduk.
+                              Fitur yang tidak masuk golongan mana pun ditampung di akhir. */}
+                          {(() => {
+                            const grupFase = PANEL_GROUPS[activePhase];
+                            const sudahDitampung = new Set<string>(grupFase.flatMap((g) => g.fitur));
+                            const sisa = phasePanels.filter((p) => !sudahDitampung.has(p.feature));
+
+                            const renderKotak = (panel: any) =>
+                              panel.action ? (
+                                <ActionCard
+                                  key={panel.feature}
+                                  icon={panel.icon}
+                                  tone="emerald"
+                                  title={panel.title}
+                                  tag={panel.tag}
+                                  description={panel.description}
+                                  onClick={() =>
+                                    panel.feature === 'iso-30414' ? handleExportIso() : undefined
+                                  }
+                                />
+                              ) : (
+                                <FeatureCard
+                                  key={panel.feature}
+                                  icon={panel.icon}
+                                  title={panel.title}
+                                  metric={panel.metric}
+                                  tag={panel.tag}
+                                  description={panel.description}
+                                  onOpen={() => openPanelAtTop(panel.feature)}
+                                />
+                              );
+
+                            return (
+                              <>
+                                {grupFase.map((grup, gi) => {
+                                  const isi = grup.fitur
+                                    .map((kode) => phasePanels.find((p) => p.feature === kode))
+                                    .filter(Boolean);
+                                  if (isi.length === 0) return null;
+                                  return (
+                                    <section key={grup.judul}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6f4ea] text-[10px] font-extrabold text-[#137333]">
+                                          {gi + 1}
+                                        </span>
+                                        <h4 className="text-xs font-extrabold text-[#0f172a]">{grup.judul}</h4>
+                                      </div>
+                                      <p className="text-[11px] text-[#64748b] mb-2.5">{grup.ket}</p>
+                                      <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        {isi.map(renderKotak)}
+                                      </div>
+                                    </section>
+                                  );
+                                })}
+
+                                {sisa.length > 0 && (
+                                  <section>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f1f5f9] text-[10px] font-extrabold text-[#475569]">
+                                        {grupFase.length + 1}
+                                      </span>
+                                      <h4 className="text-xs font-extrabold text-[#0f172a]">Lainnya</h4>
+                                    </div>
+                                    <p className="text-[11px] text-[#64748b] mb-2.5">
+                                      Fitur tambahan yang tidak termasuk golongan di atas.
+                                    </p>
+                                    <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                      {sisa.map(renderKotak)}
+                                    </div>
+                                  </section>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                        {/* PANEL_IN_FASE: panel terbuka di bawah kartu fase ini. */}
+                        {openFeature && phasePanels.some((p) => p.feature === openFeature && !p.action) && (
+                          <div className="mt-4">
+                            {phasePanels
+                              .filter((panel) => !panel.action && panel.feature === openFeature)
+                              .map((panel) => (
+                                <ExpandablePanel
+                                  key={`fase-${panel.feature}`}
+                                  open
+                                  title={panel.title}
+                                  onClose={() => setOpenFeature(null)}
+                                >
+                                  <div className="space-y-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenFeature(null)}
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
+                                    >
+                                      <ChevronLeft className="h-3.5 w-3.5" /> Tutup dan kembali ke daftar fitur
+                                    </button>
+                                    <panel.Panel />
+                                    {renderFeatureContent(panel.feature)}
+                                    <AiAnalyzePanel feature="hr" />
+                                  </div>
+                                </ExpandablePanel>
+                              ))}
+                          </div>
                         )}
-                      </div>
                         </div>
                       )}
                     </div>
                   )}
                   <div className="space-y-3">
 
-                  {/* Panel fitur hanya hidup di tab Siklus Karyawan: begitu pengguna
-                      pindah tab, panel otomatis tidak dirender sehingga tidak
-                      terbawa ke tab lain. */}
-                  {mainTab === 'lifecycle' && activePhase !== null &&
-                    phasePanels
-                      .filter((panel) => !panel.action)
-                      .map((panel) => (
-                        <ExpandablePanel
-                          key={panel.feature}
-                          open={openFeature === panel.feature}
-                          title={panel.title}
-                          onClose={() => setOpenFeature(null)}
-                        >
-                          {phaseOf(panel.feature) !== activePhase ? (
-                            <p className="text-xs text-[#64748b]">Pilih fase siklus karyawan terlebih dahulu.</p>
-                          ) : (
-                            <div className="space-y-4">
-                              <button
-                                type="button"
-                                onClick={() => setOpenFeature(null)}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
-                              >
-                                <ChevronLeft className="h-3.5 w-3.5" /> Kembali ke daftar fitur fase
-                              </button>
-                              <panel.Panel />
-                              {renderFeatureContent(panel.feature)}
-                              <AiAnalyzePanel feature="hr" />
-                            </div>
-                          )}
-                        </ExpandablePanel>
-                      ))}
 
       {/* Panel: Lifecycle Pipeline */}
       <ExpandablePanel open={mainTab === 'lifecycle' && openFeature === 'pipeline'} title="Tahapan Siklus & Pipeline Operasional" onClose={() => setOpenFeature(null)}>
@@ -1376,152 +1345,6 @@ export default function HROperationsPage() {
       )}
       </ExpandablePanel>
       </div>
-      {isFptkModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
-              <div className="flex items-center gap-2.5 px-5 pt-5 pr-14">
-                <div className="p-2 rounded-lg bg-[#007a5a]/10 text-[#007a5a]">
-                  <UserPlus className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Form Permintaan Tenaga Kerja (FPTK)</h3>
-                  <p className="text-xs text-slate-500">Pendaftaran & Penilaian Seleksi Kandidat (ISO 30414 QoH Engine)</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsFptkModalOpen(false)}
-                className="absolute right-4 top-4 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-            <form onSubmit={handleCreateFptk} className="p-5 pt-4 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Kandidat *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Maya Safitri, S.Kom."
-                  value={fptkForm.candidateName}
-                  onChange={(e) => setFptkForm({ ...fptkForm, candidateName: e.target.value })}
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Posisi Jabatan *</label>
-                  <select
-                    value={fptkForm.appliedPositionId}
-                    onChange={(e) => setFptkForm({ ...fptkForm, appliedPositionId: e.target.value })}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-                  >
-                    <option value="a0000000-0000-4000-8000-000000000204">Senior Cloud Engineer (IT Infrastructure)</option>
-                    <option value="a0000000-0000-4000-8000-000000000203">Lead Performance Specialist (HC Strategy)</option>
-                    <option value="a0000000-0000-4000-8000-000000000205">Enterprise Risk Manager (Risk & GCG)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Status Rekrutmen</label>
-                  <select
-                    value={fptkForm.hiringStatus}
-                    onChange={(e) => setFptkForm({ ...fptkForm, hiringStatus: e.target.value })}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-                  >
-                    <option value="HIRED">HIRED (Kandidat Menerima)</option>
-                    <option value="INTERVIEW_PASSED">INTERVIEW PASSED</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Psikometri (0-100)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={fptkForm.psychometricScore}
-                    onChange={(e) => setFptkForm({ ...fptkForm, psychometricScore: Number(e.target.value) })}
-                    className="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tes Teknis (0-100)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={fptkForm.technicalTestScore}
-                    onChange={(e) => setFptkForm({ ...fptkForm, technicalTestScore: Number(e.target.value) })}
-                    className="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Wawancara User</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={fptkForm.competencyInterviewScore}
-                    onChange={(e) => setFptkForm({ ...fptkForm, competencyInterviewScore: Number(e.target.value) })}
-                    className="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Biaya Rekrutmen (IDR)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="500000"
-                    value={fptkForm.recruitmentCost}
-                    onChange={(e) => setFptkForm({ ...fptkForm, recruitmentCost: Number(e.target.value) })}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Time to Fill (Hari)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={fptkForm.timeToFillDays}
-                    onChange={(e) => setFptkForm({ ...fptkForm, timeToFillDays: Number(e.target.value) })}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-                  />
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800">
-                Formula Quality of Hire: <strong>(Psikometri Ã— 30%) + (Teknis Ã— 40%) + (Wawancara Ã— 30%)</strong>
-                <div className="mt-0.5 font-bold">
-                  Estimasi Skor: {((fptkForm.psychometricScore * 0.3) + (fptkForm.technicalTestScore * 0.4) + (fptkForm.competencyInterviewScore * 0.3)).toFixed(1)} / 100
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsFptkModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isFptkSubmitting || !fptkForm.candidateName}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
-                >
-                  {isFptkSubmitting ? 'Memproses...' : 'Simpan & Kalkulasi QoH'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 }
