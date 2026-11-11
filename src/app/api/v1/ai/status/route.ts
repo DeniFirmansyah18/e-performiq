@@ -4,6 +4,9 @@ import { assertCan } from '@/lib/auth/rbac';
 import { isAiConfigured } from '@/lib/services/aiService';
 import { ok, problem } from '@/lib/api/response';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getAuthSession(req);
