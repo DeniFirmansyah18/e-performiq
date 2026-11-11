@@ -20,6 +20,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
+import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 
 interface Detail {
   profil: {
@@ -252,11 +253,16 @@ export default function DetailPegawaiPage() {
       )}
 
       {tab === 'kinerja' && (
-        <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
-          <h2 className="text-xs font-extrabold text-[#0f172a] mb-2 flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5 text-[#007a5a]" /> Sasaran Kinerja (KPI)
-          </h2>
-          <DataTable
+        <div className="space-y-4">
+          <TargetAchievementCard
+            employeeId={id}
+            title={`Indikator Capaian Target: ${p.fullName}`}
+          />
+          <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
+            <h2 className="text-xs font-extrabold text-[#0f172a] mb-2 flex items-center gap-1.5">
+              <Activity className="h-3.5 w-3.5 text-[#007a5a]" /> Sasaran Kinerja (KPI)
+            </h2>
+            <DataTable
             rows={data.kpi}
             rowKey={(r) => r.id}
             searchPlaceholder="Cari judul KPI atau periode…"
@@ -294,6 +300,7 @@ export default function DetailPegawaiPage() {
             ]}
           />
         </div>
+      </div>
       )}
 
       {tab === 'kehadiran' && (

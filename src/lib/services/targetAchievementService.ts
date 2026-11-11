@@ -26,6 +26,13 @@ export interface TargetAchievementResult {
     atRiskCount: number;
     criticalCount: number;
   };
+  employeeInfo?: {
+    employeeId: string;
+    fullName: string;
+    employeeCode: string | null;
+    position: string | null;
+    department: string | null;
+  };
   individualKpis?: Array<{
     id: string;
     title: string;
@@ -150,20 +157,42 @@ async function getIndividualAchievement(
 ): Promise<TargetAchievementResult> {
   const periodClause = periodId ? sql`AND ik.period_id = ${periodId}::uuid` : sql``;
 
-  const res = (await db.execute(sql`
-    SELECT ik.id, ik.kpi_title AS "title",
-           ik.target_value::float8 AS "targetValue",
-           ik.actual_value::float8 AS "actualValue",
-           ik.unit_of_measure AS "unit",
-           ik.kpi_weight::float8 AS "weight",
-           ik.achievement_percentage::float8 AS "achievementPercentage",
-           sp.pillar_name AS "pillarName"
-      FROM individual_kpis ik
-      LEFT JOIN strategic_pillars sp ON sp.id = ik.strategic_pillar_id
-     WHERE ik.employee_id = ${employeeId}::uuid
-           ${periodClause}
-     ORDER BY ik.kpi_weight DESC, ik.kpi_title ASC
-  `)) as unknown as { rows: Array<Record<string, any>> };
+  const [res, empRes] = await Promise.all([
+    db.execute(sql`
+      SELECT ik.id, ik.kpi_title AS "title",
+             ik.target_value::float8 AS "targetValue",
+             ik.actual_value::float8 AS "actualValue",
+             ik.unit_of_measure AS "unit",
+             ik.kpi_weight::float8 AS "weight",
+             ik.achievement_percentage::float8 AS "achievementPercentage",
+             sp.pillar_name AS "pillarName"
+        FROM individual_kpis ik
+        LEFT JOIN strategic_pillars sp ON sp.id = ik.strategic_pillar_id
+       WHERE ik.employee_id = ${employeeId}::uuid
+             ${periodClause}
+       ORDER BY ik.kpi_weight DESC, ik.kpi_title ASC
+    `) as unknown as Promise<{ rows: Array<Record<string, any>> }>,
+    db.execute(sql`
+      SELECT e.id AS "employeeId", e.full_name AS "fullName", e.employee_code AS "employeeCode",
+             jp.position_title AS "position", d.department_name AS "department"
+        FROM employees e
+        LEFT JOIN departments d ON d.id = e.department_id
+        LEFT JOIN job_positions jp ON jp.id = e.position_id
+       WHERE e.id = ${employeeId}::uuid
+       LIMIT 1
+    `) as unknown as Promise<{ rows: Array<Record<string, any>> }>,
+  ]);
+
+  const empRow = empRes.rows[0];
+  const employeeInfo = empRow
+    ? {
+        employeeId: String(empRow.employeeId),
+        fullName: String(empRow.fullName),
+        employeeCode: empRow.employeeCode ? String(empRow.employeeCode) : null,
+        position: empRow.position ? String(empRow.position) : null,
+        department: empRow.department ? String(empRow.department) : null,
+      }
+    : undefined;
 
   const items = res.rows.map((r) => {
     const ach = Number(r.achievementPercentage) || 0;
@@ -219,6 +248,7 @@ async function getIndividualAchievement(
       atRiskCount,
       criticalCount,
     },
+    employeeInfo,
     individualKpis: items,
   };
 }
