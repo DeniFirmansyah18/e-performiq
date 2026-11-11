@@ -27,3 +27,6 @@ neon.ts
 
 # DB terpisah untuk tes (dibuat otomatis, tidak untuk di-commit)
 .pglite-test
+
+# Cadangan DB rusak (dibuat scripts/pulihkan-db.ts)
+.pglite-rusak-*
