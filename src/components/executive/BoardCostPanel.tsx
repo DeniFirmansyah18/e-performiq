@@ -1,4 +1,6 @@
 'use client';
+
+import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState } from 'react';
 import { Wallet, ShieldCheck, Clock, Receipt } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils/wibDate';
@@ -144,36 +146,23 @@ export default function BoardCostPanel() {
                   </button>
                 </div>
               </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">Pegawai</th>
-                <th className="p-3">Departemen</th>
-                <th className="p-3">Gaji Pokok</th>
-                <th className="p-3">Tunjangan</th>
-                <th className="p-3">Lembur</th>
-                <th className="p-3">PPh 21</th>
-                <th className="p-3">Gross</th>
-                <th className="p-3">Net</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {(data?.employees ?? []).map((e: any) => (
-                <tr key={e.employeeId} className="hover:bg-slate-50">
-                  <td className="p-3 font-medium text-slate-800">{e.fullName}</td>
-                  <td className="p-3">{e.departmentName}</td>
-                  <td className="p-3">{rupiah(e.baseSalary)}</td>
-                  <td className="p-3">{rupiah(e.fixedAllowance)}</td>
-                  <td className="p-3">{rupiah(e.overtimePay)}</td>
-                  <td className="p-3">{rupiah(e.pph21)}</td>
-                  <td className="p-3">{rupiah(e.gross)}</td>
-                  <td className="p-3 font-semibold text-slate-800">{rupiah(e.net)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={(data?.employees ?? [])}
+            rowKey={(e) => e.employeeId}
+            searchPlaceholder="Cari pegawai atau departemen..."
+            itemLabel="karyawan"
+            emptyMessage="Belum ada data biaya karyawan."
+            columns={[
+            { key: 'pegawai', header: 'Pegawai', value: (e: any) => e.fullName, render: (e: any) => <span className="font-medium text-slate-800">{e.fullName}</span> },
+            { key: 'dept', header: 'Departemen', value: (e: any) => e.departmentName, render: (e: any) => e.departmentName },
+            { key: 'pokok', header: 'Gaji Pokok', value: (e: any) => rupiah(e.baseSalary), render: (e: any) => rupiah(e.baseSalary) },
+            { key: 'tunjangan', header: 'Tunjangan', value: (e: any) => rupiah(e.fixedAllowance), render: (e: any) => rupiah(e.fixedAllowance) },
+            { key: 'lembur', header: 'Lembur', value: (e: any) => rupiah(e.overtimePay), render: (e: any) => rupiah(e.overtimePay) },
+            { key: 'pph', header: 'PPh 21', value: (e: any) => rupiah(e.pph21), render: (e: any) => rupiah(e.pph21) },
+            { key: 'gross', header: 'Gross', value: (e: any) => rupiah(e.gross), render: (e: any) => rupiah(e.gross) },
+            { key: 'net', header: 'Net', value: (e: any) => rupiah(e.net), render: (e: any) => <span className="font-semibold text-slate-800">{rupiah(e.net)}</span> },
+            ]}
+          />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

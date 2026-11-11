@@ -1,5 +1,7 @@
 'use client';
 
+import DataTable from '@/components/ui/DataTable';
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Target, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -153,48 +155,65 @@ export default function ManpowerPlanManager() {
       ) : rows.length === 0 ? (
         <p className="text-xs text-[#64748b]">Belum ada MPP. Klik &quot;Tambah MPP&quot;.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-[#64748b] border-b border-[#e2e8f0]">
-                <th className="py-2 pr-3 font-bold">Departemen · Posisi</th>
-                <th className="py-2 pr-3 font-bold">Tahun</th>
-                <th className="py-2 pr-3 font-bold">Kuota</th>
-                <th className="py-2 pr-3 font-bold">Budget</th>
-                <th className="py-2 pr-3 font-bold text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-[#f8fafc] align-top">
-                  <td className="py-2.5 pr-3">
-                    <div className="font-bold text-[#0f172a]">{r.position}</div>
-                    <div className="text-[10px] text-[#64748b]">{r.department}</div>
-                  </td>
-                  <td className="py-2.5 pr-3 text-[#334155] font-mono">{r.fiscalYear}</td>
-                  <td className="py-2.5 pr-3">
-                    <div className="font-bold text-[#0f172a]">{r.hiredCount}/{r.approvedQuota}</div>
-                    <div className="text-[10px] text-[#64748b]">sisa {r.remainingQuota}</div>
-                  </td>
-                  <td className="py-2.5 pr-3">
-                    <div className="font-bold text-[#0f172a]">{IDR.format(r.allocatedBudget)}</div>
-                    <div className="text-[10px] text-[#64748b]">terpakai {r.budgetUtilizationPct}%</div>
-                  </td>
-                  <td className="py-2.5 pr-3">
-                    <div className="flex justify-end gap-1.5">
-                      <button type="button" onClick={() => openEdit(r)} disabled={busy} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200" title="Ubah">
-                        <Pencil className="h-3.5 w-3.5 text-[#334155]" />
-                      </button>
-                      <button type="button" onClick={() => remove(r)} disabled={busy} className="p-1.5 rounded-lg bg-[#fef2f2] hover:bg-[#fee2e2]" title="Hapus">
-                        <Trash2 className="h-3.5 w-3.5 text-[#b91c1c]" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={rows}
+            rowKey={(r) => r.id}
+            searchPlaceholder="Cari posisi atau departemen..."
+            itemLabel="rencana"
+            emptyMessage="Belum ada rencana tenaga kerja."
+            columns={[
+            {
+              key: 'posisi',
+              header: 'Departemen · Posisi',
+              value: (r) => `${r.position} ${r.department}`,
+              render: (r) => (
+                <>
+                  <div className="font-bold text-[#0f172a]">{r.position}</div>
+                  <div className="text-[10px] text-[#64748b]">{r.department}</div>
+                </>
+              ),
+            },
+            { key: 'tahun', header: 'Tahun', value: (r) => r.fiscalYear, render: (r) => <span className="font-mono text-[#334155]">{r.fiscalYear}</span> },
+            {
+              key: 'kuota',
+              header: 'Kuota',
+              value: (r) => `${r.hiredCount}/${r.approvedQuota}`,
+              render: (r) => (
+                <>
+                  <div className="font-bold text-[#0f172a]">{r.hiredCount}/{r.approvedQuota}</div>
+                  <div className="text-[10px] text-[#64748b]">sisa {r.remainingQuota}</div>
+                </>
+              ),
+            },
+            {
+              key: 'budget',
+              header: 'Budget',
+              value: (r) => r.allocatedBudget,
+              render: (r) => (
+                <>
+                  <div className="font-bold text-[#0f172a]">{IDR.format(r.allocatedBudget)}</div>
+                  <div className="text-[10px] text-[#64748b]">terpakai {r.budgetUtilizationPct}%</div>
+                </>
+              ),
+            },
+            {
+              key: 'aksi',
+              header: 'Aksi',
+              className: 'text-right',
+              value: () => '',
+              render: (r) => (
+                <div className="flex justify-end gap-1.5">
+                  <button type="button" onClick={() => openEdit(r)} disabled={busy} aria-label={`Ubah ${r.position}`} className="p-1.5 rounded-lg hover:bg-[#f8fafc]">
+                    <Pencil className="h-3.5 w-3.5 text-[#334155]" />
+                  </button>
+                  <button type="button" onClick={() => remove(r)} disabled={busy} aria-label={`Hapus ${r.position}`} className="p-1.5 rounded-lg hover:bg-[#f8fafc]">
+                    <Trash2 className="h-3.5 w-3.5 text-[#b91c1c]" />
+                  </button>
+                </div>
+              ),
+            },
+            ]}
+          />
       )}
 
       {showForm && typeof document !== 'undefined' && createPortal(

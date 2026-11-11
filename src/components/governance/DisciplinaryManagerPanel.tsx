@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Plus, Gavel } from 'lucide-react';
+import ListPager from '@/components/ui/ListPager';
 import { useAuth } from '@/lib/context/AuthContext';
 
 interface Action {
@@ -215,51 +216,57 @@ export default function DisciplinaryManagerPanel() {
 
       {loading && <p className="text-[11px] text-[#64748b]">Memuat sanksi…</p>}
 
-      <ul className="divide-y divide-[#e2e8f0]">
-        {actions.map((a) => (
-          <li key={a.id} className="py-2.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-[#0f172a]">{a.actionType}</span>
-              <span className="text-[10px] text-[#94a3b8]">{String(a.effectiveDate).slice(0, 10)}</span>
-              <span className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[10px] font-bold text-[#475569]">
-                {APPEAL_LABEL[a.appealStatus]}
-              </span>
-            </div>
-            <p className="mt-0.5 text-[11px] text-[#475569]">
-              {a.employeeName} · {a.employeeCode} · {a.reason}
-            </p>
-            {a.appealReason && (
-              <p className="mt-0.5 text-[10px] text-[#64748b]">Keberatan: {a.appealReason}</p>
-            )}
-
-            {a.appealStatus === 'UNDER_APPEAL' && canWrite && (
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => decideAppeal(a.id, 'APPEAL_ACCEPTED')}
-                  aria-label={`Terima keberatan ${a.employeeName}`}
-                  className="inline-flex items-center gap-1 rounded-lg bg-[#007a5a] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#00684a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a] focus-visible:ring-offset-2 disabled:opacity-50"
-                >
-                  <Gavel className="h-3 w-3" aria-hidden="true" /> Terima keberatan
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => decideAppeal(a.id, 'APPEAL_REJECTED')}
-                  aria-label={`Tolak keberatan ${a.employeeName}`}
-                  className="rounded-lg border border-[#b91c1c] px-2.5 py-1 text-[10px] font-semibold text-[#b91c1c] hover:bg-[#fef2f2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b91c1c] focus-visible:ring-offset-2 disabled:opacity-50"
-                >
-                  Tolak keberatan
-                </button>
+      {!loading && (
+        <ListPager
+          items={actions}
+          itemKey={(a) => a.id}
+          itemLabel="sanksi"
+          emptyMessage="Belum ada sanksi tercatat."
+          searchPlaceholder="Cari nama, jenis sanksi, atau alasan..."
+          searchText={(a) => `${a.employeeName} ${a.employeeCode} ${a.actionType} ${APPEAL_LABEL[a.appealStatus]} ${a.reason} ${a.appealReason ?? ''}`}
+          maxHeight="460px"
+          renderItem={(a) => (
+            <div className="rounded-lg border border-[#e2e8f0] px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-[#0f172a]">{a.actionType}</span>
+                <span className="text-[10px] text-[#94a3b8]">{String(a.effectiveDate).slice(0, 10)}</span>
+                <span className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[10px] font-bold text-[#475569]">
+                  {APPEAL_LABEL[a.appealStatus]}
+                </span>
               </div>
-            )}
-          </li>
-        ))}
-        {!loading && actions.length === 0 && (
-          <li className="py-3 text-[11px] text-[#64748b]">Belum ada sanksi tercatat.</li>
-        )}
-      </ul>
+              <p className="mt-0.5 text-[11px] text-[#475569]">
+                {a.employeeName} · {a.employeeCode} · {a.reason}
+              </p>
+              {a.appealReason && (
+                <p className="mt-0.5 text-[10px] text-[#64748b]">Keberatan: {a.appealReason}</p>
+              )}
+
+              {a.appealStatus === 'UNDER_APPEAL' && canWrite && (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => decideAppeal(a.id, 'APPEAL_ACCEPTED')}
+                    aria-label={`Terima keberatan ${a.employeeName}`}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#007a5a] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#00684a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a] focus-visible:ring-offset-2 disabled:opacity-50"
+                  >
+                    <Gavel className="h-3 w-3" aria-hidden="true" /> Terima keberatan
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => decideAppeal(a.id, 'APPEAL_REJECTED')}
+                    aria-label={`Tolak keberatan ${a.employeeName}`}
+                    className="rounded-lg border border-[#b91c1c] px-2.5 py-1 text-[10px] font-semibold text-[#b91c1c] hover:bg-[#fef2f2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b91c1c] focus-visible:ring-offset-2 disabled:opacity-50"
+                  >
+                    Tolak keberatan
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { UserPlus, Activity, LogOut, RefreshCw } from 'lucide-react';
+import { UserPlus, Activity, LogOut } from 'lucide-react';
 import { PHASE_LABEL, type WorkPhase } from '@/lib/employee/phase';
 
 interface LifecycleSummary {
@@ -43,13 +43,20 @@ function StatGrid({ items }: { items: Counted[] }) {
 export default function HrLifecycleControlPanel({
   phase: controlledPhase,
   showPhaseSwitch = false,
+  onPhaseChange,
 }: {
   phase?: WorkPhase;
   showPhaseSwitch?: boolean;
+  /** Dipanggil saat pengguna memilih tahap lain dari kartu tahap. */
+  onPhaseChange?: (phase: WorkPhase) => void;
 } = {}) {
   const [localPhase, setLocalPhase] = useState<WorkPhase>('PRE');
   const phase = controlledPhase ?? localPhase;
-  const setPhase = setLocalPhase;
+  // Mode terkendali: perubahan diteruskan ke induk. Mode lokal: simpan sendiri.
+  const setPhase = (next: WorkPhase) => {
+    if (onPhaseChange) onPhaseChange(next);
+    else setLocalPhase(next);
+  };
   const [summary, setSummary] = useState<LifecycleSummary | null>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
@@ -140,80 +147,107 @@ export default function HrLifecycleControlPanel({
       )}
 
       {showPhaseSwitch && (
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#f1f5f9] w-full sm:w-auto sm:inline-flex">
-        {([
-          { key: 'PRE', label: PHASE_LABEL.PRE, icon: <UserPlus className="w-3.5 h-3.5" /> },
-          { key: 'DURING', label: PHASE_LABEL.DURING, icon: <Activity className="w-3.5 h-3.5" /> },
-          { key: 'POST', label: PHASE_LABEL.POST, icon: <LogOut className="w-3.5 h-3.5" /> },
-        ] as const).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setPhase(tab.key)}
-            className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              phase === tab.key ? 'bg-[#007a5a] text-white shadow-sm' : 'text-[#64748b] hover:text-[#0f172a]'
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold text-[#334155]">
+            Pilih tahap perjalanan karyawan:
+          </p>
+          {/* Tiga kartu tahap: lebih besar, jelas, dan menyebutkan isinya. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {([
+              {
+                key: 'PRE',
+                label: PHASE_LABEL.PRE,
+                icon: <UserPlus className="w-4 h-4" />,
+                isi: 'Rekrutmen & masa percobaan',
+              },
+              {
+                key: 'DURING',
+                label: PHASE_LABEL.DURING,
+                icon: <Activity className="w-4 h-4" />,
+                isi: 'Aktivitas kerja berjalan',
+              },
+              {
+                key: 'POST',
+                label: PHASE_LABEL.POST,
+                icon: <LogOut className="w-4 h-4" />,
+                isi: 'Serah terima & pesangon',
+              },
+            ] as const).map((tab, idx, arr) => {
+              const aktif = phase === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setPhase(tab.key)}
+                  aria-pressed={aktif}
+                  className={`relative text-left rounded-xl border p-3 transition-all ${
+                    aktif
+                      ? 'bg-[#007a5a] border-[#007a5a] text-white shadow-sm'
+                      : 'bg-white border-[#e2e8f0] text-[#334155] hover:border-[#94a3b8] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+                        aktif ? 'bg-white/20 text-white' : 'bg-[#f1f5f9] text-[#64748b]'
+                      }`}
+                    >
+                      {idx + 1}
+                    </span>
+                    {tab.icon}
+                    <span className="text-xs font-extrabold">{tab.label}</span>
+                  </div>
+                  <p className={`mt-1 text-[10px] leading-snug ${aktif ? 'text-white/80' : 'text-[#64748b]'}`}>
+                    {tab.isi}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-[#64748b]">
+            Tahap {['Pra-Kerja', 'Saat Kerja', 'Pasca-Kerja'][['PRE', 'DURING', 'POST'].indexOf(phase)]} dari 3
+          </p>
+        </div>
       )}
 
       {phase === 'PRE' && (
         <div className="space-y-3">
-          <p className="text-[11px] text-[#64748b]">
-            Kontrol sebelum bekerja: pemenuhan MPP, mutu rekrutmen, dan kelulusan probation.
-          </p>
+          <div className="rounded-xl bg-[#eff6ff] border border-[#bfdbfe] p-3">
+            <p className="text-xs font-bold text-[#1e3a8a] mb-1">Tahap 1 — Sebelum Kerja</p>
+            <p className="text-[11px] text-[#334155] leading-relaxed">
+              Karyawan baru sedang direkrut atau menjalani masa percobaan. Di sini Anda melihat
+              seberapa penuh formasi sudah terisi dan berapa yang lulus masa percobaan.
+            </p>
+          </div>
           <StatGrid items={preItems} />
         </div>
       )}
 
       {phase === 'DURING' && (
         <div className="space-y-3">
-          <p className="text-[11px] text-[#64748b]">
-            Kontrol saat bekerja: aktivitas kepegawaian terbaru lintas modul.
-          </p>
-          <StatGrid items={duringItems} />
-          <div className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden">
-            <div className="p-3 border-b border-[#f1f5f9] text-xs font-semibold text-[#334155] flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 text-[#64748b]" /> Log Aktivitas Terbaru
-            </div>
-            {activity.length === 0 ? (
-              <p className="p-4 text-xs text-[#94a3b8]">Belum ada aktivitas tercatat.</p>
-            ) : (
-              <ul className="divide-y divide-[#f1f5f9] max-h-80 overflow-y-auto">
-                {activity.map((item: any, idx: number) => (
-                  <li key={item.id ?? `act-${idx}`} className="p-3 text-[11px] text-[#475569] flex items-start gap-2">
-                    <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#007a5a] flex-shrink-0" />
-                    <span>
-                      <span className="font-semibold text-[#0f172a]">
-                        {item.employeeName ?? 'Karyawan'}
-                      </span>{' '}
-                      <span className="text-[#64748b]">[{item.eventType ?? 'AKTIVITAS'}]</span>{' '}
-                      {item.summary ?? ''}
-                      {item.occurredAt && (
-                        <span className="text-[#94a3b8]">
-                          {' '}
-                          &bull; {String(item.occurredAt).slice(0, 10)}
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="rounded-xl bg-[#f0fdf4] border border-[#bbf7d0] p-3">
+            <p className="text-xs font-bold text-[#166534] mb-1">Tahap 2 — Saat Kerja</p>
+            <p className="text-[11px] text-[#334155] leading-relaxed">
+              Karyawan sedang bekerja. Angka di bawah menunjukkan aktivitas kepegawaian yang terjadi.
+              Rincian aktivitas lengkap ada di tab Ringkasan &amp; Analitik.
+            </p>
           </div>
+          <StatGrid items={duringItems} />
         </div>
       )}
 
       {phase === 'POST' && (
         <div className="space-y-3">
-          <p className="text-[11px] text-[#64748b]">
-            Kontrol setelah bekerja: progres clearance dan serah terima aset/pengetahuan.
-          </p>
+          <div className="rounded-xl bg-[#fef2f2] border border-[#fecaca] p-3">
+            <p className="text-xs font-bold text-[#991b1b] mb-1">Tahap 3 — Setelah Kerja</p>
+            <p className="text-[11px] text-[#334155] leading-relaxed">
+              Karyawan sedang keluar. Angka menunjukkan seberapa jauh proses serah terima aset dan
+              penyelesaian hak sudah berjalan.
+            </p>
+          </div>
           {postItems.length === 0 ? (
-            <p className="text-xs text-[#94a3b8]">Tidak ada proses offboarding aktif.</p>
+            <p className="text-xs text-[#94a3b8] p-3 rounded-xl bg-[#f8fafc] border border-dashed border-[#cbd5e1]">
+              Tidak ada proses pemberhentian yang sedang berjalan.
+            </p>
           ) : (
             <StatGrid items={postItems} />
           )}

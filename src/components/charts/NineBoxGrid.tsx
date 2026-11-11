@@ -82,8 +82,8 @@ export default function NineBoxGrid({ employees: propEmployees }: Props) {
         
         {/* Y Axis Label (Potential) */}
         <div className="flex items-center justify-between mb-3 text-xs text-[#64748b] font-semibold px-2">
-          <span>Potensi Karyawan (Sumbu Y)</span>
-          <span>Kinerja / KPI (Sumbu X) &rarr;</span>
+          <span>Kemampuan Naik Level (Sumbu Y)</span>
+          <span>Hasil Kerja (Sumbu X) &rarr;</span>
         </div>
 
         {/* 3x3 Grid */}

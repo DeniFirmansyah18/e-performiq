@@ -1,4 +1,5 @@
 'use client';
+import ListPager from '@/components/ui/ListPager';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BookOpen, Plus, ExternalLink } from 'lucide-react';
@@ -282,42 +283,48 @@ export default function PolicyManagerPanel() {
       {/* Daftar versi */}
       {loading && <p className="text-[11px] text-[#64748b]">Memuat dokumen…</p>}
 
-      <ul className="space-y-3">
-        {grouped.map((group) => (
-          <li key={group.code} className="rounded-xl border border-[#e2e8f0] p-3">
-            <p className="text-xs font-extrabold text-[#0f172a]">{group.title}</p>
-            <p className="text-[10px] uppercase tracking-wide text-[#64748b]">{group.code}</p>
+      {!loading && (
+        <ListPager
+          items={grouped}
+          itemKey={(group) => group.code}
+          itemLabel="dokumen SOP"
+          emptyMessage="Belum ada dokumen. Terbitkan versi pertama di atas."
+          searchPlaceholder="Cari judul atau kode dokumen..."
+          searchText={(group) => `${group.title} ${group.code} ${group.versions.map((v) => `v${v.version} ${v.status}`).join(' ')}`}
+          maxHeight="480px"
+          renderItem={(group) => (
+            <div className="rounded-xl border border-[#e2e8f0] p-3">
+              <p className="text-xs font-extrabold text-[#0f172a]">{group.title}</p>
+              <p className="text-[10px] uppercase tracking-wide text-[#64748b]">{group.code}</p>
 
-            <ul className="mt-2 space-y-1.5">
-              {group.versions.map((v) => (
-                <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-[#f8fafc] px-2 py-1.5">
-                  <span className="text-[11px] font-bold text-[#0f172a]">v{v.version}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${STATUS_TONE[v.status]}`}>
+              <ul className="mt-2 space-y-1.5">
+                {group.versions.map((v) => (
+                  <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-[#f8fafc] px-2 py-1.5">
+                    <span className="text-[11px] font-bold text-[#0f172a]">v{v.version}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${STATUS_TONE[v.status]}`}>
                     {v.status}
-                  </span>
-                  <span className="text-[10px] text-[#64748b]">
+                    </span>
+                    <span className="text-[10px] text-[#64748b]">
                     efektif {String(v.effectiveDate).slice(0, 10)}
-                  </span>
-                  <span className="text-[10px] font-semibold text-[#475569]">
+                    </span>
+                    <span className="text-[10px] font-semibold text-[#475569]">
                     {v.acknowledgedCount} pengakuan
-                  </span>
-                  <a
+                    </span>
+                    <a
                     href={v.fileUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-[#0284c7] underline"
-                  >
+                    >
                     <ExternalLink className="h-3 w-3" aria-hidden="true" /> berkas
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-        {!loading && grouped.length === 0 && (
-          <li className="text-[11px] text-[#64748b]">Belum ada dokumen. Terbitkan versi pertama di atas.</li>
-        )}
-      </ul>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        />
+      )}
     </div>
   );
 }

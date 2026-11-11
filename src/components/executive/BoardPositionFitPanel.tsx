@@ -1,4 +1,6 @@
 'use client';
+
+import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState } from 'react';
 import { Briefcase } from 'lucide-react';
 

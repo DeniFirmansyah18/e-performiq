@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarDays, Check, Inbox, X } from 'lucide-react';
+import ListPager from '@/components/ui/ListPager';
 
 // Panel persetujuan cuti (HR/atasan). Fase POST-employment: pengajuan cuti
 // diteruskan ke antrean approval lewat GET ?scope=pending, keputusan via PATCH.
@@ -72,13 +73,20 @@ export default function LeaveApprovalPanel() {
 
       {loading ? (
         <p className="text-[11px] text-[#64748b]">Memuat antrean...</p>
-      ) : items.length > 0 ? (
-        <div className="space-y-2">
-          {items.map((l) => (
-            <div key={l.id} className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between gap-3">
+      ) : (
+        <ListPager
+          items={items}
+          itemKey={(l) => l.id}
+          itemLabel="permohonan"
+          emptyMessage="Tidak ada permohonan cuti yang menunggu persetujuan."
+          searchPlaceholder="Cari nama pegawai atau jenis cuti..."
+          searchText={(l) => `${l.employeeName ?? l.employeeId} ${l.leaveType} ${l.reason ?? ''}`}
+          maxHeight="440px"
+          renderItem={(l) => (
+            <div className="p-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between gap-3">
               <div className="text-[11px]">
                 <p className="font-bold text-[#0f172a]">
-                  {l.employeeName || l.employeeId} &middot; {l.leaveType} &middot; {l.totalDays} hari
+                  {l.employeeName || l.employeeId} · {l.leaveType} · {l.totalDays} hari
                 </p>
                 <p className="text-[#64748b]">{l.startDate} s/d {l.endDate} — {l.reason}</p>
               </div>
@@ -99,12 +107,8 @@ export default function LeaveApprovalPanel() {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-[11px] text-[#64748b] p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex items-center gap-2">
-          <Inbox className="h-3.5 w-3.5" /> Tidak ada permohonan cuti yang menunggu persetujuan.
-        </p>
+          )}
+        />
       )}
     </div>
   );

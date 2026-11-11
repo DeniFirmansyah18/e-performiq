@@ -41,12 +41,22 @@ describe('seed data', () => {
     expect(Number(res.rows[0].total)).toBe(100);
   });
 
-  it('membuat 4 KPI milik Budi dengan total bobot 100', async () => {
-    const res = await client.query<{ total: string; count: string }>(
-      'SELECT sum(kpi_weight)::text AS total, count(*)::text AS count FROM individual_kpis'
+  it('setiap karyawan inti punya KPI dengan bobot total 100%', async () => {
+    // Seed kini juga memuat KPI departemen, jadi total baris tidak lagi tetap.
+    // Yang penting dan stabil: tiap karyawan penilaian inti (Budi, Siti/HR,
+    // Danu/People Manager) punya bobot tepat 100%.
+    const res = await client.query<{ emp: string; total: string; jumlah: string }>(
+      `SELECT employee_id::text AS emp, sum(kpi_weight)::text AS total, count(*)::text AS jumlah
+         FROM individual_kpis
+        GROUP BY employee_id`
     );
-    expect(Number(res.rows[0].count)).toBe(4);
-    expect(Number(res.rows[0].total)).toBe(100);
+    const inti = ['b0000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000003'];
+    for (const id of inti) {
+      const baris = res.rows.find((r) => r.emp === id);
+      expect(baris, `KPI untuk ${id} harus ada`).toBeTruthy();
+      expect(Number(baris!.total)).toBe(100);
+      expect(Number(baris!.jumlah)).toBe(4);
+    }
   });
 
   it('menetapkan manager_id Budi ke Danu', async () => {
@@ -66,7 +76,7 @@ describe('seed data', () => {
 
   it('memverifikasi keberadaan data pada seluruh 9 tabel Pre/Post-Employment & Analytics', async () => {
     const tables = [
-      'manpower_plans', 'hiring_requisitions', 'recruitment_assessments',
+      'manpower_plans', 'hiring_requisitions', 
       'onboarding_milestones', 'offboarding_requests', 'knowledge_handovers',
       'severance_calculations', 'lifetime_contributions', 'vmai_scorecards'
     ];

@@ -1,6 +1,8 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Search, Users, X, Target, Award } from 'lucide-react';
+import DataTable from '@/components/ui/DataTable';
 
 interface DirectoryEmployee {
   employeeId: string;
@@ -48,6 +50,7 @@ export default function EmployeeDirectoryPanel({
 }: { initialSearch?: string } = {}) {
   const [employees, setEmployees] = useState<DirectoryEmployee[]>([]);
   const [search, setSearch] = useState(initialSearch ?? '');
+  const [filterDept, setFilterDept] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,17 +75,25 @@ export default function EmployeeDirectoryPanel({
     };
   }, []);
 
+  // Daftar departemen unik untuk pilihan filter.
+  const daftarDept = useMemo(
+    () => Array.from(new Set(employees.map((e) => e.department).filter(Boolean) as string[])).sort(),
+    [employees]
+  );
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return employees.slice(0, 50);
-    return employees
+    // Filter departemen lebih dulu, lalu pencarian teks di dalamnya.
+    const basis = filterDept ? employees.filter((e) => e.department === filterDept) : employees;
+    if (!term) return basis.slice(0, 50);
+    return basis
       .filter((e) =>
         [e.fullName, e.employeeCode, e.department, e.position]
           .filter(Boolean)
           .some((field) => String(field).toLowerCase().includes(term))
       )
       .slice(0, 50);
-  }, [employees, search]);
+  }, [employees, search, filterDept]);
 
   async function openDetail(employeeId: string) {
     setDetailLoading(true);
@@ -117,60 +128,75 @@ export default function EmployeeDirectoryPanel({
           <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-600" /> Direktori Pegawai
           </h3>
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari nama, NIK, departemen, atau posisi..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
         </div>
 
-        <div className="overflow-x-auto border-t border-slate-100 pt-3">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="p-3">NIK</th>
-                <th className="p-3">Nama</th>
-                <th className="p-3">Departemen</th>
-                <th className="p-3">Posisi</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Detail</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-400">
-                    Tidak ada pegawai yang cocok dengan pencarian.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((emp) => (
-                  <tr key={emp.employeeId} className="hover:bg-slate-50">
-                    <td className="p-3 font-mono text-[11px] text-slate-500">
-                      {emp.employeeCode ?? '-'}
-                    </td>
-                    <td className="p-3 font-medium text-slate-800">{emp.fullName}</td>
-                    <td className="p-3">{emp.department ?? '-'}</td>
-                    <td className="p-3">{emp.position ?? '-'}</td>
-                    <td className="p-3">{emp.status ?? '-'}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => openDetail(emp.employeeId)}
-                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                      >
-                        Lihat kontribusi
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border-t border-slate-100 pt-3 space-y-3">
+          {/* Filter departemen: menyaring daftar sebelum pencarian teks. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="filter-dept" className="text-[11px] font-semibold text-slate-600">
+              Departemen
+            </label>
+            <select
+              id="filter-dept"
+              aria-label="Filter departemen"
+              value={filterDept}
+              onChange={(e) => setFilterDept(e.target.value)}
+              className="text-[11px] rounded-lg border border-[#cbd5e1] px-2 py-1.5 bg-white font-medium text-[#334155] min-w-[12rem]"
+            >
+              <option value="">Semua departemen</option>
+              {daftarDept.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            {filterDept && (
+              <button
+                type="button"
+                onClick={() => setFilterDept('')}
+                className="text-[11px] font-semibold text-[#007a5a] hover:underline"
+              >
+                Hapus filter
+              </button>
+            )}
+          </div>
+
+          <DataTable
+            rows={filtered}
+            rowKey={(emp) => emp.employeeId}
+            searchPlaceholder="Cari nama, NIK, departemen, atau posisi..."
+            initialSearch={search}
+            itemLabel="pegawai"
+            emptyMessage="Belum ada data pegawai."
+            columns={[
+              { key: 'nik', header: 'NIK', value: (e) => e.employeeCode, render: (e) => <span className="font-mono text-[11px] text-slate-500">{e.employeeCode ?? '-'}</span> },
+              { key: 'nama', header: 'Nama', value: (e) => e.fullName, render: (e) => <span className="font-medium text-slate-800">{e.fullName}</span> },
+              { key: 'dept', header: 'Departemen', value: (e) => e.department, render: (e) => e.department ?? '-' },
+              { key: 'pos', header: 'Posisi', value: (e) => e.position, render: (e) => e.position ?? '-' },
+              { key: 'status', header: 'Status', value: (e) => e.status, render: (e) => e.status ?? '-' },
+              {
+                key: 'detail',
+                header: 'Detail',
+                value: () => '',
+                render: (e) => (
+                  <div className="flex items-center gap-2.5 whitespace-nowrap">
+                    <Link
+                      href={`/dashboard/employees/${e.employeeId}`}
+                      className="text-xs font-bold text-[#007a5a] hover:underline"
+                    >
+                      Detail Pegawai
+                    </Link>
+                    <button
+                      onClick={() => openDetail(e.employeeId)}
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                    >
+                      Lihat kontribusi
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
 

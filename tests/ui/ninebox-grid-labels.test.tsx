@@ -11,8 +11,10 @@ describe('NineBoxGrid label', () => {
     render(<NineBoxGrid />);
 
     expect(await screen.findByText('Penggerak Inti')).toBeTruthy();
-    expect(screen.getByText('Potensi Tinggi, Kinerja Rendah')).toBeTruthy();
+    // Istilah sehari-hari: kemampuan naik level vs hasil kerja.
+    expect(screen.getByText('Siap Naik Level, Hasil Kerja Rendah')).toBeTruthy();
     expect(screen.queryByText(/Enigma/)).toBeNull();
     expect(screen.queryByText(/Core Player/)).toBeNull();
+    expect(screen.queryByText(/Potensi Tinggi, Kinerja Rendah/)).toBeNull();
   });
 });

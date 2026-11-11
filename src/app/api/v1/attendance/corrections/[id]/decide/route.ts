@@ -22,6 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const row = await decideCorrection(db, {
       id: params.id, deciderId: session.userId,
+      deciderEmployeeId: session.employeeId,
       decision: parsed.data.decision, note: parsed.data.note,
     });
     return ok(row, 'Keputusan koreksi tersimpan.');

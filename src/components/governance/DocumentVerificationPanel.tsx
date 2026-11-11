@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { FileCheck2, Check, X, ExternalLink } from 'lucide-react';
+import ListPager from '@/components/ui/ListPager';
 
 interface Doc {
   id: string;
@@ -102,9 +103,16 @@ export default function DocumentVerificationPanel() {
 
       {loading && <p className="text-[11px] text-[#64748b]">Memuat berkas…</p>}
 
-      <ul className="divide-y divide-[#e2e8f0]">
-        {docs.map((d) => (
-          <li key={d.id} className="py-2.5">
+      <ListPager
+        items={docs}
+        itemKey={(d) => d.id}
+        itemLabel="berkas"
+        emptyMessage={loading ? 'Memuat berkas…' : 'Tidak ada berkas pada filter ini.'}
+        searchPlaceholder="Cari jenis dokumen atau nama pegawai..."
+        searchText={(d) => `${d.documentType} ${d.employeeName ?? ''} ${d.employeeCode ?? ''} ${STATUS_LABEL[d.verificationStatus] ?? ''}`}
+        maxHeight="440px"
+        renderItem={(d) => (
+          <div className="py-2.5 border-b border-[#f1f5f9]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-[#0f172a]">{d.documentType}</span>
               <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${STATUS_TONE[d.verificationStatus]}`}>
@@ -147,12 +155,9 @@ export default function DocumentVerificationPanel() {
                 </button>
               </div>
             )}
-          </li>
-        ))}
-        {!loading && docs.length === 0 && (
-          <li className="py-3 text-[11px] text-[#64748b]">Tidak ada berkas pada filter ini.</li>
+          </div>
         )}
-      </ul>
+      />
     </div>
   );
 }

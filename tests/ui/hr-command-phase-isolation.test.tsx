@@ -15,13 +15,13 @@ const renderPage = () =>
 
 const tabButton = (label: RegExp) => screen.getByRole('button', { name: label });
 
-/** Buka tab Kontrol Siklus lalu kembalikan helper tombol fase. */
+/** Buka tab Kontrol Siklus lalu kembalikan helper tombol fase.
+ *  Pemilih fase kini berupa tiga kartu tahap bernomor di dalam panel. */
 async function openLifecycleTab() {
   fireEvent.click(tabButton(/Kontrol Siklus 3-Fase/i));
-  const group = await screen.findByRole('group', { name: /Pilih fase siklus karyawan/i });
+  await screen.findAllByText(/Pilih tahap perjalanan karyawan/i);
   return {
-    group,
-    phase: (label: string) => within(group).getByRole('button', { name: label }),
+    phase: (label: string) => screen.getByRole('button', { name: new RegExp(label, 'i') }),
   };
 }
 

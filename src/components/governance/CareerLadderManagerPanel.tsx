@@ -37,6 +37,9 @@ export default function CareerLadderManagerPanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Paginasi di level data: tidak mengubah struktur JSX daftar.
+  const [cari, setCari] = useState('');
+  const [halaman, setHalaman] = useState(1);
 
   const [form, setForm] = useState({
     fromPositionId: '',
@@ -106,6 +109,20 @@ export default function CareerLadderManagerPanel() {
       setBusy(false);
     }
   };
+
+  // Penyaringan + paginasi tahapan jenjang (10 per halaman).
+  const UKURAN_HALAMAN = 10;
+  const stepTersaring = steps.filter((s) => {
+    const q = cari.trim().toLowerCase();
+    if (!q) return true;
+    return `${s.stepName} ${s.fromPositionTitle} ${s.toPositionTitle}`.toLowerCase().includes(q);
+  });
+  const totalHalaman = Math.max(1, Math.ceil(stepTersaring.length / UKURAN_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const stepTampil = stepTersaring.slice(
+    (halamanAman - 1) * UKURAN_HALAMAN,
+    halamanAman * UKURAN_HALAMAN
+  );
 
   return (
     <div className="p-5 rounded-2xl border border-[#e2e8f0] bg-white space-y-4">
@@ -225,8 +242,22 @@ export default function CareerLadderManagerPanel() {
 
       {loading && <p className="text-[11px] text-[#64748b]">Memuat konfigurasi…</p>}
 
+      {!loading && steps.length > UKURAN_HALAMAN && (
+        <input
+          type="search"
+          value={cari}
+          onChange={(e) => {
+            setCari(e.target.value);
+            setHalaman(1);
+          }}
+          placeholder="Cari nama tahapan atau posisi..."
+          aria-label="Cari nama tahapan atau posisi..."
+          className="w-full h-9 px-3 rounded-lg border border-[#cbd5e1] bg-white text-xs text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#007a5a]/30"
+        />
+      )}
+
       <ul className="divide-y divide-[#e2e8f0]">
-        {steps.map((s) => (
+        {stepTampil.map((s) => (
           <li key={s.id} className="py-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-[#0f172a]">{s.stepName}</span>
@@ -258,7 +289,43 @@ export default function CareerLadderManagerPanel() {
             Belum ada tahapan. Tambahkan di atas agar karyawan melihat jenjang karirnya.
           </li>
         )}
+        {!loading && steps.length > 0 && stepTersaring.length === 0 && (
+          <li className="py-3 text-[11px] text-[#64748b]">Tidak ada tahapan yang cocok dengan pencarian.</li>
+        )}
       </ul>
+
+      {steps.length > UKURAN_HALAMAN && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#64748b]">
+          <span>
+            {stepTersaring.length === 0
+              ? '0 tahapan'
+              : `Menampilkan ${(halamanAman - 1) * UKURAN_HALAMAN + 1}–${Math.min(halamanAman * UKURAN_HALAMAN, stepTersaring.length)} dari ${stepTersaring.length} tahapan`}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setHalaman(halamanAman - 1)}
+              disabled={halamanAman <= 1}
+              aria-label="Halaman sebelumnya"
+              className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+            >
+              Sebelumnya
+            </button>
+            <span className="font-semibold text-[#334155]">
+              Halaman {halamanAman} / {totalHalaman}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHalaman(halamanAman + 1)}
+              disabled={halamanAman >= totalHalaman}
+              aria-label="Halaman berikutnya"
+              className="px-2 py-1 rounded-lg border border-[#cbd5e1] bg-white disabled:opacity-40 hover:bg-[#f8fafc]"
+            >
+              Berikutnya
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -39,11 +39,12 @@ describe('Pre-Employment, Offboarding & Analytics Services', () => {
     await client.close();
   });
 
-  it('mengambil rekapitulasi MPP & QoH dari PostgreSQL', async () => {
+  it('mengambil rekapitulasi MPP dari PostgreSQL (metrik QoH kosong setelah FPTK dihapus)', async () => {
     const summary = await preEmpService.getMppSummaryData(db, 2026);
     expect(summary.fiscal_year).toBe(2026);
     expect(summary.summary.total_approved_quota).toBeGreaterThan(0);
-    expect(summary.quality_of_hire.avg_qoh_score).toBeGreaterThan(0);
+    // FPTK/recruitment_assessments dihapus: tidak ada lagi kandidat terasesmen.
+    expect(summary.quality_of_hire.avg_qoh_score).toBe(0);
     expect(summary.departmental_breakdown.length).toBeGreaterThan(0);
   });
 

@@ -40,18 +40,16 @@ describe('tidak ada aksi palsu', () => {
     expect(screen.queryByTitle(/Buka detail kuadran lengkap/i)).toBeNull();
   });
 
-  it('tabel kesiapan suksesi: jumlah kolom header sama dengan jumlah sel tiap baris', async () => {
+  it('panel calon pengganti menampilkan keadaan kosong yang jujur, bukan data contoh', async () => {
     global.fetch = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })) as any;
     render(<NineBoxMatrixPage />);
-    fireEvent.click(screen.getAllByRole('button', { name: /Kesiapan Suksesi/i })[0]);
-    await waitFor(() => expect(document.querySelector('table')).toBeTruthy());
+    fireEvent.click(screen.getAllByRole('button', { name: /Calon Pengganti Posisi Kunci/i })[0]);
+    await waitFor(() => expect(screen.getByText(/Data belum terhubung ke database/i)).toBeTruthy());
 
-    const table = document.querySelector('table')!;
-    const thCount = table.querySelectorAll('thead th').length;
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    expect(rows.length).toBeGreaterThan(0);
-    for (const r of rows) {
-      expect(r.querySelectorAll('td').length).toBe(thCount);
-    }
+    const teks = document.body.textContent ?? '';
+    // Nama & status fiktif yang dulu ditulis langsung di kode tidak boleh kembali.
+    expect(teks).not.toMatch(/Hendra Wijaya|Siti Rahmawati|Amanda Kusumo|Reza Fauzi/);
+    expect(teks).not.toMatch(/Robust \(|Vulnerable \(|Adequate \(/);
+    expect(teks).not.toMatch(/Bench Strength|Target Coverage/);
   });
 });

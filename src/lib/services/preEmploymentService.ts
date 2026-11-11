@@ -5,15 +5,31 @@ import { assertCan } from '@/lib/auth/rbac';
 import { BusinessRuleError } from '@/lib/auth/errors';
 import {
   selectMppSummary,
-  insertAssessment,
   selectOnboardingList,
   updateProbationStatus,
-  CreateAssessmentInput,
 } from '@/lib/repositories/preEmploymentRepository';
 import { logAction } from './auditService';
 
+/** True bila `managerEmployeeId` adalah atasan langsung `subordinateEmployeeId`. */
+async function isDirectManagerOf(
+  db: Db,
+  managerEmployeeId: string,
+  subordinateEmployeeId: string
+): Promise<boolean> {
+  if (!subordinateEmployeeId) return false;
+  const res = (await db.execute(sql`
+    SELECT 1 FROM employees
+     WHERE id = ${subordinateEmployeeId}::uuid
+       AND manager_id = ${managerEmployeeId}::uuid
+     LIMIT 1
+  `)) as unknown as { rows: unknown[] };
+  return (res.rows?.length ?? 0) > 0;
+}
+
 export async function getMppSummaryData(db: Db, fiscalYear = 2026) {
-  const { plans, assessments } = await selectMppSummary(db, fiscalYear);
+  // FPTK/asesmen rekrutmen dihapus: tabel recruitment_assessments tidak lagi dibaca.
+  const { plans } = await selectMppSummary(db, fiscalYear);
+  const assessments: Array<{ computedQoH?: unknown; timeToFillDays?: unknown }> = [];
 
   const totalApprovedQuota = plans.reduce((acc, p) => acc + Number(p.approvedQuota), 0);
   const totalHired = plans.reduce((acc, p) => acc + Number(p.hiredCount), 0);
@@ -77,36 +93,6 @@ export async function getMppSummaryData(db: Db, fiscalYear = 2026) {
   };
 }
 
-export async function registerCandidateAssessment(
-  db: Db,
-  session: SessionPayload,
-  data: CreateAssessmentInput
-) {
-  if (!['SUPER_ADMIN', 'HR_MANAGER'].includes(session.role)) {
-    throw new BusinessRuleError('Hanya HR_MANAGER atau SUPER_ADMIN yang dapat mendaftarkan skor seleksi kandidat.');
-  }
-
-  // Calculate QoH weighted average: Psychometric (30%) + Technical (40%) + Interview (30%)
-  const computedQoH = Number(
-    (data.psychometricScore * 0.30 + data.technicalTestScore * 0.40 + data.competencyInterviewScore * 0.30).toFixed(2)
-  );
-
-  const created = await insertAssessment(db, {
-    ...data,
-    computedQohScore: computedQoH,
-  });
-
-  await logAction(db, {
-    userId: session.userId,
-    actionType: 'CREATE',
-    entityName: 'recruitment_assessments',
-    recordId: created.id,
-    newData: created,
-    description: `Asesmen seleksi kandidat '${data.candidateName}' (QoH: ${computedQoH})`,
-  });
-
-  return created;
-}
 
 export async function getOnboardingMilestones(db: Db) {
   return selectOnboardingList(db);
@@ -124,8 +110,32 @@ export async function evaluateProbationMilestone(
     probationPassed?: boolean;
   }
 ) {
-  if (!['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'].includes(session.role)) {
+  if (!['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'].includes(session.role)) {
     throw new BusinessRuleError('Anda tidak memiliki wewenang untuk mengisi evaluasi probation.');
+  }
+
+  // Evaluasi probation menilai orang, jadi harus oleh pihak lain:
+  // atasan langsungnya, atau HR/Super Admin sebagai pengelola kepegawaian.
+  const pemilik = await db.execute(sql`
+    SELECT employee_id AS "employeeId" FROM onboarding_milestones WHERE id = ${onboardingId}::uuid
+  `);
+  const employeeId = (pemilik as unknown as { rows: Array<{ employeeId: string }> }).rows?.[0]?.employeeId;
+
+  if (employeeId && session.employeeId && employeeId === session.employeeId) {
+    throw new BusinessRuleError('Anda tidak dapat mengevaluasi probation milik sendiri.');
+  }
+
+  const boleh =
+    session.role === 'SUPER_ADMIN' ||
+    session.role === 'HR_MANAGER' ||
+    (session.employeeId
+      ? await isDirectManagerOf(db, session.employeeId, employeeId ?? '')
+      : false);
+
+  if (!boleh) {
+    throw new BusinessRuleError(
+      'Hanya atasan langsung (atau HR) yang boleh mengevaluasi probation karyawan ini.'
+    );
   }
 
   const conversionDate = scores.probationPassed ? new Date().toISOString().split('T')[0] : undefined;

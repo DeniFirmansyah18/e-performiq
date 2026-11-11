@@ -56,7 +56,6 @@ export const FEATURE_PHASE: Readonly<Record<string, WorkPhase>> = Object.freeze(
   registration: 'PRE', // Registrasi karyawan mandiri
   'document-verification': 'PRE', // Verifikasi berkas kepegawaian (pre-hire)
   onboarding: 'PRE', // Orientasi 30-60-90 hari
-  'recruitment-fptk': 'PRE', // Formulir Permintaan Tenaga Kerja (aksi rekrutmen baru)
 
   // ===== Saat-Kerja: administrasi & pengelolaan kepegawaian =====
   'manager-assignment': 'DURING', // Penugasan atasan langsung

@@ -1,4 +1,5 @@
 'use client';
+import ListPager from '@/components/ui/ListPager';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { ShieldCheck, Save, X } from 'lucide-react';
@@ -147,9 +148,16 @@ export default function SocialSecurityManagerPanel() {
         </p>
       )}
 
-      <ul className="divide-y divide-[#e2e8f0]">
-        {rows.map((r) => (
-          <li key={r.employeeId} className="py-2.5">
+      <ListPager
+        items={rows}
+        itemKey={(r) => r.employeeId}
+        itemLabel="karyawan"
+        emptyMessage={loading ? 'Memuat data BPJS…' : 'Tidak ada karyawan pada filter ini.'}
+        searchPlaceholder="Cari nama pegawai atau nomor BPJS..."
+        searchText={(r) => `${r.employeeName} ${r.employeeCode} ${r.bpjsTkNumber ?? ''} ${r.bpjsKesNumber ?? ''}`}
+        maxHeight="460px"
+        renderItem={(r) => (
+          <div className="py-2.5 border-b border-[#f1f5f9]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-[#0f172a]">{r.employeeName}</span>
               <span className="text-[10px] text-[#94a3b8]">{r.employeeCode}</span>
@@ -233,12 +241,9 @@ export default function SocialSecurityManagerPanel() {
                 </div>
               </div>
             )}
-          </li>
-        ))}
-        {!loading && rows.length === 0 && (
-          <li className="py-3 text-[11px] text-[#64748b]">Tidak ada karyawan pada filter ini.</li>
+          </div>
         )}
-      </ul>
+      />
     </div>
   );
 }
