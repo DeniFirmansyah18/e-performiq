@@ -81,7 +81,41 @@ function createDb() {
   // Set default timezone ke Asia/Jakarta (WIB, UTC+7)
   client.exec("SET timezone = 'Asia/Jakarta';").catch(() => {});
   globalForDb.__eperformiqSql = pgliteToSql(client);
+
+  // PGlite menulis langsung ke berkas data. Bila proses dimatikan paksa saat
+  // masih menulis, berkasnya rusak dan seluruh query berikutnya gagal dengan
+  // "RuntimeError: Aborted()". Tutup dengan rapi saat proses berhenti.
+  pasangPenutupanRapi(client);
+
   return drizzlePglite(client);
+}
+
+/** Pastikan berkas PGlite ditutup sebelum proses berhenti (sekali saja). */
+function pasangPenutupanRapi(client: PGlite): void {
+  const g = globalThis as any;
+  if (g.__eperformiqPenutupanTerpasang) return;
+  g.__eperformiqPenutupanTerpasang = true;
+
+  let sedangMenutup = false;
+  const tutup = (kode: number) => {
+    if (sedangMenutup) return;
+    sedangMenutup = true;
+    // Beri waktu singkat agar penulisan selesai sebelum keluar.
+    Promise.resolve()
+      .then(() => client.close())
+      .catch(() => {})
+      .finally(() => process.exit(kode));
+  };
+
+  process.once('SIGINT', () => tutup(130));
+  process.once('SIGTERM', () => tutup(143));
+  process.once('beforeExit', () => {
+    // beforeExit tidak mengakhiri proses; cukup menutup lalu biarkan selesai.
+    if (!sedangMenutup) {
+      sedangMenutup = true;
+      client.close().catch(() => {});
+    }
+  });
 }
 
 /**
