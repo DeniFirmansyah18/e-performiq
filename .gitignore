@@ -24,3 +24,6 @@ docs/*.pdf
 neon.ts
 
 
+
+# DB terpisah untuk tes (dibuat otomatis, tidak untuk di-commit)
+.pglite-test

@@ -20,6 +20,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
+import AnalisisPegawaiAi from '@/components/performance/AnalisisPegawaiAi';
 
 interface Detail {
   profil: {
@@ -71,6 +72,7 @@ interface Detail {
     status: string;
   }>;
   riwayatPenilaian: Array<{ periode: string; gpa: number; rating: string; total: number }>;
+  dokumen: Array<{ documentType: string; verificationStatus: string; expiryDate: string | null }>;
   kontribusi?: {
     hasKpi: boolean;
     latestGpa: number | null;
@@ -161,8 +163,8 @@ export default function DetailPegawaiPage() {
         <div className="flex items-center gap-2 text-sm font-semibold text-[#c5221f]">
           <AlertTriangle className="w-4 h-4" /> {error ?? 'Data pegawai tidak tersedia.'}
         </div>
-        <Link href="/dashboard/hr-command" className="text-xs font-semibold text-[#007a5a] hover:underline">
-          Kembali ke HR Command Center
+        <Link href="/dashboard/hr-command?tab=directory" className="text-xs font-semibold text-[#007a5a] hover:underline">
+          Kembali ke Direktori Pegawai
         </Link>
       </div>
     );
@@ -173,10 +175,10 @@ export default function DetailPegawaiPage() {
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-[1400px] mx-auto">
       <Link
-        href="/dashboard/hr-command"
+        href="/dashboard/hr-command?tab=directory"
         className="inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke HR Command Center
+        <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Direktori Pegawai
       </Link>
 
       {/* Kepala halaman */}
@@ -240,6 +242,10 @@ export default function DetailPegawaiPage() {
           </div>
         </div>
       )}
+
+      {/* Bantuan analisis AI: tampil di semua tab agar HR bisa memintanya
+          kapan pun tanpa berpindah tab. */}
+      <AnalisisPegawaiAi employeeId={p.id} />
 
       {tab === 'penggajian' && data.penggajian && (
         <div className="space-y-4">
