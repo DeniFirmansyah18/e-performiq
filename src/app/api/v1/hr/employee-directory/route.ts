@@ -22,7 +22,10 @@ export async function GET(req: NextRequest) {
     assertCan(session, 'directory:read');
 
     const includeInactive = req.nextUrl.searchParams.get('includeInactive') === 'true';
-    const employees = await listEmployeesForHr(db, { includeInactive });
+    // Direktori hanya memuat karyawan berakun EMPLOYEE: HR tidak berwenang
+    // mengubah BOD dan People Manager karena keduanya punya tingkat posisi
+    // tersendiri.
+    const employees = await listEmployeesForHr(db, { includeInactive, hanyaPeranKaryawan: true });
     return ok({ employees, total: employees.length });
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;
