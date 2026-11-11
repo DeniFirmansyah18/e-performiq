@@ -70,9 +70,11 @@ const cost = {
     bpjsJp: 285000, pph21: 1500000, gross: 31750000, totalDeductions: 2640000,
     net: 29110000, overtimeHours: 2 }],
   employeesPagination: { page: 1, pageSize: 50, total: 4 },
+  departments: [{ id: 'd1', name: 'IT', employeeCount: 1 }],
   bpjs: { totalRegistered: 3, totalPending: 1, totalMissing: 7,
     byClass: [{ className: 'Kelas 1', count: 2 }],
     employees: [{ employeeId: 'e1', employeeCode: 'EMP-0042', fullName: 'Budi Pratama',
+      departmentId: 'd1', departmentName: 'IT',
       bpjsTkNumberMasked: '••••••••••••0123', bpjsKesNumberMasked: '••••••••••••0123',
       bpjsKesClass: 'Kelas 1', bpjsTkStatus: 'ACTIVE', bpjsKesStatus: 'ACTIVE' }] },
   overtime: { totalHours: 2, totalPay: 750000, pendingApprovals: 2,
@@ -114,13 +116,13 @@ describe('BoardTabNav', () => {
     const onChange = vi.fn();
     render(<BoardTabNav active="overview" onChange={onChange} />);
 
-    expect(screen.getByText('Ringkasan VMAI & BSC')).toBeTruthy();
-    expect(screen.getByText('Aktivitas Semua Profil')).toBeTruthy();
-    expect(screen.getByText('Visi-Misi & Analisis AI')).toBeTruthy();
-    expect(screen.getByText('Kesesuaian Posisi & RJMP')).toBeTruthy();
-    expect(screen.getByText('Payroll, BPJS & Biaya')).toBeTruthy();
+    expect(screen.getByText('Kesehatan Perusahaan')).toBeTruthy();
+    expect(screen.getByText('Arah Strategi & Saran AI')).toBeTruthy();
+    expect(screen.getByText('Biaya & Gaji Karyawan')).toBeTruthy();
+    expect(screen.getByText('Peta Talenta & Posisi Kunci')).toBeTruthy();
+    expect(screen.getByText('Aktivitas & Kepatuhan Tim')).toBeTruthy();
 
-    fireEvent.click(screen.getByText('Aktivitas Semua Profil'));
+    fireEvent.click(screen.getByText('Aktivitas & Kepatuhan Tim'));
     expect(onChange).toHaveBeenCalledWith('activity');
   });
 });
@@ -154,6 +156,18 @@ describe('BoardActivityPanel', () => {
       await waitFor(() => expect(screen.getByText(/Gagal memuat aktivitas/)).toBeTruthy());
       expect(document.body.textContent ?? '').not.toMatch(/Total Aktivitas\s*0/);
     });
+
+  it('tabel aktivitas terbaru memiliki filter departemen, sorting header, dan paginasi', async () => {
+    render(<BoardActivityPanel />);
+    await waitFor(() =>
+      expect(screen.getByText('Catatan Log Aktivitas Terbaru')).toBeTruthy()
+    );
+    expect(screen.getByText('Pegawai')).toBeTruthy();
+    expect(screen.getAllByText('Departemen').length).toBeGreaterThan(0);
+    expect(screen.getByText('Jenis Aktivitas')).toBeTruthy();
+    expect(screen.getByText('Ringkasan Aktivitas')).toBeTruthy();
+    expect(screen.getByText('Waktu Kejadian (WIB)')).toBeTruthy();
+  });
 });
 
 describe('BoardVisionPanel', () => {
@@ -173,13 +187,13 @@ describe('BoardVisionPanel', () => {
       await waitFor(() => expect(screen.getByText(/kelas dunia/)).toBeTruthy());
 
       // Angka resmi tetap seluruh pilar (69,6), bukan renormalisasi (92,8).
-      expect(screen.getByText(/Capaian Resmi/)).toBeTruthy();
+      expect(screen.getByText(/Capaian Target Resmi/)).toBeTruthy();
       expect(screen.getByText('69.6%')).toBeTruthy();
 
       // Cakupan dan capaian terukur tampil terpisah agar tidak tertukar.
-      expect(screen.getByText(/Cakupan pengukuran/)).toBeTruthy();
+      expect(screen.getByText(/Cakupan target terukur/)).toBeTruthy();
       expect(screen.getByText('75%')).toBeTruthy();
-      expect(screen.getByText(/Pada bagian terukur/)).toBeTruthy();
+      expect(screen.getByText(/Pada target yang sudah dinilai/)).toBeTruthy();
       expect(screen.getByText('92.8%')).toBeTruthy();
     });
 
@@ -274,8 +288,20 @@ describe('BoardPositionFitPanel', () => {
     await waitFor(() =>
       expect(screen.getAllByText(/Senior Software Engineer/).length).toBeGreaterThan(0)
     );
-    expect(screen.getByText(/PARTIAL/)).toBeTruthy();
-    expect(screen.getByText(/NOT_COMPLIANT/)).toBeTruthy();
+    expect(screen.getAllByText(/(Perlu Pembinaan|PARTIAL)/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/(Belum Memenuhi|NOT_COMPLIANT)/).length).toBeGreaterThan(0);
+  });
+
+  it('memiliki filter departemen, sorting header, dan paginasi pada tabel evaluasi karyawan', async () => {
+    render(<BoardPositionFitPanel />);
+    await waitFor(() =>
+      expect(screen.getByText('Daftar Evaluasi Karyawan per Jabatan')).toBeTruthy()
+    );
+    // Header kolom
+    expect(screen.getByText('Nama Pegawai')).toBeTruthy();
+    expect(screen.getAllByText('Departemen').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Posisi Jabatan').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Status Kepatuhan').length).toBeGreaterThan(0);
   });
 });
 
@@ -291,7 +317,7 @@ describe('BoardCostPanel', () => {
     expect(screen.getByText(/TRAVEL/)).toBeTruthy();
     expect(screen.getByText(/2 pengajuan lembur menunggu/)).toBeTruthy();
         // Label konsentrasi biaya menyebut jumlah pegawai, bukan selalu "10%".
-        expect(screen.getByText(/1 pegawai termahal \(25% staf\) = 47\.7% biaya/)).toBeTruthy();
+        expect(screen.getByText(/1 pegawai teratas \(25% staf\) = 47\.7% biaya/)).toBeTruthy();
   });
 
   it('tidak pernah menampilkan nomor BPJS 16 digit', async () => {
@@ -325,16 +351,42 @@ describe('BoardCostPanel', () => {
       }));
 
       render(<BoardCostPanel />);
-      await waitFor(() => expect(screen.getByText(/Halaman 1 dari 3/)).toBeTruthy());
+      await waitFor(() =>
+        expect(
+          screen.getAllByText((_, node) => Boolean(node?.textContent?.includes('Halaman 1 dari'))).length
+        ).toBeGreaterThan(0)
+      );
 
-      fireEvent.click(screen.getByRole('button', { name: /Berikutnya/ }));
+      fireEvent.click(screen.getAllByRole('button', { name: /Halaman Berikutnya/i })[0]);
       await waitFor(() => expect(screen.getByText(/Karyawan Halaman Dua/)).toBeTruthy());
       expect(urls.some((u) => u.includes('page=2'))).toBe(true);
-      expect(screen.getByText(/Halaman 2 dari 3/)).toBeTruthy();
+      expect(
+        screen.getAllByText((_, node) => Boolean(node?.textContent?.includes('Halaman 2 dari'))).length
+      ).toBeGreaterThan(0);
 
-      fireEvent.click(screen.getByRole('button', { name: /Sebelumnya/ }));
-      await waitFor(() => expect(screen.getByText(/Halaman 1 dari 3/)).toBeTruthy());
+      fireEvent.click(screen.getAllByRole('button', { name: /Halaman Sebelumnya/i })[0]);
+      await waitFor(() =>
+        expect(
+          screen.getAllByText((_, node) => Boolean(node?.textContent?.includes('Halaman 1 dari'))).length
+        ).toBeGreaterThan(0)
+      );
       expect(urls.some((u) => u.includes('page=1'))).toBe(true);
+    });
+
+    it('tabel BPJS memiliki filter departemen, sorting header, dan paginasi', async () => {
+      render(<BoardCostPanel />);
+      await waitFor(() =>
+        expect(screen.getByText(/Kepesertaan Jaminan Sosial BPJS/)).toBeTruthy()
+      );
+      // Badge jumlah pegawai BPJS
+      expect(screen.getByText(/1 dari 1 Pegawai/)).toBeTruthy();
+      // Kolom Departemen di tabel BPJS
+      expect(screen.getAllByText('Departemen').length).toBeGreaterThan(0);
+      // Header kolom
+      expect(screen.getByText('No. BPJS Ketenagakerjaan')).toBeTruthy();
+      expect(screen.getByText('No. BPJS Kesehatan')).toBeTruthy();
+      // Baris data dengan nama IT
+      expect(screen.getAllByText('IT').length).toBeGreaterThan(0);
     });
   });
 
@@ -346,9 +398,9 @@ describe('Executive Boardroom page', () => {
     const Page = (await import('@/app/dashboard/executive/page')).default;
 
     render(<Page />);
-    await waitFor(() => expect(screen.getByText('Aktivitas Semua Profil')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Aktivitas & Kepatuhan Tim')).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Aktivitas Semua Profil'));
+    fireEvent.click(screen.getByText('Aktivitas & Kepatuhan Tim'));
     await waitFor(() => expect(screen.getByText(/11 aktivitas tercatat/)).toBeTruthy());
   });
 

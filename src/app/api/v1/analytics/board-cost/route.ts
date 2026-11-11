@@ -1,4 +1,4 @@
-﻿import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
 import { ok, fail, failFromError } from '@/lib/api/response';
@@ -19,11 +19,15 @@ export async function GET(req: NextRequest) {
 
     const sp = req.nextUrl.searchParams;
     const runId = sp.get('runId') || undefined;
+    const departmentId = sp.get('departmentId') || undefined;
     const page = Number(sp.get('page') ?? '1');
     const pageSize = Number(sp.get('pageSize') ?? '50');
 
     if (runId && !UUID_RE.test(runId)) {
       return fail('VALIDATION_ERROR', 'runId harus berupa UUID.', 400);
+    }
+    if (departmentId && !UUID_RE.test(departmentId)) {
+      return fail('VALIDATION_ERROR', 'departmentId harus berupa UUID.', 400);
     }
     if (!Number.isInteger(page) || page < 1) {
       return fail('VALIDATION_ERROR', 'page harus bilangan bulat >= 1.', 400);
@@ -32,7 +36,7 @@ export async function GET(req: NextRequest) {
       return fail('VALIDATION_ERROR', 'pageSize harus 1-200.', 400);
     }
 
-    const data = await getBoardCostOverview(db, { runId, page, pageSize });
+    const data = await getBoardCostOverview(db, { runId, page, pageSize, departmentId });
     return ok(data);
   } catch (err: any) {
       return failFromError(err, 'Gagal memuat ringkasan biaya');

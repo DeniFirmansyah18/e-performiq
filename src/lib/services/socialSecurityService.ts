@@ -73,6 +73,8 @@ export interface HrSocialSecurityRow {
   employeeId: string;
   employeeCode: string;
   employeeName: string;
+  departmentId?: string | null;
+  departmentName?: string | null;
   bpjsTkNumber: string | null;
   bpjsKesNumber: string | null;
   bpjsKesClass: string | null;
@@ -86,10 +88,15 @@ export interface HrSocialSecurityRow {
 /** Daftar peserta BPJS seluruh karyawan aktif, nomor selalu ter-masking. */
 export async function listSocialSecurityForHr(
   db: Db,
-  opts: { missingOnly?: boolean } = {},
+  opts: { missingOnly?: boolean; departmentId?: string } = {},
 ): Promise<HrSocialSecurityRow[]> {
+  const deptFilter = opts.departmentId
+    ? sql`AND e.department_id = ${opts.departmentId}::uuid`
+    : sql``;
+
   const res = (await db.execute(sql`
     SELECT e.id AS "employeeId", e.employee_code AS "employeeCode", e.full_name AS "employeeName",
+           e.department_id::text AS "departmentId", d.department_name AS "departmentName",
            s.bpjs_tk_number AS "bpjsTkNumber", s.bpjs_kes_number AS "bpjsKesNumber",
            s.bpjs_kes_class AS "bpjsKesClass",
            COALESCE(s.bpjs_tk_status, 'PENDING') AS "bpjsTkStatus",
@@ -97,9 +104,11 @@ export async function listSocialSecurityForHr(
            s.registered_at AS "registeredAt",
            (s.employee_id IS NOT NULL) AS registered
       FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
       LEFT JOIN employee_social_security s ON s.employee_id = e.id
      WHERE e.status <> 'RESIGNED'
        AND (${Boolean(opts.missingOnly)} = FALSE OR s.employee_id IS NULL)
+       ${deptFilter}
      ORDER BY e.full_name
   `)) as unknown as { rows: HrSocialSecurityRow[] };
 

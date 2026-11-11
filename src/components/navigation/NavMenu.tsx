@@ -26,14 +26,15 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
- * Employee Portal tidak ditampilkan untuk HR/BOD (mereka membukanya dari
- * dashboard-nya sendiri) dan tidak untuk SUPER_ADMIN (dialihkan middleware).
+ * Employee Portal dapat diakses oleh manajer/atasan jika ingin beralih
+ * ke tampilan portal pribadi karyawannya.
+ * Sesuai kebutuhan UX: disembunyikan jika pengguna hanya memiliki role EMPLOYEE.
  */
 const EMPLOYEE_PORTAL_ITEM: NavItem = {
   name: 'Portal Karyawan',
   href: '/dashboard/employee-portal',
   icon: UserCheck,
-  roles: ['EMPLOYEE'],
+  roles: ['PEOPLE_MANAGER'],
 };
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -59,7 +60,17 @@ export default function NavMenu() {
   const { activeRole } = useAuth();
   const pathname = usePathname();
 
-  const items = [...NAV_ITEMS, EMPLOYEE_PORTAL_ITEM].filter((i) => i.roles.includes(activeRole));
+  // Sembunyikan badge Portal Karyawan jika pengguna hanya memiliki role karyawan (EMPLOYEE).
+  // Karyawan biasa tidak memerlukan tombol pintasan ke portalnya sendiri karena seluruh ruang kerjanya
+  // memang sudah berupa portal karyawan tanpa adanya dashboard lain.
+  const isOnlyEmployee = activeRole === 'EMPLOYEE';
+
+  const baseItems = isOnlyEmployee ? NAV_ITEMS : [...NAV_ITEMS, EMPLOYEE_PORTAL_ITEM];
+  const items = baseItems.filter((i) => i.roles.includes(activeRole));
+
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     <nav className="flex flex-wrap items-center gap-1.5">

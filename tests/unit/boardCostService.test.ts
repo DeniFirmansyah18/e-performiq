@@ -66,6 +66,7 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
       expect(row.bpjsTkNumberMasked ?? '').not.toMatch(/^\d{16}$/);
     }
     expect(JSON.stringify(result)).not.toMatch(/\d{16}/);
+    expect(result.bpjs.employees.some((e) => e.departmentName !== null)).toBe(true);
   });
 
   it('meringkas lembur dan pengajuan yang menunggu persetujuan', async () => {

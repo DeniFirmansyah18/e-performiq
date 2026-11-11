@@ -18,31 +18,30 @@ const renderFor = (role: string) => {
 afterEach(() => cleanup());
 
 describe('menu per peran', () => {
-  it('Employee melihat Employee Portal (satu-satunya dashboard-nya)', () => {
+  it('Employee tidak melihat badge Portal Karyawan jika hanya memiliki role karyawan', () => {
     renderFor('EMPLOYEE');
-    expect(screen.getByRole('link', { name: /Employee Growth Portal/i })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Portal Karyawan/i })).toBeNull();
   });
 
-  it('HR tidak lagi melihat HR Ops maupun Offboarding (keduanya ada sebagai tab di dalam halaman)', () => {
+  it('HR tidak lagi melihat link dashboard (karena menggunakan tab internal HR Command Center)', () => {
     renderFor('HR_MANAGER');
     expect(screen.queryByRole('link', { name: /HR Ops Command Center/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /Offboarding & Clearance/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /Employee Growth Portal/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Portal Karyawan/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /9-Box/i })).toBeNull();
-    // Tab Ringkasan & Kontrol 3-Fase tetap ada di dalam halaman HR Command Center.
   });
 
-  it('BOD tetap punya Executive Boardroom, tanpa HR Ops/Offboarding', () => {
+  it('BOD melihat Ruang Eksekutif (CEO) dan Peta Talenta & Suksesi', () => {
     renderFor('BOD');
-    expect(screen.getByRole('link', { name: /Executive Boardroom/i })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /HR Ops Command Center/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /Offboarding & Clearance/i })).toBeNull();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: /Ruang Eksekutif \(CEO\)/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Peta Talenta & Suksesi/i })).toBeTruthy();
+    expect(screen.getAllByRole('link')).toHaveLength(2);
   });
 
-  it('PEOPLE_MANAGER tetap punya Manager Evaluation Cockpit', () => {
+  it('PEOPLE_MANAGER punya Cockpit Evaluasi Manajer dan opsi ke Portal Karyawan', () => {
     renderFor('PEOPLE_MANAGER');
-    expect(screen.getByRole('link', { name: /Manager Evaluation Cockpit/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Cockpit Evaluasi Manajer/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Portal Karyawan/i })).toBeTruthy();
   });
 
   it('SUPER_ADMIN hanya melihat Manajemen Akun (tanpa tautan mati)', () => {
@@ -51,11 +50,11 @@ describe('menu per peran', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
-  it('label teks disembunyikan tetapi nama aksesibel tetap ada', () => {
+  it('label teks ditampilkan jelas dengan ikon', () => {
     renderFor('PEOPLE_MANAGER');
-    const link = screen.getByRole('link', { name: /Manager Evaluation Cockpit/i });
-    expect(link.getAttribute('title')).toBe('Manager Evaluation Cockpit');
-    expect(link.textContent?.trim()).toBe('');
+    const link = screen.getByRole('link', { name: /Cockpit Evaluasi Manajer/i });
+    expect(link.getAttribute('title')).toBe('Cockpit Evaluasi Manajer');
+    expect(link.textContent?.trim()).toContain('Cockpit Evaluasi Manajer');
   });
 
   it('tombol Panduan tidak ada lagi di NavMenu', () => {

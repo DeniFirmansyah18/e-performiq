@@ -118,7 +118,7 @@ export default function ExecutiveBoardroomPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-xs text-[#64748b] mb-1.5">
+          {/* <div className="flex items-center gap-1.5 text-xs text-[#64748b] mb-1.5">
             <span>Ruang Eksekutif</span>
             <span>&rsaquo;</span>
             <span>Evaluasi Kinerja & Strategi Bisnis</span>
@@ -126,19 +126,19 @@ export default function ExecutiveBoardroomPage() {
             <span className="font-semibold text-[#007a5a] bg-[#e6f4ea] px-2 py-0.5 rounded">
               Q3-2026 Tinjauan Fiskal
             </span>
-          </div>
+          </div> */}
 
           {/* Title & GCG Factor Pill */}
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
               Ruang Kerja Direktur Utama (CEO)
             </h1>
-            {gcgFactor && (
+            {/* {gcgFactor && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]" title="Tata Kelola Perusahaan (GCG): Kepatuhan terhadap prinsip audit dan transparansi">
                 <span className="text-[10px] font-bold">GCG</span>
                 <span>Terverifikasi Baik: Indeks {gcgFactor}</span>
               </span>
-            )}
+            )} */}
           </div>
           <p className="text-xs text-[#64748b] mt-1">
             Pusat kendali evaluasi performa bisnis, efisiensi anggaran, dan kesiapan talenta perusahaan secara terpadu.
@@ -367,13 +367,12 @@ export default function ExecutiveBoardroomPage() {
                   >
                     {financialScore}%
                   </span>
-                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                    financialScore >= 90
-                      ? 'text-[#137333] bg-[#e6f4ea]'
-                      : financialScore >= 80
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${financialScore >= 90
+                    ? 'text-[#137333] bg-[#e6f4ea]'
+                    : financialScore >= 80
                       ? 'text-[#1d4ed8] bg-[#eff6ff]'
                       : 'text-[#dc2626] bg-[#fce8e6]'
-                  }`}>
+                    }`}>
                     {financialScore >= 90 ? 'Optimal' : financialScore >= 80 ? 'Sesuai Target' : 'Perlu Evaluasi'}
                   </span>
                 </div>
@@ -399,13 +398,12 @@ export default function ExecutiveBoardroomPage() {
                   >
                     {customerScore}%
                   </span>
-                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                    customerScore >= 80
-                      ? 'text-[#137333] bg-[#e6f4ea]'
-                      : customerScore > 0
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${customerScore >= 80
+                    ? 'text-[#137333] bg-[#e6f4ea]'
+                    : customerScore > 0
                       ? 'text-[#b45309] bg-[#fef3c7]'
                       : 'text-[#b45309] bg-[#fef3c7]'
-                  }`}>
+                    }`}>
                     {customerScore >= 80 ? 'CSAT 4.5/5' : customerScore > 0 ? 'Perlu Ditingkatkan' : 'Belum Ada Data'}
                   </span>
                 </div>
@@ -458,19 +456,17 @@ export default function ExecutiveBoardroomPage() {
                   >
                     {learningScore}%
                   </span>
-                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                    learningScore >= 90
-                      ? 'text-[#137333] bg-[#e6f4ea]'
-                      : learningScore >= 85
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${learningScore >= 90
+                    ? 'text-[#137333] bg-[#e6f4ea]'
+                    : learningScore >= 85
                       ? 'text-[#1d4ed8] bg-[#eff6ff]'
                       : 'text-[#dc2626] bg-[#fce8e6]'
-                  }`}>
+                    }`}>
                     {learningScore >= 85 ? 'Sesuai Target' : 'Perlu Review'}
                   </span>
                 </div>
-                <p className={`text-[11px] mt-3 pt-2 border-t border-[#f1f5f9] font-medium ${
-                  learningScore < 85 ? 'text-[#dc2626]' : 'text-[#64748b]'
-                }`}>
+                <p className={`text-[11px] mt-3 pt-2 border-t border-[#f1f5f9] font-medium ${learningScore < 85 ? 'text-[#dc2626]' : 'text-[#64748b]'
+                  }`}>
                   Benchmark 88.0%: Target Jam Belajar
                 </p>
               </div>

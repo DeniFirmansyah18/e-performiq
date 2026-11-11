@@ -7,6 +7,7 @@ export interface BoardCostOptions {
   runId?: string;
   page?: number;
   pageSize?: number;
+  departmentId?: string;
 }
 
 export interface BoardCostEmployeeRow {
@@ -51,6 +52,7 @@ export interface BoardCostOverview {
   };
   employees: BoardCostEmployeeRow[];
   employeesPagination: { page: number; pageSize: number; total: number };
+  departments: Array<{ id: string; name: string; employeeCount: number }>;
   bpjs: {
     totalRegistered: number;
     totalPending: number;
@@ -60,6 +62,8 @@ export interface BoardCostOverview {
       employeeId: string;
       employeeCode: string;
       fullName: string;
+      departmentId?: string | null;
+      departmentName?: string | null;
       bpjsTkNumberMasked: string | null;
       bpjsKesNumberMasked: string | null;
       bpjsKesClass: string | null;
@@ -148,10 +152,16 @@ export async function getBoardCostOverview(
     (runCountsRes.rows ?? []).map((r) => [String(r.runId), Number(r.total)])
   );
 
+  const deptFilter = options.departmentId
+    ? sql`AND e.department_id = ${options.departmentId}::uuid`
+    : sql``;
+
   const countRes = (await db.execute(sql`
     SELECT COUNT(*)::int AS total
-      FROM payroll_items
-     WHERE ${selectedRunId ? sql`run_id = ${selectedRunId}::uuid` : sql`FALSE`}
+      FROM payroll_items pi
+      JOIN employees e ON e.id = pi.employee_id
+     WHERE ${selectedRunId ? sql`pi.run_id = ${selectedRunId}::uuid` : sql`FALSE`}
+     ${deptFilter}
   `)) as unknown as { rows: Array<{ total: number }> };
   const totalEmployees = Number(countRes.rows?.[0]?.total ?? 0);
 
@@ -175,9 +185,23 @@ export async function getBoardCostOverview(
       JOIN departments d ON d.id = e.department_id
       JOIN job_positions jp ON jp.id = e.position_id
      WHERE ${selectedRunId ? sql`pi.run_id = ${selectedRunId}::uuid` : sql`FALSE`}
+     ${deptFilter}
      ORDER BY pi.net DESC
      LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}
   `)) as unknown as { rows: BoardCostEmployeeRow[] };
+
+  const deptsRes = (await db.execute(sql`
+    SELECT d.id AS id, d.department_name AS name, COUNT(e.id)::int AS "employeeCount"
+      FROM departments d
+      LEFT JOIN employees e ON e.department_id = d.id
+     GROUP BY d.id, d.department_name
+     ORDER BY d.department_name ASC
+  `)) as unknown as { rows: Array<{ id: string; name: string; employeeCount: number }> };
+  const departments = (deptsRes.rows ?? []).map((d) => ({
+    id: String(d.id),
+    name: String(d.name),
+    employeeCount: Number(d.employeeCount || 0),
+  }));
 
   const employees = (itemsRes.rows ?? []).map((r) => ({
     ...r,
@@ -331,6 +355,7 @@ export async function getBoardCostOverview(
     },
     employees,
     employeesPagination: { page, pageSize, total: totalEmployees },
+    departments,
     bpjs: {
       totalRegistered: bpjsRows.filter((r) => r.registered).length,
       totalPending: bpjsRows.filter(
@@ -342,6 +367,8 @@ export async function getBoardCostOverview(
         employeeId: r.employeeId,
         employeeCode: r.employeeCode,
         fullName: r.employeeName,
+        departmentId: r.departmentId ?? null,
+        departmentName: r.departmentName ?? null,
         bpjsTkNumberMasked: r.bpjsTkNumber,
         bpjsKesNumberMasked: r.bpjsKesNumber,
         bpjsKesClass: r.bpjsKesClass,
