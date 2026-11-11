@@ -19,12 +19,22 @@ export interface DirectoryEmployee {
 
 /**
  * Daftar karyawan (default hanya status AKTIF) untuk dropdown HR.
+ *
+ * `hanyaPeranKaryawan`: bila true, hanya karyawan yang akunnya berperan
+ * EMPLOYEE. Direktori memakai ini karena HR tidak berwenang mengubah BOD
+ * dan People Manager — keduanya punya tingkat posisi tersendiri.
  */
 export async function listEmployeesForHr(
   db: Db,
-  options?: { includeInactive?: boolean; limit?: number }
+  options?: { includeInactive?: boolean; limit?: number; hanyaPeranKaryawan?: boolean }
 ): Promise<DirectoryEmployee[]> {
   const limit = options?.limit ?? 500;
+  const statusFilter = options?.includeInactive
+    ? sql`TRUE`
+    : sql`e.status IN ('PROBATION','PERMANENT','CONTRACT')`;
+  const peranFilter = options?.hanyaPeranKaryawan
+    ? sql`EXISTS (SELECT 1 FROM users u WHERE u.employee_id = e.id AND u.role = 'EMPLOYEE')`
+    : sql`TRUE`;
   const res = (await db.execute(sql`
     SELECT e.id AS "employeeId", e.employee_code AS "employeeCode",
            e.full_name AS "fullName", e.status,
@@ -34,7 +44,7 @@ export async function listEmployeesForHr(
       LEFT JOIN departments d ON d.id = e.department_id
       LEFT JOIN job_positions jp ON jp.id = e.position_id
       LEFT JOIN employees m ON m.id = e.manager_id
-     WHERE ${options?.includeInactive ? sql`TRUE` : sql`e.status IN ('PROBATION','PERMANENT','CONTRACT')`}
+     WHERE ${statusFilter} AND ${peranFilter}
      ORDER BY e.full_name ASC
      LIMIT ${limit}
   `)) as unknown as { rows: Array<Record<string, unknown>> };

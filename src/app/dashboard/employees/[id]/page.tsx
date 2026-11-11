@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
+import AnalisisPegawaiAi from '@/components/performance/AnalisisPegawaiAi';
 
 interface Detail {
   profil: {
@@ -62,6 +63,30 @@ interface Detail {
     statusKes: string | null;
     terdaftar: string | null;
   }>;
+  indikatorHarian: Array<{
+    id: string;
+    tanggal: string;
+    indikator: string;
+    satuan: string;
+    target: number;
+    aktual: number;
+    status: string;
+  }>;
+  riwayatPenilaian: Array<{ periode: string; gpa: number; rating: string; total: number }>;
+  dokumen: Array<{ documentType: string; verificationStatus: string; expiryDate: string | null }>;
+  kontribusi?: {
+    hasKpi: boolean;
+    latestGpa: number | null;
+    latestRating: string | null;
+    pillars: Array<{
+      pillarId: string;
+      pillarName: string;
+      perspective: string;
+      strategicWeight: number;
+      kpiCount: number;
+      achievementPercentage: number;
+    }>;
+  } | null;
 }
 
 const rupiah = (n: number) =>
@@ -72,6 +97,7 @@ const angka = (n: number) => new Intl.NumberFormat('id-ID', { maximumFractionDig
 const TAB = [
   { key: 'ringkasan', label: 'Ringkasan', ikon: User },
   { key: 'penggajian', label: 'Penggajian', ikon: Wallet },
+  { key: 'kontribusi', label: 'Kontribusi BSC', ikon: Activity },
   { key: 'kinerja', label: 'Kinerja', ikon: Target },
   { key: 'kehadiran', label: 'Kehadiran', ikon: CalendarCheck },
   { key: 'lainnya', label: 'Lainnya', ikon: ShieldCheck },
@@ -138,8 +164,8 @@ export default function DetailPegawaiPage() {
         <div className="flex items-center gap-2 text-sm font-semibold text-[#c5221f]">
           <AlertTriangle className="w-4 h-4" /> {error ?? 'Data pegawai tidak tersedia.'}
         </div>
-        <Link href="/dashboard/hr-command" className="text-xs font-semibold text-[#007a5a] hover:underline">
-          Kembali ke HR Command Center
+        <Link href="/dashboard/hr-command?tab=directory" className="text-xs font-semibold text-[#007a5a] hover:underline">
+          Kembali ke Direktori Pegawai
         </Link>
       </div>
     );
@@ -150,10 +176,10 @@ export default function DetailPegawaiPage() {
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-[1400px] mx-auto">
       <Link
-        href="/dashboard/hr-command"
+        href="/dashboard/hr-command?tab=directory"
         className="inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke HR Command Center
+        <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Direktori Pegawai
       </Link>
 
       {/* Kepala halaman */}
@@ -217,6 +243,10 @@ export default function DetailPegawaiPage() {
           </div>
         </div>
       )}
+
+      {/* Bantuan analisis AI: tampil di semua tab agar HR bisa memintanya
+          kapan pun tanpa berpindah tab. */}
+      <AnalisisPegawaiAi employeeId={p.id} />
 
       {tab === 'penggajian' && data.penggajian && (
         <div className="space-y-4">
@@ -299,12 +329,98 @@ export default function DetailPegawaiPage() {
               { key: 'status', header: 'Status', value: (r) => r.status },
             ]}
           />
+
+          {/* Indikator harian: entri yang dicatat karyawan setiap hari. */}
+          <h2 className="text-xs font-extrabold text-[#0f172a] mt-5 mb-2">Indikator Harian</h2>
+          <DataTable
+            rows={data.indikatorHarian}
+            rowKey={(r) => r.id}
+            searchPlaceholder="Cari indikator atau tanggal…"
+            itemLabel="entri"
+            emptyMessage="Belum ada indikator harian yang dicatat."
+            columns={[
+              { key: 'tanggal', header: 'Tanggal', value: (r) => r.tanggal },
+              { key: 'indikator', header: 'Indikator', value: (r) => r.indikator },
+              {
+                key: 'nilai',
+                header: 'Target / Aktual',
+                value: (r) => `${r.target} / ${r.aktual}`,
+                render: (r) => (
+                  <span>
+                    {angka(r.target)} / {angka(r.aktual)} <span className="text-[#64748b]">{r.satuan}</span>
+                  </span>
+                ),
+              },
+              { key: 'status', header: 'Status', value: (r) => r.status },
+            ]}
+          />
+
+          {/* Riwayat penilaian periode sebelumnya. */}
+          <h2 className="text-xs font-extrabold text-[#0f172a] mt-5 mb-2">Riwayat Penilaian</h2>
+          <DataTable
+            rows={data.riwayatPenilaian}
+            rowKey={(r) => r.periode}
+            searchPlaceholder="Cari periode…"
+            itemLabel="periode"
+            emptyMessage="Belum ada riwayat penilaian untuk pegawai ini."
+            columns={[
+              { key: 'periode', header: 'Periode', value: (r) => r.periode },
+              { key: 'gpa', header: 'Nilai Kinerja (GPA)', value: (r) => r.gpa, render: (r) => angka(r.gpa) },
+              { key: 'total', header: 'Total Skor', value: (r) => r.total, render: (r) => `${angka(r.total)}%` },
+              { key: 'rating', header: 'Peringkat', value: (r) => r.rating },
+            ]}
+          />
         </div>
       </div>
       )}
 
-      {tab === 'kehadiran' && (
+      {tab === 'kontribusi' && (
         <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
+          <h2 className="text-xs font-extrabold text-[#0f172a] mb-2">Kontribusi per Pilar BSC</h2>
+          {!data.kontribusi || !data.kontribusi.hasKpi ? (
+            <p className="text-[11px] text-[#64748b] bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-lg p-3">
+              Pegawai ini belum memiliki KPI, sehingga kontribusi per pilar belum dapat dihitung.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-4 mb-3 text-[11px]">
+                <span className="text-[#64748b]">
+                  Nilai kinerja terakhir:{' '}
+                  <strong className="text-[#0f172a]">{data.kontribusi.latestGpa ?? '—'}</strong>
+                </span>
+                <span className="text-[#64748b]">
+                  Peringkat: <strong className="text-[#0f172a]">{data.kontribusi.latestRating ?? '—'}</strong>
+                </span>
+              </div>
+              <DataTable
+                rows={data.kontribusi.pillars}
+                rowKey={(r) => r.pillarId}
+                searchPlaceholder="Cari pilar atau perspektif…"
+                itemLabel="pilar"
+                emptyMessage="Belum ada kontribusi pilar."
+                columns={[
+                  { key: 'pilar', header: 'Pilar Strategis', value: (r) => r.pillarName },
+                  { key: 'perspektif', header: 'Perspektif', value: (r) => r.perspective },
+                  { key: 'bobot', header: 'Bobot Strategis', value: (r) => r.strategicWeight, render: (r) => `${angka(r.strategicWeight)}%` },
+                  { key: 'kpi', header: 'Jumlah KPI', value: (r) => r.kpiCount },
+                  {
+                    key: 'capaian',
+                    header: 'Capaian',
+                    value: (r) => r.achievementPercentage,
+                    render: (r) => (
+                      <span className={r.achievementPercentage >= 100 ? 'font-bold text-[#137333]' : 'font-bold text-[#b45309]'}>
+                        {angka(r.achievementPercentage)}%
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'kehadiran' && (        <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
           <h2 className="text-xs font-extrabold text-[#0f172a] mb-2">Catatan Kehadiran (30 terakhir)</h2>
           <DataTable
             rows={data.kehadiran}

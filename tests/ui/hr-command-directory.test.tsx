@@ -60,34 +60,16 @@ describe('EmployeeDirectoryPanel (pilar 7)', () => {
     expect(screen.getByText(/Anisa Wijaya/)).toBeTruthy();
   });
 
-  it('membuka detail kontribusi pilar BSC saat diklik', async () => {
+  it('kolom Detail hanya berisi tautan ke halaman detail pegawai', async () => {
     render(<EmployeeDirectoryPanel />);
     await waitFor(() => expect(screen.getByText(/Budi Pratama/)).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Lihat kontribusi/ })[0]);
-    await waitFor(() => expect(screen.getByText(/Kontribusi terhadap Pilar Strategis/)).toBeTruthy());
-    expect(screen.getByText(/Transformasi Digital/)).toBeTruthy();
-    expect(screen.getByText(/Capaian 96.5%/)).toBeTruthy();
-    expect(screen.getByText(/GPA 3.67/)).toBeTruthy();
-  });
+    const tautan = screen.getAllByRole('link', { name: /Detail Pegawai/i });
+    expect(tautan.length).toBeGreaterThan(0);
+    expect(tautan[0].getAttribute('href')).toMatch(/^\/dashboard\/employees\//);
 
-  it('menyatakan kontribusi tidak dapat disimpulkan bila belum ada KPI', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      const u = String(url);
-      if (u.includes('bsc-contribution')) {
-        return okJson({ ...contribution, hasKpi: false, pillars: [] });
-      }
-      if (u.includes('employee-directory')) return okJson(directory);
-      return okJson({});
-    }));
-
-    render(<EmployeeDirectoryPanel />);
-    await waitFor(() => expect(screen.getByText(/Budi Pratama/)).toBeTruthy());
-
-    fireEvent.click(screen.getAllByRole('button', { name: /Lihat kontribusi/ })[0]);
-    await waitFor(() =>
-      expect(screen.getByText(/Belum ada KPI individual yang terhubung/)).toBeTruthy()
-    );
+    // Kontribusi BSC dipindah ke halaman detail, jadi tombol lama tidak ada.
+    expect(screen.queryByRole('button', { name: /Lihat kontribusi/i })).toBeNull();
   });
 
   it('menghormati initialSearch dari deep-link', async () => {

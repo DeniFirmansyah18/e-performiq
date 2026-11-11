@@ -187,8 +187,52 @@ export async function getDetailPegawai(db: Db, session: SessionPayload, id: stri
       FROM employee_social_security WHERE employee_id = ${id}::uuid
   `)) as unknown as { rows: any[] };
 
+  // Indikator (KPI) harian: entri yang sudah disimpan karyawan.
+  const indikatorHarian = (await db.execute(sql`
+    SELECT e.id::text AS id, e.entry_date::text AS tanggal,
+           ki.indicator_name AS indikator, ki.unit_of_measure AS satuan,
+           ki.target_value::float8 AS target,
+           e.actual_value::float8 AS aktual,
+           e.status::text AS status
+      FROM kpi_daily_entries e
+      LEFT JOIN kpi_indicators ki ON ki.id = e.indicator_id
+     WHERE e.employee_id = ${id}::uuid
+     ORDER BY e.entry_date DESC
+     LIMIT 60
+  `)) as unknown as { rows: any[] };
+
+  // Riwayat penilaian dari performance_appraisals.
+  const riwayatPenilaian = (await db.execute(sql`
+    SELECT ap.period_code AS periode, pa.composite_gpa::float8 AS gpa,
+           pa.performance_rating::text AS rating, pa.total_percentage_score::float8 AS total
+      FROM performance_appraisals pa
+      LEFT JOIN appraisal_periods ap ON ap.id = pa.period_id
+     WHERE pa.employee_id = ${id}::uuid
+     ORDER BY ap.period_code DESC NULLS LAST
+  `)) as unknown as { rows: any[] };
+
+  // Berkas kepegawaian: dipakai untuk menandai dokumen yang belum lengkap.
+  const dokumen = (await db.execute(sql`
+    SELECT document_type AS "documentType", verification_status AS "verificationStatus",
+           expiry_date::text AS "expiryDate"
+      FROM employee_documents
+     WHERE employee_id = ${id}::uuid
+     ORDER BY document_type
+  `)) as unknown as { rows: any[] };
+
+  // Kontribusi per pilar BSC — dipindah dari modal "Lihat kontribusi".
+  let kontribusi: any = null;
+  try {
+    const { getEmployeeBscContribution } = await import('./employeeBscContributionService');
+    kontribusi = await getEmployeeBscContribution(db, id);
+  } catch {
+    // Bila belum ada KPI, biarkan null agar halaman tetap tampil.
+    kontribusi = null;
+  }
+
   return {
     profil,
+    kontribusi,
     kpi: (kpi.rows ?? []).map((r) => ({
       id: r.id,
       judul: r.judul,
@@ -216,6 +260,26 @@ export async function getDetailPegawai(db: Db, session: SessionPayload, id: stri
       statusTk: r.statusTk ?? null,
       statusKes: r.statusKes ?? null,
       terdaftar: r.terdaftar ?? null,
+    })),
+    indikatorHarian: (indikatorHarian.rows ?? []).map((r) => ({
+      id: r.id,
+      tanggal: r.tanggal,
+      indikator: r.indikator ?? '-',
+      satuan: r.satuan ?? '%',
+      target: Number(r.target ?? 0),
+      aktual: Number(r.aktual ?? 0),
+      status: r.status ?? '-',
+    })),
+    riwayatPenilaian: (riwayatPenilaian.rows ?? []).map((r) => ({
+      periode: r.periode ?? '-',
+      gpa: Number(r.gpa ?? 0),
+      rating: r.rating ?? '-',
+      total: Number(r.total ?? 0),
+    })),
+    dokumen: (dokumen.rows ?? []).map((r) => ({
+      documentType: r.documentType ?? '-',
+      verificationStatus: r.verificationStatus ?? 'PENDING',
+      expiryDate: r.expiryDate ?? null,
     })),
   };
 }
