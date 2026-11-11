@@ -35,11 +35,11 @@ export default function Header() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold tracking-tight text-white">
-              HR Command Center
+              Hrisintegral
             </span>
-            <span className="rounded-md bg-[#161f30] border border-slate-700/60 px-2 py-0.5 text-[10px] font-medium text-slate-300">
+            {/* <span className="rounded-md bg-[#161f30] border border-slate-700/60 px-2 py-0.5 text-[10px] font-medium text-slate-300">
               Enterprise v1.0
-            </span>
+            </span> */}
           </div>
         </Link>
       </div>
@@ -115,65 +115,65 @@ export default function Header() {
 
         {/* User Profile Card with Role Switcher Dropdown */}
         {currentUser && (
-        <div className="relative">
-          <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2.5 pl-2 hover:opacity-90 transition-opacity"
-          >
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-white leading-tight">
-                {currentUser.name}
-              </p>
-              <p className="text-[10px] text-slate-400 truncate max-w-[180px]">
-                {currentUser.position}
-              </p>
-            </div>
-            <img
-              src={currentUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
-              alt={currentUser.name}
-              className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-700"
-            />
-          </button>
-
-          {/* Profile & Role Switcher Dropdown */}
-          {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-72 rounded-xl bg-[#111827] border border-slate-700 shadow-2xl p-2 z-50 text-xs animate-fadeIn">
-              <div className="p-2.5 border-b border-slate-800">
-                <p className="font-bold text-white">{currentUser.name}</p>
-                <p className="text-[11px] text-slate-400 truncate">{currentUser.email}</p>
-                <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-[#007a5a]/20 text-emerald-400 border border-[#007a5a]/30">
-                  {currentUser.role}
-                </span>
+          <div className="relative">
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-2.5 pl-2 hover:opacity-90 transition-opacity"
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-bold text-white leading-tight">
+                  {currentUser.name}
+                </p>
+                <p className="text-[10px] text-slate-400 truncate max-w-[180px]">
+                  {currentUser.position}
+                </p>
               </div>
+              <img
+                src={currentUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
+                alt={currentUser.name}
+                className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-700"
+              />
+            </button>
 
-              <div className="py-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-left text-xs"
-                >
-                  <UserCheck className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span>Profil: {currentUser.role}</span>
-                </button>
-              </div>
+            {/* Profile & Role Switcher Dropdown */}
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-2 w-72 rounded-xl bg-[#111827] border border-slate-700 shadow-2xl p-2 z-50 text-xs animate-fadeIn">
+                <div className="p-2.5 border-b border-slate-800">
+                  <p className="font-bold text-white">{currentUser.name}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{currentUser.email}</p>
+                  <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-[#007a5a]/20 text-emerald-400 border border-[#007a5a]/30">
+                    {currentUser.role}
+                  </span>
+                </div>
 
-              <div className="pt-2 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    setIsProfileOpen(false);
-                    await logout();
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-rose-400 hover:bg-rose-950/30 transition-colors text-left font-semibold text-xs"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout / Keluar Akun</span>
-                </button>
+                <div className="py-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-left text-xs"
+                  >
+                    <UserCheck className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>Profil: {currentUser.role}</span>
+                  </button>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      setIsProfileOpen(false);
+                      await logout();
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-rose-400 hover:bg-rose-950/30 transition-colors text-left font-semibold text-xs"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout / Keluar Akun</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         )}
 
       </div>
