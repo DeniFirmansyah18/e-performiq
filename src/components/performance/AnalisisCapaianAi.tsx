@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Sparkles, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { bersihkanTeksAi } from '@/lib/utils/bersihkanTeksAi';
 
 /**
  * Bantuan analisis AI untuk capaian target.
@@ -83,7 +84,9 @@ export default function AnalisisCapaianAi({ periodId }: { periodId?: string }) {
       )}
 
       {insight && (
-        <div className="text-[11px] text-[#334155] leading-relaxed whitespace-pre-wrap">{insight}</div>
+        <div className="text-[11px] text-[#334155] leading-relaxed whitespace-pre-wrap">
+          {bersihkanTeksAi(insight)}
+        </div>
       )}
 
       {catatan && <p className="text-[10px] text-[#92400e]">{catatan}</p>}

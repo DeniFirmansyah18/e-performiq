@@ -1,5 +1,8 @@
 import type { Db } from '@/lib/db/client';
 import { generateContent } from './aiService';
+import { bersihkanTeksAi } from '@/lib/utils/bersihkanTeksAi';
+
+export { bersihkanTeksAi };
 
 /** Satu baris capaian departemen, sesuai yang dikirim API target-achievement. */
 export interface DepartemenCapaian {
@@ -49,17 +52,23 @@ export function susunPromptCapaianTarget(ringkasan: RingkasanCapaian): string {
     '',
     'Tugas Anda:',
     '1. Sebutkan maksimal tiga departemen yang paling perlu perhatian, lengkap dengan persentasenya.',
-    '2. Untuk tiap departemen, beri rekomendasi tindakan yang bisa langsung dilakukan HR.',
-    '3. Bila ada departemen yang capaiannya sudah baik, sebutkan singkat apa yang perlu dijaga.',
+    '2. Untuk tiap departemen, tuliskan LANGKAH rekomendasi yang berurutan dan bisa langsung',
+    '   dijalankan HR — bukan hanya satu kalimat ringkas. Gunakan penomoran bertahap:',
+    '   "Langkah 1", "Langkah 2", "Langkah 3". Tiap langkah sebutkan siapa yang mengerjakan',
+    '   dan hasil apa yang diharapkan.',
+    '3. Bila ada departemen yang capaiannya sudah baik, tuliskan juga langkah menjaga',
+    '   capaiannya, bukan hanya "pertahankan".',
     '',
     'Aturan penulisan:',
-    '- Gunakan Bahasa Indonesia yang sederhana dan mudah dipahami HRD pemula.',
+    '- Gunakan Bahasa Indonesia sederhana yang mudah dipahami HRD pemula.',
     '- Hindari istilah teknis berlebihan; bila perlu, jelaskan dalam tanda kurung.',
-    '- Tulis sebagai daftar bernomor singkat, maksimal 6 poin.',
+    '- JANGAN memakai penanda markdown seperti ** (tanda bintang ganda), __ , ###, atau backtick.',
+    '  Tulis teks biasa saja.',
     '- Jangan mengarang angka yang tidak ada pada data di atas.',
     '- Jangan memakai emoji atau simbol hiasan.',
   ].join('\n');
 }
+
 
 export interface AnalisisCapaianHasil {
   insight: string;
@@ -88,7 +97,8 @@ export async function analisisCapaianTarget(
   });
 
   return {
-    insight: res.text,
+    // Bersihkan penanda markdown di server agar klien menerima teks bersih.
+    insight: bersihkanTeksAi(res.text),
     configured: res.configured,
     failed: Boolean(res.error),
   };
