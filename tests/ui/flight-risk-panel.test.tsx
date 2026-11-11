@@ -49,13 +49,14 @@ afterEach(() => {
 });
 
 describe('FlightRiskHeatmap', () => {
-  it('menampilkan dua skor (attrition & burnout) per karyawan', async () => {
+  it('menampilkan dua skor (risiko resign & kelelahan) per karyawan', async () => {
     render(<FlightRiskHeatmap />);
 
     await waitFor(() => expect(screen.getByText('Budi Pratama')).toBeTruthy());
     expect(screen.getByText('Siti Aminah')).toBeTruthy();
-    expect(screen.getAllByText('CRITICAL').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('HIGH').length).toBeGreaterThan(0);
+    // Label tingkat risiko memakai Bahasa Indonesia sejak perubahan UI terbaru.
+    expect(screen.getAllByText('Kritis').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Tinggi').length).toBeGreaterThan(0);
     expect(screen.getByText('85')).toBeTruthy();
     expect(screen.getByText('72')).toBeTruthy();
   });
