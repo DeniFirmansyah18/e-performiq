@@ -385,7 +385,8 @@ export type EmployeeLifecycleEvent =
   | 'FINALIZATION_REQUESTED'   // permintaan finalisasi nilai → HR
   | 'CALIBRATION_PENDING'      // hasil siap dikalibrasi → Komite Kalibrasi
   | 'CLEARANCE_PENDING'        // serah terima menunggu verifikasi → Atasan
-  | 'CANDIDATE_HIRED';          // kandidat dikonversi → HR + Atasan terkait
+  | 'CANDIDATE_HIRED'           // kandidat dikonversi → HR + Atasan terkait
+  | 'OFFER_RESPONDED';          // kandidat menjawab penawaran → HR
 
 /** Metadata bawaan (kategori + severity + label aksi) per event siklus hidup. */
 const EMPLOYEE_EVENT_META: Record<EmployeeLifecycleEvent, { category: string; severity: NotificationSeverity; ctaLabel?: string; actionUrl?: string }> = {
@@ -408,6 +409,7 @@ const EMPLOYEE_EVENT_META: Record<EmployeeLifecycleEvent, { category: string; se
   FINALIZATION_REQUESTED: { category: 'APPRAISAL', severity: 'WARNING', ctaLabel: 'Proses Finalisasi', actionUrl: '/dashboard/hr-command' },
   CALIBRATION_PENDING: { category: 'APPRAISAL', severity: 'INFO', ctaLabel: 'Kalibrasi', actionUrl: '/dashboard/ninebox-matrix' },
   CLEARANCE_PENDING: { category: 'OFFBOARDING', severity: 'INFO', ctaLabel: 'Verifikasi Serah Terima', actionUrl: '/dashboard/manager-cockpit' },
+  OFFER_RESPONDED: { category: 'HIRING', severity: 'INFO', ctaLabel: 'Buka Rekrutmen', actionUrl: '/dashboard/hr-command' },
   CANDIDATE_HIRED: { category: 'HIRING', severity: 'SUCCESS', ctaLabel: 'Lihat Karyawan', actionUrl: '/dashboard/hr-command' },
 };
 

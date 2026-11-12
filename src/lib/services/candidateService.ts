@@ -346,9 +346,17 @@ export async function getApplicationDetail(db: Db, applicationId: string) {
 
   const experiences = (await db.execute(sql`
     SELECT id, experience_type AS "experienceType", role_title AS "roleTitle", company, location,
-           start_month AS "startMonth", start_year AS "startYear", end_month AS "endMonth",
-           end_year AS "endYear", is_current AS "isCurrent", description
-      FROM candidate_experiences WHERE candidate_id = ${candidateId}::uuid ORDER BY start_year DESC NULLS LAST
+           -- Tabel punya dua bentuk tanggal: kolom lama start_date/end_date (seed & impor CV)
+           -- dan kolom baru start_month/start_year (input kandidat). Ambil yang tersedia
+           -- agar riwayat tidak tampil kosong.
+           COALESCE(start_month, EXTRACT(MONTH FROM start_date)::int) AS "startMonth",
+           COALESCE(start_year, EXTRACT(YEAR FROM start_date)::int) AS "startYear",
+           COALESCE(end_month, EXTRACT(MONTH FROM end_date)::int) AS "endMonth",
+           COALESCE(end_year, EXTRACT(YEAR FROM end_date)::int) AS "endYear",
+           is_current AS "isCurrent", description,
+           start_date::text AS "startDate", end_date::text AS "endDate"
+      FROM candidate_experiences WHERE candidate_id = ${candidateId}::uuid
+     ORDER BY COALESCE(start_year, EXTRACT(YEAR FROM start_date)::int) DESC NULLS LAST
   `)) as unknown as { rows: any[] };
 
   const certifications = (await db.execute(sql`
@@ -381,10 +389,16 @@ export async function listCandidates(db: Db) {
   const res = (await db.execute(sql`
     SELECT ja.id, ja.application_no AS "applicationNo", ja.status, ja.applied_at AS "appliedAt",
            c.full_name AS "fullName", c.email, c.education, c.resume_url AS "resumeUrl",
-           jp.posting_title AS "postingTitle"
+           jp.posting_title AS "postingTitle",
+           -- Status penawaran dipakai panel untuk memberi keterangan di samping
+           -- status: menunggu respons / diterima / ditolak kandidat.
+           jo.status::text AS "offerStatus",
+           jo.responded_at::text AS "offerRespondedAt",
+           jo.response_deadline::text AS "offerDeadline"
       FROM job_applications ja
       JOIN candidates c ON c.id = ja.candidate_id
       JOIN job_postings jp ON jp.id = ja.job_posting_id
+      LEFT JOIN job_offers jo ON jo.application_id = ja.id
      ORDER BY ja.applied_at DESC
   `)) as unknown as { rows: any[] };
   return res.rows ?? [];
