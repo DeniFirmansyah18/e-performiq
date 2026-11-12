@@ -344,7 +344,7 @@ export default function CareersPage() {
 
               <button onClick={reset} className="text-[11px] font-bold text-[#007a5a] underline">Kirim lamaran lain</button>
               {redirecting && (
-                <p className="text-[11px] font-semibold text-indigo-700">
+                <p className="text-[11px] font-semibold text-[#137333]">
                   Mengalihkan ke halaman progres tahapan lamaran…{' '}
                   <a href={`/careers/status?no=${encodeURIComponent(submitted)}`} className="underline">Buka sekarang</a>
                 </p>

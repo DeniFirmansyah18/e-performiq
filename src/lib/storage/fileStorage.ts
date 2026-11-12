@@ -10,6 +10,8 @@ export interface StoredObject {
   size: number;
   contentType: string;
   checksumSha256: string;
+  /** Driver yang benar-benar dipakai; 'local' bila S3 gagal dihubungi. */
+  driver?: StorageDriver;
 }
 
 export interface ReadObject {
@@ -84,7 +86,15 @@ export function sanitizeFileName(name: string): string {
 
 /** `<prefix>/<uuid>-<nama-aman>.<ext>` — UUID mencegah tabrakan nama. */
 export function buildStorageKey(prefix: string, fileName: string, defaultExt: string = '.pdf'): string {
-  const safePrefix = prefix.replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'files';
+  // Pertahankan garis miring agar struktur folder terjaga: "candidates/videos"
+  // jangan menjadi "candidatesvideos". Tiap segmen dibersihkan tersendiri dan
+  // segmen kosong dibuang supaya tidak ada "//" atau "../".
+  const safePrefix =
+    prefix
+      .split('/')
+      .map((s) => s.replace(/[^a-z0-9-]/gi, '').toLowerCase())
+      .filter(Boolean)
+      .join('/') || 'files';
   let safeName = sanitizeFileName(fileName);
   const extMatch = safeName.toLowerCase().match(/\.[a-z0-9]+$/);
   if (extMatch && CONTENT_TYPES[extMatch[0]]) {
@@ -167,24 +177,57 @@ async function s3Delete(key: string): Promise<void> {
 /* API publik                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Menyimpan berkas. Bila S3 dikonfigurasi tetapi tidak dapat dihubungi
+ * (mis. gateway MinIO/SeaweedFS belum dijalankan), berkas disimpan di disk
+ * lokal agar unggahan pengguna tidak gagal total dengan 500.
+ *
+ * Fallback ini disengaja: kehilangan unggahan lebih merugikan pengguna
+ * daripada penyimpanan sementara di disk. Driver yang benar-benar dipakai
+ * dilaporkan lewat `StoredObject.driver`.
+ */
 export async function putObject(key: string, body: Buffer, contentType: string): Promise<StoredObject> {
   assertSafeKey(key);
 
   if (storageDriver() === 's3') {
-    await s3Put(key, body, contentType);
-  } else {
-    const target = localPath(key);
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, body);
+    try {
+      await s3Put(key, body, contentType);
+      return { key, size: body.length, contentType, checksumSha256: sha256(body), driver: 's3' };
+    } catch (err: any) {
+      console.warn(
+        '[storage] S3 tidak dapat dihubungi (' + String(err?.code ?? err?.message ?? err).slice(0, 80) +
+          '); menyimpan ke disk lokal: ' + key,
+      );
+      // lanjut ke penyimpanan lokal di bawah
+    }
   }
 
-  return { key, size: body.length, contentType, checksumSha256: sha256(body) };
+  const target = localPath(key);
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, body);
+
+  return { key, size: body.length, contentType, checksumSha256: sha256(body), driver: 'local' };
 }
 
+/**
+ * Membaca berkas. Bila S3 tidak dapat dihubungi, berkas dicari di disk lokal
+ * (pasangan dari fallback pada putObject), supaya berkas yang tersimpan saat
+ * S3 mati tetap bisa dibuka kembali.
+ */
 export async function getObject(key: string): Promise<ReadObject | null> {
   assertSafeKey(key);
 
-  if (storageDriver() === 's3') return s3Get(key);
+  if (storageDriver() === 's3') {
+    try {
+      return await s3Get(key);
+    } catch (err: any) {
+      console.warn(
+        '[storage] S3 tidak dapat dihubungi saat membaca (' + String(err?.code ?? err?.message ?? err).slice(0, 60) +
+          '); mencari di disk lokal: ' + key,
+      );
+      // lanjut ke pembacaan lokal di bawah
+    }
+  }
 
   const target = localPath(key);
   if (!existsSync(target)) return null;
@@ -196,8 +239,15 @@ export async function deleteObject(key: string): Promise<void> {
   assertSafeKey(key);
 
   if (storageDriver() === 's3') {
-    await s3Delete(key);
-    return;
+    try {
+      await s3Delete(key);
+    } catch (err: any) {
+      console.warn(
+        '[storage] S3 tidak dapat dihubungi saat menghapus (' + String(err?.code ?? err?.message ?? err).slice(0, 60) +
+          '); menghapus di disk lokal: ' + key,
+      );
+    }
+    // Tetap coba hapus salinan lokal (bila ada) agar tidak tertinggal.
   }
 
   const target = localPath(key);

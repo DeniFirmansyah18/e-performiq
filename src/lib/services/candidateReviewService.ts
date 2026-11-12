@@ -354,6 +354,15 @@ export async function recordDecision(db: Db, input: DecisionInput): Promise<Cand
        WHERE id = ${input.applicationId}::uuid
     `);
 
+    // Video perkenalan dihapus otomatis bila status sudah final (REJECTED),
+    // agar penyimpanan tidak penuh. HIRED ditangani di updateApplicationStatus.
+    try {
+      const { hapusVideoJikaStatusFinal } = await import('@/lib/services/candidateVideoService');
+      await hapusVideoJikaStatusFinal(db, input.applicationId, appStatus);
+    } catch {
+      /* pembersihan best-effort: kegagalan tidak boleh membatalkan keputusan */
+    }
+
     // Kirim notifikasi status tailored (penawaran/reject) — memastikan kandidat
     // melihat perubahan OFFERED/REJECTED di portal, bukan hanya update tahap generik.
     try {
