@@ -154,6 +154,14 @@ export interface CandidatePosting {
   remaining: number;         // kuota − terisi (>=0)
   availability: 'AVAILABLE' | 'FILLED' | 'CLOSED';
   postedAt: string | null;
+  // Rincian yang dipakai kandidat untuk menilai lowongan. Sebelumnya tidak
+  // diambil sama sekali sehingga portal hanya menampilkan judul & deskripsi.
+  minEducation: string | null;
+  minExperienceYears: number | null;
+  workLocation: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  employmentType: string | null;
 }
 
 export async function listCandidatePostings(db: Db, opts: { search?: string; department?: string } = {}): Promise<CandidatePosting[]> {
@@ -163,7 +171,13 @@ export async function listCandidatePostings(db: Db, opts: { search?: string; dep
            jp.status, jp.posted_at AS "postedAt",
            d.department_name AS "department", p.position_title AS "position",
            COALESCE(jp.quota, mp.approved_quota, 0) AS "quota",
-           COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired"
+           COALESCE(mp.hired_count, 0) + COALESCE(hired.accepted, 0) AS "hired",
+           jp.min_education AS "minEducation",
+           jp.min_experience_years::float8 AS "minExperienceYears",
+           jp.work_location AS "workLocation",
+           jp.salary_min::float8 AS "salaryMin",
+           jp.salary_max::float8 AS "salaryMax",
+           jp.employment_type AS "employmentType"
       FROM job_postings jp
       JOIN departments d ON d.id = jp.department_id
       JOIN job_positions p ON p.id = jp.position_id
@@ -172,7 +186,7 @@ export async function listCandidatePostings(db: Db, opts: { search?: string; dep
         SELECT job_posting_id, COUNT(*) FILTER (WHERE status IN ('HIRED','OFFERED')) AS accepted
           FROM job_applications GROUP BY job_posting_id
       ) hired ON hired.job_posting_id = jp.id
-     WHERE jp.is_public = TRUE
+      WHERE jp.is_public = TRUE
        AND (${opts.department ?? null}::text IS NULL OR d.department_name = ${opts.department ?? null})
        AND (${opts.search ?? null}::text IS NULL
             OR jp.posting_title ILIKE '%' || ${opts.search ?? null} || '%'
@@ -200,6 +214,12 @@ export async function listCandidatePostings(db: Db, opts: { search?: string; dep
       remaining,
       availability,
       postedAt: r.postedAt ?? null,
+      minEducation: r.minEducation ?? null,
+      minExperienceYears: r.minExperienceYears != null ? Number(r.minExperienceYears) : null,
+      workLocation: r.workLocation ?? null,
+      salaryMin: r.salaryMin != null ? Number(r.salaryMin) : null,
+      salaryMax: r.salaryMax != null ? Number(r.salaryMax) : null,
+      employmentType: r.employmentType ?? null,
     };
   });
 }
