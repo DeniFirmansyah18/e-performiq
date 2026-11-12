@@ -67,8 +67,8 @@ describe('Board Activity Analytics', () => {
   it('menghitung coverage pegawai aktif tanpa membagi nol', async () => {
     const result = await getBoardActivityAnalytics(db, RANGE);
     // Seed: 20 pegawai, 1 RESIGNED + 1 RETIRED -> 17 aktif. Yang punya event: 6.
-    expect(result.analysis.activeEmployees).toBe(16);
-    expect(result.analysis.coveragePercentage).toBe(31.3);
+    expect(result.analysis.activeEmployees).toBe(17);
+    expect(result.analysis.coveragePercentage).toBe(29.4);
     expect(Number.isFinite(result.analysis.coveragePercentage)).toBe(true);
   });
 
@@ -106,9 +106,9 @@ describe('Board Activity Analytics', () => {
     `);
 
     const result = await getBoardActivityAnalytics(db, RANGE);
-    expect(result.analysis.activeEmployees).toBe(16);
+    expect(result.analysis.activeEmployees).toBe(17);
     expect(result.analysis.coveragePercentage).toBeLessThanOrEqual(100);
-    expect(result.analysis.coveragePercentage).toBe(31.3);
+    expect(result.analysis.coveragePercentage).toBe(29.4);
     expect(result.analysis.highlights.join(' ')).not.toMatch(/1[8-9]\d%|[2-9]\d\d%/);
   });
 });

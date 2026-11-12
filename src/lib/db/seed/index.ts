@@ -20,6 +20,8 @@ export const SEED_USER_EMAILS: ReadonlyArray<{ email: string; role: UserRole }> 
 { email: 'budi.pratama@eperformiq.co.id', role: 'EMPLOYEE' },
 { email: 'admin@eperformiq.co.id', role: 'SUPER_ADMIN' },
 { email: 'aris.assessor@eperformiq.co.id', role: 'PEOPLE_MANAGER' },
+// Akun uji fase Sebelum Kerja: status PERMANENT tetapi orientasi belum tuntas.
+{ email: 'dewi.lestari@eperformiq.co.id', role: 'EMPLOYEE' },
 ];
 
 /** Idempoten: seluruh INSERT memakai ON CONFLICT DO NOTHING (spec §10). */
@@ -80,7 +82,30 @@ INSERT INTO employees (id, employee_code, full_name, email, phone_number,
   ('b0000000-0000-4000-8000-000000000011','ASR-2020-0011','Dr. Aris Wicaksono, M.Psi.','aris.assessor@eperformiq.co.id','+62 811-0007-0007','a0000000-0000-4000-8000-000000000105','a0000000-0000-4000-8000-000000000207','b0000000-0000-4000-8000-000000000001','PERMANENT',75000000,'2020-05-01')
 ON CONFLICT (id) DO NOTHING;
 
--- Task 5: kolom akhir kontrak PKWT untuk karyawan PROBATION/CONTRACT (idempoten)
+-- Pegawai uji fase Sebelum Kerja (skenario: sudah berstatus PERMANENT tetapi
+-- orientasinya BELUM selesai). Dipakai untuk memverifikasi bahwa fase Saat
+-- Kerja & Setelah Kerja terkunci sampai orientasi tuntas.
+-- Login: dewi.lestari@eperformiq.co.id / enterprise2026
+INSERT INTO employees (id, employee_code, full_name, email, phone_number,
+                       department_id, position_id, manager_id, status,
+                       base_salary, join_date, employee_phase) VALUES
+  ('b0000000-0000-4000-8000-000000000012','UJI-2026-0012','Dewi Lestari, S.Kom.','dewi.lestari@eperformiq.co.id','+62 812-1200-0012','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',20000000,'2026-10-01','PRE')
+ON CONFLICT (id) DO UPDATE SET
+  status = EXCLUDED.status,
+  employee_phase = EXCLUDED.employee_phase,
+  manager_id = EXCLUDED.manager_id;
+
+-- Program orientasi berjalan (belum selesai): status IN_PROGRESS dan belum ada
+-- milestone yang lunas, sehingga orientasi terbaca belum tuntas.
+INSERT INTO onboarding_programs (id, employee_id, position_id, status)
+VALUES ('c0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012','a0000000-0000-4000-8000-000000000204','IN_PROGRESS')
+ON CONFLICT (id) DO NOTHING;
+
+-- Milestone kosong: skor 30-60-90 belum diisi dan probation_passed belum TRUE.
+INSERT INTO onboarding_milestones (id, employee_id, probation_passed)
+VALUES ('d0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012',FALSE)
+ON CONFLICT (id) DO NOTHING;
+
 UPDATE employees SET contract_end_date = '2026-12-31'
  WHERE employee_code = 'EMP-2024-0230' AND contract_end_date IS NULL;
 
@@ -94,7 +119,8 @@ INSERT INTO users (id, employee_id, email, password_hash, role, is_active) VALUE
   ('e0000000-0000-4000-8000-000000000003','b0000000-0000-4000-8000-000000000003','danu.tech@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE),
   ('e0000000-0000-4000-8000-000000000004','b0000000-0000-4000-8000-000000000004','budi.pratama@eperformiq.co.id','${hash}','EMPLOYEE',TRUE),
   ('e0000000-0000-4000-8000-000000000006','b0000000-0000-4000-8000-000000000006','admin@eperformiq.co.id','${hash}','SUPER_ADMIN',TRUE),
-  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE)
+  ('e0000000-0000-4000-8000-000000000007','b0000000-0000-4000-8000-000000000011','aris.assessor@eperformiq.co.id','${hash}','PEOPLE_MANAGER',TRUE),
+  ('e0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012','dewi.lestari@eperformiq.co.id','${hash}','EMPLOYEE',TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Strategic Pillars (BSC 4 Perspektif, sum = 100)
@@ -585,7 +611,8 @@ INSERT INTO employee_social_security (employee_id, bpjs_tk_number, bpjs_kes_numb
   ('c0000000-0000-4000-8000-000000000102','2101234567890136','0001234567890136','Kelas 2','ACTIVE','ACTIVE','2025-02-01'),
   ('c0000000-0000-4000-8000-000000000103','2101234567890137','0001234567890137','Kelas 2','ACTIVE','ACTIVE','2025-01-15'),
   ('c0000000-0000-4000-8000-000000000104','2101234567890138','0001234567890138','Kelas 2','ACTIVE','ACTIVE','2025-05-01'),
-  ('c0000000-0000-4000-8000-000000000105','2101234567890139','0001234567890139','Kelas 2','ACTIVE','ACTIVE','2025-03-01')
+  ('c0000000-0000-4000-8000-000000000105','2101234567890139','0001234567890139','Kelas 2','ACTIVE','ACTIVE','2025-03-01'),
+  ('b0000000-0000-4000-8000-000000000012','2101234567890140','0001234567890140','Kelas 1','ACTIVE','ACTIVE','2026-10-01')
 ON CONFLICT (employee_id) DO NOTHING;
   `);
 }
