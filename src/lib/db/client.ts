@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
+import { ambilKunciDatabase } from './dbLock';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -80,6 +81,11 @@ function createDb() {
   // Pasang penangan penutupan SEBELUM PGlite membuka berkas, agar tidak ada
   // celah saat proses dimatikan di antara pembuatan client dan pemasangan.
   pasangPenutupanRapi();
+
+  // Tolak pembukaan kedua atas direktori data yang sama. PGlite tidak
+  // mengunci berkasnya, sehingga dua proses (mis. dua `next dev`) yang menulis
+  // bersamaan MERUSAK database — penyebab error "Aborted()" yang berulang.
+  ambilKunciDatabase();
 
   const client = new PGlite(process.env.PGLITE_DATA_DIR ?? resolve(process.cwd(), '.pglite'));
   // Set default timezone ke Asia/Jakarta (WIB, UTC+7)

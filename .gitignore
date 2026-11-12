@@ -30,3 +30,6 @@ neon.ts
 
 # Cadangan DB rusak (dibuat scripts/pulihkan-db.ts)
 .pglite-rusak-*
+
+# Kunci pengunci database lokal (dibuat saat aplikasi berjalan)
+.eperformiq-lock
