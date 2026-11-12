@@ -20,6 +20,11 @@ interface MppRow {
   hiredCount: number;
   remainingQuota: number;
   budgetUtilizationPct: number;
+  /** Atasan langsung (People Manager) yang tersimpan. */
+  managerId?: string | null;
+  managerName?: string | null;
+  status?: string;
+  decisionNote?: string | null;
 }
 
 interface Ref {
@@ -102,6 +107,8 @@ export default function ManpowerPlanManager() {
       departmentId: r.departmentId, positionId: r.positionId, fiscalYear: String(r.fiscalYear),
       approvedQuota: String(r.approvedQuota), allocatedBudget: String(r.allocatedBudget),
       utilizedBudget: String(r.utilizedBudget), hiredCount: String(r.hiredCount),
+      // Muat atasan langsung yang tersimpan, agar tidak tampak kosong saat disunting.
+      managerId: r.managerId ?? '',
     });
     setMsg(null); setErr(null); setShowForm(true);
   }
@@ -147,6 +154,8 @@ export default function ManpowerPlanManager() {
       allocatedBudget: Number(form.allocatedBudget),
       utilizedBudget: form.utilizedBudget === '' ? 0 : Number(form.utilizedBudget),
       hiredCount: form.hiredCount === '' ? 0 : Number(form.hiredCount),
+      // Atasan langsung ikut dikirim agar tidak hilang setelah halaman dimuat ulang.
+      managerId: form.managerId || null,
     };
     const res = await fetch(
       `/api/v1/recruitment/manpower-plans/${editingId}`,

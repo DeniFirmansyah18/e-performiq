@@ -51,6 +51,7 @@ export const FEATURE_PHASE: Readonly<Record<string, WorkPhase>> = Object.freeze(
   mpp: 'PRE', // Manajemen MPP (kuota & budget formasi)
   recruitment: 'PRE', // Rekrutmen kandidat (portal karier publik)
   'job-posting': 'PRE', // Kelola lowongan
+  'job-postings': 'PRE', // Kelola lowongan (kode dipakai kartu dashboard HR)
   interview: 'PRE', // Jadwal wawancara
   'technical-test': 'PRE', // Bank soal tes teknis
   registration: 'PRE', // Registrasi karyawan mandiri

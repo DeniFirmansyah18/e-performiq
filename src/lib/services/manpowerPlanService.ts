@@ -24,6 +24,9 @@ export interface ManpowerPlanRow {
   hiredCount: number;
   remainingQuota: number;
   budgetUtilizationPct: number;
+  /** Atasan langsung (People Manager) untuk formasi ini. */
+  managerId?: string | null;
+  managerName?: string | null;
 }
 
 export interface ManpowerPlanInput {
@@ -34,6 +37,8 @@ export interface ManpowerPlanInput {
   allocatedBudget: number;
   utilizedBudget?: number;
   hiredCount?: number;
+  /** Atasan langsung (People Manager); diisi saat menyunting MPP. */
+  managerId?: string | null;
 }
 
 export type PlanMutationResult =
@@ -57,6 +62,7 @@ export async function listManpowerPlans(db: Db, fiscalYear?: number): Promise<Ma
            mp.allocated_budget::float8 AS "allocatedBudget",
            mp.utilized_budget::float8 AS "utilizedBudget",
            mp.hired_count AS "hiredCount",
+           mp.manager_id::text AS "managerId",
            -- Status persetujuan & alasan penolakan dari BOD, agar HR tahu
            -- hasil keputusan pengajuannya.
            mp.status::text AS "status",
@@ -89,6 +95,7 @@ export async function listManpowerPlans(db: Db, fiscalYear?: number): Promise<Ma
       remainingQuota: Math.max(0, approvedQuota - hiredCount),
       budgetUtilizationPct: allocatedBudget > 0 ? Math.round((utilizedBudget / allocatedBudget) * 100) : 0,
       // Status keputusan BOD, agar HR melihat hasil pengajuannya.
+      managerId: (r.managerId as string) ?? null,
       status: (r.status as string) ?? 'APPROVED',
       decisionNote: (r.decisionNote as string) ?? null,
       managerName: (r.managerName as string) ?? null,
@@ -158,7 +165,9 @@ export async function updateManpowerPlan(
       approved_quota    = COALESCE(${input.approvedQuota ?? null}, approved_quota),
       allocated_budget  = COALESCE(${input.allocatedBudget ?? null}::numeric, allocated_budget),
       utilized_budget   = COALESCE(${input.utilizedBudget ?? null}::numeric, utilized_budget),
-      hired_count       = COALESCE(${input.hiredCount ?? null}, hired_count)
+      hired_count       = COALESCE(${input.hiredCount ?? null}, hired_count),
+      -- Atasan langsung (People Manager) ikut tersimpan saat MPP disunting.
+      manager_id        = COALESCE(${input.managerId ?? null}::uuid, manager_id)
     WHERE id = ${id}::uuid
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };

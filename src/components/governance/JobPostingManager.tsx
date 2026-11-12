@@ -210,7 +210,19 @@ export default function JobPostingManager() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                 {field('minEducation', 'Pendidikan Minimum')}
                 {field('minExperienceYears', 'Pengalaman Min (tahun)', 'number')}
-                {field('workLocation', 'Lokasi Kerja')}
+                <label className="block text-[11px] text-[#334155]">
+                  <span className="font-semibold">Lokasi Kerja</span>
+                  <select
+                    value={form.workLocation}
+                    onChange={(e) => setForm({ ...form, workLocation: e.target.value })}
+                    className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs bg-white"
+                  >
+                    <option value="">— Pilih lokasi —</option>
+                    <option value="Onsite">Onsite (di kantor)</option>
+                    <option value="Remote">Remote (dari mana saja)</option>
+                    <option value="Hybrid">Hybrid (campuran)</option>
+                  </select>
+                </label>
                 <label className="text-[11px] text-[#334155]">
                   <span className="font-semibold">Kuota (opsional)</span>
                   <input type="number" min={0} value={form.quota} placeholder="Ikut MPP"
