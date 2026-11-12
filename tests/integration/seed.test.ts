@@ -16,10 +16,10 @@ describe('seed data', () => {
     await client.close();
   });
 
-  it('membuat 6 user, satu per akun demo (5 peran)', async () => {
+  it('membuat 7 user, satu per akun demo (5 peran)', async () => {
     const res = await client.query<{ count: string }>('SELECT count(*)::text AS count FROM users');
-    expect(Number(res.rows[0].count)).toBe(6);
-    expect(SEED_USER_EMAILS).toHaveLength(6);
+    expect(Number(res.rows[0].count)).toBe(7);
+    expect(SEED_USER_EMAILS).toHaveLength(7);
     // ASSESSOR sudah dihapus; semua peran seed harus termasuk 5 peran resmi.
     const roles = new Set(SEED_USER_EMAILS.map((u) => u.role));
     expect(roles.has('ASSESSOR' as never)).toBe(false);
@@ -71,7 +71,7 @@ describe('seed data', () => {
   it('idempoten: seed kedua tidak menggandakan baris', async () => {
     await runSeed(client);
     const res = await client.query<{ count: string }>('SELECT count(*)::text AS count FROM users');
-    expect(Number(res.rows[0].count)).toBe(6);
+    expect(Number(res.rows[0].count)).toBe(7);
   });
 
   it('memverifikasi keberadaan data pada seluruh 9 tabel Pre/Post-Employment & Analytics', async () => {
