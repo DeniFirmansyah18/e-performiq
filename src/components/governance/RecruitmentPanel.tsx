@@ -5,6 +5,7 @@ import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, CheckCircle2, Users, Send } from 'lucide-react';
+import { keteranganStatus } from '@/lib/recruitment/statusLabel';
 import JobPostingManager from '@/components/governance/JobPostingManager';
 import OfferModal from '@/components/governance/OfferModal';
 import { renderRichText } from '@/components/ai/RichText';
@@ -12,6 +13,8 @@ import { renderRichText } from '@/components/ai/RichText';
 interface CandidateRow {
   id: string; applicationNo: string; status: string; appliedAt: string;
   fullName: string; email: string; education?: string; resumeUrl?: string; postingTitle: string;
+  /** Status penawaran (SENT/ACCEPTED/DECLINED/…) untuk keterangan di samping status. */
+  offerStatus?: string | null;
 }
 
 interface ReviewDetail {
@@ -111,6 +114,20 @@ export default function RecruitmentPanel() {
   const changeStatus = async (id: string, status: string) => {
     setMsg(null);
     const row = rows.find((r) => r.id === id);
+
+    // Memilih OFFERED berarti menerbitkan penawaran kerja: buka form penawaran
+    // lebih dulu. Status baru berubah setelah penawaran berhasil diterbitkan,
+    // sehingga tidak ada lamaran berstatus OFFERED tanpa penawaran.
+    if (status === 'OFFERED') {
+      setOfferModal({
+        applicationId: id,
+        candidateName: row?.fullName ?? 'Kandidat',
+        postingTitle: row?.postingTitle ?? '',
+        mode: 'offer',
+      });
+      return;
+    }
+
     const res = await fetch(`/api/v1/recruitment/candidates/${id}/status`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
     });
@@ -224,12 +241,31 @@ export default function RecruitmentPanel() {
               key: 'status',
               header: 'Status',
               value: (r) => r.status,
-              render: (r) => (
-                <select value={r.status} onChange={(e) => changeStatus(r.id, e.target.value)} aria-label={`Status ${r.fullName}`}
-                  className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]">
-                  {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              ),
+              render: (r) => {
+                const ket = keteranganStatus(r.status, r.offerStatus ?? null);
+                return (
+                  <div className="flex flex-col gap-1">
+                    <select value={r.status} onChange={(e) => changeStatus(r.id, e.target.value)} aria-label={`Status ${r.fullName}`}
+                      className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]">
+                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    {ket && (
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                          ket.includes('Diterima')
+                            ? 'bg-emerald-100 text-[#137333]'
+                            : ket.includes('Ditolak') || ket.includes('kedaluwarsa')
+                            ? 'bg-rose-100 text-[#c5221f]'
+                            : 'bg-amber-100 text-[#92400e]'
+                        }`}
+                        title="Keterangan status penawaran"
+                      >
+                        {ket}
+                      </span>
+                    )}
+                  </div>
+                );
+              },
             },
             {
               key: 'aksi',
@@ -245,17 +281,6 @@ export default function RecruitmentPanel() {
                   <button onClick={() => openReview(r.id)}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0f172a] text-white text-[11px] font-semibold">
                     <Sparkles className="h-3 w-3" /> Review
-                  </button>
-                  <button
-                    onClick={() => setOfferModal({
-                      applicationId: r.id,
-                      candidateName: r.fullName,
-                      postingTitle: r.postingTitle,
-                      mode: r.status === 'OFFERED' ? 'respond' : 'offer',
-                    })}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold">
-                    <Send className="h-3 w-3" />
-                    {r.status === 'OFFERED' ? 'Respons' : 'Penawaran'}
                   </button>
                 </div>
               ),

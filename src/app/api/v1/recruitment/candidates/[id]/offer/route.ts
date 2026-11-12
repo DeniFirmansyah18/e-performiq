@@ -39,7 +39,26 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       responseDays: parsed.data.responseDays,
       notes: parsed.data.notes,
     });
-    return ok(offer, 'Penawaran diterbitkan dan surat penawaran didaftarkan.');
+
+    // Terbitkan token respons lalu kirim tautannya ke kandidat lewat email dan
+    // WhatsApp. Best-effort: penawaran sudah sah walau pengiriman gagal.
+    let pengiriman: any = null;
+    let tautan: string | null = null;
+    try {
+      const { terbitkanTokenRespons } = await import('@/lib/services/offerResponseService');
+      const { kirimTautanPenawaran } = await import('@/lib/services/offerLinkService');
+      const { token } = await terbitkanTokenRespons(db, ctx.params.id, parsed.data.responseDays ?? 7);
+      const hasil = await kirimTautanPenawaran(db, ctx.params.id, token);
+      pengiriman = { email: hasil.email, whatsapp: hasil.whatsapp };
+      tautan = hasil.tautan;
+    } catch {
+      /* pengiriman best-effort */
+    }
+
+    return ok(
+      { ...offer, pengiriman, tautanRespons: tautan },
+      'Penawaran diterbitkan. Tautan respons dikirim ke kandidat.'
+    );
   } catch (err) {
     return problem(err, '/api/v1/recruitment/candidates/[id]/offer');
   }
