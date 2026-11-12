@@ -1,26 +1,20 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { hostname } from 'node:os';
 
 /**
- * Pengunci berkas untuk PGlite.
+ * Penanda berkas untuk PGlite (`.eperformiq-lock`).
  *
- * PGlite 0.2.x TIDAK mengunci direktori datanya: dua proses dapat membuka
- * `.pglite` yang sama dan menulis bersamaan. Hasilnya berkas rusak dan semua
- * query berikutnya gagal dengan "RuntimeError: Aborted()".
+ * Berkas ini mencatat PID + host proses yang membuka database, sehingga proses
+ * asing yang menumpuk mudah diperiksa (isi berkasnya).
  *
- * Inilah penyebab utama error tersebut di proyek ini — biasanya karena dua
- * `next dev` (atau `next dev` + skrip) berjalan bersamaan. Pengunci ini
- * menolak pembukaan kedua dengan pesan yang jelas, bukan biarkan data rusak.
+ * PENTING: penanda ini TIDAK menolak pembukaan kedua. `next dev` menjalankan
+ * server dan worker render sebagai proses terpisah yang keduanya memuat modul
+ * database; menolak "proses kedua" akan memblokir aplikasi sendiri (seluruh API
+ * gagal 500). Kesalahan itu pernah terjadi dan sudah diperbaiki di sini.
  */
 
-export class DatabaseLockedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'DatabaseLockedError';
-  }
-}
-
-interface IsiLock {
+interface IsiPenanda {
   pid: number;
   host: string;
   pada: string;
@@ -38,22 +32,20 @@ function prosesHidup(pid: number): boolean {
   }
 }
 
-function bacaLock(berkas: string): IsiLock | null {
+function baca(berkas: string): IsiPenanda | null {
   try {
     const isi = JSON.parse(readFileSync(berkas, 'utf8'));
-    return typeof isi?.pid === 'number' ? (isi as IsiLock) : null;
+    return typeof isi?.pid === 'number' ? (isi as IsiPenanda) : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Ambil kunci untuk direktori data tertentu.
- *
- * Kunci basi (proses pemiliknya sudah mati) otomatis diambil alih, sehingga
- * crash sebelumnya tidak membuat aplikasi mustahil dijalankan.
+ * Catat proses yang membuka database. Mengembalikan fungsi untuk melepas
+ * penanda (dipanggil otomatis saat proses keluar).
  */
-export function ambilKunciDatabase(dataDir?: string): () => void {
+export function pasangPenandaDatabase(dataDir?: string): () => void {
   const dir = dataDir ?? process.env.PGLITE_DATA_DIR ?? resolve(process.cwd(), '.pglite');
   const berkas = join(dir, '.eperformiq-lock');
 
@@ -63,31 +55,20 @@ export function ambilKunciDatabase(dataDir?: string): () => void {
     /* direktori akan dibuat sendiri oleh PGlite */
   }
 
-  const kunciLama = bacaLock(berkas);
-  if (kunciLama && kunciLama.pid !== process.pid && prosesHidup(kunciLama.pid)) {
-    // Kunci milik proses lain yang masih hidup.
-    if (kunciLama.host !== require('node:os').hostname()) {
-      throw new DatabaseLockedError(
-        `Database sedang dipakai proses lain (PID ${kunciLama.pid}). ` +
-          'Tutup proses tersebut, lalu jalankan ulang.'
-      );
-    }
-    throw new DatabaseLockedError(
-      `Database sedang dipakai proses lain (PID ${kunciLama.pid}, sejak ${kunciLama.pada}).\n` +
-        'Kemungkinan ada server dev lain yang masih berjalan. Hentikan dengan `npm run dev:stop`, ' +
-        'lalu jalankan ulang. Menjalankan dua proses sekaligus MERUSAK berkas database.'
-    );
+  // Jika pemilik sebelumnya sudah mati, ini penanda basi: timpa.
+  const lama = baca(berkas);
+  if (lama && lama.pid !== process.pid && !prosesHidup(lama.pid)) {
+    // penanda basi — aman ditimpa
   }
 
-  const isi: IsiLock = {
-    pid: process.pid,
-    host: require('node:os').hostname(),
-    pada: new Date().toISOString(),
-  };
   try {
-    writeFileSync(berkas, JSON.stringify(isi), 'utf8');
+    writeFileSync(
+      berkas,
+      JSON.stringify({ pid: process.pid, host: hostname(), pada: new Date().toISOString() }),
+      'utf8'
+    );
   } catch {
-    /* gagal menulis kunci bukan alasan menghentikan aplikasi */
+    /* gagal menulis penanda bukan alasan menghentikan aplikasi */
   }
 
   let sudahLepas = false;
@@ -95,11 +76,9 @@ export function ambilKunciDatabase(dataDir?: string): () => void {
     if (sudahLepas) return;
     sudahLepas = true;
     try {
-      // Hanya hapus bila kunci masih milik proses ini.
-      const isiKini = bacaLock(berkas);
-      if (!isiKini || isiKini.pid === process.pid) {
-        if (existsSync(berkas)) unlinkSync(berkas);
-      }
+      // Hanya hapus bila penanda masih milik proses ini.
+      const kini = baca(berkas);
+      if ((!kini || kini.pid === process.pid) && existsSync(berkas)) unlinkSync(berkas);
     } catch {
       /* abaikan */
     }
@@ -107,4 +86,13 @@ export function ambilKunciDatabase(dataDir?: string): () => void {
 
   process.once('exit', lepas);
   return lepas;
+}
+
+/** Apakah proses lain (selain milik kita) pernah membuka database ini? */
+export function adaProsesLain(dataDir?: string): { pid: number; pada: string } | null {
+  const dir = dataDir ?? process.env.PGLITE_DATA_DIR ?? resolve(process.cwd(), '.pglite');
+  const isi = baca(join(dir, '.eperformiq-lock'));
+  if (!isi || isi.pid === process.pid) return null;
+  if (!prosesHidup(isi.pid)) return null;
+  return { pid: isi.pid, pada: isi.pada };
 }

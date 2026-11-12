@@ -198,12 +198,6 @@ export default function AddressSelect({ value, onChange }: Props) {
           )}
 
           {loading && <p className="text-[10px] text-[#64748b]">Memuat wilayah…</p>}
-          {!apiConfigured && (
-            <p className="text-[10px] text-[#64748b]">
-              Data wilayah dasar tersedia offline. Untuk pencarian desa &amp; kode pos lengkap,
-              aktifkan layanan wilayah (set <code>WILAYAH_API_URL</code>).
-            </p>
-          )}
         </>
       )}
 

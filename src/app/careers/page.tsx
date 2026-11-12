@@ -358,10 +358,11 @@ export default function CareersPage() {
               onSubmitted={(no, atsRes) => {
                 setSubmitted(no);
                 setAts(atsRes);
-                // Alihkan otomatis ke halaman progres tahapan lengkap memakai
-                // kode yang baru dibuat. Beri jeda singkat agar kode sempat terlihat.
+                // Langsung pindah ke halaman progres tahapan memakai nomor
+                // lamaran yang baru dibuat. Jeda dibuat pendek agar tidak
+                // terasa macet; nomor lamaran tetap tampil di halaman tujuan.
                 setRedirecting(true);
-                setTimeout(() => router.push(`/careers/status?no=${encodeURIComponent(no)}`), 1800);
+                setTimeout(() => router.push(`/careers/status?no=${encodeURIComponent(no)}`), 700);
               }}
             />
           )}
