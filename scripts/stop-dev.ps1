@@ -41,7 +41,13 @@ foreach ($t in $targets) {
   $procId = $t.ProcessId
   # taskkill tanpa /F mengirim permintaan tutup sopan. Proses tanpa jendela
   # konsol sering tidak menanggapinya; itu wajar dan ditangani di bawah.
-  & taskkill /PID $procId 2>&1 | Out-Null
+  # Keluarannya dibuang dan galatnya diabaikan: proses yang sudah berhenti
+  # bukan kegagalan, dan pesan ke stderr tidak boleh menghentikan skrip.
+  try {
+    & taskkill /PID $procId *> $null
+  } catch {
+    # Proses sudah berhenti lebih dulu: bukan masalah.
+  }
 }
 
 # Beri waktu PGlite menutup berkas.
@@ -56,13 +62,21 @@ if ($masih) {
   # Upaya terakhir. Penanganan sebelum ini sudah memberi kesempatan menutup.
   foreach ($t in $masih) {
     try {
-      & taskkill /PID $t.ProcessId /F /T 2>&1 | Out-Null
-      Write-Warn2 "PID $($t.ProcessId) dihentikan paksa setelah batas waktu."
+      & taskkill /PID $t.ProcessId /F /T *> $null
     } catch {
-      Write-Warn2 "Gagal menghentikan PID $($t.ProcessId)."
+      # Proses sudah berhenti lebih dulu: bukan masalah.
     }
   }
   Start-Sleep -Seconds 2
+
+  # Laporkan berdasarkan keadaan sesungguhnya, bukan berdasarkan exit code.
+  $sisa = Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+    Where-Object { $_.CommandLine -match 'next' -and $_.CommandLine -match 'dev' }
+  if ($sisa) {
+    Write-Warn2 "Masih ada $($sisa.Count) proses server dev yang berjalan."
+  } else {
+    Write-Ok "Server dev berhenti (sebagian setelah batas waktu)."
+  }
 } else {
   Write-Ok "Server dev berhenti dengan rapi."
 }
