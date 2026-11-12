@@ -49,7 +49,7 @@ import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
 import OnboardingPanel from '@/components/employee/OnboardingPanel';
 import OffboardingSelfPanel from '@/components/employee/OffboardingSelfPanel';
-import { PHASES, PHASE_LABEL, type WorkPhase } from '@/lib/employee/phase';
+import { PHASES, PHASE_LABEL, faseYangBolehDibuka, type WorkPhase } from '@/lib/employee/phase';
 import AttendancePanel from '@/components/employee/AttendancePanel';
 import DailyStatusCard from '@/components/employee/DailyStatusCard';
 import DailyKpiChecklist from '@/components/employee/DailyKpiChecklist';
@@ -106,6 +106,8 @@ const [isUpdating, setIsUpdating] = useState(false);
 // diselaraskan dengan fase kepegawaian nyata pegawai — pegawai baru
 // (probation) otomatis masuk "Sebelum Kerja", pegawai aktif "Saat Kerja".
 const [activePhase, setActivePhase] = useState<WorkPhase>('DURING');
+// Pesan penjelasan saat pegawai mencoba membuka fase yang masih terkunci.
+const [pesanFaseTerkunci, setPesanFaseTerkunci] = useState<string | null>(null);
 // Profil siklus hidup karyawan yang sedang login (identitas + status + progres fase).
 const [lifecycle, setLifecycle] = useState<any | null>(null);
 const [lifecycleOpen, setLifecycleOpen] = useState(false);
@@ -592,6 +594,160 @@ setStatusMsg({ type: 'error', text: err.message });
 setIsUpdating(false);
 }
 };
+// Fase mana yang boleh dibuka. Pegawai probation dikunci di fase Sebelum Kerja
+// sampai orientasi 30-60-90 selesai; pegawai tetap/kontrak bebas semua fase.
+const kunciFase = faseYangBolehDibuka({
+  status: lifecycle?.status ?? null,
+  phase: (lifecycle?.phase as WorkPhase | undefined) ?? null,
+  milestonesDone: lifecycle?.onboarding?.milestonesDone ?? null,
+  milestonesTotal: lifecycle?.onboarding?.milestonesTotal ?? null,
+});
+
+/**
+ * Layanan mandiri karyawan, dikelompokkan seperti "Kontrol Siklus 3-Fase" di
+ * dashboard HR.
+ *
+ * Sebelumnya 15 kartu ini berdiri sendiri di bawah judul "Aksi Cepat" sehingga
+ * fitur sejenis (kehadiran, cuti, lembur) terpisah-pisah dan sulit ditemukan.
+ * Sekarang tiap kartu berada pada golongan yang bermakna.
+ */
+const grupLayanan: Array<{
+  judul: string;
+  ket: string;
+  aksi: Array<{
+    icon: React.ComponentType<{ className?: string }>;
+    tone: 'emerald' | 'amber' | 'rose' | 'indigo' | 'slate' | 'teal' | 'blue' | 'violet';
+    title: string;
+    tag: string | (() => string);
+    description: string;
+    onClick: () => void;
+    disabled?: boolean | (() => boolean);
+  }>;
+}> = [
+  {
+    judul: 'Kehadiran & Waktu',
+    ket: 'Catat kehadiran harian, lembur, dan pengajuan izin.',
+    aksi: [
+      {
+        icon: Clock, tone: 'emerald', title: 'Isi Timesheet Harian', tag: 'Absensi',
+        description: 'Check-in/out, catat jam kerja harian, lembur, dan aktivitas Anda.',
+        onClick: () => setOpenFeature('timesheet'),
+      },
+      {
+        icon: Clock, tone: 'amber', title: 'Ajukan Lembur', tag: 'Persetujuan atasan',
+        description: 'Rencanakan lembur sebelum bekerja agar jam lembur masuk perhitungan payroll.',
+        onClick: () => setIsOvertimeOpen(true),
+      },
+      {
+        icon: CalendarDays, tone: 'blue', title: 'Cuti & Izin', tag: () => `${leaveList.length} pengajuan`,
+        description: 'Ajukan cuti tahunan/sakit/spesial dan pantau status persetujuannya.',
+        onClick: () => { void loadLeave(); setIsLeaveOpen(true); },
+      },
+    ],
+  },
+  {
+    judul: 'Penggajian & Klaim',
+    ket: 'Slip gaji dan penggantian biaya operasional.',
+    aksi: [
+      {
+        icon: Lock, tone: 'slate', title: 'Slip Gaji PIN', tag: 'Payroll',
+        description: 'Akses slip gaji terenkripsi dengan verifikasi PIN pribadi Anda.',
+        onClick: () => setIsPayslipOpen(true),
+      },
+      {
+        icon: FileText, tone: 'teal', title: 'Reimbursement', tag: 'Klaim',
+        description: 'Ajukan penggantian biaya operasional dan pantau status klaim.',
+        onClick: () => setIsReimbursementOpen(true),
+      },
+    ],
+  },
+  {
+    judul: 'Surat, SOP & Kepatuhan',
+    ket: 'Dokumen resmi, peraturan, serta catatan sanksi dan penghargaan.',
+    aksi: [
+      {
+        icon: FileText, tone: 'indigo', title: 'e-Surat & Disposisi', tag: 'Tanda terima',
+        description: 'Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya.',
+        onClick: () => setIsLetterOpen(true),
+      },
+      {
+        icon: BookOpen, tone: 'slate', title: 'SOP & Peraturan', tag: 'Wajib dibaca',
+        description: 'Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami.',
+        onClick: () => setIsPolicyOpen(true),
+      },
+      {
+        icon: AlertTriangle, tone: 'rose', title: 'Sanksi & Penghargaan', tag: 'Transparan',
+        description: 'Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan.',
+        onClick: () => setIsDisciplinaryOpen(true),
+      },
+    ],
+  },
+  {
+    judul: 'Kinerja & Penilaian',
+    ket: 'Kesimpulan penilaian periode ini dan dokumen pendukungnya.',
+    aksi: [
+      {
+        icon: Send, tone: 'emerald', title: `Ajukan Finalisasi ${periodShortLabel}`, tag: 'Self-Appraisal',
+        description: `Kirim pengajuan finalisasi penilaian kinerja periode ${periodShortLabel} kepada atasan.`,
+        onClick: () => setIsFinalizeOpen(true),
+      },
+      {
+        icon: Bookmark, tone: 'indigo', title: 'Unggah Bukti', tag: 'Evidence',
+        description: 'Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI.',
+        onClick: () => setIsEvidenceOpen(true),
+      },
+      {
+        icon: Download, tone: 'slate', title: 'Unduh Portofolio KPI', tag: 'Dokumen',
+        description: 'Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF.',
+        onClick: () => downloadKpiPortfolio(),
+        disabled: () => isDownloadingKpi,
+      },
+    ],
+  },
+  {
+    judul: 'Karir & Pengembangan',
+    ket: 'Jalur karir dan peluang di dalam perusahaan.',
+    aksi: [
+      {
+        icon: Compass, tone: 'blue', title: 'Peta Karir & Moodle', tag: 'Karir',
+        description: 'Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda.',
+        onClick: () => setIsCareerOpen(true),
+      },
+      {
+        icon: Briefcase, tone: 'violet', title: 'Bursa Kerja Internal', tag: 'Mobilitas',
+        description: 'Jelajahi peluang rotasi dan posisi internal yang tersedia.',
+        onClick: () => setIsJobBoardOpen(true),
+      },
+    ],
+  },
+  {
+    judul: 'Profil & Bantuan',
+    ket: 'Data pribadi Anda dan kanal bantuan internal.',
+    aksi: [
+      {
+        icon: UserCheck, tone: 'emerald', title: 'Profil Saya', tag: 'Self-Service',
+        description: 'Perbarui data profil, kontak, dan informasi pribadi Anda.',
+        onClick: () => setIsProfileOpen(true),
+      },
+      {
+        icon: MessageSquare, tone: 'teal', title: 'Chat Pimpinan', tag: 'Komunikasi',
+        description: 'Percakapan langsung atau grup dengan atasan, lengkap dengan riwayat yang tidak bisa dihapus sepihak.',
+        onClick: () => setIsChatOpen(true),
+      },
+      {
+        icon: Bot, tone: 'amber', title: 'Tanya Chatbot HR', tag: 'Bantuan',
+        description: 'Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan.',
+        onClick: () => setIsChatbotOpen(true),
+      },
+      {
+        icon: MessageSquare, tone: 'rose', title: 'Tiket Bantuan', tag: 'Helpdesk',
+        description: 'Laporkan kendala atau ajukan permintaan dukungan internal.',
+        onClick: () => setIsTicketOpen(true),
+      },
+    ],
+  },
+];
+
 return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-12">
       
@@ -618,24 +774,51 @@ return (
     </h1>
   </div>
 
-  {/* 0b. Tab fase siklus kerja */}
+  {/* 0b. Tab fase siklus kerja.
+      Pegawai probation masih dikunci di fase Sebelum Kerja sampai orientasi
+      30-60-90 selesai; pegawai tetap/kontrak bebas membuka semua fase. */}
   <div role="tablist" aria-label="Fase siklus kerja" className="flex flex-wrap gap-2">
-    {PHASES.map((phase) => (
-      <button
-        key={phase}
-        role="tab"
-        aria-selected={activePhase === phase}
-        onClick={() => setActivePhase(phase)}
-        className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
-          activePhase === phase
-            ? 'bg-[#007a5a] text-white shadow-sm'
-            : 'bg-white text-[#334155] border border-[#e2e8f0] hover:bg-[#f8fafc]'
-        }`}
-      >
-        {PHASE_LABEL[phase]}
-      </button>
-    ))}
+    {PHASES.map((phase) => {
+      const terkunci = kunciFase.terkunci[phase];
+      return (
+        <button
+          key={phase}
+          role="tab"
+          aria-selected={activePhase === phase}
+          aria-disabled={terkunci}
+          title={terkunci ? kunciFase.alasanKunci ?? 'Belum bisa dibuka.' : undefined}
+          onClick={() => {
+            if (terkunci) {
+              setPesanFaseTerkunci(kunciFase.alasanKunci);
+              return;
+            }
+            setPesanFaseTerkunci(null);
+            setActivePhase(phase);
+          }}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+            activePhase === phase
+              ? 'bg-[#007a5a] text-white shadow-sm'
+              : terkunci
+              ? 'bg-[#f8fafc] text-[#94a3b8] border border-dashed border-[#cbd5e1] cursor-not-allowed'
+              : 'bg-white text-[#334155] border border-[#e2e8f0] hover:bg-[#f8fafc]'
+          }`}
+        >
+          {terkunci && <Lock className="h-3 w-3" />}
+          {PHASE_LABEL[phase]}
+        </button>
+      );
+    })}
   </div>
+
+  {pesanFaseTerkunci && (
+    <div
+      role="status"
+      className="rounded-xl border border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-[12px] text-[#92400e] flex items-start gap-2"
+    >
+      <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>{pesanFaseTerkunci}</span>
+    </div>
+  )}
 
   {/* 0c. Jembatan integrasi siklus hidup: Sebelum → Saat → Setelah Kerja */}
   {(() => {
@@ -948,152 +1131,33 @@ return (
     />
   </FeatureGrid>
 
-  {/* 3. Aksi Cepat (kartu) */}
-  <div className="space-y-3">
-    <div className="flex items-center gap-2">
-      <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat</h2>
-      <span className="text-[11px] text-[#64748b]">Layanan self-service karyawan</span>
-    </div>
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      <ActionCard
-        icon={Clock}
-        tone="emerald"
-        title="Isi Timesheet Harian"
-        tag="Absensi"
-        description="Check-in/out, catat jam kerja harian, lembur, dan aktivitas Anda."
-        onClick={() => setOpenFeature('timesheet')}
-      />
-      <ActionCard
-        icon={Clock}
-        tone="amber"
-        title="Ajukan Lembur"
-        tag="Persetujuan atasan"
-        description="Rencanakan lembur sebelum bekerja agar jam lembur masuk perhitungan payroll."
-        onClick={() => setIsOvertimeOpen(true)}
-      />
-      <ActionCard
-        icon={AlertTriangle}
-        tone="rose"
-        title="Sanksi & Penghargaan"
-        tag="Transparan"
-        description="Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan."
-        onClick={() => setIsDisciplinaryOpen(true)}
-      />
-      <ActionCard
-        icon={FileText}
-        tone="indigo"
-        title="e-Surat & Disposisi"
-        tag="Tanda terima"
-        description="Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya."
-        onClick={() => setIsLetterOpen(true)}
-      />
-      <ActionCard
-        icon={BookOpen}
-        tone="slate"
-        title="SOP & Peraturan"
-        tag="Wajib dibaca"
-        description="Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami."
-        onClick={() => setIsPolicyOpen(true)}
-      />
-      <ActionCard
-        icon={MessageSquare}
-        tone="teal"
-        title="Chat Pimpinan"
-        tag="Komunikasi"
-        description="Percakapan langsung atau grup dengan atasan, lengkap dengan riwayat yang tidak bisa dihapus sepihak."
-        onClick={() => setIsChatOpen(true)}
-      />
-      <ActionCard
-        icon={Lock}
-        tone="slate"
-        title="Slip Gaji PIN"
-        tag="Payroll"
-        description="Akses slip gaji terenkripsi dengan verifikasi PIN pribadi Anda."
-        onClick={() => setIsPayslipOpen(true)}
-      />
-      <ActionCard
-        icon={Compass}
-        tone="blue"
-        title="Peta Karir & Moodle"
-        tag="Karir"
-        description="Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda."
-        onClick={() => setIsCareerOpen(true)}
-      />
-      <ActionCard
-        icon={UserCheck}
-        tone="emerald"
-        title="Profil Saya"
-        tag="Self-Service"
-        description="Perbarui data profil, kontak, dan informasi pribadi Anda."
-        onClick={() => setIsProfileOpen(true)}
-      />
-      <ActionCard
-        icon={Bot}
-        tone="amber"
-        title="Tanya Chatbot HR"
-        tag="Bantuan"
-        description="Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan."
-        onClick={() => setIsChatbotOpen(true)}
-      />
-      <ActionCard
-        icon={FileText}
-        tone="teal"
-        title="Reimbursement"
-        tag="Klaim"
-        description="Ajukan penggantian biaya operasional dan pantau status klaim."
-        onClick={() => setIsReimbursementOpen(true)}
-      />
-      <ActionCard
-        icon={CalendarDays}
-        tone="blue"
-        title="Cuti & Izin"
-        tag={`${leaveList.length} pengajuan`}
-        description="Ajukan cuti tahunan/sakit/spesial dan pantau status persetujuannya."
-        onClick={() => { void loadLeave(); setIsLeaveOpen(true); }}
-      />
-      <ActionCard
-        icon={MessageSquare}
-        tone="rose"
-        title="Tiket Bantuan"
-        tag="Helpdesk"
-        description="Laporkan kendala atau ajukan permintaan dukungan internal."
-        onClick={() => setIsTicketOpen(true)}
-      />
-      <ActionCard
-        icon={Bookmark}
-        tone="indigo"
-        title="Unggah Bukti"
-        tag="Evidence"
-        description="Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI."
-        onClick={() => setIsEvidenceOpen(true)}
-      />
-      <ActionCard
-        icon={Briefcase}
-        tone="violet"
-        title="Bursa Kerja Internal"
-        tag="Mobilitas"
-        description="Jelajahi peluang rotasi dan posisi internal yang tersedia."
-        onClick={() => setIsJobBoardOpen(true)}
-      />
-      <ActionCard
-        icon={Download}
-        tone="slate"
-        title="Unduh Portofolio KPI"
-        tag="Dokumen"
-        description="Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF."
-        onClick={() => downloadKpiPortfolio()}
-        disabled={isDownloadingKpi}
-      />
-      <ActionCard
-        icon={Send}
-        tone="emerald"
-        title={`Ajukan Finalisasi ${periodShortLabel}`}
-        tag="Self-Appraisal"
-        description={`Kirim pengajuan finalisasi penilaian kinerja periode ${periodShortLabel} kepada atasan.`}
-        onClick={() => setIsFinalizeOpen(true)}
-      />
-    </div>
-  </div>
+  {/* 3. Layanan Mandiri Karyawan — dikelompokkan seperti "Kontrol Siklus
+      3-Fase" di HR agar fitur yang sejenis tidak terpisah-pisah. */}
+  {grupLayanan.map((grup, gi) => (
+    <section key={grup.judul} className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6f4ea] text-[10px] font-extrabold text-[#137333]">
+          {gi + 1}
+        </span>
+        <h2 className="text-sm font-extrabold text-[#0f172a]">{grup.judul}</h2>
+      </div>
+      <p className="text-[11px] text-[#64748b] -mt-1.5">{grup.ket}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {grup.aksi.map((a) => (
+          <ActionCard
+            key={a.title}
+            icon={a.icon}
+            tone={a.tone}
+            title={a.title}
+            tag={typeof a.tag === 'function' ? a.tag() : a.tag}
+            description={a.description}
+            onClick={a.onClick}
+            disabled={typeof a.disabled === 'function' ? a.disabled() : a.disabled}
+          />
+        ))}
+      </div>
+    </section>
+  ))}
     </>
   )}
 
