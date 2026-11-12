@@ -407,7 +407,7 @@ const PANEL_GROUPS: Record<"PRE" | "DURING" | "POST", Array<{ judul: string; ket
   POST: [
     { judul: "Serah Terima & Pelaporan", ket: "Menyelesaikan aset, clearance, dan laporan sesuai regulasi.", fitur: ["iso-30414", "hr-dashboard", "clearance"] },
     { judul: "Hak & Dokumen Karyawan", ket: "Menyiapkan surat keterangan dan memenuhi kewajiban pasca-kerja.", fitur: ["service-letter", "offboarding-compliance"] },
-    { judul: "Kaderisasi & Analitik", ket: "Menyiapkan pengganti, mendata alumni, dan menganalisis biaya keluar.", fitur: ["retirement", "alumni", "exit-analytics"] },
+    { judul: "Kaderisasi & Analitik", ket: "Menyiapkan pengganti, mendata alumni, dan menganalisis biaya keluar.", fitur: ["retirement", "alumni", "exit-analytics", "cost"] },
   ],
 };
 
@@ -1004,6 +1004,34 @@ export default function HROperationsPage() {
                                     <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                       {sisa.map(renderKotak)}
                                     </div>
+                                    {/* Panel untuk kartu yang tidak tergolong di atas. */}
+                                    {openFeature && sisa.some((p: any) => p.feature === openFeature && !p.action) && (
+                                      <div className="mt-4">
+                                        {phasePanels
+                                          .filter((panel) => !panel.action && panel.feature === openFeature)
+                                          .map((panel) => (
+                                            <ExpandablePanel
+                                              key={`lainnya-${panel.feature}`}
+                                              open
+                                              title={panel.title}
+                                              onClose={() => setOpenFeature(null)}
+                                            >
+                                              <div className="space-y-4">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setOpenFeature(null)}
+                                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
+                                                >
+                                                  <ChevronLeft className="h-3.5 w-3.5" /> Tutup dan kembali ke daftar fitur
+                                                </button>
+                                                <panel.Panel />
+                                                {renderFeatureContent(panel.feature)}
+                                                <AiAnalyzePanel feature="hr" />
+                                              </div>
+                                            </ExpandablePanel>
+                                          ))}
+                                      </div>
+                                    )}
                                   </section>
                                 )}
                               </>
