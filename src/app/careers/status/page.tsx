@@ -26,7 +26,7 @@ interface TimelineView {
 
 const STATE_STYLE: Record<TimelineEntry['state'], { dot: string; ring: string; text: string }> = {
   DONE: { dot: 'bg-emerald-500 border-emerald-500', ring: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-700' },
-  CURRENT: { dot: 'bg-indigo-500 border-indigo-500 animate-pulse', ring: 'bg-indigo-50 text-indigo-700 border-indigo-200', text: 'text-indigo-700' },
+  CURRENT: { dot: 'bg-[#007a5a] border-[#007a5a] animate-pulse', ring: 'bg-[#e6f4ea] text-[#137333] border-[#b7e1cd]', text: 'text-[#137333]' },
   UPCOMING: { dot: 'bg-white border-slate-300', ring: 'bg-slate-50 text-slate-500 border-slate-200', text: 'text-slate-500' },
   FAILED: { dot: 'bg-rose-500 border-rose-500', ring: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-700' },
   SKIPPED: { dot: 'bg-amber-400 border-amber-400', ring: 'bg-amber-50 text-amber-700 border-amber-200', text: 'text-amber-700' },
@@ -78,7 +78,7 @@ export default function CareersStatusPage() {
   const overallColor = tl
     ? tl.overallState === 'ACCEPTED' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
     : tl.overallState === 'REJECTED' ? 'text-rose-700 bg-rose-50 border-rose-200'
-    : 'text-indigo-700 bg-indigo-50 border-indigo-200'
+    : 'text-[#137333] bg-[#e6f4ea] border-[#b7e1cd]'
     : '';
 
   return (
@@ -143,26 +143,26 @@ export default function CareersStatusPage() {
 
                     {/* Wawancara: tampilkan jadwal & tautan ruang online bila ada. */}
                     {e.stage === 'INTERVIEW' && e.state !== 'UPCOMING' && (
-                      <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2">
+                      <div className="mt-2 rounded-lg border border-[#d4ecdd] bg-[#e6f4ea]/70 px-3 py-2">
                         {e.scheduledAt ? (
-                          <p className="text-[11px] text-indigo-800 font-semibold">
+                          <p className="text-[11px] text-[#0d3b2e] font-semibold">
                             Jadwal: {new Date(e.scheduledAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}
                             {e.interviewerName ? ` · Pewawancara: ${e.interviewerName}` : ''}
                           </p>
                         ) : (
-                          <p className="text-[11px] text-indigo-700 font-semibold">Jadwal wawancara menyusul.</p>
+                          <p className="text-[11px] text-[#137333] font-semibold">Jadwal wawancara menyusul.</p>
                         )}
                         {e.meetingUrl ? (
                           <a
                             href={e.meetingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-indigo-600 rounded-lg px-3 py-1.5 hover:bg-indigo-700"
+                            className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#007a5a] rounded-lg px-3 py-1.5 hover:bg-[#00684a]"
                           >
                             🎥 Bergabung ke Ruang Wawancara
                           </a>
                         ) : (
-                          <p className="text-[10px] text-indigo-500 mt-1">Tautan ruang wawancara akan dibagikan menjelang jadwal.</p>
+                          <p className="text-[10px] text-[#4b8f76] mt-1">Tautan ruang wawancara akan dibagikan menjelang jadwal.</p>
                         )}
                       </div>
                     )}

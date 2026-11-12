@@ -20,6 +20,7 @@ const EXPECTED_TABLES = [
   'attendance_logs', 'application_timeline', 'job_applications', 'candidates', 'candidate_accounts',
   'candidate_documents', 'candidate_educations', 'candidate_experiences', 'candidate_skills',
   'candidate_certifications', 'candidate_notifications', 'candidate_decisions', 'candidate_assessment_scores',
+  'candidate_videos',
   'interview_schedules', 'interview_evaluations', 'employee_registrations',
   // Asesmen & sertifikasi
   'assessment_templates', 'assessment_questions', 'assessment_attempts', 'assessment_responses',

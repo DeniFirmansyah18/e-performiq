@@ -89,14 +89,43 @@ export async function POST(req: NextRequest) {
     const key = buildStorageKey('candidates/videos', file.name, '.mp4');
     const stored = await putObject(key, buffer, contentType);
 
+    // Simpan metadata bila permintaan menyertakan identitas kandidat/lamaran.
+    // Biner video tetap di penyimpanan; database hanya menyimpan lokasinya.
+    // Kegagalan pencatatan tidak membatalkan unggahan: berkas sudah tersimpan
+    // dan klien tetap menerima fileUrl untuk dipakai saat melengkapi lamaran.
+    let videoId: string | null = null;
+    const candidateId = form.get('candidateId');
+    const applicationId = form.get('applicationId');
+    if (typeof candidateId === 'string' && candidateId.trim()) {
+      try {
+        const { db } = await import('@/lib/db/client');
+        const { simpanVideoKandidat } = await import('@/lib/services/candidateVideoService');
+        const v = await simpanVideoKandidat(db, {
+          candidateId: candidateId.trim(),
+          applicationId:
+            typeof applicationId === 'string' && applicationId.trim() ? applicationId.trim() : null,
+          storageKey: stored.key,
+          fileName: file.name,
+          mimeType: contentType,
+          sizeBytes: stored.size,
+          durationSeconds: finalDuration,
+        });
+        videoId = v.id;
+      } catch (err) {
+        console.warn('[upload-video] metadata video gagal dicatat:', String((err as Error)?.message ?? err).slice(0, 120));
+      }
+    }
+
     return ok(
       {
+        id: videoId,
         key: stored.key,
         fileUrl: `/api/v1/careers/media/${encodeURIComponent(stored.key)}`,
         fileName: file.name,
         mimeType: contentType,
         size: stored.size,
         duration: finalDuration,
+        storage: stored.driver ?? 'local',
       },
       'Video perkenalan berhasil diunggah.',
     );

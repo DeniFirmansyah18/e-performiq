@@ -442,6 +442,16 @@ export async function updateApplicationStatus(db: Db, applicationId: string, sta
       /* timeline opsional */
     }
 
+    // Video perkenalan dihapus otomatis setelah status final (HIRED/REJECTED)
+    // agar penyimpanan tidak penuh. Dijalankan SETELAH commit: kegagalan
+    // pembersihan tidak boleh membatalkan status yang sudah sah.
+    try {
+      const { hapusVideoJikaStatusFinal } = await import('@/lib/services/candidateVideoService');
+      await hapusVideoJikaStatusFinal(db, applicationId, status);
+    } catch {
+      /* pembersihan best-effort */
+    }
+
     // Kirim notifikasi status tailored pada SETIAP perubahan status (bukan hanya saat
     // pemetaan timeline sama), agar kandidat selalu melihat update OFFERED/HIRED/REJECTED
     // di portal — termasuk lonjakan status yang melewati tahap timeline.
