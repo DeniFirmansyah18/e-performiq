@@ -56,10 +56,16 @@ export async function listManpowerPlans(db: Db, fiscalYear?: number): Promise<Ma
            mp.approved_quota AS "approvedQuota",
            mp.allocated_budget::float8 AS "allocatedBudget",
            mp.utilized_budget::float8 AS "utilizedBudget",
-           mp.hired_count AS "hiredCount"
+           mp.hired_count AS "hiredCount",
+           -- Status persetujuan & alasan penolakan dari BOD, agar HR tahu
+           -- hasil keputusan pengajuannya.
+           mp.status::text AS "status",
+           mp.decision_note AS "decisionNote",
+           mgr.full_name AS "managerName"
       FROM manpower_plans mp
       JOIN departments d ON d.id = mp.department_id
       JOIN job_positions p ON p.id = mp.position_id
+      LEFT JOIN employees mgr ON mgr.id = mp.manager_id
       ${yearFilter}
      ORDER BY mp.fiscal_year DESC, d.department_name, p.position_title
   `)) as unknown as { rows: any[] };
@@ -82,6 +88,10 @@ export async function listManpowerPlans(db: Db, fiscalYear?: number): Promise<Ma
       hiredCount,
       remainingQuota: Math.max(0, approvedQuota - hiredCount),
       budgetUtilizationPct: allocatedBudget > 0 ? Math.round((utilizedBudget / allocatedBudget) * 100) : 0,
+      // Status keputusan BOD, agar HR melihat hasil pengajuannya.
+      status: (r.status as string) ?? 'APPROVED',
+      decisionNote: (r.decisionNote as string) ?? null,
+      managerName: (r.managerName as string) ?? null,
     };
   });
 }

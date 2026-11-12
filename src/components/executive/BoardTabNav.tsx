@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-export type BoardTab = 'overview' | 'vision' | 'cost' | 'position-fit' | 'activity';
+export type BoardTab = 'overview' | 'vision' | 'cost' | 'position-fit' | 'activity' | 'mpp-approval';
 
 export interface BoardTabItem {
   key: BoardTab;
@@ -46,6 +46,13 @@ export const BOARD_TABS: BoardTabItem[] = [
     label: '5. Aktivitas & Kepatuhan Tim',
     shortLabel: 'Aktivitas Kerja',
     tooltip: 'Langkah 5: Tinjau catatan rutinitas kerja harian, partisipasi karyawan aktif, dan integritas kepatuhan',
+  },
+  {
+    key: 'mpp-approval',
+    step: 6,
+    label: '6. Persetujuan MPP',
+    shortLabel: 'Persetujuan MPP',
+    tooltip: 'Langkah 6: Putuskan pengajuan kebutuhan formasi (MPP) yang diajukan HRD, dengan bantuan rekomendasi AI',
   },
 ];
 

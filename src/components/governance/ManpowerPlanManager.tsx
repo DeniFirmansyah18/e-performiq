@@ -31,6 +31,7 @@ const IDR = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR',
 const EMPTY = {
   departmentId: '', positionId: '', fiscalYear: String(new Date().getFullYear()),
   approvedQuota: '', allocatedBudget: '', utilizedBudget: '', hiredCount: '',
+  managerId: '',
 };
 
 /**
@@ -48,6 +49,21 @@ export default function ManpowerPlanManager() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // Atasan langsung yang boleh dipilih: hanya People Manager aktif.
+  const [managers, setManagers] = useState<Array<{ id: string; fullName: string; departmentName: string | null }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/recruitment/manpower-plans/approval?mode=manager');
+        if (!res.ok) return;
+        const json = await res.json();
+        setManagers(json?.data ?? []);
+      } catch {
+        /* pilihan atasan opsional untuk tampilan; validasi tetap di server */
+      }
+    })();
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +109,36 @@ export default function ManpowerPlanManager() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(null); setMsg(null);
+
+    // Pengajuan BARU melewati persetujuan BOD: masuk antrean PENDING lebih
+    // dulu. Penyuntingan MPP yang sudah ada tetap memakai endpoint biasa agar
+    // perubahan kuota/anggaran tidak perlu menunggu persetujuan ulang.
+    if (!editingId) {
+      const res = await fetch('/api/v1/recruitment/manpower-plans/approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          departmentId: form.departmentId,
+          positionId: form.positionId,
+          fiscalYear: Number(form.fiscalYear),
+          approvedQuota: Number(form.approvedQuota),
+          allocatedBudget: Number(form.allocatedBudget),
+          managerId: form.managerId,
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setMsg('Pengajuan MPP dikirim ke BOD. Statusnya menunggu keputusan.');
+        setShowForm(false);
+        await load();
+        window.dispatchEvent(new Event('mpp:changed'));
+      } else {
+        setErr(j?.detail || j?.message || 'Gagal mengajukan MPP.');
+      }
+      setBusy(false);
+      return;
+    }
+
     const payload: Record<string, unknown> = {
       departmentId: form.departmentId,
       positionId: form.positionId,
@@ -103,12 +149,12 @@ export default function ManpowerPlanManager() {
       hiredCount: form.hiredCount === '' ? 0 : Number(form.hiredCount),
     };
     const res = await fetch(
-      editingId ? `/api/v1/recruitment/manpower-plans/${editingId}` : '/api/v1/recruitment/manpower-plans',
-      { method: editingId ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
+      `/api/v1/recruitment/manpower-plans/${editingId}`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
     );
     const j = await res.json().catch(() => ({}));
     if (res.ok) {
-      setMsg(editingId ? 'MPP diperbarui. Perubahan langsung tampil di form Buat Lowongan.' : 'MPP ditambahkan. Pilihan MPP pada form Buat Lowongan sudah diperbarui.');
+      setMsg('MPP diperbarui. Perubahan langsung tampil di form Buat Lowongan.');
       setShowForm(false);
       await load();
       // Beri tahu panel lain (mis. Kelola Lowongan) agar memuat ulang daftar MPP.
@@ -197,6 +243,30 @@ export default function ManpowerPlanManager() {
               ),
             },
             {
+              key: 'status',
+              header: 'Status',
+              value: (r: any) => r.status ?? 'APPROVED',
+              render: (r: any) => {
+                const s = r.status ?? 'APPROVED';
+                const gaya =
+                  s === 'PENDING' ? 'bg-amber-100 text-[#92400e]'
+                  : s === 'REJECTED' ? 'bg-rose-100 text-[#c5221f]'
+                  : 'bg-emerald-100 text-[#137333]';
+                const label =
+                  s === 'PENDING' ? 'Menunggu BOD'
+                  : s === 'REJECTED' ? 'Ditolak BOD'
+                  : 'Disetujui';
+                return (
+                  <div className="space-y-0.5">
+                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${gaya}`}>{label}</span>
+                    {s === 'REJECTED' && r.decisionNote && (
+                      <p className="text-[10px] text-[#64748b] max-w-[16rem]">Alasan: {r.decisionNote}</p>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
               key: 'aksi',
               header: 'Aksi',
               className: 'text-right',
@@ -258,6 +328,29 @@ export default function ManpowerPlanManager() {
 
               <label className="block text-[11px] text-[#334155]"><span className="font-semibold">Budget Dialokasikan (Rp) *</span>
                 <input type="number" min={0} value={form.allocatedBudget} onChange={(e) => setForm({ ...form, allocatedBudget: e.target.value })} required className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs" /></label>
+
+              {/* Atasan langsung bertugas memantau pegawai di departemennya,
+                  sehingga hanya People Manager terdaftar yang boleh dipilih. */}
+              <label className="block text-[11px] text-[#334155]">
+                <span className="font-semibold">Atasan Langsung (People Manager) *</span>
+                <select
+                  value={form.managerId}
+                  onChange={(e) => setForm({ ...form, managerId: e.target.value })}
+                  required={!editingId}
+                  aria-label="Atasan langsung (People Manager)"
+                  className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs bg-white"
+                >
+                  <option value="">— Pilih People Manager —</option>
+                  {managers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.fullName}{m.departmentName ? ` — ${m.departmentName}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="block mt-1 text-[10px] text-[#64748b]">
+                  Atasan langsung akan memantau pegawai pada formasi ini setelah mereka bergabung.
+                </span>
+              </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="block text-[11px] text-[#334155]"><span className="font-semibold">Budget Terpakai (Rp)</span>

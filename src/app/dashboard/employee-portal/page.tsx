@@ -102,6 +102,9 @@ const [editWeightVal, setEditWeightVal] = useState('');
 const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 const [isUpdating, setIsUpdating] = useState(false);
 // Fase siklus kerja (pengelompokan visual fitur yang sudah ada).
+// Fase awal: "Saat Kerja". Sesaat setelah profil siklus hidup dimuat, tab
+// diselaraskan dengan fase kepegawaian nyata pegawai — pegawai baru
+// (probation) otomatis masuk "Sebelum Kerja", pegawai aktif "Saat Kerja".
 const [activePhase, setActivePhase] = useState<WorkPhase>('DURING');
 // Profil siklus hidup karyawan yang sedang login (identitas + status + progres fase).
 const [lifecycle, setLifecycle] = useState<any | null>(null);
@@ -1094,9 +1097,12 @@ return (
     </>
   )}
 
-  {/* Indikator Pencapaian Target Individu — kartu penilaian diri; tidak
-      ditampilkan untuk HR (penilai) maupun BOD (pemantau). */}
-  {!sembunyikanPenilaian && <TargetAchievementCard periodId={selectedPeriod} />}
+  {/* Indikator Pencapaian Target Individu — hanya relevan pada fase "Saat Kerja",
+      karena pada fase itu pegawai memantau pencapaian target kinerjanya sendiri.
+      Tidak ditampilkan untuk HR (penilai) maupun BOD (pemantau). */}
+  {!sembunyikanPenilaian && activePhase === 'DURING' && (
+    <TargetAchievementCard periodId={selectedPeriod} />
+  )}
 
   {/* Panel: Nilai Kinerja */}
   <ExpandablePanel open={openFeature === 'scorecard'} title="Nilai Kinerja (Scorecard)" onClose={() => setOpenFeature(null)}>
