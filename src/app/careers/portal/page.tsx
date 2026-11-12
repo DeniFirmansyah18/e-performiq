@@ -28,6 +28,57 @@ interface Posting {
   hired: number;
   remaining: number;
   availability: 'AVAILABLE' | 'FILLED' | 'CLOSED';
+  minEducation?: string | null;
+  minExperienceYears?: number | null;
+  workLocation?: string | null;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  employmentType?: string | null;
+}
+
+/** Rupiah tanpa desimal, mis. "Rp 22.000.000". */
+const rupiah = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+
+/**
+ * Rentang gaji. Hanya salah satu diisi pun tetap ditampilkan ("mulai dari" /
+ * "hingga"), dan bila keduanya kosong hasilnya null agar barisnya tidak muncul
+ * sebagai data palsu.
+ */
+function rentangGaji(min?: number | null, max?: number | null): string | null {
+  if (min != null && max != null) return `${rupiah(min)} – ${rupiah(max)}`;
+  if (min != null) return `Mulai ${rupiah(min)}`;
+  if (max != null) return `Hingga ${rupiah(max)}`;
+  return null;
+}
+
+/**
+ * Label tipe kepegawaian dalam bahasa sehari-hari.
+ *
+ * Data lama menyimpan nilainya dengan gaya berbeda-beda (kode 'PERMANENT'
+ * maupun teks 'TETAP (PKWTT)'), jadi pencocokan dilakukan pada huruf besar
+ * agar keduanya tampil rapi.
+ */
+function labelTipe(t?: string | null): string | null {
+  if (!t) return null;
+  const kunci = t.trim().toUpperCase();
+  if (kunci.includes('PKWTT') || kunci === 'TETAP' || kunci === 'PERMANENT') return 'Tetap (PKWTT)';
+  if (kunci.includes('PKWT') || kunci.includes('KONTRAK') || kunci === 'CONTRACT') return 'Kontrak (PKWT)';
+  if (kunci.includes('MAGANG') || kunci === 'INTERNSHIP') return 'Magang';
+  if (kunci.includes('HARIAN') || kunci === 'DAILY') return 'Harian';
+  // Nilai tak dikenal: tampilkan apa adanya, tetapi jangan berteriak.
+  return t.length > 3 && t === t.toUpperCase() ? t.charAt(0) + t.slice(1).toLowerCase() : t;
+}
+
+/** Satu baris rincian; tidak ditampilkan bila nilainya kosong. */
+function Rincian({ label, nilai, tebal }: { label: string; nilai: string | null; tebal?: boolean }) {
+  if (!nilai) return null;
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-[#eef2f6] pb-1">
+      <dt className="text-[#64748b]">{label}</dt>
+      <dd className={tebal ? 'font-bold text-[#0f172a]' : 'font-semibold text-[#334155]'}>{nilai}</dd>
+    </div>
+  );
 }
 
 function skills(p: unknown): string[] {
@@ -197,6 +248,24 @@ export default function CandidatePortalPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Rincian lowongan: hal-hal yang dicari kandidat sebelum melamar. */}
+                  <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-[11px] sm:grid-cols-2">
+                    <Rincian label="Rentang Gaji" nilai={rentangGaji(p.salaryMin, p.salaryMax)} tebal />
+                    <Rincian label="Lokasi Kerja" nilai={p.workLocation ?? null} />
+                    <Rincian label="Pendidikan Minimum" nilai={p.minEducation ?? null} />
+                    <Rincian
+                      label="Pengalaman Minimum"
+                      nilai={
+                        p.minExperienceYears == null
+                          ? null
+                          : p.minExperienceYears > 0
+                          ? `${p.minExperienceYears} tahun`
+                          : 'Tidak dipersyaratkan'
+                      }
+                    />
+                    <Rincian label="Tipe Kepegawaian" nilai={labelTipe(p.employmentType)} />
+                  </dl>
 
                   <div className="mt-4 pt-3 border-t border-[#f1f5f9] flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-4 text-[11px] text-[#64748b]">
