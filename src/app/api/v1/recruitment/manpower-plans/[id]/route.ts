@@ -17,6 +17,8 @@ const UpdateSchema = z.object({
   allocatedBudget: z.number().min(0).optional(),
   utilizedBudget: z.number().min(0).optional(),
   hiredCount: z.number().int().min(0).optional(),
+  /** Atasan langsung (People Manager); null berarti tidak diubah. */
+  managerId: z.string().uuid().nullable().optional(),
 });
 
 // PATCH /api/v1/recruitment/manpower-plans/:id — ubah kuota/budget MPP (HR)

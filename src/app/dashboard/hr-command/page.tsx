@@ -58,6 +58,7 @@ import PositionCourseMappingPanel from '@/components/governance/PositionCourseMa
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
 import { fiturKonteksAi } from '@/lib/ai/featureContext';
 import ManpowerPlanManager from '@/components/governance/ManpowerPlanManager';
+import JobPostingManager from '@/components/governance/JobPostingManager';
 import InterviewSchedulerPanel from '@/components/governance/InterviewSchedulerPanel';
 import TechnicalTestPanel from '@/components/governance/TechnicalTestPanel';
 import EmployeeRegistrationPanel from '@/components/governance/EmployeeRegistrationPanel';
@@ -149,6 +150,16 @@ const MPP_PANELS: ReadonlyArray<{
     Panel: ManpowerPlanManager,
     icon: ClipboardList,
     metric: 'Kuota & Budget',
+    tag: 'Pra-Kerja',
+  },
+  {
+    feature: 'job-postings',
+    title: 'Kelola Lowongan',
+    description:
+      'Buat dan ubah lowongan publik: judul, deskripsi, keahlian, pendidikan, pengalaman, lokasi, dan rentang gaji.',
+    Panel: JobPostingManager,
+    icon: Briefcase,
+    metric: 'Lowongan',
     tag: 'Pra-Kerja',
   },
   {
@@ -395,7 +406,7 @@ function resolveInitialTab(): MainTab {
 /** Penggolongan kotak fitur per fase, agar mudah dipahami orang awam. */
 const PANEL_GROUPS: Record<"PRE" | "DURING" | "POST", Array<{ judul: string; ket: string; fitur: string[] }>> = {
   PRE: [
-    { judul: "Perencanaan Kebutuhan", ket: "Menentukan berapa orang yang dibutuhkan dan untuk posisi apa.", fitur: ["mpp"] },
+    { judul: "Perencanaan Kebutuhan", ket: "Menentukan berapa orang yang dibutuhkan, untuk posisi apa, dan isi lowongannya.", fitur: ["mpp", "job-postings"] },
     { judul: "Seleksi & Rekrutmen", ket: "Menarik pelamar, menguji kemampuan, dan menjadwalkan wawancara.", fitur: ["recruitment", "interview", "technical-test"] },
     { judul: "Penerimaan & Berkas", ket: "Mendaftarkan karyawan baru dan memeriksa kelengkapan berkasnya.", fitur: ["registration", "document-verification"] },
   ],
@@ -403,7 +414,7 @@ const PANEL_GROUPS: Record<"PRE" | "DURING" | "POST", Array<{ judul: string; ket
     { judul: "Administrasi & Kehadiran", ket: "Urusan harian: atasan langsung, cuti, gaji, surat, dan SOP.", fitur: ["manager-assignment", "leave", "payroll", "e-letter", "policy"] },
     { judul: "Kesejahteraan & Kepatuhan", ket: "Jaminan sosial karyawan dan penanganan pelanggaran aturan.", fitur: ["bpjs", "disciplinary"] },
     { judul: "Pengembangan Kinerja", ket: "Mengatur jenjang karier dan memantau capaian kinerja.", fitur: ["career-ladder", "scorecard"] },
-    { judul: "Pantauan & Wawasan", ket: "Gambaran menyeluruh untuk pengambilan keputusan.", fitur: ["pipeline", "learning", "cost"] },
+    { judul: "Pantauan & Wawasan", ket: "Gambaran menyeluruh untuk pengambilan keputusan.", fitur: ["pipeline", "learning"] },
   ],
   POST: [
     { judul: "Serah Terima & Pelaporan", ket: "Menyelesaikan aset, clearance, dan laporan sesuai regulasi.", fitur: ["iso-30414", "hr-dashboard", "clearance"] },
