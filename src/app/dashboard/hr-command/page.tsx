@@ -958,6 +958,34 @@ export default function HROperationsPage() {
                                       <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                         {isi.map(renderKotak)}
                                       </div>
+                                      {/* Panel fitur golongan ini, tampil tepat di bawah kartunya. */}
+                                      {openFeature && isi.some((p: any) => p.feature === openFeature && !p.action) && (
+                                        <div className="mt-4">
+                                          {phasePanels
+                                            .filter((panel) => !panel.action && panel.feature === openFeature)
+                                            .map((panel) => (
+                                              <ExpandablePanel
+                                                key={`grup-${panel.feature}`}
+                                                open
+                                                title={panel.title}
+                                                onClose={() => setOpenFeature(null)}
+                                              >
+                                                <div className="space-y-4">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => setOpenFeature(null)}
+                                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
+                                                  >
+                                                    <ChevronLeft className="h-3.5 w-3.5" /> Tutup dan kembali ke daftar fitur
+                                                  </button>
+                                                  <panel.Panel />
+                                                  {renderFeatureContent(panel.feature)}
+                                                  <AiAnalyzePanel feature="hr" />
+                                                </div>
+                                              </ExpandablePanel>
+                                            ))}
+                                        </div>
+                                      )}
                                     </section>
                                   );
                                 })}
@@ -982,34 +1010,6 @@ export default function HROperationsPage() {
                             );
                           })()}
                         </div>
-                        {/* PANEL_IN_FASE: panel terbuka di bawah kartu fase ini. */}
-                        {openFeature && phasePanels.some((p) => p.feature === openFeature && !p.action) && (
-                          <div className="mt-4">
-                            {phasePanels
-                              .filter((panel) => !panel.action && panel.feature === openFeature)
-                              .map((panel) => (
-                                <ExpandablePanel
-                                  key={`fase-${panel.feature}`}
-                                  open
-                                  title={panel.title}
-                                  onClose={() => setOpenFeature(null)}
-                                >
-                                  <div className="space-y-4">
-                                    <button
-                                      type="button"
-                                      onClick={() => setOpenFeature(null)}
-                                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#007a5a] hover:underline"
-                                    >
-                                      <ChevronLeft className="h-3.5 w-3.5" /> Tutup dan kembali ke daftar fitur
-                                    </button>
-                                    <panel.Panel />
-                                    {renderFeatureContent(panel.feature)}
-                                    <AiAnalyzePanel feature="hr" />
-                                  </div>
-                                </ExpandablePanel>
-                              ))}
-                          </div>
-                        )}
                         </div>
                       )}
                     </div>
