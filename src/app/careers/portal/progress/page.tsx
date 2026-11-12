@@ -100,6 +100,35 @@ export default function CareersProgressPage() {
 
             <div className={`p-3 rounded-xl border text-xs font-semibold ${overallColor}`}>{overallText}</div>
 
+            {/* Diterima: beri jalan masuk ke portal pegawai. */}
+            {tl.overallState === 'ACCEPTED' && (
+              <div className="rounded-xl border border-[#b7e1cd] bg-[#f6fdf9] p-4 space-y-2">
+                <p className="text-[12px] text-[#334155] leading-relaxed">
+                  Selamat! Anda resmi bergabung. Silakan masuk ke portal pegawai untuk melihat data
+                  kepegawaian, slip gaji, dan informasi onboarding Anda.
+                </p>
+                <a
+                  href="/login"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#007a5a] px-3.5 py-2 text-[12px] font-bold text-white hover:bg-[#00684a]"
+                >
+                  Masuk ke Portal Pegawai
+                </a>
+              </div>
+            )}
+
+            {/* Ditolak: sampaikan dengan sopan, tanpa nada menyalahkan. */}
+            {(tl.overallState === 'REJECTED' || tl.overallState === 'TALENT_POOL') && (
+              <div className="rounded-xl border border-[#f5c6c0] bg-[#fce8e6] p-4 space-y-1">
+                <p className="text-[12px] font-bold text-[#c5221f]">Mohon maaf</p>
+                <p className="text-[12px] text-[#334155] leading-relaxed">
+                  Setelah menimbang seluruh proses seleksi, kami belum dapat melanjutkan lamaran Anda
+                  pada kesempatan ini. Keputusan ini bukan penilaian atas kemampuan Anda secara
+                  pribadi. Terima kasih atas waktu dan minat Anda — semoga sukses pada kesempatan
+                  berikutnya.
+                </p>
+              </div>
+            )}
+
             <ol className="relative pl-2">
               {tl.entries.map((e, i) => {
                 const s = STATE_STYLE[e.state];

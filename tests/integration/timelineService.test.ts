@@ -207,14 +207,15 @@ describe('WS-5 timeline kandidat', () => {
       expect(view).toBeNull();
     });
 
-    it('timeline selalu berisi 7 tahap dengan label', async () => {
+    it('timeline selalu berisi 6 tahap dengan label', async () => {
       const app = await submitApplication(db, {
-        fullName: 'Tujuh Tahap', email: 'tujuh.tahap@example.com', jobPostingId: postingId,
+        fullName: 'Enam Tahap', email: 'enam.tahap@example.com', jobPostingId: postingId,
       });
       const view = await getTimelineByApplicationNo(db, app.applicationNo);
-      expect(view!.entries.length).toBe(7);
+      expect(view!.entries.length).toBe(6);
       expect(view!.entries[0].label).toBe('Lamaran Diterima');
-      expect(view!.entries[6].label).toBe('Keputusan Akhir');
+      // Tahap terakhir kini "Keputusan Akhir" (indeks 5), karena Review HR dihapus.
+      expect(view!.entries[5].label).toBe('Keputusan Akhir');
     });
 
     it('menyertakan tautan & jadwal wawancara pada tahap INTERVIEW', async () => {
