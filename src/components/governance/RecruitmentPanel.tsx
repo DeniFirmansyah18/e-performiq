@@ -6,7 +6,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, CheckCircle2, Users, Send } from 'lucide-react';
 import { keteranganStatus } from '@/lib/recruitment/statusLabel';
-import JobPostingManager from '@/components/governance/JobPostingManager';
 import OfferModal from '@/components/governance/OfferModal';
 import { renderRichText } from '@/components/ai/RichText';
 
@@ -241,29 +240,30 @@ export default function RecruitmentPanel() {
               key: 'status',
               header: 'Status',
               value: (r) => r.status,
+              render: (r) => (
+                <select value={r.status} onChange={(e) => changeStatus(r.id, e.target.value)} aria-label={`Status ${r.fullName}`}
+                  className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]">
+                  {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              ),
+            },
+            {
+              // Keterangan penawaran dipisah ke kolom sendiri agar tabel rapi.
+              key: 'keterangan',
+              header: 'Keterangan',
+              value: (r) => keteranganStatus(r.status, r.offerStatus ?? null) ?? '',
               render: (r) => {
                 const ket = keteranganStatus(r.status, r.offerStatus ?? null);
+                if (!ket) return <span className="text-[11px] text-[#94a3b8]">—</span>;
+                const gaya = ket.includes('Diterima')
+                  ? 'bg-emerald-100 text-[#137333]'
+                  : ket.includes('Ditolak') || ket.includes('kedaluwarsa')
+                  ? 'bg-rose-100 text-[#c5221f]'
+                  : 'bg-amber-100 text-[#92400e]';
                 return (
-                  <div className="flex flex-col gap-1">
-                    <select value={r.status} onChange={(e) => changeStatus(r.id, e.target.value)} aria-label={`Status ${r.fullName}`}
-                      className="rounded-lg border border-[#e2e8f0] px-2 py-1 text-[11px]">
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    {ket && (
-                      <span
-                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                          ket.includes('Diterima')
-                            ? 'bg-emerald-100 text-[#137333]'
-                            : ket.includes('Ditolak') || ket.includes('kedaluwarsa')
-                            ? 'bg-rose-100 text-[#c5221f]'
-                            : 'bg-amber-100 text-[#92400e]'
-                        }`}
-                        title="Keterangan status penawaran"
-                      >
-                        {ket}
-                      </span>
-                    )}
-                  </div>
+                  <span className={`inline-block whitespace-nowrap text-[10px] font-semibold px-1.5 py-0.5 rounded ${gaya}`}>
+                    {ket}
+                  </span>
                 );
               },
             },
@@ -321,8 +321,9 @@ export default function RecruitmentPanel() {
         document.body
       )}
 
-      {/* Kelola lowongan (WS-12) */}
-      <JobPostingManager />
+      {/* Kelola Lowongan sengaja TIDAK dirender di sini: itu kartu tersendiri
+          pada golongan "Perencanaan Kebutuhan". Panel ini hanya menangani
+          seleksi kandidat. */}
 
       {/* Modal notifikasi sukses (auto-refresh sudah dijalankan) */}
       {success && typeof document !== 'undefined' && createPortal(
