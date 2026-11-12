@@ -21,7 +21,10 @@
     "services:autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/register-autostart.ps1 register",
     "services:no-autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/register-autostart.ps1 unregister",
     "services:autostart-status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/register-autostart.ps1 status",
-    "clamav:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-clamav.ps1"
+    "clamav:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-clamav.ps1",
+    "dev:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-dev.ps1",
+    "db:recover": "tsx scripts/pulihkan-db.ts",
+    "db:check": "tsx scripts/cek-sehat.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1155.0",
