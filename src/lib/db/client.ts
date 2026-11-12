@@ -77,45 +77,91 @@ function createDb() {
     return drizzlePglite(new PGlite());
   }
 
+  // Pasang penangan penutupan SEBELUM PGlite membuka berkas, agar tidak ada
+  // celah saat proses dimatikan di antara pembuatan client dan pemasangan.
+  pasangPenutupanRapi();
+
   const client = new PGlite(process.env.PGLITE_DATA_DIR ?? resolve(process.cwd(), '.pglite'));
   // Set default timezone ke Asia/Jakarta (WIB, UTC+7)
   client.exec("SET timezone = 'Asia/Jakarta';").catch(() => {});
   globalForDb.__eperformiqSql = pgliteToSql(client);
 
-  // PGlite menulis langsung ke berkas data. Bila proses dimatikan paksa saat
-  // masih menulis, berkasnya rusak dan seluruh query berikutnya gagal dengan
-  // "RuntimeError: Aborted()". Tutup dengan rapi saat proses berhenti.
-  pasangPenutupanRapi(client);
+  // Daftarkan client baru agar ikut ditutup saat proses berhenti.
+  daftarkanClientUntukPenutupan(client);
 
   return drizzlePglite(client);
 }
 
-/** Pastikan berkas PGlite ditutup sebelum proses berhenti (sekali saja). */
-function pasangPenutupanRapi(client: PGlite): void {
+/**
+ * Pastikan berkas PGlite ditutup sebelum proses berhenti.
+ *
+ * Dipanggil setiap kali client PGlite dibuat. Dua hal yang dijaga:
+ *
+ * 1. `next dev` memuat ulang modul, sehingga client bisa dibuat berkali-kali
+ *    dalam satu proses. Penangan sinyalnya cukup dipasang sekali, tetapi
+ *    daftar client yang perlu ditutup harus ikut diperbarui.
+ * 2. Penangan dipasang SEBELUM client membuka berkas (lihat pemanggilannya),
+ *    sehingga tidak ada celah saat proses dimatikan di antara keduanya.
+ */
+function pasangPenutupanRapi(): void {
   const g = globalThis as any;
+
+  // Daftar client hidup; dipakai agar semua instance ditutup, bukan hanya yang
+  // terakhir dibuat.
+  if (!Array.isArray(g.__eperformiqPgliteClients)) {
+    g.__eperformiqPgliteClients = [];
+  }
+
   if (g.__eperformiqPenutupanTerpasang) return;
   g.__eperformiqPenutupanTerpasang = true;
 
   let sedangMenutup = false;
-  const tutup = (kode: number) => {
+  const tutupSemua = async (kode?: number) => {
     if (sedangMenutup) return;
     sedangMenutup = true;
-    // Beri waktu singkat agar penulisan selesai sebelum keluar.
-    Promise.resolve()
-      .then(() => client.close())
-      .catch(() => {})
-      .finally(() => process.exit(kode));
+    const daftar: PGlite[] = g.__eperformiqPgliteClients ?? [];
+    // Tutup berurutan: PGlite tidak aman ditutup bersamaan.
+    for (const c of daftar) {
+      try {
+        await c.close();
+      } catch {
+        /* abaikan: yang penting percobaan penutupan sudah dilakukan */
+      }
+    }
+    g.__eperformiqPgliteClients = [];
+    if (typeof kode === 'number') process.exit(kode);
   };
 
-  process.once('SIGINT', () => tutup(130));
-  process.once('SIGTERM', () => tutup(143));
-  process.once('beforeExit', () => {
-    // beforeExit tidak mengakhiri proses; cukup menutup lalu biarkan selesai.
-    if (!sedangMenutup) {
-      sedangMenutup = true;
-      client.close().catch(() => {});
+  process.once('SIGINT', () => void tutupSemua(130));
+  process.once('SIGTERM', () => void tutupSemua(143));
+
+  // `exit` menangkap proses yang berakhir karena sebab apa pun (termasuk
+  // TerminateProcess yang tidak mengirim SIGTERM di Windows). Di sini hanya
+  // ada waktu untuk percobaan penutupan singkat; PGlite tidak punya jalur
+  // sinkron, jadi hasilnya bergantung pada cepatnya close() dimulai.
+  process.once('exit', () => {
+    if (sedangMenutup) return;
+    sedangMenutup = true;
+    const daftar: PGlite[] = g.__eperformiqPgliteClients ?? [];
+    for (const c of daftar) {
+      try {
+        void c.close();
+      } catch {
+        /* abaikan */
+      }
     }
   });
+
+  process.once('beforeExit', () => void tutupSemua());
+}
+
+/** Tambahkan client ke daftar yang akan ditutup saat proses berhenti. */
+function daftarkanClientUntukPenutupan(client: PGlite): void {
+  const g = globalThis as any;
+  if (!Array.isArray(g.__eperformiqPgliteClients)) {
+    g.__eperformiqPgliteClients = [];
+  }
+  g.__eperformiqPgliteClients.push(client);
 }
 
 /**
