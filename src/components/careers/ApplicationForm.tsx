@@ -51,6 +51,52 @@ async function fileToDataUrl(file: File): Promise<string> {
 }
 
 /** Form lamaran lengkap (WS-13): ATS auto-fill, pendidikan, riwayat kerja, sertifikasi, berkas. */
+/**
+ * Menyusun payload riwayat pendidikan & pekerjaan dari state form.
+ *
+ * Dipisah dari komponen agar aturan penyaringan dan konversi dapat diuji
+ * langsung. Dua aturan penting yang pernah salah:
+ *
+ * 1. Entri dianggap terisi bila SALAH SATU field berisi — termasuk tahun dan
+ *    IPK. Filter lama hanya memeriksa institution/major/level, sehingga entri
+ *    yang hanya berisi tahun ikut terbuang diam-diam.
+ * 2. "0" adalah IPK yang sah, jadi tidak boleh diubah menjadi null.
+ */
+export function __susunPayloadRiwayatUji(
+  educations: Education[],
+  experiences: Experience[]
+): {
+  educations: Array<Record<string, unknown>>;
+  experiences: Array<Record<string, unknown>>;
+} {
+  return {
+    educations: educations
+      .filter((x) => x.institution || x.major || x.level || x.startYear || x.endYear || x.gpa)
+      .map((x) => ({
+        level: x.level || null,
+        institution: x.institution || null,
+        institutionCode: x.institutionCode || null,
+        degree: x.level || null,
+        major: x.major || null,
+        startYear: x.startYear ? Number(x.startYear) : null,
+        endYear: x.endYear ? Number(x.endYear) : null,
+        graduationStatus: x.graduationStatus || null,
+        gpa: x.gpa === '' || x.gpa === null || x.gpa === undefined ? null : Number(x.gpa),
+      })),
+    experiences: experiences.map((x) => ({
+      experienceType: x.experienceType || 'KERJA',
+      roleTitle: x.roleTitle || null,
+      company: x.company || null,
+      location: x.location || null,
+      startMonth: x.startMonth ? Number(x.startMonth) : null,
+      startYear: x.startYear ? Number(x.startYear) : null,
+      endMonth: x.isCurrent ? null : x.endMonth ? Number(x.endMonth) : null,
+      endYear: x.isCurrent ? null : x.endYear ? Number(x.endYear) : null,
+      isCurrent: x.isCurrent,
+    })),
+  };
+}
+
 export default function ApplicationForm({ postings, selectedPosting, onSelectPosting, onSubmitted }: Props) {
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', birthDate: '', gender: '', nik: '' });
   const [address, setAddress] = useState<AddressValue>(emptyAddr());
@@ -288,20 +334,14 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
       resumeText: upload?.extracted ? upload.rawText : undefined,
       resumeFileName: upload?.fileName,
       noExperience: experienceMode === 'NONE',
-      educations: educations.filter((x) => x.institution || x.major || x.level).map((x) => ({
-        level: x.level || null, institution: x.institution || null, institutionCode: x.institutionCode || null,
-        degree: x.level || null, major: x.major || null,
-        startYear: x.startYear ? Number(x.startYear) : null, endYear: x.endYear ? Number(x.endYear) : null,
-        graduationStatus: x.graduationStatus || null, gpa: x.gpa ? Number(x.gpa) : null,
-      })),
-      experiences: experienceMode === 'NONE' ? [] : experiences.map((x) => ({
-        experienceType: x.experienceType || 'KERJA', roleTitle: x.roleTitle || null, company: x.company || null,
-        location: x.location || null,
-        startMonth: x.startMonth ? Number(x.startMonth) : null, startYear: x.startYear ? Number(x.startYear) : null,
-        endMonth: x.isCurrent ? null : (x.endMonth ? Number(x.endMonth) : null),
-        endYear: x.isCurrent ? null : (x.endYear ? Number(x.endYear) : null),
-        isCurrent: x.isCurrent,
-      })),
+      // Riwayat disusun oleh fungsi terpisah agar aturannya dapat diuji.
+      ...(() => {
+        const riwayat = __susunPayloadRiwayatUji(educations, experienceMode === 'NONE' ? [] : experiences);
+        return {
+          educations: riwayat.educations,
+          experiences: experienceMode === 'NONE' ? [] : riwayat.experiences,
+        };
+      })(),
       certifications: certifications.filter((c) => c.name).map((c) => ({
         kind: c.kind || 'CERTIFICATION', name: c.name, issuer: c.issuer || null,
         issuedDate: c.issuedDate || null, expiryDate: c.expiryDate || null, proofUrl: c.proofUrl || null,
@@ -430,6 +470,13 @@ export default function ApplicationForm({ postings, selectedPosting, onSelectPos
                 className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs">
                 <option value="LULUS">Lulus</option><option value="AKTIF">Masih Aktif</option>
               </select></label>
+            {/* IPK: sebelumnya tidak ada input-nya, padahal nilainya dikirim ke
+                server. Tanpa kolom ini kandidat tidak bisa mengisi IPK sama sekali. */}
+            <label className="text-[11px] text-[#334155]"><span className="font-semibold">IPK</span>
+              <input type="number" step="0.01" min="0" max="4" inputMode="decimal"
+                value={edu.gpa} placeholder="mis. 3.50"
+                onChange={(e) => setEducations((a) => a.map((x, j) => j === i ? { ...x, gpa: e.target.value } : x))}
+                className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs" /></label>
             {educations.length > 1 && (
               <button type="button" onClick={() => setEducations((a) => a.filter((_, j) => j !== i))}
                 className="text-[10px] font-semibold text-rose-600 sm:col-start-3 justify-self-end">Hapus</button>
