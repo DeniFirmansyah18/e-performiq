@@ -120,6 +120,59 @@ export function normalizePhase(value: unknown, fallback: WorkPhase = 'PRE'): Wor
   return isWorkPhase(upper) ? upper : fallback;
 }
 
+/**
+ * Apakah pegawai masih wajib menyelesaikan fase Sebelum Kerja sebelum boleh
+ * membuka fase Saat Kerja?
+ *
+ * Aturan: HANYA pegawai berstatus PROBATION yang dikunci. Begitu statusnya
+ * sudah PERMANENT/CONTRACT (atau sedang/sudah pasca-kerja), semua fase terbuka
+ * — mereka sudah punya pekerjaan nyata yang tidak boleh terhalang.
+ */
+export function wajibSelesaikanPraKerja(profil: {
+  status?: string | null;
+  phase?: WorkPhase | null;
+}): boolean {
+  const status = (profil.status ?? '').toUpperCase();
+  if (status !== 'PROBATION') return false;
+  // Probation yang sudah berpindah fase (mis. dikonversi dini) tidak dikunci.
+  if (profil.phase && profil.phase !== 'PRE') return false;
+  return true;
+}
+
+/**
+ * Fase yang boleh dibuka pegawai.
+ *
+ * Pegawai probation hanya boleh melihat fase Sebelum Kerja sampai orientasi
+ * 30-60-90 selesai; fase lain ditandai terkunci agar portal dapat menjelaskan
+ * alasannya, bukan sekadar menyembunyikan tab.
+ */
+export function faseYangBolehDibuka(profil: {
+  status?: string | null;
+  phase?: WorkPhase | null;
+  milestonesDone?: number | null;
+  milestonesTotal?: number | null;
+}): { terkunci: Record<WorkPhase, boolean>; boleh: WorkPhase[]; alasanKunci: string | null } {
+  const dikunci = wajibSelesaikanPraKerja(profil);
+  const selesai = Number(profil.milestonesDone ?? 0);
+  const total = Number(profil.milestonesTotal ?? 3) || 3;
+
+  if (!dikunci) {
+    return {
+      terkunci: { PRE: false, DURING: false, POST: false },
+      boleh: [...PHASES],
+      alasanKunci: null,
+    };
+  }
+
+  return {
+    terkunci: { PRE: false, DURING: true, POST: true },
+    boleh: ['PRE'],
+    alasanKunci:
+      `Selesaikan dulu orientasi Sebelum Kerja (${selesai} dari ${total} tahap). ` +
+      'Setelah selesai dan status Anda menjadi karyawan tetap, fase Saat Kerja terbuka otomatis.',
+  };
+}
+
 export interface PhaseSignals {
   /** Status permintaan offboarding terakhir, bila ada. */
   offboardingStatus?: string | null;

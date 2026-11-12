@@ -118,10 +118,14 @@ export async function convertHiredCandidate(
     SELECT ja.candidate_id AS "candidateId", c.full_name AS "fullName", c.email,
            c.account_id AS "accountId", c.phone AS "phone",
            c.address, c.birth_date::text AS "birthDate", c.gender, c.nik,
-           jp.department_id AS "departmentId", jp.position_id AS "positionId"
+           jp.department_id AS "departmentId", jp.position_id AS "positionId",
+           -- Atasan langsung diambil dari MPP yang dipilih pada lowongan, karena
+           -- di situlah HR menetapkan People Manager penanggung jawab formasi.
+           mp.manager_id AS "managerId"
       FROM job_applications ja
       JOIN candidates c ON c.id = ja.candidate_id
       JOIN job_postings jp ON jp.id = ja.job_posting_id
+      LEFT JOIN manpower_plans mp ON mp.id = jp.manpower_plan_id
      WHERE ja.id = ${input.applicationId}::uuid
   `)) as unknown as { rows: any[] };
   const row = info.rows?.[0];
@@ -184,10 +188,11 @@ export async function convertHiredCandidate(
 
   const empRes = (await db.execute(sql`
     INSERT INTO employees (employee_code, full_name, email, phone_number, department_id, position_id, status, base_salary, join_date,
-                           gender, nik, address, date_of_birth)
+                           gender, nik, address, date_of_birth, manager_id)
     VALUES (${employeeCode}, ${row.fullName}, ${email}, ${row.phone ?? null},
             ${row.departmentId}::uuid, ${row.positionId}::uuid, 'PERMANENT'::employee_status_enum, ${offeredSalary}, CURRENT_DATE,
-            ${row.gender ?? null}, ${row.nik ?? null}, ${row.address ?? null}, ${row.birthDate ?? null}::date)
+            ${row.gender ?? null}, ${row.nik ?? null}, ${row.address ?? null}, ${row.birthDate ?? null}::date,
+            ${row.managerId ?? null}::uuid)
     RETURNING id
   `)) as unknown as { rows: Array<{ id: string }> };
   const employeeId = empRes.rows[0].id;
