@@ -4,12 +4,51 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 
+interface DetailPenawaran {
+  posisi: string | null;
+  gajiPokok: number;
+  tunjangan: number | null;
+  batasRespons: string | null;
+  keterangan: string | null;
+}
+
+/** Format rupiah tanpa desimal agar mudah dibaca kandidat. */
+const rupiah = (n: number | null) =>
+  n === null || n === undefined
+    ? '—'
+    : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+
+/** Tanggal & jam WIB dari string ISO. */
+const tanggalWib = (iso: string | null) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
+  }) + ' WIB';
+};
+
 /**
  * Halaman publik respons penawaran kerja.
  *
- * Kandidat membuka tautan dari email/WhatsApp (berisi token), lalu memilih
- * Terima atau Tolak tanpa perlu membuat akun.
+ * Kandidat membuka tautan dari email/WhatsApp (berisi token), melihat rincian
+ * penawaran, lalu memilih Terima atau Tolak tanpa perlu membuat akun.
  */
+/** Satu baris rincian penawaran. */
+function BarisDetail({ label, nilai }: { label: string; nilai: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-[11px] text-[#64748b]">{label}</span>
+      <span className="text-[12px] font-bold text-[#0f172a] text-right">{nilai}</span>
+    </div>
+  );
+}
+
 function IsiHalamanRespons() {
   const params = useSearchParams();
   const token = params.get('t') ?? '';
@@ -18,6 +57,7 @@ function IsiHalamanRespons() {
   const [pesan, setPesan] = useState<string>('');
   const [keputusan, setKeputusan] = useState<'ACCEPTED' | 'DECLINED' | null>(null);
   const [mengirim, setMengirim] = useState(false);
+  const [detail, setDetail] = useState<DetailPenawaran | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -34,6 +74,7 @@ function IsiHalamanRespons() {
           setPesan(json?.detail ?? 'Tautan tidak valid.');
           return;
         }
+        setDetail(json?.data?.detail ?? null);
         setStatus('siap');
       } catch {
         setStatus('tidakvalid');
@@ -86,6 +127,22 @@ function IsiHalamanRespons() {
 
         {status === 'siap' && (
           <>
+            {/* Rincian penawaran agar kandidat bisa memutuskan tanpa bertanya dulu. */}
+            {detail && (
+              <div className="rounded-xl border border-[#d4ecdd] bg-[#f6fdf9] p-4 space-y-2.5">
+                <BarisDetail label="Posisi" nilai={detail.posisi ?? '—'} />
+                <BarisDetail label="Gaji Pokok" nilai={rupiah(detail.gajiPokok)} />
+                <BarisDetail label="Tunjangan" nilai={rupiah(detail.tunjangan)} />
+                <BarisDetail label="Batas Respons" nilai={tanggalWib(detail.batasRespons)} />
+                {detail.keterangan && (
+                  <div className="pt-2 border-t border-[#d4ecdd]">
+                    <p className="text-[11px] font-semibold text-[#64748b] mb-1">Keterangan</p>
+                    <p className="text-[12px] text-[#334155] leading-relaxed whitespace-pre-wrap">{detail.keterangan}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <p className="text-sm text-[#334155] leading-relaxed">
               Terima kasih atas minat Anda bergabung dengan perusahaan kami. Silakan tentukan jawaban
               Anda atas penawaran kerja ini.

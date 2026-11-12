@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
     return ok({
       applicationId: info.applicationId,
       statusPenawaran: info.statusPenawaran,
+      // Detail penawaran agar kandidat bisa memutuskan tanpa membuka halaman lain.
+      detail: info.detail ?? null,
     });
   } catch (err) {
     return problem(err, '/api/v1/careers/offers/respond');

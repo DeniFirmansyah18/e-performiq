@@ -21,6 +21,43 @@ export interface TokenDibaca {
   offerId?: string;
   applicationId?: string;
   statusPenawaran?: string;
+  /** Detail penawaran yang aman ditampilkan ke kandidat. */
+  detail?: DetailPenawaranPublik;
+}
+
+/** Detail penawaran yang boleh dilihat kandidat lewat tautan. */
+export interface DetailPenawaranPublik {
+  posisi: string | null;
+  gajiPokok: number;
+  tunjangan: number | null;
+  batasRespons: string | null;
+  keterangan: string | null;
+}
+
+/**
+ * Menyaring data penawaran menjadi bentuk yang aman ditampilkan ke kandidat.
+ *
+ * Sengaja memakai daftar-putih: hanya bidang di bawah yang diteruskan. Bidang
+ * internal (penerbit penawaran, nomor agenda surat, status internal) tidak
+ * boleh ikut terkirim ke halaman publik.
+ */
+export function detailPenawaranPublik(penawaran: {
+  posisi?: string | null;
+  gajiPokok?: number | null;
+  tunjangan?: number | null;
+  batasRespons?: string | null;
+  keterangan?: string | null;
+}): DetailPenawaranPublik {
+  return {
+    posisi: penawaran.posisi ?? null,
+    gajiPokok: Number(penawaran.gajiPokok ?? 0),
+    tunjangan:
+      penawaran.tunjangan === null || penawaran.tunjangan === undefined
+        ? null
+        : Number(penawaran.tunjangan),
+    batasRespons: penawaran.batasRespons ?? null,
+    keterangan: penawaran.keterangan ?? null,
+  };
 }
 
 /**
@@ -49,17 +86,36 @@ export async function bacaTokenRespons(db: Db, token: string): Promise<TokenDiba
   if (!token || token.length < 20) return { valid: false, alasan: 'Token tidak valid.' };
 
   const res = (await db.execute(sql`
-    SELECT id::text AS "offerId", application_id::text AS "applicationId",
-           status::text AS status, response_token_expires_at AS "expiresAt",
-           responded_at AS "respondedAt"
-      FROM job_offers
-     WHERE response_token_hash = ${hashToken(token)}
+    SELECT o.id::text AS "offerId", o.application_id::text AS "applicationId",
+           o.status::text AS status, o.response_token_expires_at AS "expiresAt",
+           o.responded_at AS "respondedAt",
+           jp.posting_title AS posisi,
+           o.base_salary::float8 AS "gajiPokok",
+           o.fixed_allowance::float8 AS tunjangan,
+           o.response_deadline::text AS "batasRespons",
+           o.notes AS keterangan
+      FROM job_offers o
+      JOIN job_applications ja ON ja.id = o.application_id
+      JOIN job_postings jp ON jp.id = ja.job_posting_id
+     WHERE o.response_token_hash = ${hashToken(token)}
      LIMIT 1
   `)) as unknown as { rows: any[] };
   const r = res.rows?.[0];
   if (!r) return { valid: false, alasan: 'Tautan tidak dikenali.' };
 
-  const dasar = { offerId: r.offerId, applicationId: r.applicationId, statusPenawaran: r.status };
+  const detail = detailPenawaranPublik({
+    posisi: r.posisi,
+    gajiPokok: r.gajiPokok,
+    tunjangan: r.tunjangan,
+    batasRespons: r.batasRespons,
+    keterangan: r.keterangan,
+  });
+  const dasar = {
+    offerId: r.offerId,
+    applicationId: r.applicationId,
+    statusPenawaran: r.status,
+    detail,
+  };
 
   if (r.respondedAt) {
     return { valid: false, alasan: 'Penawaran ini sudah Anda jawab.', ...dasar };

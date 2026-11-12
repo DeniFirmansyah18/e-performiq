@@ -334,18 +334,20 @@ const ROLE_HINT: Record<string, string> = {
   BOD: 'Dewan Direksi (fokus strategis & GCG)',
   HR_MANAGER: 'HR Manager (fokus lifecycle SDM)',
   PEOPLE_MANAGER: 'People Manager (fokus tim langsung)',
-  EMPLOYEE: 'Karyawan (fokus pengembangan diri)',
+  EMPLOYEE: 'Karyawan (fokus pengembangan diri)',
 };
 
 /** Menganalisis konteks yang sudah dirakit pemanggil (dipakai endpoint ber-cache). */
 export async function analyzeWithContext(
   context: Record<string, unknown>,
   feature: string,
-  role: string
+  role: string,
+  menu?: string | null
 ): Promise<{ insight: string; configured: boolean; failed: boolean }> {
   const prompt =
     `Peran pengguna: ${ROLE_HINT[role] ?? role}.\n` +
     `Bagian yang sedang dianalisis: ${feature}.\n` +
+    (menu ? `Menu yang sedang dibuka pengguna: "${menu}". Arahkan seluruh rekomendasi pada menu ini.\n` : '') +
     `Data yang tersedia (JSON):\n${JSON.stringify(context)}\n\n` +
     `Tulis analisis dalam Bahasa Indonesia dengan susunan berikut, tanpa bagian lain:\n` +
     `**Ringkasan:** dua kalimat santai tentang kondisi saat ini.\n` +
@@ -370,10 +372,11 @@ export async function analyzeWithContext(
 export async function analyzeFeature(
   db: Db,
   feature: string,
-  role: string
+  role: string,
+  menu?: string | null
 ): Promise<{ insight: string; configured: boolean; failed: boolean }> {
   const context = await buildFeatureContext(db, feature);
-  return analyzeWithContext(context, feature, role);
+  return analyzeWithContext(context, feature, role, menu);
 }
 
 /** Chat agent: menjawab pertanyaan seputar aplikasi dengan konteks agregat. */

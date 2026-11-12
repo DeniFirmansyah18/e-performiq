@@ -4,10 +4,21 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Sparkles, RefreshCw, Loader2, Info } from 'lucide-react';
 import { renderRichText } from './RichText';
 
-export default function AiAnalyzePanel({ feature }: { feature: string }) {
+export default function AiAnalyzePanel({
+  feature,
+  judulMenu,
+}: {
+  feature: string;
+  /** Nama menu yang sedang dibuka, agar analisis menyebut konteksnya. */
+  judulMenu?: string;
+}) {
   const [insight, setInsight] = useState<string>('');
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // `konteks` menentukan data apa yang dirakit server. Bila menu yang dibuka
+  // tidak punya konteks khusus, pakai konteks umum HR agar tetap ada analisis.
+  const konteks = feature || 'hr';
 
   const run = useCallback(async () => {
     setLoading(true);
@@ -15,7 +26,7 @@ export default function AiAnalyzePanel({ feature }: { feature: string }) {
       const res = await fetch('/api/v1/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feature }),
+        body: JSON.stringify({ feature: konteks, menu: judulMenu ?? null }),
       });
       const json = await res.json().catch(() => null);
       setInsight(json?.data?.insight ?? 'Tidak ada keluaran dari model.');
@@ -26,7 +37,7 @@ export default function AiAnalyzePanel({ feature }: { feature: string }) {
     } finally {
       setLoading(false);
     }
-  }, [feature]);
+  }, [konteks, judulMenu]);
 
   useEffect(() => { run(); }, [run]);
 
@@ -35,7 +46,9 @@ export default function AiAnalyzePanel({ feature }: { feature: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#007a5a]" />
-          <p className="text-xs font-bold text-[#007a5a]">Analisis AI (Gemini)</p>
+          <p className="text-xs font-bold text-[#007a5a]">
+            Rekomendasi AI{judulMenu ? ` — ${judulMenu}` : ''}
+          </p>
         </div>
         <button
           type="button"
