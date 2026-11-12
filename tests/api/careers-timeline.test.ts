@@ -40,7 +40,7 @@ describe('WS-5 endpoint timeline', () => {
   });
   afterAll(async () => { await client.close(); });
 
-  it('GET timeline mengembalikan 7 tahap untuk lamaran yang baru dikirim', async () => {
+  it('GET timeline mengembalikan 6 tahap untuk lamaran yang baru dikirim', async () => {
     const q = await client.query<{ id: string }>(`SELECT id FROM job_postings WHERE is_public = TRUE LIMIT 1`);
     const applyRes = await apply(applyReq({
       fullName: 'Sari Dewi', email: 'sari.dewi@example.com', jobPostingId: q.rows[0].id,
@@ -52,7 +52,7 @@ describe('WS-5 endpoint timeline', () => {
     const res = await getTimeline(timelineReq(applicationNo), { params: { applicationNo } });
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data.entries.length).toBe(7);
+    expect(json.data.entries.length).toBe(6);
     // APPLIED otomatis tercatat saat apply.
     const applied = json.data.entries.find((e: any) => e.stage === 'APPLIED');
     expect(applied.state).toBe('DONE');

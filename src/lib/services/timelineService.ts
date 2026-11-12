@@ -2,7 +2,7 @@
  * Timeline Service — melacak progres tahap lamaran kandidat.
  *
  * Tahap (sesuai enum `timeline_stage_enum`):
- *   APPLIED → ATS_REVIEW → PSYCHOMETRIC → TECHNICAL → INTERVIEW → HR_REVIEW → DECISION
+ *   APPLIED → ATS_REVIEW → PSYCHOMETRIC → TECHNICAL → INTERVIEW → DECISION
  *
  * Tanggung jawab:
  *  - Membuat/memperbarui catatan tahap (`application_timeline`) secara idempoten.
@@ -22,14 +22,13 @@ export type TimelineStage =
   | 'PSYCHOMETRIC'
   | 'TECHNICAL'
   | 'INTERVIEW'
-  | 'HR_REVIEW'
   | 'DECISION';
 
 export type TimelineStatus = 'PENDING' | 'IN_PROGRESS' | 'PASSED' | 'FAILED' | 'SCHEDULED' | 'SKIPPED';
 
 /** Urutan tahap + label manusiawi (Bahasa Indonesia). */
 export const STAGE_ORDER: TimelineStage[] = [
-  'APPLIED', 'ATS_REVIEW', 'PSYCHOMETRIC', 'TECHNICAL', 'INTERVIEW', 'HR_REVIEW', 'DECISION',
+  'APPLIED', 'ATS_REVIEW', 'PSYCHOMETRIC', 'TECHNICAL', 'INTERVIEW', 'DECISION',
 ];
 
 export const STAGE_LABEL: Record<TimelineStage, string> = {
@@ -38,7 +37,6 @@ export const STAGE_LABEL: Record<TimelineStage, string> = {
   PSYCHOMETRIC: 'Tes Psikometri',
   TECHNICAL: 'Tes Teknis',
   INTERVIEW: 'Wawancara',
-  HR_REVIEW: 'Review HR',
   DECISION: 'Keputusan Akhir',
 };
 
@@ -193,7 +191,7 @@ async function backfillPreviousStages(
  * Saat kandidat lolos tes psikometri DAN tes teknis, tahap Seleksi Berkas (ATS)
  * yang tadinya "Sedang Berjalan" harus otomatis terbaca "Selesai".
  */
-const POST_ATS_STAGES: TimelineStage[] = ['PSYCHOMETRIC', 'TECHNICAL', 'INTERVIEW', 'HR_REVIEW', 'DECISION'];
+const POST_ATS_STAGES: TimelineStage[] = ['PSYCHOMETRIC', 'TECHNICAL', 'INTERVIEW', 'DECISION'];
 
 /**
  * Promosikan ATS_REVIEW menjadi PASSED bila seluruh tahap setelahnya yang wajib
@@ -212,7 +210,6 @@ async function promoteAtsIfSurpassed(db: Db, applicationId: string): Promise<voi
     const psych = statusOf.get('PSYCHOMETRIC');
     const tech = statusOf.get('TECHNICAL');
     const advanced = (statusOf.get('INTERVIEW') && statusOf.get('INTERVIEW') !== 'PENDING')
-      || (statusOf.get('HR_REVIEW') && statusOf.get('HR_REVIEW') !== 'PENDING')
       || (statusOf.get('DECISION') && statusOf.get('DECISION') !== 'PENDING');
 
     // Syarat: kedua tes utama PASSED, atau kandidat sudah maju lebih jauh.
@@ -363,7 +360,27 @@ export async function syncApplicationTimeline(db: Db, applicationId: string): Pr
   }
 
   // 5) Status turunan terakhir (mis. HIRED/REJECTED tanpa keputusan eksplisit).
-  await upsertStage(db, { applicationId, stage: mapped.stage, status: mapped.state });
+  //
+  // Tahap yang sudah PASSED/FAILED/SKIPPED TIDAK boleh diturunkan. Contoh nyata:
+  // wawancara sudah ditandai DONE (langkah 3 → INTERVIEW PASSED), sedangkan
+  // status lamaran masih INTERVIEW sehingga statusToStage() mengembalikan
+  // INTERVIEW/IN_PROGRESS. Tanpa penjagaan ini, progres kandidat kembali
+  // "Sedang Berjalan" padahal wawancaranya sudah selesai.
+  {
+    const saatIni = (await db.execute(sql`
+      SELECT status::text AS status FROM application_timeline
+       WHERE application_id = ${applicationId}::uuid AND stage = ${mapped.stage}::timeline_stage_enum
+    `)) as unknown as { rows: Array<{ status: string }> };
+    const statusSekarang = saatIni.rows?.[0]?.status ?? null;
+    const sudahFinal =
+      statusSekarang === 'PASSED' || statusSekarang === 'FAILED' || statusSekarang === 'SKIPPED';
+    // Naikkan saja: PASSED tidak boleh mundur jadi IN_PROGRESS; PENDING boleh
+    // menjadi apa pun; IN_PROGRESS boleh menjadi PASSED/FAILED.
+    const turunkan = sudahFinal && mapped.state !== statusSekarang;
+    if (!turunkan) {
+      await upsertStage(db, { applicationId, stage: mapped.stage, status: mapped.state });
+    }
+  }
 
   // 6) Bila kandidat sudah lolos tes psikometri + teknis, tahap berkas (ATS)
   //    otomatis dibaca "Selesai" meski status lamaran masih SCREENING.
@@ -434,9 +451,12 @@ export function buildTimelineView(
     };
   });
 
+  // Kandidat yang menolak penawaran (OFFER_DECLINED) juga berakhir "tidak
+  // melanjutkan", sehingga portal menampilkan pesan penutup yang sopan —
+  // bukan membiarkannya tampak "sedang diproses" selamanya.
   const overallState: ApplicationTimelineView['overallState'] =
     applicationStatus === 'HIRED' ? 'ACCEPTED'
-    : applicationStatus === 'REJECTED' ? 'REJECTED'
+    : applicationStatus === 'REJECTED' || applicationStatus === 'OFFER_DECLINED' ? 'REJECTED'
     : 'IN_PROGRESS';
 
   const currentStage = entries.find((en) => en.state === 'CURRENT')?.stage
