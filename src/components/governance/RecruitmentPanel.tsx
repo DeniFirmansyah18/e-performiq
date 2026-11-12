@@ -497,24 +497,58 @@ function CandidateProfile({ profile }: { profile: any }) {
 
       <div>
         <p className="text-[11px] font-bold text-[#334155] mb-1">Riwayat Pendidikan</p>
-        {profile.educations?.length ? profile.educations.map((e: any) => (
-          <div key={e.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0">
-            <strong>{e.level || e.degree || '—'}</strong> {e.major ? `· ${e.major}` : ''} — {e.institution || '—'}
-            <span className="text-[10px] text-[#64748b]"> ({e.startYear || '?'}–{e.endYear || '?'}{e.gpa ? `, IPK ${e.gpa}` : ''})</span>
-          </div>
-        )) : <p className="text-[11px] text-[#94a3b8]">Tidak ada data.</p>}
+        {profile.educations?.length ? profile.educations.map((e: any) => {
+          // `level` (jenjang: S1/SMA/…) dan `degree` (gelar) diisi bergantian
+          // tergantung sumber data, jadi keduanya diterima. Jangan tampilkan
+          // "—" bila salah satunya ada.
+          const jenjang = e.level || e.degree || null;
+          const kini = !e.endYear && e.graduationStatus !== 'LULUS';
+          return (
+            <div key={e.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0">
+              {jenjang && <strong>{jenjang}</strong>}
+              {e.major && <span className={jenjang ? ' text-[#334155]' : ' font-semibold'}> {jenjang ? `· ${e.major}` : e.major}</span>}
+              <span> — {e.institution || 'Institusi tidak dicatat'}</span>
+              <span className="text-[10px] text-[#64748b]">
+                {' '}({e.startYear || '?'}–{kini ? 'Sekarang' : e.endYear || '?'}
+                {e.gpa ? `, IPK ${Number(e.gpa).toFixed(2)}` : ''})
+              </span>
+            </div>
+          );
+        }) : <p className="text-[11px] text-[#94a3b8]">Tidak ada data.</p>}
       </div>
 
       <div>
         <p className="text-[11px] font-bold text-[#334155] mb-1">Riwayat Pekerjaan</p>
-        {profile.experiences?.length ? profile.experiences.map((x: any) => (
-          <div key={x.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0">
-            <strong>{x.roleTitle || '—'}</strong>{x.company ? ` · ${x.company}` : ''}
-            {x.experienceType && <span className="text-[10px] text-[#64748b]"> [{x.experienceType}]</span>}
-            <span className="text-[10px] text-[#64748b]"> {x.startMonth ? MONTH_SHORT[x.startMonth] : ''} {x.startYear || ''}–{x.isCurrent ? 'Sekarang' : `${x.endMonth ? MONTH_SHORT[x.endMonth] : ''} ${x.endYear || ''}`}</span>
-            {x.location && <span className="text-[10px] text-[#64748b]"> · {x.location}</span>}
-          </div>
-        )) : <p className="text-[11px] text-[#94a3b8]">Tidak punya pengalaman.</p>}
+        {profile.experiences?.length ? profile.experiences.map((x: any) => {
+          // Sebagian data (impor CV / seed) hanya punya start_date/end_date;
+          // service sudah menormalkannya ke startMonth/startYear. Bila pun
+          // belum ada, ambil dari tanggal ISO agar periode tidak kosong.
+          const bulan = (m: any, iso: any) =>
+            m ?? (iso ? new Date(iso).getMonth() + 1 : null);
+          const tahun = (y: any, iso: any) =>
+            y ?? (iso ? new Date(iso).getFullYear() : null);
+          const m1 = bulan(x.startMonth, x.startDate);
+          const y1 = tahun(x.startYear, x.startDate);
+          const m2 = bulan(x.endMonth, x.endDate);
+          const y2 = tahun(x.endYear, x.endDate);
+          const periode = x.isCurrent
+            ? `${m1 ? MONTH_SHORT[m1] + ' ' : ''}${y1 ?? ''}–Sekarang`
+            : [m1 ? MONTH_SHORT[m1] : '', y1, '–', m2 ? MONTH_SHORT[m2] : '', y2]
+                .filter((z) => z !== null && z !== '').join(' ');
+          return (
+            <div key={x.id} className="text-[11px] text-[#334155] py-1 border-b border-[#f8fafc] last:border-0">
+              {x.roleTitle && <strong>{x.roleTitle}</strong>}
+              {x.company && <span className={x.roleTitle ? '' : ' font-semibold'}>{x.roleTitle ? ` · ${x.company}` : x.company}</span>}
+              {x.experienceType && (
+                <span className="text-[10px] text-[#64748b]"> [{x.experienceType === 'KERJA' ? 'Kerja' : x.experienceType === 'MAGANG' ? 'Magang' : x.experienceType}]</span>
+              )}
+              {periode.trim() && periode.trim() !== '–' && (
+                <span className="text-[10px] text-[#64748b]"> {periode}</span>
+              )}
+              {x.location && <span className="text-[10px] text-[#64748b]"> · {x.location}</span>}
+            </div>
+          );
+        }) : <p className="text-[11px] text-[#94a3b8]">Tidak punya pengalaman.</p>}
       </div>
 
       <div>
