@@ -56,6 +56,7 @@ import CareerLadderManagerPanel from '@/components/governance/CareerLadderManage
 import LearningCertificationPanel from '@/components/governance/LearningCertificationPanel';
 import PositionCourseMappingPanel from '@/components/governance/PositionCourseMappingPanel';
 import RecruitmentPanel from '@/components/governance/RecruitmentPanel';
+import { fiturKonteksAi } from '@/lib/ai/featureContext';
 import ManpowerPlanManager from '@/components/governance/ManpowerPlanManager';
 import InterviewSchedulerPanel from '@/components/governance/InterviewSchedulerPanel';
 import TechnicalTestPanel from '@/components/governance/TechnicalTestPanel';
@@ -980,7 +981,10 @@ export default function HROperationsPage() {
                                                   </button>
                                                   <panel.Panel />
                                                   {renderFeatureContent(panel.feature)}
-                                                  <AiAnalyzePanel feature="hr" />
+                                                  <AiAnalyzePanel
+                                                    feature={fiturKonteksAi(panel.feature)}
+                                                    judulMenu={panel.title}
+                                                  />
                                                 </div>
                                               </ExpandablePanel>
                                             ))}
@@ -1026,7 +1030,10 @@ export default function HROperationsPage() {
                                                 </button>
                                                 <panel.Panel />
                                                 {renderFeatureContent(panel.feature)}
-                                                <AiAnalyzePanel feature="hr" />
+                                                <AiAnalyzePanel
+                                                  feature={fiturKonteksAi(panel.feature)}
+                                                  judulMenu={panel.title}
+                                                />
                                               </div>
                                             </ExpandablePanel>
                                           ))}
