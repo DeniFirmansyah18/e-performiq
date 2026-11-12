@@ -122,35 +122,66 @@ export function normalizePhase(value: unknown, fallback: WorkPhase = 'PRE'): Wor
 
 /**
  * Apakah pegawai masih wajib menyelesaikan fase Sebelum Kerja sebelum boleh
- * membuka fase Saat Kerja?
+ * membuka fase Saat Kerja / Setelah Kerja?
  *
- * Aturan: HANYA pegawai berstatus PROBATION yang dikunci. Begitu statusnya
- * sudah PERMANENT/CONTRACT (atau sedang/sudah pasca-kerja), semua fase terbuka
- * — mereka sudah punya pekerjaan nyata yang tidak boleh terhalang.
+ * Aturan: SIAPA PUN yang masih berada di fase Sebelum Kerja (PRE) dan belum
+ * menyelesaikan orientasi wajib menyelesaikannya lebih dulu — termasuk pegawai
+ * PERMANENT yang baru dikonversi dari kandidat. Status kepegawaian tidak lagi
+ * menjadi penentu; yang menentukan adalah fase & penyelesaian orientasi.
+ *
+ * Tanpa data profil sama sekali, fungsi ini TIDAK mengunci apa pun agar
+ * kegagalan memuat data tidak mengurung pegawai di luar pekerjaannya.
  */
 export function wajibSelesaikanPraKerja(profil: {
   status?: string | null;
   phase?: WorkPhase | null;
+  milestonesDone?: number | null;
+  milestonesTotal?: number | null;
+  programStatus?: string | null;
+  probationPassed?: boolean | null;
 }): boolean {
-  const status = (profil.status ?? '').toUpperCase();
-  if (status !== 'PROBATION') return false;
-  // Probation yang sudah berpindah fase (mis. dikonversi dini) tidak dikunci.
+  // Sudah melewati Sebelum Kerja → tidak ada yang perlu dikunci.
   if (profil.phase && profil.phase !== 'PRE') return false;
-  return true;
+
+  // Profil belum termuat: jangan mengunci.
+  const adaData =
+    profil.phase != null ||
+    profil.status != null ||
+    profil.milestonesDone != null ||
+    profil.programStatus != null;
+  if (!adaData) return false;
+
+  return !orientasiSelesai(profil);
+}
+
+/** Apakah orientasi 30-60-90 (isi fase Sebelum Kerja) sudah tuntas? */
+export function orientasiSelesai(profil: {
+  milestonesDone?: number | null;
+  milestonesTotal?: number | null;
+  programStatus?: string | null;
+  probationPassed?: boolean | null;
+}): boolean {
+  if (profil.programStatus === 'COMPLETED') return true;
+  if (profil.probationPassed === true) return true;
+  const selesai = Number(profil.milestonesDone ?? 0);
+  const total = Number(profil.milestonesTotal ?? 3) || 3;
+  return selesai >= total;
 }
 
 /**
  * Fase yang boleh dibuka pegawai.
  *
- * Pegawai probation hanya boleh melihat fase Sebelum Kerja sampai orientasi
- * 30-60-90 selesai; fase lain ditandai terkunci agar portal dapat menjelaskan
- * alasannya, bukan sekadar menyembunyikan tab.
+ * Selama fase Sebelum Kerja belum selesai, Saat Kerja & Setelah Kerja ditandai
+ * terkunci agar portal dapat menjelaskan alasannya, bukan sekadar menyembunyikan
+ * tab.
  */
 export function faseYangBolehDibuka(profil: {
   status?: string | null;
   phase?: WorkPhase | null;
   milestonesDone?: number | null;
   milestonesTotal?: number | null;
+  programStatus?: string | null;
+  probationPassed?: boolean | null;
 }): { terkunci: Record<WorkPhase, boolean>; boleh: WorkPhase[]; alasanKunci: string | null } {
   const dikunci = wajibSelesaikanPraKerja(profil);
   const selesai = Number(profil.milestonesDone ?? 0);
@@ -168,8 +199,8 @@ export function faseYangBolehDibuka(profil: {
     terkunci: { PRE: false, DURING: true, POST: true },
     boleh: ['PRE'],
     alasanKunci:
-      `Selesaikan dulu orientasi Sebelum Kerja (${selesai} dari ${total} tahap). ` +
-      'Setelah selesai dan status Anda menjadi karyawan tetap, fase Saat Kerja terbuka otomatis.',
+      `Selesaikan dulu fase Sebelum Kerja (${selesai} dari ${total} tahap orientasi). ` +
+      'Setelah tuntas, fase Saat Kerja dan Setelah Kerja terbuka otomatis.',
   };
 }
 
