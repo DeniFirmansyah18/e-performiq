@@ -296,7 +296,13 @@ async function resolveOrCreateTechnicalTemplate(
   `);
   if (existing[0]) return existing[0];
 
-  const code = `TECH-${positionId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+  // Kode wajib UNIK karena kolom `code` punya batasan unik. Id posisi di seed
+  // berawalan sama (a0000000-...), sehingga memakai 8 huruf pertama saja
+  // membuat SEMUA posisi berbagi satu kode: posisi pertama berhasil membuat
+  // template, sisanya gagal dengan ON CONFLICT DO NOTHING dan berakhir pada
+  // galat "Gagal menyiapkan template". Karena itu dipakai id LENGKAP.
+  const code = `TECH-${positionId.replace(/-/g, '').toUpperCase()}`;
+
   const created = await rows<{ id: string }>(db, sql`
     INSERT INTO assessment_templates (code, title, type, weight, description, position_id, is_active)
     VALUES (
@@ -308,14 +314,51 @@ async function resolveOrCreateTechnicalTemplate(
   `);
   if (created[0]) return created[0];
 
-  // Balapan insert (kode sudah ada) → ambil yang ada.
+  // Balapan insert (kode sudah ada) → ambil yang ada untuk posisi ini.
   const raced = await rows<{ id: string }>(db, sql`
     SELECT id FROM assessment_templates
      WHERE type = 'TECHNICAL'::assessment_type_enum AND position_id = ${positionId}::uuid
      ORDER BY created_at ASC LIMIT 1
   `);
   if (raced[0]) return raced[0];
+
+  // Kode bentrok dengan template milik POSISI LAIN (sisa data lama ber-kode
+  // pendek). Beri akhiran pembeda agar template posisi ini tetap terbentuk.
+  const cadangan = `${code}-${positionTitle.replace(/[^A-Za-z0-9]/g, '').slice(0, 12).toUpperCase()}`;
+  const dicadangkan = await rows<{ id: string }>(db, sql`
+    INSERT INTO assessment_templates (code, title, type, weight, description, position_id, is_active)
+    VALUES (
+      ${cadangan}, ${'Tes Teknis — ' + positionTitle}, 'TECHNICAL'::assessment_type_enum, 40,
+      ${'Bank soal teknis khusus posisi ' + positionTitle + '.'}, ${positionId}::uuid, TRUE
+    )
+    ON CONFLICT (code) DO NOTHING
+    RETURNING id
+  `);
+  if (dicadangkan[0]) return dicadangkan[0];
+
+  const akhir = await rows<{ id: string }>(db, sql`
+    SELECT id FROM assessment_templates
+     WHERE type = 'TECHNICAL'::assessment_type_enum AND position_id = ${positionId}::uuid
+     ORDER BY created_at ASC LIMIT 1
+  `);
+  if (akhir[0]) return akhir[0];
+
   throw new BusinessRuleError('Gagal menyiapkan template tes teknis untuk posisi ini.');
+}
+
+/**
+ * Ekspos pembuatan template untuk pengujian.
+ *
+ * Template sengaja dibuat di dalam `generateTechnicalQuestions`, dan fungsi
+ * itu berhenti lebih awal bila AI belum dikonfigurasi — sehingga penyiapan
+ * template tidak dapat diuji lewat fungsi publik di lingkungan tes.
+ */
+export async function siapkanTemplateTeknisUntukUji(
+  db: Db,
+  positionId: string,
+  positionTitle: string,
+): Promise<{ id: string }> {
+  return resolveOrCreateTechnicalTemplate(db, positionId, positionTitle);
 }
 
 // ---------------------------------------------------------------------------
