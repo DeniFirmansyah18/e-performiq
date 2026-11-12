@@ -34,6 +34,7 @@ import BoardTabNav, { type BoardTab } from '@/components/executive/BoardTabNav';
 import BoardActivityPanel from '@/components/executive/BoardActivityPanel';
 import BoardVisionPanel from '@/components/executive/BoardVisionPanel';
 import BoardPositionFitPanel from '@/components/executive/BoardPositionFitPanel';
+import MppApprovalPanel from '@/components/governance/MppApprovalPanel';
 import BoardCostPanel from '@/components/executive/BoardCostPanel';
 import BoardDrilldownPanel from '@/components/executive/BoardDrilldownPanel';
 
@@ -856,6 +857,11 @@ export default function ExecutiveBoardroomPage() {
       {mainTab === 'cost' && <BoardCostPanel />}
       {mainTab === 'position-fit' && <BoardPositionFitPanel />}
       {mainTab === 'activity' && <BoardActivityPanel />}
+{mainTab === 'mpp-approval' && (
+  <section className="stitch-card-white p-5">
+    <MppApprovalPanel />
+  </section>
+)}
 
       {/* 6. Formal Legal Footer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-[#e2e8f0] text-[11px] text-[#64748b]">

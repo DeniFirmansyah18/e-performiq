@@ -75,13 +75,13 @@ describe('skema database', () => {
     expect(names).toEqual(EXPECTED_TABLES);
   });
 
-  it('membuat 53 enum', async () => {
+  it('membuat 54 enum', async () => {
     const res = await client.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM pg_type t
         JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE n.nspname = 'public' AND t.typtype = 'e'`
     );
-      expect(Number(res.rows[0].count)).toBe(53);
+      expect(Number(res.rows[0].count)).toBe(54);
   });
 
   it('menghitung achievement_percentage otomatis', async () => {

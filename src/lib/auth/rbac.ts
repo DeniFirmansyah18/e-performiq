@@ -6,7 +6,7 @@ export type Permission =
 | 'kpi:read'
 | 'kpi:write'
 | 'kpi:approve'
-| 'appraisal:calculate'
+| 'appraisal:calculate'
 | 'appraisal:batch'
 | 'audit:read'
 | 'attendance:read'
@@ -21,6 +21,8 @@ export type Permission =
 | 'learning:manage'
 | 'recruitment:read'
 | 'recruitment:manage'
+/** Memutuskan pengajuan MPP dari HR — wewenang BOD, bukan HR. */
+| 'recruitment:approve_mpp'
 | 'profile:read'
 | 'profile:write'
 | 'offboarding:read'
@@ -65,7 +67,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'kpi:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'kpi:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'kpi:approve': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
-'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
+'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'appraisal:batch': ['SUPER_ADMIN', 'HR_MANAGER'],
 'audit:read': ['SUPER_ADMIN'],
 'attendance:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
@@ -80,6 +82,7 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'learning:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
 'recruitment:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'recruitment:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+'recruitment:approve_mpp': ['SUPER_ADMIN', 'BOD'],
 'profile:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'profile:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'offboarding:read': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'BOD', 'EMPLOYEE'],
