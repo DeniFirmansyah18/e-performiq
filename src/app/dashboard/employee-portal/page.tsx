@@ -594,6 +594,15 @@ setStatusMsg({ type: 'error', text: err.message });
 setIsUpdating(false);
 }
 };
+// Pindah fase siklus kerja. Menu/panel yang sedang terbuka SELALU ditutup
+// lebih dulu, seperti perilaku "Kontrol Siklus 3-Fase" di HR Command — tanpa
+// ini panel dari fase sebelumnya ikut tampil di fase baru dan membingungkan.
+const pindahFase = (phase: WorkPhase) => {
+  setOpenFeature(null);
+  setPesanFaseTerkunci(null);
+  setActivePhase(phase);
+};
+
 // Fase mana yang boleh dibuka. Pegawai probation dikunci di fase Sebelum Kerja
 // sampai orientasi 30-60-90 selesai; pegawai tetap/kontrak bebas semua fase.
 const kunciFase = faseYangBolehDibuka({
@@ -601,6 +610,8 @@ const kunciFase = faseYangBolehDibuka({
   phase: (lifecycle?.phase as WorkPhase | undefined) ?? null,
   milestonesDone: lifecycle?.onboarding?.milestonesDone ?? null,
   milestonesTotal: lifecycle?.onboarding?.milestonesTotal ?? null,
+  programStatus: lifecycle?.onboarding?.programStatus ?? null,
+  probationPassed: lifecycle?.onboarding?.probationPassed ?? null,
 });
 
 /**
@@ -634,12 +645,12 @@ const grupLayanan: Array<{
         onClick: () => setOpenFeature('timesheet'),
       },
       {
-        icon: Clock, tone: 'amber', title: 'Ajukan Lembur', tag: 'Persetujuan atasan',
+        icon: Clock, tone: 'emerald', title: 'Ajukan Lembur', tag: 'Persetujuan atasan',
         description: 'Rencanakan lembur sebelum bekerja agar jam lembur masuk perhitungan payroll.',
         onClick: () => setIsOvertimeOpen(true),
       },
       {
-        icon: CalendarDays, tone: 'blue', title: 'Cuti & Izin', tag: () => `${leaveList.length} pengajuan`,
+        icon: CalendarDays, tone: 'emerald', title: 'Cuti & Izin', tag: () => `${leaveList.length} pengajuan`,
         description: 'Ajukan cuti tahunan/sakit/spesial dan pantau status persetujuannya.',
         onClick: () => { void loadLeave(); setIsLeaveOpen(true); },
       },
@@ -650,12 +661,12 @@ const grupLayanan: Array<{
     ket: 'Slip gaji dan penggantian biaya operasional.',
     aksi: [
       {
-        icon: Lock, tone: 'slate', title: 'Slip Gaji PIN', tag: 'Payroll',
+        icon: Lock, tone: 'emerald', title: 'Slip Gaji PIN', tag: 'Payroll',
         description: 'Akses slip gaji terenkripsi dengan verifikasi PIN pribadi Anda.',
         onClick: () => setIsPayslipOpen(true),
       },
       {
-        icon: FileText, tone: 'teal', title: 'Reimbursement', tag: 'Klaim',
+        icon: FileText, tone: 'emerald', title: 'Reimbursement', tag: 'Klaim',
         description: 'Ajukan penggantian biaya operasional dan pantau status klaim.',
         onClick: () => setIsReimbursementOpen(true),
       },
@@ -666,17 +677,17 @@ const grupLayanan: Array<{
     ket: 'Dokumen resmi, peraturan, serta catatan sanksi dan penghargaan.',
     aksi: [
       {
-        icon: FileText, tone: 'indigo', title: 'e-Surat & Disposisi', tag: 'Tanda terima',
+        icon: FileText, tone: 'emerald', title: 'e-Surat & Disposisi', tag: 'Tanda terima',
         description: 'Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya.',
         onClick: () => setIsLetterOpen(true),
       },
       {
-        icon: BookOpen, tone: 'slate', title: 'SOP & Peraturan', tag: 'Wajib dibaca',
+        icon: BookOpen, tone: 'emerald', title: 'SOP & Peraturan', tag: 'Wajib dibaca',
         description: 'Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami.',
         onClick: () => setIsPolicyOpen(true),
       },
       {
-        icon: AlertTriangle, tone: 'rose', title: 'Sanksi & Penghargaan', tag: 'Transparan',
+        icon: AlertTriangle, tone: 'emerald', title: 'Sanksi & Penghargaan', tag: 'Transparan',
         description: 'Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan.',
         onClick: () => setIsDisciplinaryOpen(true),
       },
@@ -692,12 +703,12 @@ const grupLayanan: Array<{
         onClick: () => setIsFinalizeOpen(true),
       },
       {
-        icon: Bookmark, tone: 'indigo', title: 'Unggah Bukti', tag: 'Evidence',
+        icon: Bookmark, tone: 'emerald', title: 'Unggah Bukti', tag: 'Evidence',
         description: 'Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI.',
         onClick: () => setIsEvidenceOpen(true),
       },
       {
-        icon: Download, tone: 'slate', title: 'Unduh Portofolio KPI', tag: 'Dokumen',
+        icon: Download, tone: 'emerald', title: 'Unduh Portofolio KPI', tag: 'Dokumen',
         description: 'Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF.',
         onClick: () => downloadKpiPortfolio(),
         disabled: () => isDownloadingKpi,
@@ -709,12 +720,12 @@ const grupLayanan: Array<{
     ket: 'Jalur karir dan peluang di dalam perusahaan.',
     aksi: [
       {
-        icon: Compass, tone: 'blue', title: 'Peta Karir & Moodle', tag: 'Karir',
+        icon: Compass, tone: 'emerald', title: 'Peta Karir & Moodle', tag: 'Karir',
         description: 'Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda.',
         onClick: () => setIsCareerOpen(true),
       },
       {
-        icon: Briefcase, tone: 'violet', title: 'Bursa Kerja Internal', tag: 'Mobilitas',
+        icon: Briefcase, tone: 'emerald', title: 'Bursa Kerja Internal', tag: 'Mobilitas',
         description: 'Jelajahi peluang rotasi dan posisi internal yang tersedia.',
         onClick: () => setIsJobBoardOpen(true),
       },
@@ -730,17 +741,17 @@ const grupLayanan: Array<{
         onClick: () => setIsProfileOpen(true),
       },
       {
-        icon: MessageSquare, tone: 'teal', title: 'Chat Pimpinan', tag: 'Komunikasi',
+        icon: MessageSquare, tone: 'emerald', title: 'Chat Pimpinan', tag: 'Komunikasi',
         description: 'Percakapan langsung atau grup dengan atasan, lengkap dengan riwayat yang tidak bisa dihapus sepihak.',
         onClick: () => setIsChatOpen(true),
       },
       {
-        icon: Bot, tone: 'amber', title: 'Tanya Chatbot HR', tag: 'Bantuan',
+        icon: Bot, tone: 'emerald', title: 'Tanya Chatbot HR', tag: 'Bantuan',
         description: 'Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan.',
         onClick: () => setIsChatbotOpen(true),
       },
       {
-        icon: MessageSquare, tone: 'rose', title: 'Tiket Bantuan', tag: 'Helpdesk',
+        icon: MessageSquare, tone: 'emerald', title: 'Tiket Bantuan', tag: 'Helpdesk',
         description: 'Laporkan kendala atau ajukan permintaan dukungan internal.',
         onClick: () => setIsTicketOpen(true),
       },
@@ -793,7 +804,7 @@ return (
               return;
             }
             setPesanFaseTerkunci(null);
-            setActivePhase(phase);
+            pindahFase(phase);
           }}
           className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
             activePhase === phase
@@ -892,7 +903,7 @@ return (
                 }`}
               >
                 <button
-                  onClick={() => setActivePhase(s.phase)}
+                  onClick={() => pindahFase(s.phase)}
                   className="w-full text-left"
                   aria-current={isActive ? 'step' : undefined}
                 >
@@ -918,7 +929,7 @@ return (
                       {s.links.map((l) => (
                         <button
                           key={l.phase}
-                          onClick={() => setActivePhase(l.phase)}
+                          onClick={() => pindahFase(l.phase)}
                           className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] hover:bg-[#e0e7ff]"
                         >
                           {l.label}
@@ -1062,6 +1073,13 @@ return (
     );
   })()}
 
+  {/* Indikator Pencapaian Target Individu — diletakkan tepat di bawah kartu
+      "Selamat Datang" pada fase Saat Kerja agar capaian target terlihat lebih
+      dulu. Tidak ditampilkan untuk HR (penilai) maupun BOD (pemantau). */}
+  {!sembunyikanPenilaian && activePhase === 'DURING' && (
+    <TargetAchievementCard periodId={selectedPeriod} />
+  )}
+
   {/* ==== FASE: Sebelum Kerja ==== */}
   {activePhase === 'PRE' && (
     <OnboardingPanel />
@@ -1121,14 +1139,6 @@ return (
       onOpen={() => setOpenFeature('okr')}
     />
     )}
-    <FeatureCard
-      icon={GraduationCap}
-      title="Pengembangan & Pembelajaran"
-      metric="Moodle"
-      tag="IDP"
-      description="Individual Development Plan, pelatihan, peer review 360°, talent legacy, dan modul pembelajaran Moodle."
-      onOpen={() => setOpenFeature('development')}
-    />
   </FeatureGrid>
 
   {/* 3. Layanan Mandiri Karyawan — dikelompokkan seperti "Kontrol Siklus
@@ -1159,13 +1169,6 @@ return (
     </section>
   ))}
     </>
-  )}
-
-  {/* Indikator Pencapaian Target Individu — hanya relevan pada fase "Saat Kerja",
-      karena pada fase itu pegawai memantau pencapaian target kinerjanya sendiri.
-      Tidak ditampilkan untuk HR (penilai) maupun BOD (pemantau). */}
-  {!sembunyikanPenilaian && activePhase === 'DURING' && (
-    <TargetAchievementCard periodId={selectedPeriod} />
   )}
 
   {/* Panel: Nilai Kinerja */}
