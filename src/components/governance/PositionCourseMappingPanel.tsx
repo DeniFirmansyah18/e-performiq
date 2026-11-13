@@ -493,13 +493,18 @@ export default function PositionCourseMappingPanel() {
                     <input
                       type="checkbox"
                       checked={dipilih}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const dicentang = e.target.checked;
                         setPilihBanyak((prev) =>
-                          e.target.checked
+                          dicentang
                             ? [...prev, p.positionId]
                             : prev.filter((id) => id !== p.positionId)
-                        )
-                      }
+                        );
+                        // Mencentang satu posisi juga menjadikannya posisi
+                        // utama, agar "Kursus Terpetakan" menampilkan kursus
+                        // posisi yang baru dipilih (dulu tetap posisi pertama).
+                        if (dicentang) setSelected(p.positionId);
+                      }}
                       className="mt-0.5 h-3.5 w-3.5 accent-[#007a5a]"
                     />
                     <span className="min-w-0">

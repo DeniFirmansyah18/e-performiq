@@ -79,8 +79,10 @@ describe('Position–Course Mapping Service (Jalur A)', () => {
     expect(positions.length).toBeGreaterThan(0);
     const swe = positions.find((p) => p.positionId === POS_SWE);
     expect(swe).toBeTruthy();
-    expect(swe!.courses.length).toBe(4);
-    expect(swe!.mappedCount).toBe(4);
+    // Seed memetakan kursus default + kursus onboarding khusus posisi.
+    expect(swe!.courses.length).toBeGreaterThanOrEqual(4);
+    expect(swe!.mappedCount).toBe(swe!.courses.length);
+    expect(swe!.courses.some((c) => /^Onboarding .*Senior Software Engineer/i.test(c.title))).toBe(true);
     expect(swe!.title).toBeTruthy();
   });
 
@@ -95,6 +97,10 @@ describe('Position–Course Mapping Service (Jalur A)', () => {
     const fresh = courses.find((c) => !['ONB-101', 'AKHLAK-CULTURE', 'CLOUD-ARCH', 'PG-ADV'].includes(c.courseCode))!;
     expect(fresh).toBeTruthy();
 
+    // Jumlah kursus terpetakan sebelum ditambah; seed bisa berubah, jadi
+    // dihitung langsung daripada memakai angka tetap.
+    const sebelumTambah = (await listPositionsWithCourses(db)).find((p) => p.positionId === POS_SWE)!.courses.length;
+
     const first = await addPositionCourse(db, { positionId: POS_SWE, courseId: fresh.courseId, isMandatory: true });
     expect(first.ok).toBe(true);
     const second = await addPositionCourse(db, { positionId: POS_SWE, courseId: fresh.courseId, isMandatory: false });
@@ -104,12 +110,12 @@ describe('Position–Course Mapping Service (Jalur A)', () => {
     const swe = mapped.find((p) => p.positionId === POS_SWE)!;
     const item = swe.courses.find((c) => c.courseId === fresh.courseId)!;
     expect(item.isMandatory).toBe(false); // upsert memperbarui flag
-    expect(swe.courses.length).toBe(5);
+    expect(swe.courses.length).toBe(sebelumTambah + 1);
 
     const del = await removePositionCourse(db, POS_SWE, fresh.courseId);
     expect(del.ok).toBe(true);
     const after = (await listPositionsWithCourses(db)).find((p) => p.positionId === POS_SWE)!;
-    expect(after.courses.length).toBe(4);
+    expect(after.courses.length).toBe(sebelumTambah);
   });
 
   it('addPositionCourse menolak posisi/kursus tak dikenal', async () => {
