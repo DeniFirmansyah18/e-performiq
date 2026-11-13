@@ -84,29 +84,35 @@ INSERT INTO employees (id, employee_code, full_name, email, phone_number,
   ('b0000000-0000-4000-8000-000000000011','ASR-2020-0011','Dr. Aris Wicaksono, M.Psi.','aris.assessor@eperformiq.co.id','+62 811-0007-0007','a0000000-0000-4000-8000-000000000105','a0000000-0000-4000-8000-000000000207','b0000000-0000-4000-8000-000000000001','PERMANENT',75000000,'2020-05-01')
 ON CONFLICT (id) DO NOTHING;
 
--- Pegawai uji fase Sebelum Kerja (skenario: sudah berstatus PERMANENT tetapi
--- orientasinya BELUM selesai). Dipakai untuk memverifikasi bahwa fase Saat
--- Kerja & Setelah Kerja terkunci sampai orientasi tuntas.
+-- Pegawai uji yang SUDAH menyelesaikan fase Sebelum Kerja. Dipakai untuk
+-- memverifikasi bahwa pegawai berstatus PERMANENT dapat mengakses seluruh fase
+-- (Saat Kerja & Setelah Kerja terbuka).
 -- Login: dewi.lestari@eperformiq.co.id / enterprise2026
 INSERT INTO employees (id, employee_code, full_name, email, phone_number,
                        department_id, position_id, manager_id, status,
                        base_salary, join_date, employee_phase) VALUES
-  ('b0000000-0000-4000-8000-000000000012','UJI-2026-0012','Dewi Lestari, S.Kom.','dewi.lestari@eperformiq.co.id','+62 812-1200-0012','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',20000000,'2026-10-01','PRE')
+  ('b0000000-0000-4000-8000-000000000012','UJI-2026-0012','Dewi Lestari, S.Kom.','dewi.lestari@eperformiq.co.id','+62 812-1200-0012','a0000000-0000-4000-8000-000000000101','a0000000-0000-4000-8000-000000000204','b0000000-0000-4000-8000-000000000003','PERMANENT',20000000,'2026-10-01','DURING')
 ON CONFLICT (id) DO UPDATE SET
   status = EXCLUDED.status,
   employee_phase = EXCLUDED.employee_phase,
   manager_id = EXCLUDED.manager_id;
 
--- Program orientasi berjalan (belum selesai): status IN_PROGRESS dan belum ada
--- milestone yang lunas, sehingga orientasi terbaca belum tuntas.
-INSERT INTO onboarding_programs (id, employee_id, position_id, status)
-VALUES ('c0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012','a0000000-0000-4000-8000-000000000204','IN_PROGRESS')
-ON CONFLICT (id) DO NOTHING;
+-- Program orientasi SELESAI.
+INSERT INTO onboarding_programs (id, employee_id, position_id, status, completed_at)
+VALUES ('c0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012','a0000000-0000-4000-8000-000000000204','COMPLETED',CURRENT_TIMESTAMP)
+ON CONFLICT (id) DO UPDATE SET
+  status = 'COMPLETED',
+  completed_at = COALESCE(onboarding_programs.completed_at, CURRENT_TIMESTAMP);
 
--- Milestone kosong: skor 30-60-90 belum diisi dan probation_passed belum TRUE.
-INSERT INTO onboarding_milestones (id, employee_id, probation_passed)
-VALUES ('d0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012',FALSE)
-ON CONFLICT (id) DO NOTHING;
+-- Milestone 30-60-90 lunas dan masa percobaan dinyatakan lulus.
+INSERT INTO onboarding_milestones (id, employee_id, day_30_score, day_60_score, day_90_score,
+                                  probation_passed, manager_notes, conversion_date)
+VALUES ('d0000000-0000-4000-8000-000000000012','b0000000-0000-4000-8000-000000000012',88,90,92,TRUE,
+        'Menyelesaikan seluruh orientasi dengan baik.',CURRENT_DATE)
+ON CONFLICT (id) DO UPDATE SET
+  day_30_score = 88, day_60_score = 90, day_90_score = 92,
+  probation_passed = TRUE,
+  conversion_date = COALESCE(onboarding_milestones.conversion_date, CURRENT_DATE);
 
 UPDATE employees SET contract_end_date = '2026-12-31'
  WHERE employee_code = 'EMP-2024-0230' AND contract_end_date IS NULL;
