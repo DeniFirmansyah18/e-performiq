@@ -31,7 +31,6 @@ interface CourseOption {
   moduleCount: number;
 }
 
-interface OerResource { title: string; url: string; provider: string; format?: string; level?: string | null; aiRecommended?: boolean }
 
 /**
  * Panel pemetaan kursus→posisi (Jalur A) untuk HR Command Center.
@@ -46,26 +45,23 @@ export default function PositionCourseMappingPanel() {
   const [filterDept, setFilterDept] = useState('');
   const [cariPosisi, setCariPosisi] = useState('');
   const [pilihBanyak, setPilihBanyak] = useState<string[]>([]);
+  // Penyuntingan kursus & materi oleh HR.
+  const [editKursusId, setEditKursusId] = useState<number | null>(null);
+  const [editKursus, setEditKursus] = useState<{ title: string; category: string; hours: string }>({
+    title: '', category: '', hours: '',
+  });
+  const [bukaModul, setBukaModul] = useState<number | null>(null);
+  const [modulList, setModulList] = useState<Array<{ id: number; title: string; contentType: string; contentUrl: string | null }>>([]);
+  const [modulLoading, setModulLoading] = useState(false);
+  const [editModulId, setEditModulId] = useState<number | null>(null);
+  const [modulForm, setModulForm] = useState<{ title: string; contentUrl: string }>({ title: '', contentUrl: '' });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [pickCourse, setPickCourse] = useState<string>('');
-  const [oerQuery, setOerQuery] = useState('');
-  const [oerResults, setOerResults] = useState<OerResource[] | null>(null);
-  const [oerBusy, setOerBusy] = useState(false);
-  const [oerErr, setOerErr] = useState<string | null>(null);
-  const [oerAiUsed, setOerAiUsed] = useState(false);
 
   // Form katalog kursus manual.
-  const [showCatalogForm, setShowCatalogForm] = useState(false);
-  const [catTitle, setCatTitle] = useState('');
-  const [catCategory, setCatCategory] = useState('');
-  const [catHours, setCatHours] = useState('');
-  const [catDesc, setCatDesc] = useState('');
-  const [catMandatory, setCatMandatory] = useState(true);
-  const [catBusy, setCatBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -120,6 +116,88 @@ export default function PositionCourseMappingPanel() {
     }
   }
 
+  /** Muat daftar materi sebuah kursus. */
+  async function muatMateri(courseId: number) {
+    setModulLoading(true);
+    try {
+      const res = await fetch(`/api/v1/learning/courses/${courseId}`);
+      const json = await res.json().catch(() => ({}));
+      setModulList(res.ok ? (json?.data?.modules ?? []) : []);
+      if (!res.ok) setErr(json?.detail || 'Gagal memuat materi kursus.');
+    } catch {
+      setModulList([]);
+      setErr('Gagal memuat materi kursus.');
+    } finally {
+      setModulLoading(false);
+    }
+  }
+
+  /** Buka/tutup daftar materi kursus. */
+  async function bukaMateri(courseId: number) {
+    if (bukaModul === courseId) { setBukaModul(null); return; }
+    setBukaModul(courseId);
+    setEditModulId(null);
+    setModulForm({ title: '', contentUrl: '' });
+    await muatMateri(courseId);
+  }
+
+  /** Simpan perubahan atribut kursus (judul/kategori/jam). */
+  async function simpanEditKursus(courseId: number) {
+    setBusy(true); setMsg(null); setErr(null);
+    try {
+      const res = await fetch(`/api/v1/learning/courses/${courseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editKursus.title.trim(),
+          category: editKursus.category.trim() || null,
+          hours: editKursus.hours === '' ? undefined : Number(editKursus.hours),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setErr(json?.detail || 'Gagal memperbarui kursus.'); return; }
+      setMsg('Kursus diperbarui.');
+      setEditKursusId(null);
+      await load();
+    } catch {
+      setErr('Gagal memperbarui kursus.');
+    } finally { setBusy(false); }
+  }
+
+  /** Tambah materi baru, atau simpan perubahan materi yang sedang diedit. */
+  async function simpanMateri(courseId: number) {
+    setBusy(true); setMsg(null); setErr(null);
+    try {
+      const payload = {
+        title: modulForm.title.trim(),
+        contentUrl: modulForm.contentUrl.trim() || null,
+        contentType: modulForm.contentUrl.trim() ? 'VIDEO' : 'TEXT',
+      };
+      const url = editModulId
+        ? `/api/v1/learning/modules/${editModulId}`
+        : `/api/v1/learning/courses/${courseId}`;
+      const res = await fetch(url, {
+        method: editModulId ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setErr(json?.detail || 'Gagal menyimpan materi.'); return; }
+      setMsg(editModulId ? 'Materi diperbarui.' : 'Materi ditambahkan.');
+      setEditModulId(null);
+      setModulForm({ title: '', contentUrl: '' });
+      await muatMateri(courseId);
+    } catch {
+      setErr('Gagal menyimpan materi.');
+    } finally { setBusy(false); }
+  }
+
+  /** Isi form materi dengan data modul yang akan diubah. */
+  function mulaiEditModul(m: { id: number; title: string; contentUrl: string | null }) {
+    setEditModulId(m.id);
+    setModulForm({ title: m.title, contentUrl: m.contentUrl ?? '' });
+  }
+
   async function addMapping(courseId: number, isMandatory = true) {
     if (tujuanPemetaan.length === 0) return;
     setBusy(true); setMsg(null); setErr(null);
@@ -128,7 +206,6 @@ export default function PositionCourseMappingPanel() {
       if (tujuanPemetaan.length > 1) {
         await petakanKeSemua(courseId, isMandatory);
         setMsg(`Kursus dipetakan ke ${tujuanPemetaan.length} posisi.`);
-        setPickCourse('');
         await load();
         return;
       }
@@ -140,7 +217,6 @@ export default function PositionCourseMappingPanel() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setErr(json?.detail || 'Gagal menambah mapping.'); return; }
       setMsg('Kursus berhasil dipetakan ke posisi.');
-      setPickCourse('');
       await load();
     } catch {
       setErr('Gagal menambah mapping.');
@@ -195,60 +271,7 @@ export default function PositionCourseMappingPanel() {
     } finally { setBusy(false); }
   }
 
-  async function searchOer() {
-    const q = oerQuery.trim();
-    setOerBusy(true);
-    setOerErr(null);
-    setOerResults(null);
-    try {
-      const params = new URLSearchParams();
-      if (q) params.set('q', q);
-      if (selected) params.set('positionId', selected);
-      const res = await fetch(`/api/v1/learning/oer?${params.toString()}`);
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setOerErr('Gagal mencari materi OER.');
-        return;
-      }
-      setOerAiUsed(!!json.data?.aiUsed);
-      setOerResults(Array.isArray(json.data?.results) ? json.data.results : []);
-    } catch {
-      setOerErr('Gagal mencari materi OER. Periksa koneksi.');
-    } finally {
-      setOerBusy(false);
-    }
-  }
 
-  async function createCatalogCourse() {
-    const title = catTitle.trim();
-    if (!title) { setErr('Judul kursus wajib diisi.'); return; }
-    setCatBusy(true); setMsg(null); setErr(null);
-    try {
-      const res = await fetch('/api/v1/learning/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          category: catCategory.trim() || null,
-          description: catDesc.trim() || null,
-          defaultHours: catHours ? Number(catHours) : 0,
-          isMandatory: catMandatory,
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setErr(json?.detail || 'Gagal menambah kursus.'); return; }
-      const newId = json?.data?.courseId;
-      setMsg(`Kursus "${title}" ditambahkan ke katalog${json?.data?.courseCode ? ` (${json.data.courseCode})` : ''}.`);
-      setCatTitle(''); setCatCategory(''); setCatHours(''); setCatDesc(''); setCatMandatory(true);
-      await load();
-      // Auto-petakan ke posisi terpilih.
-      if (newId && selected) await addMapping(Number(newId), catMandatory);
-    } catch {
-      setErr('Gagal menambah kursus.');
-    } finally {
-      setCatBusy(false);
-    }
-  }
 
   return (
     <div className="stitch-card-white p-6 space-y-4">
@@ -377,181 +400,221 @@ export default function PositionCourseMappingPanel() {
           )}
 
           <div>
-            <h3 className="text-xs font-bold text-[#334155] mb-2">
-              Kursus Terpetakan{pilihBanyak.length > 1 ? ' (posisi pertama)' : ''}
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 className="text-xs font-bold text-[#334155]">
+                Kursus Terpetakan{pilihBanyak.length > 1 ? ' (posisi pertama)' : ''}
+              </h3>
+              {current && current.courses.length > 0 && (
+                <p className="text-[10px] text-[#64748b]">
+                  AI sudah menyiapkan kursus &amp; materi OER gratis. Anda dapat menyesuaikannya.
+                </p>
+              )}
+            </div>
             {!current || current.courses.length === 0 ? (
-              <p className="text-xs text-[#64748b]">Belum ada kursus dipetakan ke posisi ini. Tambahkan dari katalog atau generate dengan AI.</p>
+              <p className="text-xs text-[#64748b] bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-xl px-3 py-4">
+                Belum ada kursus. Pilih posisi lalu klik <strong>Generate dengan AI</strong> — kursus dan materi
+                OER gratis akan dibuat otomatis sesuai kebutuhan posisi.
+              </p>
             ) : (
               <div className="space-y-2">
-                {current.courses.map((c) => (
-                  <div key={c.courseId} className="flex items-center justify-between gap-3 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2">
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-bold text-[#0f172a] truncate">{c.title}</div>
-                      <div className="text-[10px] text-[#64748b] font-mono">{c.courseCode} · {c.category ?? 'Umum'} · {c.defaultHours} jam</div>
+                {current.courses.map((c) => {
+                  const sedangEdit = editKursusId === c.courseId;
+                  const sedangBuka = bukaModul === c.courseId;
+                  return (
+                    <div key={c.courseId} className="rounded-xl border border-[#e2e8f0] bg-white">
+                      <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-bold text-[#0f172a] truncate">{c.title}</div>
+                          <div className="text-[10px] text-[#64748b] font-mono">
+                            {c.courseCode} · {c.category ?? 'Umum'} · {c.defaultHours} jam
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => void bukaMateri(c.courseId)}
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-[#e2e8f0] text-[#334155] hover:bg-[#f8fafc]"
+                          >
+                            {sedangBuka ? 'Tutup materi' : 'Materi'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditKursusId(sedangEdit ? null : c.courseId);
+                              setEditKursus({
+                                title: c.title,
+                                category: c.category ?? '',
+                                hours: String(c.defaultHours),
+                              });
+                            }}
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-[#e2e8f0] text-[#334155] hover:bg-[#f8fafc]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleMandatory(c)}
+                            disabled={busy}
+                            className={`text-[10px] font-bold px-2 py-1 rounded ${c.isMandatory ? 'bg-[#ecfdf5] text-[#047857]' : 'bg-[#f1f5f9] text-[#64748b]'}`}
+                          >
+                            {c.isMandatory ? 'WAJIB' : 'OPSIONAL'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeMapping(c.courseId)}
+                            disabled={busy}
+                            className="text-[10px] font-bold px-2 py-1 rounded bg-[#fef2f2] text-[#b91c1c]"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Form ubah kursus */}
+                      {sedangEdit && (
+                        <div className="border-t border-[#f1f5f9] px-3 py-2.5 space-y-2 bg-[#fbfdfc]">
+                          <input
+                            value={editKursus.title}
+                            onChange={(e) => setEditKursus({ ...editKursus, title: e.target.value })}
+                            placeholder="Judul kursus"
+                            className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              value={editKursus.category}
+                              onChange={(e) => setEditKursus({ ...editKursus, category: e.target.value })}
+                              placeholder="Kategori"
+                              className="rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              value={editKursus.hours}
+                              onChange={(e) => setEditKursus({ ...editKursus, hours: e.target.value })}
+                              placeholder="Jam belajar"
+                              className="rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void simpanEditKursus(c.courseId)}
+                              disabled={busy || !editKursus.title.trim()}
+                              className="rounded-lg bg-[#007a5a] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                            >
+                              Simpan kursus
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditKursusId(null)}
+                              className="rounded-lg border border-[#e2e8f0] px-3 py-1.5 text-[11px] font-semibold text-[#475569]"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Daftar materi/OER kursus + tambah materi sendiri */}
+                      {sedangBuka && (
+                        <div className="border-t border-[#f1f5f9] px-3 py-2.5 space-y-2">
+                          {modulLoading ? (
+                            <p className="text-[11px] text-[#64748b]">Memuat materi…</p>
+                          ) : modulList.length === 0 ? (
+                            <p className="text-[11px] text-[#64748b]">Belum ada materi pada kursus ini.</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {modulList.map((m) => (
+                                <li key={m.id} className="flex items-start justify-between gap-2 rounded-lg border border-[#e2e8f0] px-2.5 py-1.5">
+                                  <div className="min-w-0">
+                                    <p className="text-[11px] font-semibold text-[#0f172a] truncate">{m.title}</p>
+                                    <p className="text-[10px] text-[#64748b]">
+                                      {m.contentType}
+                                      {m.contentUrl ? (
+                                        <>
+                                          {' · '}
+                                          <a
+                                            href={m.contentUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-[#007a5a] underline break-all"
+                                          >
+                                            buka materi
+                                          </a>
+                                        </>
+                                      ) : (
+                                        ' · tanpa tautan'
+                                      )}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => mulaiEditModul(m)}
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded border border-[#e2e8f0] text-[#334155] shrink-0"
+                                  >
+                                    Edit
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* Form materi: tambah baru atau ubah yang dipilih */}
+                          <div className="rounded-lg border border-[#e2e8f0] bg-[#fbfdfc] p-2.5 space-y-1.5">
+                            <p className="text-[10px] font-bold text-[#334155]">
+                              {editModulId ? 'Ubah materi' : 'Tambah materi sendiri'}
+                            </p>
+                            <input
+                              value={modulForm.title}
+                              onChange={(e) => setModulForm({ ...modulForm, title: e.target.value })}
+                              placeholder="Judul materi"
+                              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
+                            />
+                            <input
+                              value={modulForm.contentUrl}
+                              onChange={(e) => setModulForm({ ...modulForm, contentUrl: e.target.value })}
+                              placeholder="Tautan materi (open.edu, learn.microsoft.com, ocw.mit.edu, …)"
+                              className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void simpanMateri(c.courseId)}
+                                disabled={busy || !modulForm.title.trim()}
+                                className="rounded-lg bg-[#007a5a] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                              >
+                                {editModulId ? 'Simpan materi' : 'Tambah materi'}
+                              </button>
+                              {editModulId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditModulId(null);
+                                    setModulForm({ title: '', contentUrl: '' });
+                                  }}
+                                  className="rounded-lg border border-[#e2e8f0] px-3 py-1.5 text-[11px] font-semibold text-[#475569]"
+                                >
+                                  Batal
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-[#94a3b8]">
+                              Hanya tautan materi gratis dari penyedia tepercaya yang diterima.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => toggleMandatory(c)}
-                        disabled={busy}
-                        className={`text-[10px] font-bold px-2 py-1 rounded ${c.isMandatory ? 'bg-[#ecfdf5] text-[#047857]' : 'bg-[#f1f5f9] text-[#64748b]'}`}
-                      >
-                        {c.isMandatory ? 'WAJIB' : 'OPSIONAL'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeMapping(c.courseId)}
-                        disabled={busy}
-                        className="text-[10px] font-bold px-2 py-1 rounded bg-[#fef2f2] text-[#b91c1c]"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#f1f5f9]">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-bold text-[#334155]">Tambah dari Katalog Kursus</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowCatalogForm((v) => !v)}
-                  className="text-[10px] font-bold text-[#007a5a] hover:underline"
-                >
-                  {showCatalogForm ? 'Tutup form' : '+ Katalog kursus baru'}
-                </button>
-              </div>
+          {/* Kursus baru ditambahkan lewat "Generate dengan AI" (otomatis
+              sesuai posisi & kebutuhan) atau lewat form materi di bawah.
+              Katalog manual lama sengaja dihapus agar alurnya sederhana. */}
 
-              {showCatalogForm && (
-                <div className="mb-3 rounded-xl border border-[#e2e8f0] bg-[#fbfdfc] p-3 space-y-2">
-                  <input
-                    value={catTitle}
-                    onChange={(e) => setCatTitle(e.target.value)}
-                    placeholder="Judul kursus (wajib) *"
-                    className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={catCategory}
-                      onChange={(e) => setCatCategory(e.target.value)}
-                      placeholder="Kategori (mis. Teknis)"
-                      className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
-                    />
-                    <input
-                      value={catHours}
-                      onChange={(e) => setCatHours(e.target.value)}
-                      type="number"
-                      min="0"
-                      placeholder="Jam belajar"
-                      className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
-                    />
-                  </div>
-                  <textarea
-                    value={catDesc}
-                    onChange={(e) => setCatDesc(e.target.value)}
-                    rows={2}
-                    placeholder="Deskripsi singkat (opsional)"
-                    className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
-                  />
-                  <label className="flex items-center gap-2 text-[11px] text-[#334155]">
-                    <input type="checkbox" checked={catMandatory} onChange={(e) => setCatMandatory(e.target.checked)} className="rounded" />
-                    Wajib untuk posisi ini
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => void createCatalogCourse()}
-                    disabled={catBusy || !catTitle.trim()}
-                    className="rounded-lg bg-[#007a5a] px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
-                  >
-                    {catBusy ? 'Menyimpan…' : 'Simpan & Petakan'}
-                  </button>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <select
-                  value={pickCourse}
-                  onChange={(e) => setPickCourse(e.target.value)}
-                  className="flex-1 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
-                >
-                  <option value="">Pilih kursus…</option>
-                  {courses.map((c) => (
-                    <option key={c.courseId} value={c.courseId}>
-                      {c.title} ({c.courseCode}, {c.moduleCount} modul)
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => pickCourse && addMapping(Number(pickCourse))}
-                  disabled={busy || !pickCourse}
-                  className="rounded-lg bg-[#0f172a] px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  Tambah
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold text-[#334155] mb-2">Cari Materi OER Gratis (AI)</h3>
-              <p className="text-[10px] text-[#94a3b8] mb-2">Rekomendasi AI mengacu Professional Learning Module perusahaan &amp; posisi terpilih. Hasil PDF/DOC/video dari portal gratis tepercaya.</p>
-              <div className="flex gap-2">
-                <input
-                  value={oerQuery}
-                  onChange={(e) => setOerQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void searchOer(); } }}
-                  placeholder="mis. typescript, leadership, k3"
-                  className="flex-1 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
-                />
-                <button
-                  type="button"
-                  onClick={() => void searchOer()}
-                  disabled={oerBusy}
-                  className="rounded-lg bg-[#007a5a] px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  {oerBusy ? 'Mencari…' : 'Cari'}
-                </button>
-              </div>
-
-              {oerErr && (
-                <p className="mt-2 text-[11px] text-[#b91c1c] bg-[#fef2f2] px-2 py-1.5 rounded-lg">{oerErr}</p>
-              )}
-
-              {oerResults === null && !oerErr ? (
-                <p className="mt-2 text-[10px] text-[#94a3b8]">Kotak kosong = pakai skill posisi terpilih sebagai kata kunci otomatis. Tekan Enter atau klik Cari.</p>
-              ) : oerResults && oerResults.length === 0 ? (
-                <p className="mt-2 text-[11px] text-[#64748b] bg-[#f8fafc] border border-[#e2e8f0] px-3 py-2 rounded-lg">
-                  Tidak ada materi OER untuk &ldquo;{oerQuery.trim() || '(skill posisi)'}&rdquo;. Coba kata kunci lain seperti <em>typescript</em>, <em>cloud</em>, <em>leadership</em>, atau <em>k3</em>.
-                </p>
-              ) : oerResults ? (
-                <>
-                  <p className="mt-1.5 text-[10px] font-semibold text-[#047857]">
-                    {oerAiUsed ? 'Direkomendasikan AI' : 'Dari katalog terkurasi'} · {oerResults.length} materi
-                  </p>
-                  <ul className="mt-2 space-y-1.5">
-                    {oerResults.map((r) => (
-                      <li key={r.url} className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
-                        <a href={r.url} target="_blank" rel="noreferrer" className="text-[12px] font-bold text-[#0f172a] hover:text-[#007a5a] hover:underline">
-                          {r.title}
-                        </a>
-                        <div className="text-[10px] text-[#64748b] mt-0.5 flex flex-wrap items-center gap-1.5">
-                          <span className="inline-block px-1.5 py-0.5 rounded bg-[#ecfdf5] text-[#047857] font-bold">{r.provider}</span>
-                          {r.format && <span className="inline-block px-1.5 py-0.5 rounded bg-[#eff6ff] text-[#1d4ed8] font-bold">{r.format}</span>}
-                          {r.level && <span className="text-[#94a3b8]">{r.level}</span>}
-                          <span className="break-all">{r.url}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-            </div>
-          </div>
         </>
       )}
     </div>
