@@ -39,12 +39,8 @@ CalendarDays,
 BookOpen,
 } from 'lucide-react';
 import PaySlipModal from '@/components/employee/PaySlipModal';
-import CareerPathModal from '@/components/employee/CareerPathModal';
-import HelpdeskChatbotDrawer from '@/components/employee/HelpdeskChatbotDrawer';
 import ReimbursementModal from '@/components/employee/ReimbursementModal';
 import HelpdeskTicketModal from '@/components/employee/HelpdeskTicketModal';
-import KpiEvidenceUploadModal from '@/components/employee/KpiEvidenceUploadModal';
-import FinalizationRequestModal from '@/components/employee/FinalizationRequestModal';
 import JobBoardModal from '@/components/employee/JobBoardModal';
 import LearningModule from '@/components/employee/LearningModule';
 import OnboardingPanel from '@/components/employee/OnboardingPanel';
@@ -59,7 +55,6 @@ import DisciplinaryModal from '@/components/employee/DisciplinaryModal';
 import CareerLadderPanel from '@/components/employee/CareerLadderPanel';
 import LetterInboxModal from '@/components/employee/LetterInboxModal';
 import PolicyLibraryModal from '@/components/employee/PolicyLibraryModal';
-import ChatDrawer from '@/components/employee/ChatDrawer';
 import ActivityFeedPanel from '@/components/employee/ActivityFeedPanel';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
@@ -123,18 +118,13 @@ const [isLegacyOpen, setIsLegacyOpen] = useState(false);
 
 // Govera360 Modals
 const [isPayslipOpen, setIsPayslipOpen] = useState(false);
-const [isCareerOpen, setIsCareerOpen] = useState(false);
-const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 const [isReimbursementOpen, setIsReimbursementOpen] = useState(false);
 const [isTicketOpen, setIsTicketOpen] = useState(false);
-const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
 const [isJobBoardOpen, setIsJobBoardOpen] = useState(false);
-const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
 const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
 const [isDisciplinaryOpen, setIsDisciplinaryOpen] = useState(false);
 const [isLetterOpen, setIsLetterOpen] = useState(false);
 const [isPolicyOpen, setIsPolicyOpen] = useState(false);
-const [isChatOpen, setIsChatOpen] = useState(false);
 const [isDownloadingKpi, setIsDownloadingKpi] = useState(false);
 // Modul Cuti / Leave (fase DURING–POST): pengajuan + riwayat.
 const [isLeaveOpen, setIsLeaveOpen] = useState(false);
@@ -632,6 +622,26 @@ const grupLayanan: Array<{
   }>;
 }> = [
   {
+    // "Profil & Bantuan" diletakkan PALING AWAL: data pribadi dan kanal bantuan
+    // adalah yang paling sering dibuka pegawai.
+    judul: 'Profil & Bantuan',
+    ket: 'Data pribadi Anda dan kanal bantuan internal.',
+    aksi: [
+      {
+        icon: UserCheck, tone: 'emerald', title: 'Profil Saya', tag: 'Self-Service',
+        description: 'Data pribadi, BPJS, serta kelengkapan berkas kepegawaian Anda.',
+        // Dibuka sebagai panel di bawah kartu (bukan modal), seperti
+        // "Absensi & Timesheet Harian".
+        onClick: () => setOpenFeature('profile'),
+      },
+      {
+        icon: MessageSquare, tone: 'emerald', title: 'Tiket Bantuan', tag: 'Helpdesk',
+        description: 'Laporkan kendala atau ajukan permintaan dukungan internal.',
+        onClick: () => setIsTicketOpen(true),
+      },
+    ],
+  },
+  {
     // Kinerja & Penilaian diletakkan PALING AWAL: ini fokus utama pegawai.
     // Kartu "Target Kerja" dan "Nilai Kinerja" (dulu berupa FeatureCard
     // terpisah di atas) dipindahkan ke grup ini.
@@ -652,16 +662,9 @@ const grupLayanan: Array<{
               onClick: () => setOpenFeature('scorecard'),
             },
           ]),
-      {
-        icon: Send, tone: 'emerald', title: `Ajukan Finalisasi ${periodShortLabel}`, tag: 'Self-Appraisal',
-        description: `Kirim pengajuan finalisasi penilaian kinerja periode ${periodShortLabel} kepada atasan.`,
-        onClick: () => setIsFinalizeOpen(true),
-      },
-      {
-        icon: Bookmark, tone: 'emerald', title: 'Unggah Bukti', tag: 'Evidence',
-        description: 'Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI.',
-        onClick: () => setIsEvidenceOpen(true),
-      },
+      // Unggah Bukti & Ajukan Finalisasi dihapus: penilaian kinerja
+      // finalisasi dilakukan HR/BOD lewat modul penilaian, bukan diajukan
+      // sendiri oleh pegawai.
       {
         icon: Download, tone: 'emerald', title: 'Unduh Portofolio KPI', tag: 'Dokumen',
         description: 'Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF.',
@@ -722,53 +725,22 @@ const grupLayanan: Array<{
         onClick: () => setIsPolicyOpen(true),
       },
       {
-        icon: AlertTriangle, tone: 'emerald', title: 'Sanksi & Penghargaan', tag: 'Transparan',
-        description: 'Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan.',
+        icon: AlertTriangle, tone: 'emerald', title: 'Sanksi & Pelanggaran', tag: 'Poin & Riwayat',
+        description: 'Lihat sanksi, poin pelanggaran yang Anda terima dari HR, masa berlaku, dan ajukan keberatan.',
         onClick: () => setIsDisciplinaryOpen(true),
       },
     ],
   },
   {
     judul: 'Karir & Pengembangan',
-    ket: 'Jalur karir dan peluang di dalam perusahaan.',
+    ket: 'Peluang mobilitas di dalam perusahaan.',
     aksi: [
-      {
-        icon: Compass, tone: 'emerald', title: 'Peta Karir & Moodle', tag: 'Karir',
-        description: 'Telusuri jalur karir dan lanjutkan modul pembelajaran Moodle Anda.',
-        onClick: () => setIsCareerOpen(true),
-      },
+      // "Peta Karir & Moodle" dihapus: pengembangan kini lewat onboarding &
+      // kursus terpetakan yang dikelola HR.
       {
         icon: Briefcase, tone: 'emerald', title: 'Bursa Kerja Internal', tag: 'Mobilitas',
-        description: 'Jelajahi peluang rotasi dan posisi internal yang tersedia.',
+        description: 'Lamar posisi internal lain bila kualifikasi, departemen, dan masa kontrak Anda memenuhi syarat.',
         onClick: () => setIsJobBoardOpen(true),
-      },
-    ],
-  },
-  {
-    judul: 'Profil & Bantuan',
-    ket: 'Data pribadi Anda dan kanal bantuan internal.',
-    aksi: [
-      {
-        icon: UserCheck, tone: 'emerald', title: 'Profil Saya', tag: 'Self-Service',
-        description: 'Data pribadi, BPJS, serta kelengkapan berkas kepegawaian Anda.',
-        // Dibuka sebagai panel di bawah kartu (bukan modal), seperti
-        // "Absensi & Timesheet Harian".
-        onClick: () => setOpenFeature('profile'),
-      },
-      {
-        icon: MessageSquare, tone: 'emerald', title: 'Chat Pimpinan', tag: 'Komunikasi',
-        description: 'Percakapan langsung atau grup dengan atasan, lengkap dengan riwayat yang tidak bisa dihapus sepihak.',
-        onClick: () => setIsChatOpen(true),
-      },
-      {
-        icon: Bot, tone: 'emerald', title: 'Tanya Chatbot HR', tag: 'Bantuan',
-        description: 'Ajukan pertanyaan seputar kebijakan HR & tata kelola perusahaan.',
-        onClick: () => setIsChatbotOpen(true),
-      },
-      {
-        icon: MessageSquare, tone: 'emerald', title: 'Tiket Bantuan', tag: 'Helpdesk',
-        description: 'Laporkan kendala atau ajukan permintaan dukungan internal.',
-        onClick: () => setIsTicketOpen(true),
       },
     ],
   },
@@ -2295,12 +2267,7 @@ return (
     <DisciplinaryModal open={isDisciplinaryOpen} onClose={() => setIsDisciplinaryOpen(false)} />
     <LetterInboxModal open={isLetterOpen} onClose={() => setIsLetterOpen(false)} />
     <PolicyLibraryModal open={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} />
-    <ChatDrawer open={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
-  <CareerPathModal
-    isOpen={isCareerOpen}
-    onClose={() => setIsCareerOpen(false)}
-  />
 
   <ReimbursementModal
     isOpen={isReimbursementOpen}
@@ -2314,12 +2281,6 @@ return (
     onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
   />
 
-  <KpiEvidenceUploadModal
-    isOpen={isEvidenceOpen}
-    onClose={() => setIsEvidenceOpen(false)}
-    onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
-    kpiOptions={kpis.map((k: any) => ({ id: k.kpi_id ?? k.id, title: k.kpi_title }))}
-  />
 
   <JobBoardModal
     isOpen={isJobBoardOpen}
@@ -2327,18 +2288,7 @@ return (
     onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
   />
 
-  <HelpdeskChatbotDrawer
-    isOpen={isChatbotOpen}
-    onClose={() => setIsChatbotOpen(false)}
-  />
 
-  <FinalizationRequestModal
-    isOpen={isFinalizeOpen}
-    onClose={() => setIsFinalizeOpen(false)}
-    onSuccess={(msg) => setStatusMsg({ type: 'success', text: msg })}
-    periodId={selectedPeriod}
-    periodLabel={periodShortLabel}
-  />
 
 </div>
 );
