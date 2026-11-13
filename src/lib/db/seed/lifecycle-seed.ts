@@ -562,6 +562,13 @@ export async function seedLifecycle(client: SqlClient, opts: LifecycleSeedOption
      4, 'COMPLETE', 'Menyelesaikan kursus onboarding dengan nilai 92.', ${ts('2026-04-20T03:00:00Z')})
     ON CONFLICT (id) DO NOTHING;`);
 
+  // Penanda selesai modul pertama ONB-101 untuk Budi.
+  // CATATAN: INSERT ... ON CONFLICT DO NOTHING saja tidak cukup — setelah isi
+  // kursus dibangun ulang, baris lama tetap menunjuk modul yang sudah dihapus
+  // (foreign key menjadi yatim), sehingga modul baru tampak belum selesai.
+  // Karena itu baris lama dihapus lebih dulu agar penanda selalu menunjuk
+  // modul yang benar-benar ada.
+  await client.exec(`DELETE FROM course_completions WHERE id = ${q(ID.completion1)};`);
   await client.exec(`INSERT INTO course_completions (id, employee_id, course_id, module_id, completed_at) VALUES
     (${q(ID.completion1)}, ${q(EMP.budi)},
      (SELECT id FROM moodle_courses WHERE course_code = ${q(REF.courseOnboarding)} LIMIT 1),

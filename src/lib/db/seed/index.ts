@@ -6,6 +6,7 @@ import { ASSESSMENT_TEMPLATES, type SeedQuestion } from './assessment-seed';
 import { SEED_MAJORS, SEED_INSTITUTIONS } from './education-seed';
 import { seedLifecycle } from './lifecycle-seed';
 import { seedTalentAndContracts } from './talent-contract-seed';
+import { seedMateriKursusDefault } from './learning-default-seed';
 import { seedJobPostings } from './career-seed';
 
 export const DEMO_PASSWORD = 'enterprise2026';
@@ -585,6 +586,9 @@ ON CONFLICT (id) DO NOTHING;
 
   await seedAssessmentBank(client);
   await seedPositionCourses(client);
+  // Materi + kuis kursus default (ONB-101, AKHLAK-CULTURE): kuis disusun
+  // otomatis dari isi materinya agar pertanyaan selalu sesuai materi.
+  await seedMateriKursusDefault(client);
   await seedEducationReference(client);
   await seedLifecycle(client, { hash });
   await seedTalentAndContracts(client);

@@ -63,6 +63,8 @@ export default function PositionCourseMappingPanel() {
   const [cariMateri, setCariMateri] = useState('');
   const [cariBusy, setCariBusy] = useState(false);
   const [hasilCari, setHasilCari] = useState<Array<{ title: string; url: string; provider: string }>>([]);
+  // Ringkasan hasil generate terakhir (posisi → kursus yang dibuat).
+  const [hasilGenerate, setHasilGenerate] = useState<Array<{ positionId: string; courseId: number | null; title: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -319,21 +321,56 @@ export default function PositionCourseMappingPanel() {
   }
 
   async function generateWithAi() {
-    if (!selected) return;
-    setBusy(true); setMsg(null); setErr(null);
-    try {
-      const res = await fetch('/api/v1/learning/position-courses/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ positionId: selected, useAi: true }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setErr(json?.detail || 'Gagal generate kurikulum.'); return; }
-      setMsg(`${json?.message ?? 'Kurikulum dibuat.'} (${json?.data?.modules?.length ?? 0} modul, ${json?.data?.oerCount ?? 0} materi OER)`);
-      await load();
-    } catch {
-      setErr('Gagal generate kurikulum.');
-    } finally { setBusy(false); }
+    if (tujuanPemetaan.length === 0) return;
+    setBusy(true); setMsg(null); setErr(null); setHasilGenerate([]);
+
+    // Generate untuk SETIAP posisi terpilih agar kursus selalu sesuai posisi.
+    let jumlahModul = 0;
+    let jumlahOer = 0;
+    const dibuat: Array<{ positionId: string; courseId: number | null; title: string }> = [];
+    let gagal = 0;
+
+    for (const positionId of tujuanPemetaan) {
+      try {
+        const res = await fetch('/api/v1/learning/position-courses/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ positionId, useAi: true }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) { gagal++; continue; }
+
+        jumlahModul += json?.data?.modules?.length ?? 0;
+        jumlahOer += json?.data?.oerCount ?? 0;
+
+        // Cari kursus onboarding milik posisi ini pada respons.
+        const kursus: any[] = json?.data?.positionCourses ?? [];
+        const onb = kursus.find((c: any) => /^Onboarding /i.test(String(c.title ?? '')));
+        if (onb) dibuat.push({ positionId, courseId: Number(onb.courseId ?? onb.id ?? 0) || null, title: onb.title });
+      } catch {
+        gagal++;
+      }
+    }
+
+    await load();
+
+    // Tampilkan ringkasannya agar HR tahu apa yang dihasilkan.
+    setHasilGenerate(dibuat);
+    if (gagal === tujuanPemetaan.length) {
+      setErr('Gagal generate kurikulum untuk semua posisi terpilih.');
+    } else {
+      setMsg(
+        `Kurikulum dibuat untuk ${dibuat.length} posisi · ${jumlahModul} modul · ${jumlahOer} materi OER gratis.` +
+          (gagal ? ` (${gagal} posisi gagal)` : '')
+      );
+    }
+
+    // Buka kursus onboarding posisi pertama agar materinya langsung terlihat.
+    if (dibuat[0]?.courseId) {
+      setBukaModul(null);
+      await bukaMateri(dibuat[0].courseId);
+    }
+    setBusy(false);
   }
 
 
@@ -350,6 +387,30 @@ export default function PositionCourseMappingPanel() {
 
       {err && <p className="text-xs text-[#b91c1c] bg-[#fef2f2] px-3 py-2 rounded-lg">{err}</p>}
       {msg && <p className="text-xs text-[#047857] bg-[#ecfdf5] px-3 py-2 rounded-lg">{msg}</p>}
+
+      {/* Ringkasan kursus yang baru dibuat AI agar langsung terlihat. */}
+      {hasilGenerate.length > 0 && (
+        <div className="rounded-xl border border-[#b7e1cd] bg-[#f6fdf9] px-3 py-2">
+          <p className="text-[11px] font-bold text-[#0f172a] mb-1">Kursus dibuat oleh AI</p>
+          <ul className="space-y-0.5">
+            {hasilGenerate.map((h) => (
+              <li key={h.positionId} className="text-[11px] text-[#334155] flex items-center gap-1.5">
+                <span className="text-[#137333]">•</span>
+                <span className="truncate">{h.title}</span>
+                {h.courseId && (
+                  <button
+                    type="button"
+                    onClick={() => void bukaMateri(h.courseId!)}
+                    className="text-[10px] font-bold text-[#007a5a] underline shrink-0"
+                  >
+                    lihat materi
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {loading ? (
         <p className="text-xs text-[#64748b]">Memuat…</p>
       ) : positions.length === 0 ? (
