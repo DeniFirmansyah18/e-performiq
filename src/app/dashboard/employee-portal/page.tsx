@@ -67,13 +67,13 @@ type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet' | 'prof
 
 export default function EmployeePortalPage() {
   const { currentUser } = useAuth();
-  // BOD hanya memantau dan tidak dinilai: modul penilaian diri disembunyikan
-  // agar tidak muncul halaman KPI/Self-Appraisal yang selalu kosong.
+  // BOD adalah pengawas tertinggi dan tidak dinilai lewat portal, sehingga
+  // modul penilaian diri disembunyikan agar tidak menampilkan halaman kosong.
   const isPengawas = currentUser?.role === 'BOD';
-  // HR menilai karyawan, bukan dinilai lewat portal: kartu Indikator Pencapaian
-  // Target dan modul penilaian diri tidak ditampilkan untuknya.
-  const isPenilai = currentUser?.role === 'HR_MANAGER';
-  const sembunyikanPenilaian = isPengawas || isPenilai;
+  // CATATAN: HR_MANAGER dan PEOPLE_MANAGER TETAP melihat penilaian dirinya.
+  // HR dinilai oleh BOD dan People Manager dinilai oleh HR — keduanya harus
+  // dapat memantau KPI, nilai kinerja, dan slip gaji sendiri dari portal.
+  const sembunyikanPenilaian = isPengawas;
   // Dashboard asal per peran, untuk tombol kembali.
   const dashboardAsal: Record<string, { href: string; label: string }> = {
     HR_MANAGER: { href: '/dashboard/hr-command', label: 'HR Command Center' },

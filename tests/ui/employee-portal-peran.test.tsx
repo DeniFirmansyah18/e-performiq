@@ -30,12 +30,30 @@ afterEach(() => {
 });
 
 describe('Employee Growth Portal — kerangka per peran', () => {
-  it('HR tidak melihat "Indikator Pencapaian Target" (kartu penilaian diri)', async () => {
+  it('BOD tidak melihat "Indikator Pencapaian Target" (tidak dinilai lewat portal)', async () => {
+    stub();
+    roleRef.current = 'BOD';
+    render(<EmployeePortalPage />);
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Saat Kerja/i })).toBeTruthy());
+    expect(document.body.textContent).not.toMatch(/Indikator Pencapaian Target/i);
+  });
+
+  it('HR melihat "Indikator Pencapaian Target" miliknya sendiri (dinilai BOD)', async () => {
+    // Perubahan kebijakan: HR sebelumnya disembunyikan, padahal HR tetap perlu
+    // memantau KPI & nilai kinerjanya sendiri.
     stub();
     roleRef.current = 'HR_MANAGER';
     render(<EmployeePortalPage />);
     await waitFor(() => expect(screen.getByRole('tab', { name: /Saat Kerja/i })).toBeTruthy());
-    expect(document.body.textContent).not.toMatch(/Indikator Pencapaian Target/i);
+    await waitFor(() => expect(document.body.textContent).toMatch(/Indikator Pencapaian Target/i));
+  });
+
+  it('People Manager melihat "Indikator Pencapaian Target" miliknya sendiri', async () => {
+    stub();
+    roleRef.current = 'PEOPLE_MANAGER';
+    render(<EmployeePortalPage />);
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Saat Kerja/i })).toBeTruthy());
+    await waitFor(() => expect(document.body.textContent).toMatch(/Indikator Pencapaian Target/i));
   });
 
   it('Employee tetap melihat "Indikator Pencapaian Target"', async () => {
