@@ -35,7 +35,8 @@ const DISC_SELECT = sql`
   id, employee_id AS "employeeId", action_type AS "actionType", reason,
   evidence_url AS "evidenceUrl", effective_date AS "effectiveDate",
   expiry_date AS "expiryDate", appeal_status AS "appealStatus",
-  appeal_deadline AS "appealDeadline", appeal_reason AS "appealReason"
+  appeal_deadline AS "appealDeadline", appeal_reason AS "appealReason",
+  violation_points AS "violationPoints", violation_category AS "violationCategory"
 `;
 
 const REC_SELECT = sql`
@@ -63,6 +64,9 @@ export async function issueDisciplinary(
     effectiveDate: string;
     expiryDate?: string;
     issuedBy: string;
+    /** Poin pelanggaran; bila kosong diisi bobot baku menurut jenis sanksi. */
+    violationPoints?: number;
+    violationCategory?: string;
   },
 ): Promise<DisciplinaryRow> {
   if (input.reason.trim().length < 5) {
@@ -72,14 +76,22 @@ export async function issueDisciplinary(
     throw new BusinessRuleError('Masa berlaku tidak boleh berakhir sebelum tanggal efektif.');
   }
 
+  // Poin: pakai nilai dari HR, atau bobot baku menurut jenis sanksi.
+  const { POIN_BAKU } = await import('./disciplinaryPoints');
+  const poin =
+    Number.isFinite(input.violationPoints) && Number(input.violationPoints) > 0
+      ? Number(input.violationPoints)
+      : POIN_BAKU[String(input.actionType).toUpperCase() as keyof typeof POIN_BAKU] ?? 0;
+
   const res = (await db.execute(sql`
     INSERT INTO disciplinary_actions
       (employee_id, action_type, reason, evidence_url, effective_date, expiry_date,
-       issued_by, appeal_deadline)
+       issued_by, appeal_deadline, violation_points, violation_category)
     VALUES (${input.employeeId}::uuid, ${input.actionType}::disciplinary_type_enum,
             ${input.reason}, ${input.evidenceUrl ?? null}, ${input.effectiveDate}::date,
             ${input.expiryDate ?? null}::date, ${input.issuedBy}::uuid,
-            ${input.effectiveDate}::date + INTERVAL '5 days')
+            ${input.effectiveDate}::date + INTERVAL '5 days',
+            ${poin}, ${input.violationCategory ?? null})
     RETURNING ${DISC_SELECT}
   `)) as unknown as { rows: DisciplinaryRow[] };
 
