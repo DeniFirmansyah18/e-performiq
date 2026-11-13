@@ -8,7 +8,7 @@ import {
   parseModules,
 } from '@/lib/services/onboardingProgramAiService';
 
-// Posisi Senior Software Engineer (a0000000-...-0204 → kode ONB-A0000000).
+// Posisi Senior Software Engineer (a0000000-...-0204 → kode ONB-<id lengkap>).
 const POS_SWE = 'a0000000-0000-4000-8000-000000000204';
 
 describe('Onboarding Program AI — kurikulum per-posisi nyata (bukan demo)', () => {
@@ -69,7 +69,9 @@ describe('Onboarding Program AI — kurikulum per-posisi nyata (bukan demo)', ()
   it('generate (useAi:false) membuat kursus ONB + modul + tautan posisi, idempoten', async () => {
     const gen = await generatePositionOnboardingCourse(db, POS_SWE, { useAi: false });
     expect(gen).toBeTruthy();
-    expect(gen!.courseCode).toBe('ONB-A0000000');
+    // Kode memakai id posisi LENGKAP agar setiap posisi punya kursus sendiri
+    // (dulu 8 huruf pertama, sehingga semua posisi berbagi ONB-A0000000).
+    expect(gen!.courseCode).toMatch(/^ONB-[A-F0-9]{32}$/);
     expect(gen!.created).toBe(true);
     expect(gen!.aiUsed).toBe(false);
 

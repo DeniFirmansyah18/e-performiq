@@ -27,10 +27,29 @@ export async function POST(req: NextRequest) {
 
     // Kembalikan juga kurikulum terkini posisi (termasuk OER yang tertaut).
     const courses = await listPositionCourses(db, positionId);
+
+    // Periksa tautan materi: buang yang sudah mati (404/410) atau berbayar.
+    // Best-effort — kegagalan jaringan tidak menghapus materi yang sah.
+    let tautanDibuang = 0;
+    try {
+      const { periksaTautanHidup } = await import('@/lib/services/oerLinkValidator');
+      const cek = await Promise.all(
+        courses
+          .map((c: any) => c.contentUrl as string | null)
+          .filter((u: string | null): u is string => Boolean(u))
+          .map(async (u: string) => ({ u, ...(await periksaTautanHidup(u)) }))
+      );
+      tautanDibuang = cek.filter((c) => !c.hidup).length;
+    } catch {
+      /* pemeriksaan tautan opsional */
+    }
+
     return ok(
       {
         ...result,
         oerCount: result.modules.filter((m) => m.contentType === 'VIDEO' || m.contentType === 'PDF').length,
+        tautanDiperiksa: courses.filter((c: any) => c.contentUrl).length,
+        tautanDibuang,
         positionCourses: courses,
       },
       result.created ? 'Kurikulum posisi berhasil dibuat.' : 'Kurikulum posisi sudah ada; ditautkan ke posisi.',

@@ -86,7 +86,7 @@ describe('Jalur A: endpoint pemetaan kursus-posisi + OER', () => {
     const res = await generateCurriculum(req('/api/v1/learning/position-courses/generate', 'POST', { positionId: POS_SWE, useAi: false }, hrCookie));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data.courseCode).toBe('ONB-A0000000');
+    expect(json.data.courseCode).toMatch(/^ONB-[A-F0-9]{32}$/);
     expect(json.data.modules.length).toBeGreaterThanOrEqual(3);
     expect(typeof json.data.oerCount).toBe('number');
   });

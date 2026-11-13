@@ -42,6 +42,10 @@ export default function PositionCourseMappingPanel() {
   const [positions, setPositions] = useState<PositionWithCourses[]>([]);
   const [courses, setCourses] = useState<CourseOption[]>([]);
   const [selected, setSelected] = useState<string>('');
+  // Filter & pilih-banyak agar konfigurasi 18+ posisi tidak melelahkan.
+  const [filterDept, setFilterDept] = useState('');
+  const [cariPosisi, setCariPosisi] = useState('');
+  const [pilihBanyak, setPilihBanyak] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -87,14 +91,51 @@ export default function PositionCourseMappingPanel() {
 
   const current = positions.find((p) => p.positionId === selected) ?? null;
 
+  /** Daftar departemen untuk filter. */
+  const departemen = Array.from(
+    new Set(positions.map((p) => p.departmentName).filter((d): d is string => Boolean(d)))
+  ).sort();
+
+  /** Posisi setelah disaring departemen & kata kunci. */
+  const posisiTampil = positions.filter((p) => {
+    if (filterDept && p.departmentName !== filterDept) return false;
+    const q = cariPosisi.trim().toLowerCase();
+    if (!q) return true;
+    return `${p.title} ${p.departmentName ?? ''}`.toLowerCase().includes(q);
+  });
+
+  /**
+   * Posisi yang menjadi tujuan pemetaan: semua yang dicentang; bila tidak ada
+   * yang dicentang, pakai posisi pada `selected` (perilaku lama).
+   */
+  const tujuanPemetaan = pilihBanyak.length > 0 ? pilihBanyak : selected ? [selected] : [];
+
+  async function petakanKeSemua(courseId: number, isMandatory = true) {
+    for (const positionId of tujuanPemetaan) {
+      await fetch('/api/v1/learning/position-courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ positionId, courseId, isMandatory }),
+      });
+    }
+  }
+
   async function addMapping(courseId: number, isMandatory = true) {
-    if (!selected) return;
+    if (tujuanPemetaan.length === 0) return;
     setBusy(true); setMsg(null); setErr(null);
     try {
+      // Bila lebih dari satu posisi dicentang, kursus dipetakan ke semuanya.
+      if (tujuanPemetaan.length > 1) {
+        await petakanKeSemua(courseId, isMandatory);
+        setMsg(`Kursus dipetakan ke ${tujuanPemetaan.length} posisi.`);
+        setPickCourse('');
+        await load();
+        return;
+      }
       const res = await fetch('/api/v1/learning/position-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ positionId: selected, courseId, isMandatory }),
+        body: JSON.stringify({ positionId: tujuanPemetaan[0], courseId, isMandatory }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setErr(json?.detail || 'Gagal menambah mapping.'); return; }
@@ -228,19 +269,29 @@ export default function PositionCourseMappingPanel() {
       ) : (
         <>
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex-1 min-w-[220px]">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">Posisi</span>
+            <label className="min-w-[200px]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">Departemen</span>
               <select
-                value={selected}
-                onChange={(e) => setSelected(e.target.value)}
+                value={filterDept}
+                onChange={(e) => setFilterDept(e.target.value)}
                 className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
               >
-                {positions.map((p) => (
-                  <option key={p.positionId} value={p.positionId}>
-                    {p.title}{p.departmentName ? ` — ${p.departmentName}` : ''} ({p.mappedCount} kursus)
-                  </option>
+                <option value="">Semua departemen</option>
+                {departemen.map((d) => (
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
+            </label>
+            <label className="flex-1 min-w-[220px]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">
+                Cari posisi
+              </span>
+              <input
+                value={cariPosisi}
+                onChange={(e) => setCariPosisi(e.target.value)}
+                placeholder="Ketik nama posisi…"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
+              />
             </label>
             <button
               type="button"
@@ -252,8 +303,83 @@ export default function PositionCourseMappingPanel() {
             </button>
           </div>
 
+          {/* Daftar posisi sebagai kartu yang dapat dipilih lebih dari satu,
+              agar HR dapat memetakan satu kursus ke banyak posisi sekaligus. */}
+          <div className="rounded-xl border border-[#e2e8f0] bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1f5f9] px-3 py-2">
+              <p className="text-[11px] font-bold text-[#334155]">
+                Pilih posisi ({posisiTampil.length} dari {positions.length})
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPilihBanyak(
+                      pilihBanyak.length === posisiTampil.length ? [] : posisiTampil.map((p) => p.positionId)
+                    )
+                  }
+                  className="text-[10px] font-bold text-[#007a5a] hover:underline"
+                >
+                  {pilihBanyak.length === posisiTampil.length && posisiTampil.length > 0
+                    ? 'Batal pilih semua'
+                    : 'Pilih semua'}
+                </button>
+                {pilihBanyak.length > 1 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333]">
+                    {pilihBanyak.length} dipilih
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto p-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {posisiTampil.map((p) => {
+                const dipilih = pilihBanyak.includes(p.positionId);
+                return (
+                  <label
+                    key={p.positionId}
+                    className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 cursor-pointer text-[11px] ${
+                      dipilih ? 'border-[#007a5a] bg-[#f0fdf9]' : 'border-[#e2e8f0] hover:bg-[#f8fafc]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={dipilih}
+                      onChange={(e) =>
+                        setPilihBanyak((prev) =>
+                          e.target.checked
+                            ? [...prev, p.positionId]
+                            : prev.filter((id) => id !== p.positionId)
+                        )
+                      }
+                      className="mt-0.5 h-3.5 w-3.5 accent-[#007a5a]"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-[#0f172a] truncate">{p.title}</span>
+                      <span className="block text-[10px] text-[#64748b] truncate">
+                        {p.departmentName ?? '—'} · {p.mappedCount} kursus
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+              {posisiTampil.length === 0 && (
+                <p className="col-span-full p-2 text-[11px] text-[#64748b]">Tidak ada posisi yang cocok.</p>
+              )}
+            </div>
+          </div>
+
+          {pilihBanyak.length > 0 && (
+            <p className="text-[11px] text-[#334155] bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-3 py-2">
+              Pemetaan di bawah berlaku untuk{' '}
+              <strong>{pilihBanyak.length === 1 ? 'posisi terpilih' : `${pilihBanyak.length} posisi terpilih`}</strong>.
+              {pilihBanyak.length > 1 && ' Satu kursus akan dipetakan ke semuanya sekaligus.'}
+            </p>
+          )}
+
           <div>
-            <h3 className="text-xs font-bold text-[#334155] mb-2">Kursus Terpetakan</h3>
+            <h3 className="text-xs font-bold text-[#334155] mb-2">
+              Kursus Terpetakan{pilihBanyak.length > 1 ? ' (posisi pertama)' : ''}
+            </h3>
             {!current || current.courses.length === 0 ? (
               <p className="text-xs text-[#64748b]">Belum ada kursus dipetakan ke posisi ini. Tambahkan dari katalog atau generate dengan AI.</p>
             ) : (
