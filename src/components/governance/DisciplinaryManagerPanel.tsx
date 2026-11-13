@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { POIN_BAKU, KATEGORI_PELANGGARAN, type KategoriPelanggaran } from '@/lib/services/disciplinaryPoints';
 import { AlertTriangle, Plus, Gavel } from 'lucide-react';
 import ListPager from '@/components/ui/ListPager';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -17,6 +18,9 @@ interface Action {
   appealStatus: 'NONE' | 'UNDER_APPEAL' | 'APPEAL_ACCEPTED' | 'APPEAL_REJECTED';
   appealDeadline: string;
   appealReason: string | null;
+  /** Poin pelanggaran (baku menurut jenis bila tidak diisi HR). */
+  violationPoints?: number | null;
+  violationCategory?: string | null;
   issuedByName: string | null;
 }
 
@@ -51,6 +55,9 @@ export default function DisciplinaryManagerPanel() {
     reason: '',
     effectiveDate: today(),
     expiryDate: '',
+    // Poin pelanggaran: kosong = pakai bobot baku menurut jenis sanksi.
+    violationPoints: '',
+    violationCategory: 'ABSENSI' as KategoriPelanggaran,
   });
 
   const load = useCallback(async () => {
@@ -84,12 +91,15 @@ export default function DisciplinaryManagerPanel() {
           reason: form.reason,
           effectiveDate: form.effectiveDate,
           expiryDate: form.expiryDate || undefined,
+          violationCategory: form.violationCategory,
+          // Kirim hanya bila HR mengisi; server memakai bobot baku bila kosong.
+          violationPoints: form.violationPoints === '' ? undefined : Number(form.violationPoints),
         }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setNotice(json?.detail ?? 'Gagal menerbitkan sanksi.'); return; }
       setNotice('Sanksi diterbitkan.');
-      setForm((f) => ({ ...f, reason: '', expiryDate: '' }));
+      setForm((f) => ({ ...f, reason: '', expiryDate: '', violationPoints: '' }));
       await load();
     } finally {
       setBusy(false);
@@ -175,6 +185,35 @@ export default function DisciplinaryManagerPanel() {
               <option value="SP3">SP3</option>
             </select>
           </label>
+          <label className="text-[11px] text-[#475569]">
+            Kategori pelanggaran
+            <select
+              value={form.violationCategory}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, violationCategory: e.target.value as KategoriPelanggaran }))
+              }
+              className="mt-1 w-full rounded-lg border border-[#cbd5e1] px-2 py-1.5 text-xs text-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a]"
+            >
+              {KATEGORI_PELANGGARAN.map((k) => (
+                <option key={k.kode} value={k.kode}>{k.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-[11px] text-[#475569]">
+            Poin pelanggaran
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={form.violationPoints}
+              onChange={(e) => setForm((f) => ({ ...f, violationPoints: e.target.value }))}
+              placeholder={`Bawaan ${POIN_BAKU[form.actionType]} poin`}
+              className="mt-1 w-full rounded-lg border border-[#cbd5e1] px-2 py-1.5 text-xs text-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a]"
+            />
+            <span className="mt-0.5 block text-[10px] text-[#94a3b8]">
+              Kosongkan untuk memakai bobot baku {POIN_BAKU[form.actionType]} poin ({form.actionType}).
+            </span>
+          </label>
           <label className="text-[11px] text-[#475569] sm:col-span-2">
             Alasan
             <textarea
@@ -233,6 +272,15 @@ export default function DisciplinaryManagerPanel() {
                 <span className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[10px] font-bold text-[#475569]">
                   {APPEAL_LABEL[a.appealStatus]}
                 </span>
+                {/* Poin pelanggaran: nilai tersimpan, atau bobot baku jenis sanksi. */}
+                <span className="rounded bg-[#fce8e6] px-1.5 py-0.5 text-[10px] font-bold text-[#c5221f]">
+                  {a.violationPoints ?? POIN_BAKU[a.actionType]} poin
+                </span>
+                {a.violationCategory ? (
+                  <span className="rounded bg-[#eef2ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#3730a3]">
+                    {KATEGORI_PELANGGARAN.find((k) => k.kode === a.violationCategory)?.label ?? a.violationCategory}
+                  </span>
+                ) : null}
               </div>
               <p className="mt-0.5 text-[11px] text-[#475569]">
                 {a.employeeName} · {a.employeeCode} · {a.reason}

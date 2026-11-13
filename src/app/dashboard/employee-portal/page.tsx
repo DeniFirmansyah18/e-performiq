@@ -51,7 +51,7 @@ import DailyStatusCard from '@/components/employee/DailyStatusCard';
 import DailyKpiChecklist from '@/components/employee/DailyKpiChecklist';
 import PerformanceRecapTabs from '@/components/employee/PerformanceRecapTabs';
 import OvertimeModal from '@/components/employee/OvertimeModal';
-import DisciplinaryModal from '@/components/employee/DisciplinaryModal';
+import SanksiPelanggaranPanel from '@/components/employee/SanksiPelanggaranPanel';
 import CareerLadderPanel from '@/components/employee/CareerLadderPanel';
 import LetterInboxModal from '@/components/employee/LetterInboxModal';
 import PolicyLibraryModal from '@/components/employee/PolicyLibraryModal';
@@ -63,7 +63,7 @@ import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
-type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet' | 'profile';
+type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet' | 'profile' | 'sanksi';
 
 export default function EmployeePortalPage() {
   const { currentUser } = useAuth();
@@ -122,7 +122,6 @@ const [isReimbursementOpen, setIsReimbursementOpen] = useState(false);
 const [isTicketOpen, setIsTicketOpen] = useState(false);
 const [isJobBoardOpen, setIsJobBoardOpen] = useState(false);
 const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
-const [isDisciplinaryOpen, setIsDisciplinaryOpen] = useState(false);
 const [isLetterOpen, setIsLetterOpen] = useState(false);
 const [isPolicyOpen, setIsPolicyOpen] = useState(false);
 const [isDownloadingKpi, setIsDownloadingKpi] = useState(false);
@@ -727,7 +726,7 @@ const grupLayanan: Array<{
       {
         icon: AlertTriangle, tone: 'emerald', title: 'Sanksi & Pelanggaran', tag: 'Poin & Riwayat',
         description: 'Lihat sanksi, poin pelanggaran yang Anda terima dari HR, masa berlaku, dan ajukan keberatan.',
-        onClick: () => setIsDisciplinaryOpen(true),
+        onClick: () => setOpenFeature('sanksi'),
       },
     ],
   },
@@ -1415,6 +1414,11 @@ return (
       {grup.judul === 'Kehadiran & Waktu' && (
         <ExpandablePanel open={openFeature === 'timesheet'} title="Absensi & Timesheet Harian" onClose={() => setOpenFeature(null)}>
           <AttendancePanel />
+        </ExpandablePanel>
+      )}
+      {grup.judul === 'Surat, SOP & Kepatuhan' && (
+        <ExpandablePanel open={openFeature === 'sanksi'} title="Sanksi & Pelanggaran" onClose={() => setOpenFeature(null)}>
+          <SanksiPelanggaranPanel />
         </ExpandablePanel>
       )}
     </section>
@@ -2129,7 +2133,6 @@ return (
   />
 
     <OvertimeModal open={isOvertimeOpen} onClose={() => setIsOvertimeOpen(false)} />
-    <DisciplinaryModal open={isDisciplinaryOpen} onClose={() => setIsDisciplinaryOpen(false)} />
     <LetterInboxModal open={isLetterOpen} onClose={() => setIsLetterOpen(false)} />
     <PolicyLibraryModal open={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} />
 
