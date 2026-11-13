@@ -1,4 +1,6 @@
 import type { Db } from '@/lib/db/client';
+import { sql } from 'drizzle-orm';
+import { MAX_INDIKATOR } from './kpiGovernanceConstants';
 import type { SessionPayload } from '@/lib/auth/session';
 import { assertCan } from '@/lib/auth/rbac';
 import { resolveVisibleEmployeeIds, assertEmployeeVisible } from '@/lib/auth/scope';
@@ -60,6 +62,21 @@ export async function createIndicator(db: Db, session: SessionPayload, data: Cre
     throw new BusinessRuleError(
       `Total bobot indikator melebihi 100%. Indikator aktif saat ini ${existingTotal}%, penambahan ${weight}% menghasilkan ${existingTotal + weight}%.`,
     );
+  }
+
+  // Batas jumlah indikator per KPI: maksimal 5 (praktik KPI 3–5 indikator).
+  // Dibatasi agar fokus kerja terjaga dan penilaian tetap terukur.
+  {
+    const hitung = (await db.execute(sql`
+      SELECT count(*)::int AS n FROM kpi_indicators
+       WHERE kpi_id = ${data.kpiId}::uuid AND is_active = TRUE
+    `)) as unknown as { rows: Array<{ n: number }> };
+    const jumlahSekarang = Number(hitung.rows?.[0]?.n ?? 0);
+    if (jumlahSekarang >= MAX_INDIKATOR) {
+      throw new BusinessRuleError(
+        `Jumlah indikator maksimal ${MAX_INDIKATOR} per KPI (saat ini ${jumlahSekarang}). Ringkas indikator agar fokus kerja tetap terjaga.`,
+      );
+    }
   }
 
   const created = await insertIndicator(db, { ...data, indicatorWeight: weight });
