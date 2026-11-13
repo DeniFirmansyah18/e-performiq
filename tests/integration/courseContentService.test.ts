@@ -32,18 +32,27 @@ describe('courseContentService', () => {
   });
 
   it('getLesson mengembalikan isi modul', async () => {
-    const lesson = await getLesson(db, await moduleId('Selamat Datang di HR Command Center'));
-    expect(lesson.title).toBe('Selamat Datang di HR Command Center');
+    const lesson = await getLesson(db, await moduleId('Mengenal Perusahaan'));
+    expect(lesson.title).toBe('Mengenal Perusahaan');
   });
 
   it('submitQuiz menilai benar/salah', async () => {
-    const quizId = await moduleId('Kuis Orientasi');
-    const pass = await submitQuiz(db, BUDI, quizId, [1, 0, 2]);
+    const quizId = await moduleId('Kuis Pemahaman Materi');
+    // Jawab sesuai KUNCI yang tersimpan (bukan indeks tetap): kunci kursus
+    // default dibuat dari materi sehingga posisi jawaban benar ada di indeks 0.
+    const kunci = await client.query<{ quiz_key: Array<{ q: number; a: number }> }>(
+      `SELECT quiz_key FROM course_modules WHERE id = $1`,
+      [quizId]
+    );
+    const jawaban = (kunci.rows[0].quiz_key ?? []).sort((a, b) => a.q - b.q).map((k) => k.a);
+    expect(jawaban.length).toBeGreaterThan(0);
+
+    const pass = await submitQuiz(db, BUDI, quizId, jawaban);
     expect(pass.passed).toBe(true);
   });
 
   it('completeModule menandai modul selesai (idempoten)', async () => {
-    const mid = await moduleId('Selamat Datang di HR Command Center');
+    const mid = await moduleId('Mengenal Perusahaan');
     const r1 = await completeModule(db, BUDI, mid);
     expect(r1.completed).toBe(true);
     await completeModule(db, BUDI, mid);
