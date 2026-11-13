@@ -1127,443 +1127,308 @@ return (
           />
         ))}
       </div>
+
+      {/* Panel fitur tampil TEPAT DI BAWAH kartu pada grupnya — pola yang sama
+          dengan "Kontrol Siklus 3-Fase" di HR. */}
+      {grup.judul === 'Profil & Bantuan' && (
+        <ExpandablePanel open={openFeature === 'profile'} title="Profil Saya" onClose={() => setOpenFeature(null)}>
+          <MyProfileModal />
+        </ExpandablePanel>
+      )}
+      {grup.judul === 'Kinerja & Penilaian' && (
+        <>
+          <NilaiKinerjaPanel open={openFeature === 'scorecard'} onClose={() => setOpenFeature(null)} scorecard={scorecard} />
+          <ExpandablePanel open={openFeature === 'okr'} title="Target Kerja Aktif" onClose={() => setOpenFeature(null)}>
+          <div className="stitch-card-white p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
+          <div>
+          <div className="flex items-center gap-2">
+          <h2 className="text-base font-extrabold text-[#0f172a]">
+          Target Kerja Aktif
+          </h2>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          totalWeight === 100 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#e0f2fe] text-[#0369a1]'
+          }`}>
+          Bobot Terpakai: {totalWeight}% / 100%
+          </span>
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+          remainingQuota > 0 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
+          }`}>
+          Sisa Kuota: {remainingQuota}%
+          </span>
+          </div>
+          <p className="text-xs text-[#64748b] mt-0.5">
+          Setiap target individu terhubung secara hierarkis ke Balanced Scorecard (BSC) Perusahaan.
+          </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+          {/* Period Selector Tabs */}
+          <div className="flex items-center bg-[#f1f5f9] p-0.5 rounded-lg text-xs font-medium border border-[#e2e8f0]">
+          <button
+          type="button"
+          onClick={() => handlePeriodChange('d0000000-0000-4000-8000-000000000001')}
+          className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+          selectedPeriod === 'd0000000-0000-4000-8000-000000000001'
+          ? 'bg-white font-bold text-[#007a5a] shadow-xs'
+          : 'text-[#64748b] hover:text-[#0f172a]'
+          }`}
+          >
+          2026-Q3 (Aktif)
+          </button>
+          <button
+          type="button"
+          onClick={() => handlePeriodChange('d0000000-0000-4000-8000-000000000002')}
+          className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+          selectedPeriod === 'd0000000-0000-4000-8000-000000000002'
+          ? 'bg-white font-bold text-[#007a5a] shadow-xs'
+          : 'text-[#64748b] hover:text-[#0f172a]'
+          }`}
+          >
+          2026-Q4 (Perencanaan)
+          </button>
+          </div>
+
+          <button
+          onClick={handleOpenTree}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc] transition-colors cursor-pointer"
+          >
+          <GitBranch className="h-3.5 w-3.5 text-[#64748b]" />
+          <span>Diagram Pohon BSC</span>
+          </button>
+
+          <button
+          onClick={() => {
+          setKpiForm((prev) => ({
+          ...prev,
+          periodId: selectedPeriod,
+          weight: String(remainingQuota > 0 ? Math.min(10, remainingQuota) : 10),
+          }));
+          setIsAddKpiOpen(true);
+          }}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+          <Plus className="h-3.5 w-3.5 text-white" />
+          <span>Tambah Target Kerja</span>
+          </button>
+          </div>
+          </div>
+
+          {/* Corporate Objective Alignment Banner */}
+          <div className="p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-[#334155]">
+          <Compass className="h-4 w-4 text-[#007a5a] flex-shrink-0" />
+          <div>
+          <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider block">
+          Corporate Objective Alignment (PostgreSQL Live)
+          </span>
+          <span>
+          BSC Level 1: &ldquo;<strong>Modernisasi Infrastruktur Digital & Tata Kelola GCG Tanpa Downtime Kritis</strong>&rdquo;
+          </span>
+          </div>
+          </div>
+
+          <div className="text-right">
+          <span className="text-[10px] text-[#64748b] block">Penyelarasan</span>
+          <span className="text-xs font-bold text-[#007a5a]">100% Fully Cascaded</span>
+          </div>
+          </div>
+
+          {/* Status Notification */}
+          {statusMsg && (
+          <div className={`p-3 rounded-lg text-xs font-semibold flex items-center justify-between ${
+          statusMsg.type === 'success' ? 'bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]' : 'bg-[#fce8e6] text-[#c5221f] border border-[#f5c2c7]'
+          }`}>
+          <span>{statusMsg.text}</span>
+          <button onClick={() => setStatusMsg(null)}><X className="h-3.5 w-3.5" /></button>
+          </div>
+          )}
+
+          {/* Modal Update Actual */}
+          {selectedKpi && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
+          <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+          <h3 className="text-sm font-extrabold text-[#0f172a]">Isi Capaian Target Kerja</h3>
+          <button onClick={() => setSelectedKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="space-y-1">
+          <p className="text-xs font-bold text-[#0f172a]">{selectedKpi.kpi_title}</p>
+          <p className="text-[11px] text-[#64748b]">Pilar: {selectedKpi.strategic_pillar_name} (Bobot: {selectedKpi.kpi_weight}%)</p>
+          <p className="text-[11px] text-[#64748b]">Target: {selectedKpi.target_value}</p>
+          </div>
+          <form onSubmit={handleUpdateActual} className="space-y-3">
+          <div>
+          <label className="block text-xs font-semibold text-[#334155] mb-1">Nilai Realisasi Aktual Baru</label>
+          <input
+          type="number"
+          step="any"
+          min="0"
+          required
+          value={newActual}
+          onChange={(e) => setNewActual(e.target.value)}
+          placeholder={`Masukkan angka (contoh: ${selectedKpi.target_value})`}
+          className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+          />
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onClick={() => setSelectedKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer">Batal</button>
+          <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm cursor-pointer">
+          {isUpdating ? 'Menyimpan...' : 'Simpan Realisasi'}
+          </button>
+          </div>
+          </form>
+          </div>
+          </div>,
+          document.body
+          )}
+
+          {/* Modal Update Weight */}
+          {weightModalKpi && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
+          <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
+          <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
+          <Sliders className="h-4 w-4 text-[#0284c7]" />
+          <span>Sesuaikan Bobot Target Kerja</span>
+          </h3>
+          <button onClick={() => setWeightModalKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="space-y-1">
+          <p className="text-xs font-bold text-[#0f172a]">{weightModalKpi.kpi_title}</p>
+          <p className="text-[11px] text-[#64748b]">Bobot saat ini: <strong className="text-[#0f172a]">{weightModalKpi.kpi_weight}%</strong> &bull; Total bobot lain: <strong>{totalWeight - Number(weightModalKpi.kpi_weight)}%</strong></p>
+          <p className="text-[11px] text-[#007a5a]">Maksimal bobot yang diizinkan untuk KPI ini: <strong>{100 - (totalWeight - Number(weightModalKpi.kpi_weight))}%</strong></p>
+          </div>
+          <form onSubmit={handleUpdateWeight} className="space-y-3">
+          <div>
+          <label className="block text-xs font-semibold text-[#334155] mb-1">Bobot Baru (%)</label>
+          <input
+          type="number"
+          min="1"
+          max={100 - (totalWeight - Number(weightModalKpi.kpi_weight))}
+          required
+          value={editWeightVal}
+          onChange={(e) => setEditWeightVal(e.target.value)}
+          placeholder="Contoh: 15"
+          className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
+          />
+          <span className="text-[10px] text-[#64748b] mt-1 block">
+          Menurunkan bobot ini akan meluangkan kuota bobot bagi milestone baru.
+          </span>
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onClick={() => setWeightModalKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer">Batal</button>
+          <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#0284c7] hover:bg-[#0369a1] rounded-lg shadow-sm cursor-pointer">
+          {isUpdating ? 'Menyimpan...' : 'Simpan Perubahan Bobot'}
+          </button>
+          </div>
+          </form>
+          </div>
+          </div>,
+          document.body
+          )}
+
+          {/* Real Database KPIs from PostgreSQL */}
+          <div className="space-y-4 pt-2">
+          {kpis.length > 0 ? (
+          kpis.map((kpi, idx) => (
+          <div key={kpi.kpi_id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+          KPI-0{idx + 1}
+          </span>
+          <h3 className="text-xs font-bold text-[#0f172a]">
+          {kpi.kpi_title}
+          </h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+          kpi.status === 'APPROVED' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
+          }`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${kpi.status === 'APPROVED' ? 'bg-[#137333]' : 'bg-[#d97706]'}`} />
+          {kpi.status === 'APPROVED' ? 'Disetujui Atasan' : 'Menunggu Persetujuan'}
+          </span>
+          <button
+          onClick={() => {
+          setSelectedKpi(kpi);
+          setNewActual(String(kpi.actual_value));
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#007a5a] hover:bg-[#e6f4ea] border border-[#cbd5e1] cursor-pointer"
+          >
+          <Edit3 className="h-3 w-3" />
+          <span>Update Realisasi</span>
+          </button>
+          <button
+          onClick={() => {
+          setWeightModalKpi(kpi);
+          setEditWeightVal(String(kpi.kpi_weight));
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#0284c7] hover:bg-[#e0f2fe] border border-[#cbd5e1] cursor-pointer"
+          title="Sesuaikan bobot KPI ini"
+          >
+          <Sliders className="h-3 w-3" />
+          <span>Ubah Bobot</span>
+          </button>
+          <button
+          onClick={() => handleDeleteKpi(kpi)}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#fef2f2] text-[#dc2626] hover:bg-rose-100 border border-[#fecaca] cursor-pointer"
+          title="Hapus sasaran KPI ini"
+          >
+          <Trash2 className="h-3 w-3" />
+          <span>Hapus</span>
+          </button>
+          </div>
+          </div>
+
+          <p className="text-xs text-[#64748b]">
+          Pilar Strategis: <strong>{kpi.strategic_pillar_name}</strong> &bull; Perspektif BSC: <strong>{kpi.perspective}</strong>
+          </p>
+
+          <div className="flex flex-wrap items-center justify-between text-xs font-mono text-[#334155] pt-1">
+          <span>Bobot: <strong>{kpi.kpi_weight}%</strong></span>
+          <span>Target: <strong>{kpi.target_value}</strong></span>
+          <span className="text-[#007a5a] font-bold">
+          Realisasi: {kpi.actual_value} ({kpi.achievement_pct}%)
+          </span>
+          </div>
+          </div>
+          ))
+          ) : (
+          <div className="text-center py-8 p-4 rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] space-y-2">
+          <p className="text-xs font-medium text-[#64748b]">
+          {loading ? 'Memuat data KPI dari PostgreSQL...' : 'Belum ada sasaran KPI tercatat untuk periode ini.'}
+          </p>
+          {!loading && (
+          <p className="text-[11px] text-[#007a5a] font-semibold">
+          Sisa kuota bobot 100% tersedia! Klik &ldquo;Ajukan Milestone Baru&rdquo; untuk mulai merancang sasaran kerja.
+          </p>
+          )}
+          </div>
+          )}
+          </div>
+          </div>
+          <AiAnalyzePanel feature="employee" />
+          </ExpandablePanel>
+        </>
+      )}
+      {grup.judul === 'Kehadiran & Waktu' && (
+        <ExpandablePanel open={openFeature === 'timesheet'} title="Absensi & Timesheet Harian" onClose={() => setOpenFeature(null)}>
+          <AttendancePanel />
+        </ExpandablePanel>
+      )}
     </section>
   ))}
     </>
   )}
 
   {/* Panel: Nilai Kinerja */}
-  <ExpandablePanel open={openFeature === 'scorecard'} title="Nilai Kinerja (Scorecard)" onClose={() => setOpenFeature(null)}>
-  <div className="stitch-card-white p-6 space-y-4">
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f1f5f9] pb-3">
-      <div className="flex items-center gap-3">
-        <h2 className="text-base font-extrabold text-[#0f172a]">
-          Nilai Kinerja Anda
-        </h2>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#475569]">
-          Model GCG 4-Pilar
-        </span>
-      </div>
 
-      <div className="flex items-center gap-1 text-xs text-[#64748b] font-mono">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#007a5a]" />
-        <span>Audit Trail ID: #GPA-2026-Q3-0941</span>
-      </div>
-    </div>
-
-    <p className="text-xs text-[#64748b]">
-      Nilai ini dihitung otomatis dan adil: 50% dari Target Kerja, 20% dari Kepatuhan Prosedur, 15% dari Kemampuan & Pelatihan, dan 15% dari Sikap & Penilaian Rekan. Sama persis dengan yang dilihat HR.
-    </p>
-
-    {/* Scorecard Layout */}
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch pt-1">
-      
-      {/* Left Block: GPA Hero */}
-      <div className="lg:col-span-3 p-5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex flex-col justify-between space-y-3">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">
-            Nilai Kinerja Keseluruhan
-          </span>
-          <div className="flex items-baseline gap-1 mt-1.5">
-            <span className="text-4xl font-black text-[#0f172a] font-sans">
-              {scorecard?.compositeGpa != null ? Number(scorecard.compositeGpa).toFixed(2) : '3.67'}
-            </span>
-            <span className="text-base font-bold text-[#64748b]">/ 4.00</span>
-          </div>
-          <span className="inline-block mt-2 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-            Predikat: A (Sangat Baik)
-          </span>
-        </div>
-
-        <div className="text-[11px] text-[#64748b] pt-2 border-t border-[#e2e8f0] space-y-1">
-          <div className="flex justify-between">
-            <span>Standar Perusahaan: 3.25</span>
-            <strong className="text-[#007a5a]">Top 7% Divisi</strong>
-          </div>
-          <p className="text-[10px] text-[#007a5a] font-semibold mt-1">
-            Memenuhi syarat fast-track promosi Principal Engineer Q4.
-          </p>
-        </div>
-      </div>
-
-      {/* Right 4 Component Cards */}
-      <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        
-        {/* Component 1: KPI */}
-        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
-                <Target className="h-3.5 w-3.5 text-[#007a5a]" />
-                1. Target Kerja
-              </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.kpiCompositeScore != null ? Number((scorecard.kpiCompositeScore * 0.5).toFixed(2)) : '46.25'}%</span>
-            </div>
-            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 50%</span>
-            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>{scorecard?.kpiCompositeScore != null ? Number(scorecard.kpiCompositeScore).toFixed(1) : '92.5'}%</strong></span>
-              <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">Sangat Optimal</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
-            Terhubung BSC Internal Process & Finansial
-          </p>
-        </div>
-
-        {/* Component 2: SOP */}
-        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#0284c7]" />
-                2. Kepatuhan Prosedur
-              </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.sopComplianceScore != null ? Number((scorecard.sopComplianceScore * 0.2).toFixed(2)) : '19.20'}%</span>
-            </div>
-            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 20%</span>
-            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>{scorecard?.sopComplianceScore != null ? Number(scorecard.sopComplianceScore).toFixed(1) : '96.0'}%</strong></span>
-              <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">0 Fatal Error</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
-            SLA Penyelesaian Insiden 99.1% (Target 95%)
-          </p>
-        </div>
-
-        {/* Component 3: Competency */}
-        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
-                <Award className="h-3.5 w-3.5 text-[#007a5a]" />
-                3. Kemampuan & Pelatihan
-              </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.competencyScore != null ? Number((scorecard.competencyScore * 0.15).toFixed(2)) : '12.75'}%</span>
-            </div>
-            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 15%</span>
-            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>{scorecard?.competencyScore != null ? Number(scorecard.competencyScore).toFixed(1) : '85.0'}%</strong></span>
-              <span className="text-[10px] font-bold text-[#0369a1] bg-[#e0f2fe] px-1 rounded">Index Gap: 0.12</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
-            Benchmark standar arsitektur cloud level 4
-          </p>
-        </div>
-
-        {/* Component 4: Core Values */}
-        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
-                <Users className="h-3.5 w-3.5 text-[#007a5a]" />
-                4. Sikap & Penilaian Rekan
-              </div>
-              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.coreValuesScore != null ? Number((scorecard.coreValuesScore * 0.15).toFixed(2)) : '13.50'}%</span>
-            </div>
-            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 15%</span>
-            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
-              <span>Skor Aktual: <strong>{scorecard?.coreValuesScore != null ? Number(scorecard.coreValuesScore).toFixed(1) : '90.0'}%</strong></span>
-              <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">Rating: 4.5 / 5.0</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
-            Pilar AKHLAK: Amanah, Harmonis, Kompeten
-          </p>
-        </div>
-
-      </div>
-
-    </div>
-  </div>
-    <AiAnalyzePanel feature="employee" />
-  </ExpandablePanel>
-
-  {/* Panel: Target Kerja & Cascading OKR */}
-  <ExpandablePanel open={openFeature === 'okr'} title="Target Kerja Aktif" onClose={() => setOpenFeature(null)}>
-  <div className="stitch-card-white p-6 space-y-4">
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f1f5f9] pb-4">
-      <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-extrabold text-[#0f172a]">
-            Target Kerja Aktif
-          </h2>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-            totalWeight === 100 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#e0f2fe] text-[#0369a1]'
-          }`}>
-            Bobot Terpakai: {totalWeight}% / 100%
-          </span>
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
-            remainingQuota > 0 ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
-          }`}>
-            Sisa Kuota: {remainingQuota}%
-          </span>
-        </div>
-        <p className="text-xs text-[#64748b] mt-0.5">
-          Setiap target individu terhubung secara hierarkis ke Balanced Scorecard (BSC) Perusahaan.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Period Selector Tabs */}
-        <div className="flex items-center bg-[#f1f5f9] p-0.5 rounded-lg text-xs font-medium border border-[#e2e8f0]">
-          <button
-            type="button"
-            onClick={() => handlePeriodChange('d0000000-0000-4000-8000-000000000001')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              selectedPeriod === 'd0000000-0000-4000-8000-000000000001'
-                ? 'bg-white font-bold text-[#007a5a] shadow-xs'
-                : 'text-[#64748b] hover:text-[#0f172a]'
-            }`}
-          >
-            2026-Q3 (Aktif)
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePeriodChange('d0000000-0000-4000-8000-000000000002')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              selectedPeriod === 'd0000000-0000-4000-8000-000000000002'
-                ? 'bg-white font-bold text-[#007a5a] shadow-xs'
-                : 'text-[#64748b] hover:text-[#0f172a]'
-            }`}
-          >
-            2026-Q4 (Perencanaan)
-          </button>
-        </div>
-
-        <button
-          onClick={handleOpenTree}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#cbd5e1] bg-white text-xs font-semibold text-[#334155] shadow-xs hover:bg-[#f8fafc] transition-colors cursor-pointer"
-        >
-          <GitBranch className="h-3.5 w-3.5 text-[#64748b]" />
-          <span>Diagram Pohon BSC</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setKpiForm((prev) => ({
-              ...prev,
-              periodId: selectedPeriod,
-              weight: String(remainingQuota > 0 ? Math.min(10, remainingQuota) : 10),
-            }));
-            setIsAddKpiOpen(true);
-          }}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="h-3.5 w-3.5 text-white" />
-          <span>Tambah Target Kerja</span>
-        </button>
-      </div>
-    </div>
-
-    {/* Corporate Objective Alignment Banner */}
-    <div className="p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-      <div className="flex items-center gap-2 text-[#334155]">
-        <Compass className="h-4 w-4 text-[#007a5a] flex-shrink-0" />
-        <div>
-          <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider block">
-            Corporate Objective Alignment (PostgreSQL Live)
-          </span>
-          <span>
-            BSC Level 1: &ldquo;<strong>Modernisasi Infrastruktur Digital & Tata Kelola GCG Tanpa Downtime Kritis</strong>&rdquo;
-          </span>
-        </div>
-      </div>
-
-      <div className="text-right">
-        <span className="text-[10px] text-[#64748b] block">Penyelarasan</span>
-        <span className="text-xs font-bold text-[#007a5a]">100% Fully Cascaded</span>
-      </div>
-    </div>
-
-    {/* Status Notification */}
-    {statusMsg && (
-      <div className={`p-3 rounded-lg text-xs font-semibold flex items-center justify-between ${
-        statusMsg.type === 'success' ? 'bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]' : 'bg-[#fce8e6] text-[#c5221f] border border-[#f5c2c7]'
-      }`}>
-        <span>{statusMsg.text}</span>
-        <button onClick={() => setStatusMsg(null)}><X className="h-3.5 w-3.5" /></button>
-      </div>
-    )}
-
-    {/* Modal Update Actual */}
-    {selectedKpi && typeof document !== 'undefined' && createPortal(
-      <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
-          <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
-            <h3 className="text-sm font-extrabold text-[#0f172a]">Isi Capaian Target Kerja</h3>
-            <button onClick={() => setSelectedKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-[#0f172a]">{selectedKpi.kpi_title}</p>
-            <p className="text-[11px] text-[#64748b]">Pilar: {selectedKpi.strategic_pillar_name} (Bobot: {selectedKpi.kpi_weight}%)</p>
-            <p className="text-[11px] text-[#64748b]">Target: {selectedKpi.target_value}</p>
-          </div>
-          <form onSubmit={handleUpdateActual} className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-[#334155] mb-1">Nilai Realisasi Aktual Baru</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                required
-                value={newActual}
-                onChange={(e) => setNewActual(e.target.value)}
-                placeholder={`Masukkan angka (contoh: ${selectedKpi.target_value})`}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-              />
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setSelectedKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer">Batal</button>
-              <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#007a5a] hover:bg-[#00684a] rounded-lg shadow-sm cursor-pointer">
-                {isUpdating ? 'Menyimpan...' : 'Simpan Realisasi'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>,
-      document.body
-    )}
-
-    {/* Modal Update Weight */}
-    {weightModalKpi && typeof document !== 'undefined' && createPortal(
-      <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-[#e2e8f0]">
-          <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
-            <h3 className="text-sm font-extrabold text-[#0f172a] flex items-center gap-2">
-              <Sliders className="h-4 w-4 text-[#0284c7]" />
-              <span>Sesuaikan Bobot Target Kerja</span>
-            </h3>
-            <button onClick={() => setWeightModalKpi(null)} className="text-[#64748b] hover:text-[#0f172a] cursor-pointer"><X className="h-4 w-4" /></button>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-[#0f172a]">{weightModalKpi.kpi_title}</p>
-            <p className="text-[11px] text-[#64748b]">Bobot saat ini: <strong className="text-[#0f172a]">{weightModalKpi.kpi_weight}%</strong> &bull; Total bobot lain: <strong>{totalWeight - Number(weightModalKpi.kpi_weight)}%</strong></p>
-            <p className="text-[11px] text-[#007a5a]">Maksimal bobot yang diizinkan untuk KPI ini: <strong>{100 - (totalWeight - Number(weightModalKpi.kpi_weight))}%</strong></p>
-          </div>
-          <form onSubmit={handleUpdateWeight} className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-[#334155] mb-1">Bobot Baru (%)</label>
-              <input
-                type="number"
-                min="1"
-                max={100 - (totalWeight - Number(weightModalKpi.kpi_weight))}
-                required
-                value={editWeightVal}
-                onChange={(e) => setEditWeightVal(e.target.value)}
-                placeholder="Contoh: 15"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-[#007a5a]"
-              />
-              <span className="text-[10px] text-[#64748b] mt-1 block">
-                Menurunkan bobot ini akan meluangkan kuota bobot bagi milestone baru.
-              </span>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setWeightModalKpi(null)} className="px-3 py-1.5 text-xs text-[#64748b] hover:bg-[#f1f5f9] rounded-lg cursor-pointer">Batal</button>
-              <button type="submit" disabled={isUpdating} className="px-4 py-1.5 text-xs font-bold text-white bg-[#0284c7] hover:bg-[#0369a1] rounded-lg shadow-sm cursor-pointer">
-                {isUpdating ? 'Menyimpan...' : 'Simpan Perubahan Bobot'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>,
-      document.body
-    )}
-
-    {/* Real Database KPIs from PostgreSQL */}
-    <div className="space-y-4 pt-2">
-      {kpis.length > 0 ? (
-        kpis.map((kpi, idx) => (
-          <div key={kpi.kpi_id} className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
-                  KPI-0{idx + 1}
-                </span>
-                <h3 className="text-xs font-bold text-[#0f172a]">
-                  {kpi.kpi_title}
-                </h3>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                  kpi.status === 'APPROVED' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef3c7] text-[#92400e]'
-                }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${kpi.status === 'APPROVED' ? 'bg-[#137333]' : 'bg-[#d97706]'}`} />
-                  {kpi.status === 'APPROVED' ? 'Disetujui Atasan' : 'Menunggu Persetujuan'}
-                </span>
-                <button
-                  onClick={() => {
-                    setSelectedKpi(kpi);
-                    setNewActual(String(kpi.actual_value));
-                  }}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#007a5a] hover:bg-[#e6f4ea] border border-[#cbd5e1] cursor-pointer"
-                >
-                  <Edit3 className="h-3 w-3" />
-                  <span>Update Realisasi</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setWeightModalKpi(kpi);
-                    setEditWeightVal(String(kpi.kpi_weight));
-                  }}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#0284c7] hover:bg-[#e0f2fe] border border-[#cbd5e1] cursor-pointer"
-                  title="Sesuaikan bobot KPI ini"
-                >
-                  <Sliders className="h-3 w-3" />
-                  <span>Ubah Bobot</span>
-                </button>
-                <button
-                  onClick={() => handleDeleteKpi(kpi)}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#fef2f2] text-[#dc2626] hover:bg-rose-100 border border-[#fecaca] cursor-pointer"
-                  title="Hapus sasaran KPI ini"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span>Hapus</span>
-                </button>
-              </div>
-            </div>
-
-            <p className="text-xs text-[#64748b]">
-              Pilar Strategis: <strong>{kpi.strategic_pillar_name}</strong> &bull; Perspektif BSC: <strong>{kpi.perspective}</strong>
-            </p>
-
-            <div className="flex flex-wrap items-center justify-between text-xs font-mono text-[#334155] pt-1">
-              <span>Bobot: <strong>{kpi.kpi_weight}%</strong></span>
-              <span>Target: <strong>{kpi.target_value}</strong></span>
-              <span className="text-[#007a5a] font-bold">
-                Realisasi: {kpi.actual_value} ({kpi.achievement_pct}%)
-              </span>
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className="text-center py-8 p-4 rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] space-y-2">
-          <p className="text-xs font-medium text-[#64748b]">
-            {loading ? 'Memuat data KPI dari PostgreSQL...' : 'Belum ada sasaran KPI tercatat untuk periode ini.'}
-          </p>
-          {!loading && (
-            <p className="text-[11px] text-[#007a5a] font-semibold">
-              Sisa kuota bobot 100% tersedia! Klik &ldquo;Ajukan Milestone Baru&rdquo; untuk mulai merancang sasaran kerja.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  </div>
-    <AiAnalyzePanel feature="employee" />
-  </ExpandablePanel>
-
-  {/* Panel: Profil Saya — dirender di bawah kartu layanan (bukan modal),
-      mengikuti pola "Absensi & Timesheet Harian". */}
-  <ExpandablePanel open={openFeature === 'profile'} title="Profil Saya" onClose={() => setOpenFeature(null)}>
-    <MyProfileModal />
-  </ExpandablePanel>
+  {/* Panel "Target Kerja", "Profil Saya", dan "Absensi & Timesheet Harian"
+      kini dirender TEPAT DI BAWAH kartu pada grupnya masing-masing (lihat
+      blok grupLayanan.map) agar konsisten dengan "Kontrol Siklus 3-Fase" HR. */}
 
   {/* Panel: Pengembangan Diri */}
-  <ExpandablePanel open={openFeature === 'timesheet'} title="Absensi & Timesheet Harian" onClose={() => setOpenFeature(null)}>
-    <AttendancePanel />
-  </ExpandablePanel>
 
   <ExpandablePanel open={openFeature === 'development'} title="Pengembangan Diri & Pembelajaran" onClose={() => setOpenFeature(null)}>
   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -2293,3 +2158,157 @@ return (
 </div>
 );
 }
+
+/** Panel "NilaiKinerjaPanel": dirender di bawah kartu grupnya, bukan di akhir halaman. */
+function NilaiKinerjaPanel({ open, onClose, scorecard }: { open: boolean; onClose: () => void; scorecard: any }) {
+  return (
+  <ExpandablePanel open={open} title="Nilai Kinerja (Scorecard)" onClose={onClose}>
+  <div className="stitch-card-white p-6 space-y-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f1f5f9] pb-3">
+      <div className="flex items-center gap-3">
+        <h2 className="text-base font-extrabold text-[#0f172a]">
+          Nilai Kinerja Anda
+        </h2>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#f1f5f9] text-[#475569]">
+          Model GCG 4-Pilar
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1 text-xs text-[#64748b] font-mono">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#007a5a]" />
+        <span>Audit Trail ID: #GPA-2026-Q3-0941</span>
+      </div>
+    </div>
+
+    <p className="text-xs text-[#64748b]">
+      Nilai ini dihitung otomatis dan adil: 50% dari Target Kerja, 20% dari Kepatuhan Prosedur, 15% dari Kemampuan & Pelatihan, dan 15% dari Sikap & Penilaian Rekan. Sama persis dengan yang dilihat HR.
+    </p>
+
+    {/* Scorecard Layout */}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch pt-1">
+      
+      {/* Left Block: GPA Hero */}
+      <div className="lg:col-span-3 p-5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex flex-col justify-between space-y-3">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">
+            Nilai Kinerja Keseluruhan
+          </span>
+          <div className="flex items-baseline gap-1 mt-1.5">
+            <span className="text-4xl font-black text-[#0f172a] font-sans">
+              {scorecard?.compositeGpa != null ? Number(scorecard.compositeGpa).toFixed(2) : '3.67'}
+            </span>
+            <span className="text-base font-bold text-[#64748b]">/ 4.00</span>
+          </div>
+          <span className="inline-block mt-2 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#e6f4ea] text-[#137333] border border-[#b7e1cd]">
+            Predikat: A (Sangat Baik)
+          </span>
+        </div>
+
+        <div className="text-[11px] text-[#64748b] pt-2 border-t border-[#e2e8f0] space-y-1">
+          <div className="flex justify-between">
+            <span>Standar Perusahaan: 3.25</span>
+            <strong className="text-[#007a5a]">Top 7% Divisi</strong>
+          </div>
+          <p className="text-[10px] text-[#007a5a] font-semibold mt-1">
+            Memenuhi syarat fast-track promosi Principal Engineer Q4.
+          </p>
+        </div>
+      </div>
+
+      {/* Right 4 Component Cards */}
+      <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        
+        {/* Component 1: KPI */}
+        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
+                <Target className="h-3.5 w-3.5 text-[#007a5a]" />
+                1. Target Kerja
+              </div>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.kpiCompositeScore != null ? Number((scorecard.kpiCompositeScore * 0.5).toFixed(2)) : '46.25'}%</span>
+            </div>
+            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 50%</span>
+            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
+              <span>Skor Aktual: <strong>{scorecard?.kpiCompositeScore != null ? Number(scorecard.kpiCompositeScore).toFixed(1) : '92.5'}%</strong></span>
+              <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">Sangat Optimal</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
+            Terhubung BSC Internal Process & Finansial
+          </p>
+        </div>
+
+        {/* Component 2: SOP */}
+        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#0284c7]" />
+                2. Kepatuhan Prosedur
+              </div>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.sopComplianceScore != null ? Number((scorecard.sopComplianceScore * 0.2).toFixed(2)) : '19.20'}%</span>
+            </div>
+            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 20%</span>
+            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
+              <span>Skor Aktual: <strong>{scorecard?.sopComplianceScore != null ? Number(scorecard.sopComplianceScore).toFixed(1) : '96.0'}%</strong></span>
+              <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">0 Fatal Error</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
+            SLA Penyelesaian Insiden 99.1% (Target 95%)
+          </p>
+        </div>
+
+        {/* Component 3: Competency */}
+        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
+                <Award className="h-3.5 w-3.5 text-[#007a5a]" />
+                3. Kemampuan & Pelatihan
+              </div>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.competencyScore != null ? Number((scorecard.competencyScore * 0.15).toFixed(2)) : '12.75'}%</span>
+            </div>
+            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 15%</span>
+            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
+              <span>Skor Aktual: <strong>{scorecard?.competencyScore != null ? Number(scorecard.competencyScore).toFixed(1) : '85.0'}%</strong></span>
+              <span className="text-[10px] font-bold text-[#0369a1] bg-[#e0f2fe] px-1 rounded">Index Gap: 0.12</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
+            Benchmark standar arsitektur cloud level 4
+          </p>
+        </div>
+
+        {/* Component 4: Core Values */}
+        <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white flex flex-col justify-between space-y-2">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#334155]">
+                <Users className="h-3.5 w-3.5 text-[#007a5a]" />
+                4. Sikap & Penilaian Rekan
+              </div>
+              <span className="text-xs font-bold text-[#0f172a] font-mono">{scorecard?.coreValuesScore != null ? Number((scorecard.coreValuesScore * 0.15).toFixed(2)) : '13.50'}%</span>
+            </div>
+            <span className="text-[10px] text-[#64748b] block mt-0.5">Bobot: 15%</span>
+            <div className="flex items-center gap-1.5 text-xs mt-2 font-mono">
+              <span>Skor Aktual: <strong>{scorecard?.coreValuesScore != null ? Number(scorecard.coreValuesScore).toFixed(1) : '90.0'}%</strong></span>
+              <span className="text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-1 rounded">Rating: 4.5 / 5.0</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
+            Pilar AKHLAK: Amanah, Harmonis, Kompeten
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+    <AiAnalyzePanel feature="employee" />
+  </ExpandablePanel>
+  );
+}
+
+/** Panel "TargetKerjaPanel": dirender di bawah kartu grupnya, bukan di akhir halaman. */
