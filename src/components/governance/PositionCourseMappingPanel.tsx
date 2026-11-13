@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { Upload } from 'lucide-react';
 
 interface PositionCourse {
   courseId: number;
@@ -55,6 +56,13 @@ export default function PositionCourseMappingPanel() {
   const [modulLoading, setModulLoading] = useState(false);
   const [editModulId, setEditModulId] = useState<number | null>(null);
   const [modulForm, setModulForm] = useState<{ title: string; contentUrl: string }>({ title: '', contentUrl: '' });
+  // Unggah materi sendiri + pencarian materi untuk dipilih.
+  const [unggahNama, setUnggahNama] = useState<string | null>(null);
+  const [unggahBusy, setUnggahBusy] = useState(false);
+  const [tautanPeringatan, setTautanPeringatan] = useState<string | null>(null);
+  const [cariMateri, setCariMateri] = useState('');
+  const [cariBusy, setCariBusy] = useState(false);
+  const [hasilCari, setHasilCari] = useState<Array<{ title: string; url: string; provider: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -166,7 +174,25 @@ export default function PositionCourseMappingPanel() {
 
   /** Tambah materi baru, atau simpan perubahan materi yang sedang diedit. */
   async function simpanMateri(courseId: number) {
-    setBusy(true); setMsg(null); setErr(null);
+    setBusy(true); setMsg(null); setErr(null); setTautanPeringatan(null);
+
+    const tautan = modulForm.contentUrl.trim();
+    // Tautan unggahan internal (dari storage aplikasi) tidak perlu diperiksa
+    // domainnya — berkasnya memang milik kita. Selain itu, periksa keabsahan.
+    if (tautan && !tautan.startsWith('/api/v1/learning/materials/')) {
+      try {
+        const res = await fetch(`/api/v1/learning/materials/validasi?url=${encodeURIComponent(tautan)}`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json?.data?.hidup === false) {
+          setTautanPeringatan(json?.data?.alasan || json?.detail || 'Tautan tidak valid atau halamannya kosong.');
+          setBusy(false);
+          return;
+        }
+      } catch {
+        /* pemeriksaan gagal karena jaringan: izinkan, server tetap memvalidasi */
+      }
+    }
+
     try {
       const payload = {
         title: modulForm.title.trim(),
@@ -196,6 +222,45 @@ export default function PositionCourseMappingPanel() {
   function mulaiEditModul(m: { id: number; title: string; contentUrl: string | null }) {
     setEditModulId(m.id);
     setModulForm({ title: m.title, contentUrl: m.contentUrl ?? '' });
+    setUnggahNama(null);
+    setTautanPeringatan(null);
+  }
+
+  /** Unggah berkas materi sendiri ke storage, lalu pakai URL-nya. */
+  async function unggahMateri(file: File | null) {
+    if (!file) return;
+    setUnggahBusy(true); setErr(null); setMsg(null); setTautanPeringatan(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/v1/learning/materials/upload', { method: 'POST', body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setErr(json?.detail || 'Gagal mengunggah materi.'); return; }
+      const url = json?.data?.url as string;
+      setModulForm((f) => ({ title: f.title || file.name.replace(/\.[^.]+$/, ''), contentUrl: url }));
+      setUnggahNama(json?.data?.fileName ?? file.name);
+      setMsg('Materi terunggah. Klik Simpan untuk melampirkan ke kursus.');
+    } catch {
+      setErr('Gagal mengunggah materi.');
+    } finally { setUnggahBusy(false); }
+  }
+
+  /** Cari materi OER untuk posisi terpilih, lalu tampilkan untuk dipilih. */
+  async function cariOer() {
+    const q = cariMateri.trim();
+    setCariBusy(true); setErr(null);
+    try {
+      const pos = tujuanPemetaan[0];
+      const url = `/api/v1/learning/oer?q=${encodeURIComponent(q)}${pos ? `&positionId=${encodeURIComponent(pos)}` : ''}`;
+      const res = await fetch(url);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setErr(json?.detail || 'Gagal mencari materi.'); return; }
+      const hasil = (json?.data?.results ?? []) as Array<{ title: string; url: string; provider: string }>;
+      setHasilCari(hasil);
+      if (hasil.length === 0) setErr('Tidak ada materi yang cocok. Coba kata kunci lain.');
+    } catch {
+      setErr('Gagal mencari materi.');
+    } finally { setCariBusy(false); }
   }
 
   async function addMapping(courseId: number, isMandatory = true) {
@@ -559,10 +624,12 @@ export default function PositionCourseMappingPanel() {
                             </ul>
                           )}
 
-                          {/* Form materi: tambah baru atau ubah yang dipilih */}
+                          {/* Form materi: tambah baru atau ubah yang dipilih.
+                              Tiga sumber materi: unggah berkas sendiri, tautan
+                              manual, atau pilih dari hasil pencarian OER. */}
                           <div className="rounded-lg border border-[#e2e8f0] bg-[#fbfdfc] p-2.5 space-y-1.5">
                             <p className="text-[10px] font-bold text-[#334155]">
-                              {editModulId ? 'Ubah materi' : 'Tambah materi sendiri'}
+                              {editModulId ? 'Ubah materi' : 'Tambah materi'}
                             </p>
                             <input
                               value={modulForm.title}
@@ -570,17 +637,87 @@ export default function PositionCourseMappingPanel() {
                               placeholder="Judul materi"
                               className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
                             />
+
+                            {/* Sumber A: unggah berkas sendiri */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label className="inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] cursor-pointer">
+                                <Upload className="h-3 w-3" />
+                                {unggahNama || 'Unggah materi (PDF/video/slide)'}
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept=".pdf,.mp4,.webm,.png,.jpg,.jpeg,.pptx,.docx"
+                                  onChange={(e) => void unggahMateri(e.target.files?.[0] ?? null)}
+                                />
+                              </label>
+                              {unggahBusy && <span className="text-[10px] text-[#64748b]">Mengunggah…</span>}
+                            </div>
+
+                            {/* Sumber B: tautan manual */}
                             <input
                               value={modulForm.contentUrl}
                               onChange={(e) => setModulForm({ ...modulForm, contentUrl: e.target.value })}
-                              placeholder="Tautan materi (open.edu, learn.microsoft.com, ocw.mit.edu, …)"
+                              placeholder="…atau tempel tautan (open.edu, learn.microsoft.com, …)"
                               className="w-full rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
                             />
+
+                            {tautanPeringatan && (
+                              <p className="text-[10px] font-semibold text-[#b45309] bg-[#fffbeb] border border-[#fde68a] rounded px-2 py-1">
+                                {tautanPeringatan}
+                              </p>
+                            )}
+                            {unggahNama && (
+                              <p className="text-[10px] text-[#047857]">
+                                Materi terunggah: <strong>{unggahNama}</strong> (akan dipakai sebagai tautan materi)
+                              </p>
+                            )}
+
+                            {/* Sumber C: pilih dari hasil pencarian OER */}
+                            <div className="flex gap-1.5">
+                              <input
+                                value={cariMateri}
+                                onChange={(e) => setCariMateri(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') { e.preventDefault(); void cariOer(); }
+                                }}
+                                placeholder="Cari materi gratis untuk posisi ini…"
+                                className="flex-1 rounded-lg border border-[#e2e8f0] px-2.5 py-1.5 text-[12px]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void cariOer()}
+                                disabled={cariBusy}
+                                className="rounded-lg border border-[#007a5a] px-2.5 py-1.5 text-[11px] font-bold text-[#007a5a] disabled:opacity-50"
+                              >
+                                {cariBusy ? 'Mencari…' : 'Cari'}
+                              </button>
+                            </div>
+                            {hasilCari.length > 0 && (
+                              <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border border-[#e2e8f0] bg-white p-1.5">
+                                {hasilCari.map((r) => (
+                                  <button
+                                    key={r.url}
+                                    type="button"
+                                    onClick={() =>
+                                      setModulForm({
+                                        title: modulForm.title || r.title,
+                                        contentUrl: r.url,
+                                      })
+                                    }
+                                    className="block w-full text-left rounded px-2 py-1 hover:bg-[#f0fdf9]"
+                                  >
+                                    <span className="block text-[11px] font-semibold text-[#0f172a] truncate">{r.title}</span>
+                                    <span className="block text-[10px] text-[#64748b] truncate">{r.provider} · {r.url}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="flex gap-2">
                               <button
                                 type="button"
                                 onClick={() => void simpanMateri(c.courseId)}
-                                disabled={busy || !modulForm.title.trim()}
+                                disabled={busy || !modulForm.title.trim() || !(modulForm.contentUrl.trim() || unggahNama)}
                                 className="rounded-lg bg-[#007a5a] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
                               >
                                 {editModulId ? 'Simpan materi' : 'Tambah materi'}
@@ -591,6 +728,8 @@ export default function PositionCourseMappingPanel() {
                                   onClick={() => {
                                     setEditModulId(null);
                                     setModulForm({ title: '', contentUrl: '' });
+                                    setUnggahNama(null);
+                                    setTautanPeringatan(null);
                                   }}
                                   className="rounded-lg border border-[#e2e8f0] px-3 py-1.5 text-[11px] font-semibold text-[#475569]"
                                 >
@@ -599,7 +738,8 @@ export default function PositionCourseMappingPanel() {
                               )}
                             </div>
                             <p className="text-[10px] text-[#94a3b8]">
-                              Hanya tautan materi gratis dari penyedia tepercaya yang diterima.
+                              Tautan divalidasi otomatis: harus halaman resmi penyedia tepercaya,
+                              tidak berbayar, dan tidak kosong.
                             </p>
                           </div>
                         </div>

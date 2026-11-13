@@ -445,22 +445,15 @@ export default function HROperationsPage() {
   }, []);
 
   /**
-   * Membuka satu fitur lalu menggulir ke panelnya, supaya pengguna tidak perlu
-   * mencari panel yang terbuka secara manual.
+   * Membuka satu fitur.
+   *
+   * CATATAN: sengaja TIDAK memanggil scrollIntoView/scrollTo. Dulu panel
+   * digulir ke atas setiap kali kartu diklik, sehingga halaman melompat dan
+   * pengguna kehilangan posisi — padahal mereka baru saja mengklik kartu yang
+   * sudah terlihat. Sekarang panel dibuka di tempat, tanpa menggeser layar.
    */
   const openPanelAtTop = useCallback((feature: string) => {
     setOpenFeature(feature);
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame(() => {
-        const node = phaseBlockRef.current;
-        // Beberapa lingkungan (jsdom pada tes) tidak menyediakan scrollIntoView.
-        if (node && typeof node.scrollIntoView === 'function') {
-          node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      });
-    }
   }, []);
   const [mppData, setMppData] = useState<any>(null);
   const [offboardings, setOffboardings] = useState<any[]>([]);
