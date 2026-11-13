@@ -594,12 +594,8 @@ export default function ManagerCockpitPage() {
             onClick={() => window.print()}
           />
         </div>
-      </div>
-
-      {/* Indikator Pencapaian Target Tim */}
-      <TargetAchievementCard periodId={PERIOD_ID} title="Indikator Pencapaian Target Tim" />
-
-      {/* Panel: Roster Tim */}
+        {/* Kartu "Roster & Penugasan" & "Evaluasi Nilai Kinerja Tim" membuka
+            panelnya TEPAT DI BAWAH grid ini (pola sama dengan HR). */}
       <ExpandablePanel open={openFeature === 'roster'} title="Roster Tim" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
@@ -696,6 +692,170 @@ export default function ManagerCockpitPage() {
       </div>
         <AiAnalyzePanel feature="manager" />
       </ExpandablePanel>
+      <ExpandablePanel open={openFeature === 'evaluasi'} title="Tindakan Otorisasi & Evaluasi Nilai Kinerja" onClose={() => setOpenFeature(null)}>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-extrabold text-[#0f172a]">
+              Tindakan Otorisasi & Tugas Segera (Action Drawer)
+            </h2>
+          </div>
+          <span className="text-xs text-[#64748b]">
+            3 Item Memerlukan Tanda Tangan Manajerial
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Action 1: SOP Verification */}
+          <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#c5221f] bg-[#fce8e6] px-2 py-0.5 rounded">
+                  SLA Breached Exception
+                </span>
+                <span className="text-[11px] text-[#64748b]">2 Jam Lalu</span>
+              </div>
+
+              <h3 className="text-sm font-bold text-[#0f172a]">
+                SOP & SLA Verification Needed
+              </h3>
+
+              <p className="text-xs text-[#64748b] leading-relaxed">
+                Tiket keterlambatan SLA resolusi insiden produksi (#INC-8921) oleh <strong>Andika Wijaya</strong> memerlukan verifikasi log data center dan justifikasi manajerial sebelum nilai SOP dikalibrasi ke sistem GCG.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
+              <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Lihat Log Bukti</span>
+              <button
+                type="button"
+                onClick={() => handleOpenEval(teamRoster.find((m) => m.name === 'Andika Wijaya') ?? teamRoster[0])}
+                disabled={teamRoster.length === 0}
+                className="px-3.5 py-1.5 rounded-lg bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+              >
+                Review Justifikasi
+              </button>
+            </div>
+          </div>
+
+          {/* Action 2: 30-60-90 Days Review (live probation milestones) */}
+          <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded">
+                  Probation Milestone
+                </span>
+                <span className="text-[11px] text-[#64748b]">
+                  {probations.filter((p) => !p.probationPassed).length} Karyawan Berjalan
+                </span>
+              </div>
+
+              <h3 className="text-sm font-bold text-[#0f172a]">
+                30-60-90 Days Probation Review
+              </h3>
+
+              {probations.length === 0 ? (
+                <p className="text-xs text-[#64748b] leading-relaxed">
+                  Belum ada catatan evaluasi probation pada basis data. Skor Hari-30/60/90 akan muncul di sini setelah HR membuat program onboarding karyawan.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {probations.map((p) => (
+                    <div
+                      key={p.id}
+                      className="rounded-lg border border-[#e2e8f0] p-2.5 space-y-1.5 bg-[#f8fafc]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#0f172a] truncate">{p.employeeName}</p>
+                          <p className="text-[10px] text-[#64748b] truncate">{p.position} · {p.department}</p>
+                        </div>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                            p.probationPassed
+                              ? 'bg-[#e6f4ea] text-[#137333]'
+                              : 'bg-[#fef3c7] text-[#92400e]'
+                          }`}
+                        >
+                          {p.probationPassed ? 'Lulus (Tetap)' : 'Probation'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#334155]">
+                        <span className="font-semibold">H30</span> {p.day30Score ?? '—'}
+                        <span className="mx-1 text-[#cbd5e1]">|</span>
+                        <span className="font-semibold">H60</span> {p.day60Score ?? '—'}
+                        <span className="mx-1 text-[#cbd5e1]">|</span>
+                        <span className="font-semibold">H90</span> {p.day90Score ?? '—'}
+                      </div>
+                      <button
+                        onClick={() => openProbationEval(p)}
+                        className="w-full text-[11px] font-semibold text-[#0369a1] hover:text-[#075985] hover:underline text-left"
+                      >
+                        Isi / perbarui evaluasi →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
+              <span className="text-xs text-[#64748b]">Sinkron dengan modul Pre-Employment</span>
+              <button
+                onClick={() => probations[0] && openProbationEval(probations[0])}
+                disabled={probations.length === 0}
+                className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Beri Nilai Evaluasi
+              </button>
+            </div>
+          </div>
+
+          {/* Action 3: Cascading KPI Sign-off */}
+          <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">
+                  Balanced Scorecard
+                </span>
+                <span className="text-[11px] text-[#64748b]">Perencanaan Q4</span>
+              </div>
+
+              <h3 className="text-sm font-bold text-[#0f172a]">
+                Cascading KPI Sign-off: Target Q4-2026
+              </h3>
+
+              <p className="text-xs text-[#64748b] leading-relaxed">
+                2 usulan metrik KPI individu baru diajukan oleh Tim Arsitektur Sistem (termasuk efisiensi konsumsi cloud compute) membutuhkan otorisasi keselarasan pilar BSC divisi.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
+              <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Lihat Matriks Bobot</span>
+              <button
+                onClick={handleApproveAll}
+                disabled={isApproving}
+                className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors"
+              >
+                {isApproving ? 'Mengotorisasi...' : 'Otorisasi KPI Tim'}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* 5. Peninjauan Lamaran Internal (Kotak 3: Job Board & Mobilitas Internal) */}
+      <InternalApplicationReview />
+        <AiAnalyzePanel feature="manager" />
+      </ExpandablePanel>
+      </div>
+
+      {/* Indikator Pencapaian Target Tim */}
+      <TargetAchievementCard periodId={PERIOD_ID} title="Indikator Pencapaian Target Tim" />
+
+      {/* Panel: Roster Tim */}
 
       {/* Panel: Approval KPI (Team Table) */}
       <ExpandablePanel open={openFeature === 'approval'} title="Penilaian Tim & Goal Cascading" onClose={() => setOpenFeature(null)}>
@@ -893,164 +1053,6 @@ export default function ManagerCockpitPage() {
       </ExpandablePanel>
 
       {/* Panel: Evaluasi GPA & Otorisasi */}
-      <ExpandablePanel open={openFeature === 'evaluasi'} title="Tindakan Otorisasi & Evaluasi Nilai Kinerja" onClose={() => setOpenFeature(null)}>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-extrabold text-[#0f172a]">
-              Tindakan Otorisasi & Tugas Segera (Action Drawer)
-            </h2>
-          </div>
-          <span className="text-xs text-[#64748b]">
-            3 Item Memerlukan Tanda Tangan Manajerial
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
-          {/* Action 1: SOP Verification */}
-          <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#c5221f] bg-[#fce8e6] px-2 py-0.5 rounded">
-                  SLA Breached Exception
-                </span>
-                <span className="text-[11px] text-[#64748b]">2 Jam Lalu</span>
-              </div>
-
-              <h3 className="text-sm font-bold text-[#0f172a]">
-                SOP & SLA Verification Needed
-              </h3>
-
-              <p className="text-xs text-[#64748b] leading-relaxed">
-                Tiket keterlambatan SLA resolusi insiden produksi (#INC-8921) oleh <strong>Andika Wijaya</strong> memerlukan verifikasi log data center dan justifikasi manajerial sebelum nilai SOP dikalibrasi ke sistem GCG.
-              </p>
-            </div>
-
-            <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
-              <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Lihat Log Bukti</span>
-              <button
-                type="button"
-                onClick={() => handleOpenEval(teamRoster.find((m) => m.name === 'Andika Wijaya') ?? teamRoster[0])}
-                disabled={teamRoster.length === 0}
-                className="px-3.5 py-1.5 rounded-lg bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
-              >
-                Review Justifikasi
-              </button>
-            </div>
-          </div>
-
-          {/* Action 2: 30-60-90 Days Review (live probation milestones) */}
-          <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded">
-                  Probation Milestone
-                </span>
-                <span className="text-[11px] text-[#64748b]">
-                  {probations.filter((p) => !p.probationPassed).length} Karyawan Berjalan
-                </span>
-              </div>
-
-              <h3 className="text-sm font-bold text-[#0f172a]">
-                30-60-90 Days Probation Review
-              </h3>
-
-              {probations.length === 0 ? (
-                <p className="text-xs text-[#64748b] leading-relaxed">
-                  Belum ada catatan evaluasi probation pada basis data. Skor Hari-30/60/90 akan muncul di sini setelah HR membuat program onboarding karyawan.
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {probations.map((p) => (
-                    <div
-                      key={p.id}
-                      className="rounded-lg border border-[#e2e8f0] p-2.5 space-y-1.5 bg-[#f8fafc]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#0f172a] truncate">{p.employeeName}</p>
-                          <p className="text-[10px] text-[#64748b] truncate">{p.position} · {p.department}</p>
-                        </div>
-                        <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
-                            p.probationPassed
-                              ? 'bg-[#e6f4ea] text-[#137333]'
-                              : 'bg-[#fef3c7] text-[#92400e]'
-                          }`}
-                        >
-                          {p.probationPassed ? 'Lulus (Tetap)' : 'Probation'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#334155]">
-                        <span className="font-semibold">H30</span> {p.day30Score ?? '—'}
-                        <span className="mx-1 text-[#cbd5e1]">|</span>
-                        <span className="font-semibold">H60</span> {p.day60Score ?? '—'}
-                        <span className="mx-1 text-[#cbd5e1]">|</span>
-                        <span className="font-semibold">H90</span> {p.day90Score ?? '—'}
-                      </div>
-                      <button
-                        onClick={() => openProbationEval(p)}
-                        className="w-full text-[11px] font-semibold text-[#0369a1] hover:text-[#075985] hover:underline text-left"
-                      >
-                        Isi / perbarui evaluasi →
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
-              <span className="text-xs text-[#64748b]">Sinkron dengan modul Pre-Employment</span>
-              <button
-                onClick={() => probations[0] && openProbationEval(probations[0])}
-                disabled={probations.length === 0}
-                className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Beri Nilai Evaluasi
-              </button>
-            </div>
-          </div>
-
-          {/* Action 3: Cascading KPI Sign-off */}
-          <div className="stitch-card-white p-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">
-                  Balanced Scorecard
-                </span>
-                <span className="text-[11px] text-[#64748b]">Perencanaan Q4</span>
-              </div>
-
-              <h3 className="text-sm font-bold text-[#0f172a]">
-                Cascading KPI Sign-off: Target Q4-2026
-              </h3>
-
-              <p className="text-xs text-[#64748b] leading-relaxed">
-                2 usulan metrik KPI individu baru diajukan oleh Tim Arsitektur Sistem (termasuk efisiensi konsumsi cloud compute) membutuhkan otorisasi keselarasan pilar BSC divisi.
-              </p>
-            </div>
-
-            <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
-              <span className="text-xs text-[#64748b] hover:underline cursor-pointer">Lihat Matriks Bobot</span>
-              <button
-                onClick={handleApproveAll}
-                disabled={isApproving}
-                className="px-3.5 py-1.5 rounded-lg bg-[#007a5a] hover:bg-[#00684a] text-white text-xs font-semibold shadow-xs transition-colors"
-              >
-                {isApproving ? 'Mengotorisasi...' : 'Otorisasi KPI Tim'}
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* 5. Peninjauan Lamaran Internal (Kotak 3: Job Board & Mobilitas Internal) */}
-      <InternalApplicationReview />
-        <AiAnalyzePanel feature="manager" />
-      </ExpandablePanel>
 
       <ExpandablePanel
         open={openFeature === 'indikator'}

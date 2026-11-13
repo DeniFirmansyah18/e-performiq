@@ -17,6 +17,11 @@ const CreateSchema = z.object({
   evidenceUrl: z.string().url().optional(),
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  // Poin pelanggaran: bila kosong, diisi bobot baku menurut jenis sanksi.
+  violationPoints: z.number().int().min(0).max(100).optional(),
+  violationCategory: z
+    .enum(['ABSENSI', 'KODE_ETIK', 'KINERJA', 'KEPATUHAN', 'LAINNYA'])
+    .optional(),
 });
 
 export async function GET(req: NextRequest) {
