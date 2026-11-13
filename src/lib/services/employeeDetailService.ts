@@ -220,6 +220,24 @@ export async function getDetailPegawai(db: Db, session: SessionPayload, id: stri
      ORDER BY document_type
   `)) as unknown as { rows: any[] };
 
+  // Kelengkapan berkas wajib + peringatan kedaluwarsa (katalog baku bersama).
+  // Dihitung di server agar portal pegawai & direktori HR memakai angka yang
+  // sama persis — termasuk untuk PEOPLE MANAGER, BOD, dan HR.
+  let kelengkapanBerkas: any = null;
+  try {
+    const { hitungKelengkapan } = await import('./documentCatalog');
+    const st = (await db.execute(sql`
+      SELECT status::text AS status, employment_status::text AS "employmentStatus"
+        FROM employees WHERE id = ${id}::uuid
+    `)) as unknown as { rows: Array<{ status: string; employmentStatus: string | null }> };
+    const kerja = st.rows?.[0]?.employmentStatus ?? st.rows?.[0]?.status ?? null;
+    const jenisKerja =
+      kerja === 'PKWT' || kerja === 'PROBATION' ? 'PKWT' : kerja === 'PKWTT' || kerja === 'TETAP' ? 'PKWTT' : undefined;
+    kelengkapanBerkas = hitungKelengkapan(dokumen.rows ?? [], { jenisKerja });
+  } catch {
+    kelengkapanBerkas = null;
+  }
+
   // Kontribusi per pilar BSC — dipindah dari modal "Lihat kontribusi".
   let kontribusi: any = null;
   try {
@@ -281,5 +299,7 @@ export async function getDetailPegawai(db: Db, session: SessionPayload, id: stri
       verificationStatus: r.verificationStatus ?? 'PENDING',
       expiryDate: r.expiryDate ?? null,
     })),
+    /** Indikator kelengkapan & peringatan kedaluwarsa berkas wajib. */
+    kelengkapanBerkas,
   };
 }

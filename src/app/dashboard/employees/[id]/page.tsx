@@ -22,6 +22,7 @@ import {
 import DataTable from '@/components/ui/DataTable';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import AnalisisPegawaiAi from '@/components/performance/AnalisisPegawaiAi';
+import BerkasKepegawaianPanel from '@/components/employee/BerkasKepegawaianPanel';
 
 interface Detail {
   profil: {
@@ -448,24 +449,34 @@ export default function DetailPegawaiPage() {
       )}
 
       {tab === 'lainnya' && (
-        <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
-          <h2 className="text-xs font-extrabold text-[#0f172a] mb-2">Jaminan Sosial (BPJS)</h2>
-          {data.bpjs.length === 0 ? (
-            <p className="text-[11px] text-[#64748b] bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-lg p-3">
-              Belum ada data BPJS untuk pegawai ini.
-            </p>
-          ) : (
-            data.bpjs.map((b, i) => (
-              <div key={i}>
-                <Baris label="Nomor BPJS Ketenagakerjaan" nilai={b.nomorTk} />
-                <Baris label="Nomor BPJS Kesehatan" nilai={b.nomorKes} />
-                <Baris label="Kelas" nilai={b.kelas} />
-                <Baris label="Status TK" nilai={b.statusTk} />
-                <Baris label="Status Kesehatan" nilai={b.statusKes} />
-                <Baris label="Terdaftar sejak" nilai={b.terdaftar} />
-              </div>
-            ))
-          )}
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
+            <h2 className="text-xs font-extrabold text-[#0f172a] mb-2">Jaminan Sosial (BPJS)</h2>
+            {data.bpjs.length === 0 ? (
+              <p className="text-[11px] text-[#64748b] bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-lg p-3">
+                Belum ada data BPJS untuk pegawai ini.
+              </p>
+            ) : (
+              data.bpjs.map((b, i) => (
+                <div key={i}>
+                  <Baris label="Nomor BPJS Ketenagakerjaan" nilai={b.nomorTk} />
+                  <Baris label="Nomor BPJS Kesehatan" nilai={b.nomorKes} />
+                  <Baris label="Kelas" nilai={b.kelas} />
+                  <Baris label="Status TK" nilai={b.statusTk} />
+                  <Baris label="Status Kesehatan" nilai={b.statusKes} />
+                  <Baris label="Terdaftar sejak" nilai={b.terdaftar} />
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Berkas kepegawaian — panel yang SAMA dengan "Profil Saya" milik
+              pegawai, agar kelengkapan & kedaluwarsa dokumen konsisten untuk
+              HR, BOD, maupun People Manager. */}
+          <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
+            <h2 className="text-xs font-extrabold text-[#0f172a] mb-2">Berkas Kepegawaian</h2>
+            <BerkasKepegawaianPanel employeeId={id} />
+          </div>
         </div>
       )}
     </div>
