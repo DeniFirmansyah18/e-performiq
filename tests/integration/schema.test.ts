@@ -7,6 +7,8 @@ const EXPECTED_TABLES = [
   'appraisal_periods', 'attendance_records', 'audit_logs', 'career_path_levels', 'companies', 'competency_scores',
   'corporate_kpis', 'daily_timesheets', 'departments', 'division_kpis', 'employees', 'employee_notifications',
   'expense_claims', 'helpdesk_tickets', 'hiring_requisitions', 'individual_kpis', 'internal_applications',
+  // Rantai KPI berjenjang BOD -> HR -> People Manager -> Posisi -> Pegawai
+  'manager_kpis', 'position_kpis', 'kpi_cascade_log',
   'gpa_batch_jobs',
   'interview_slots', 'job_positions', 'job_postings', 'knowledge_handovers', 'kpi_evidence_attachments',
   'leave_requests', 'lifetime_contributions', 'manpower_plans', 'moodle_course_enrollments', 'moodle_courses',
@@ -64,7 +66,7 @@ describe('skema database', () => {
     await client.close();
   });
 
-  it('membuat tepat 115 tabel di schema public (skema hasil migrasi lengkap)', async () => {
+  it('membuat tepat 118 tabel di schema public (skema hasil migrasi lengkap)', async () => {
     const res = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
