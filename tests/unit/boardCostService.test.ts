@@ -24,6 +24,8 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
     const result = await getBoardCostOverview(db);
     expect(result.payroll.latest?.periodCode).toBe('2026-09');
     expect(result.payroll.latest?.totalNet).toBe(135710000);
+    // Run terbaru (September) berisi 4 pegawai; Agustus berisi 6 karena slip
+    // HR & BOD ditambahkan untuk fitur "Slip Gaji PIN" semua peran.
     expect(result.sampleSize).toBe(4);
     expect(result.employees).toHaveLength(4);
   });
@@ -31,9 +33,13 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
   it('menghitung jumlah item per run, bukan mengisi nol', async () => {
     const result = await getBoardCostOverview(db);
     expect(result.payroll.runs).toHaveLength(2);
-    for (const run of result.payroll.runs) {
-      expect(run.employeeCount).toBe(4);
-    }
+    // Jumlah pegawai per run mengikuti item yang benar-benar ada.
+    const perPeriode = Object.fromEntries(
+      result.payroll.runs.map((r: any) => [r.periodCode, r.employeeCount])
+    );
+    expect(perPeriode['2026-09']).toBe(4);
+    expect(perPeriode['2026-08']).toBe(6);
+    for (const run of result.payroll.runs) expect(run.employeeCount).toBeGreaterThan(0);
   });
 
   it('menghitung biaya per pegawai dan konsentrasi top-decil', async () => {
@@ -88,6 +94,7 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
   it('menghormati paginasi rincian pegawai', async () => {
     const page1 = await getBoardCostOverview(db, { page: 1, pageSize: 2 });
     expect(page1.employees).toHaveLength(2);
+    // Run terbaru (September) berisi 4 pegawai.
     expect(page1.employeesPagination.total).toBe(4);
 
     const page2 = await getBoardCostOverview(db, { page: 2, pageSize: 2 });
@@ -131,8 +138,9 @@ describe('Board Cost Overview (Payroll, BPJS, Lembur, Operasional)', () => {
 
         // Run yang diminta harus tetap dihormati, bukan dilaporkan sebagai tidak ada.
         expect(result.payroll.latest?.periodCode).toBe('2026-08');
-        expect(result.payroll.latest?.totalNet).toBe(134960000);
-        expect(result.employees).toHaveLength(4);
+        // Agustus kini berisi 6 pegawai (termasuk slip HR & BOD).
+        expect(result.payroll.latest?.totalNet).toBe(269160000);
+        expect(result.employees).toHaveLength(6);
         expect(result.analysis.highlights.join(' ')).not.toMatch(/Belum ada run payroll/);
       } finally {
         await iso.client.close();
