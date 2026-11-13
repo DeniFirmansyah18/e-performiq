@@ -211,6 +211,15 @@ export async function convertHiredCandidate(
   await enterPrePhase(db, employeeId, input.actorUserId);
   await notifyHired(db, employeeId, String(row.fullName));
 
+  // Berkas kepegawaian: pindahkan dokumen yang sudah diunggah kandidat (CV,
+  // KTP, ijazah, dsb.) agar pegawai baru tidak perlu mengunggah ulang.
+  try {
+    const { isiOtotomatisBerkasDariKandidat } = await import('./documentAutoFill');
+    await isiOtotomatisBerkasDariKandidat(db, { employeeId, candidateId: row.candidateId });
+  } catch {
+    /* pengisian otomatis opsional; jangan gagalkan konversi */
+  }
+
   if (row.accountId) {
     await db.execute(sql`UPDATE candidate_accounts SET is_active = FALSE WHERE id = ${row.accountId}::uuid`);
   }

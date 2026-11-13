@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Camera } from 'lucide-react';
 import { useAuth, useOptionalAuth } from '@/lib/context/AuthContext';
 import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
-import DocumentsCard from '@/components/employee/DocumentsCard';
+import BerkasKepegawaianPanel from '@/components/employee/BerkasKepegawaianPanel';
 
 interface Profile {
   employeeCode: string; fullName: string; email: string; status: string;
@@ -238,12 +238,14 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
           </button>
         </div>
 
-        {/* Data kepegawaian: BPJS & berkas digabung di sini agar pegawai
-            menemukan seluruh data pribadinya dalam satu tempat. */}
+        {/* Data kepegawaian: BPJS, berkas, kelengkapan & kedaluwarsa dokumen
+            digabung di sini agar pegawai menemukan seluruh data pribadinya
+            dalam satu tempat. Panel berkas dipakai bersama dengan direktori HR
+            sehingga PEOPLE MANAGER, BOD, dan HR melihat data yang sama. */}
         <div className="p-5 space-y-3 border-t border-[#e2e8f0] bg-[#fafcfb]">
           <p className="text-xs font-extrabold text-[#0f172a]">Data Kepegawaian</p>
           <SocialSecurityCard />
-          <DocumentsCard />
+          <BerkasKepegawaianPanel bolehUnggah />
         </div>
       </div>
     </div>,

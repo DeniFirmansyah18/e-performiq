@@ -26,7 +26,15 @@ const profilDasar = {
 };
 
 const stub = (data: any) => {
-  global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ data }) })) as any;
+  // Panel "Data Kepegawaian" (BPJS, berkas, kelengkapan) memanggil endpoint
+  // sendiri; beri bentuk yang sesuai agar komponen dapat dirender.
+  global.fetch = vi.fn(async (url: any) => {
+    const u = String(url);
+    if (u.includes('/me/documents')) {
+      return { ok: true, json: async () => ({ data: { items: [], kelengkapan: null } }) } as any;
+    }
+    return { ok: true, json: async () => ({ data }) } as any;
+  }) as any;
 };
 
 afterEach(() => {
