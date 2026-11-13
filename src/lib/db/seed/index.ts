@@ -7,6 +7,7 @@ import { SEED_MAJORS, SEED_INSTITUTIONS } from './education-seed';
 import { seedLifecycle } from './lifecycle-seed';
 import { seedTalentAndContracts } from './talent-contract-seed';
 import { seedMateriKursusDefault } from './learning-default-seed';
+import { seedOnboardingPerPosisi } from './learning-onboarding-positions-seed';
 import { seedJobPostings } from './career-seed';
 
 export const DEMO_PASSWORD = 'enterprise2026';
@@ -593,6 +594,11 @@ ON CONFLICT (id) DO NOTHING;
   await seedLifecycle(client, { hash });
   await seedTalentAndContracts(client);
   await seedJobPostings(client);
+  // Kursus onboarding PER POSISI harus dibuat SETELAH seluruh posisi ada.
+  // Dulu dijalankan sebelum seedLifecycle/seedTalentAndContracts, sehingga
+  // posisi yang baru ditambahkan di sana belum punya kursus onboarding —
+  // dan pada seed berikutnya kursusnya bertambah (tidak idempoten).
+  await seedOnboardingPerPosisi(client);
 
   // BPJS harus di-insert SETELAH semua karyawan dibuat: seedLifecycle dan
   // seedTalentAndContracts menambah karyawan, sehingga FK belum terpenuhi di
