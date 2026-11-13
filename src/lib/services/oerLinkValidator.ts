@@ -66,11 +66,14 @@ export function periksaStatisOer(url: string, provider?: string): HasilPemeriksa
 }
 
 /**
- * Pemeriksaan jaringan: apakah tautan masih merespons.
+ * Pemeriksaan jaringan: apakah tautan masih merespons DAN ada isinya.
  *
- * Hanya 404/410 yang dianggap mati; galat jaringan dianggap "tidak diketahui"
- * sehingga tautan tetap dipakai (lebih baik daripada menghapus materi sah
- * hanya karena server pemeriksa tidak punya akses internet).
+ * Ditolak bila:
+ *   - status 404/410 (halaman tidak ada)
+ *   - respons OK tetapi badan halaman nyaris kosong (halaman "stub")
+ *
+ * Galat jaringan (timeout / tanpa akses) BUKAN bukti tautan mati — tautan
+ * tetap dipakai, karena penyebabnya bisa lokal pada server pemeriksa.
  */
 export async function periksaTautanHidup(url: string): Promise<{ hidup: boolean; alasan: string | null }> {
   try {
@@ -82,9 +85,33 @@ export async function periksaTautanHidup(url: string): Promise<{ hidup: boolean;
       res = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal });
     }
     clearTimeout(t);
+
     if (res.status === 404 || res.status === 410) {
       return { hidup: false, alasan: `Tautan tidak ditemukan (HTTP ${res.status}).` };
     }
+    if (res.status >= 500) {
+      // Galat server sementara: jangan vonis mati.
+      return { hidup: true, alasan: null };
+    }
+    if (res.status >= 400) {
+      return { hidup: false, alasan: `Tautan menolak akses (HTTP ${res.status}).` };
+    }
+
+    // Periksa isi halaman: halaman kosong/tanpa konten nyata dianggap rusak.
+    const jenis = (res.headers.get('content-type') ?? '').toLowerCase();
+    if (jenis.includes('text/html')) {
+      const teks = await res.text().catch(() => '');
+      const isi = teks
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (isi.length < 40) {
+        return { hidup: false, alasan: 'Halaman tautan tidak berisi materi (kosong).' };
+      }
+    }
+
     return { hidup: true, alasan: null };
   } catch {
     // Timeout / tanpa jaringan / diblokir: bukan bukti tautan mati.
