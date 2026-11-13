@@ -21,7 +21,18 @@ export async function GET(req: NextRequest) {
     if (!session) return fail('UNAUTHORIZED', 'Sesi tidak valid.', 401);
     assertCan(session, 'document:read');
     if (!session.employeeId) return fail('FORBIDDEN', 'Akun tidak memiliki ID karyawan.', 403);
-    return ok({ items: await listDocuments(db, session.employeeId) });
+
+    const items = await listDocuments(db, session.employeeId);
+    // Indikator kelengkapan + peringatan kedaluwarsa memakai katalog baku yang
+    // SAMA dengan direktori HR, sehingga angka konsisten lintas peran.
+    let kelengkapan: unknown = null;
+    try {
+      const { hitungKelengkapan } = await import('@/lib/services/documentCatalog');
+      kelengkapan = hitungKelengkapan(items as any[]);
+    } catch {
+      kelengkapan = null;
+    }
+    return ok({ items, kelengkapan });
   } catch (err: any) {
     const status = typeof err?.status === 'number' ? err.status : 500;
     return fail(status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',

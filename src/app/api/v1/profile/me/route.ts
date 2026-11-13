@@ -30,6 +30,15 @@ const ProfileSchema = z.object({
   emergency_contact_phone: z.string().max(30).optional(),
   photo_url: z.string().max(700_000).optional(),
   bio: z.string().max(1000).optional(),
+  // NIK: 16 digit angka (dipakai HR untuk pendaftaran BPJS & pajak).
+  // String kosong berarti dikosongkan (bila pegawai belum punya NIK).
+  nik: z
+    .string()
+    .max(16)
+    .refine((v) => v === '' || /^\d{16}$/.test(v), {
+      message: 'NIK harus 16 digit angka.',
+    })
+    .optional(),
 }).strict();
 
 // PATCH /api/v1/profile/me
