@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Camera } from 'lucide-react';
 import { useAuth, useOptionalAuth } from '@/lib/context/AuthContext';
 import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
@@ -63,11 +62,14 @@ async function shrinkToDataUrl(file: File, maxDim = 320): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.7);
 }
 
-const EDITABLE = ['phone_number', 'address', 'date_of_birth', 'emergency_contact_name', 'emergency_contact_phone', 'photo_url', 'bio'] as const;
+const EDITABLE = ['phone_number', 'address', 'date_of_birth', 'emergency_contact_name', 'emergency_contact_phone', 'photo_url', 'bio', 'nik'] as const;
 type EditableField = (typeof EDITABLE)[number];
 
-/** Menu "Profil Saya": ubah field terbatas + tampilan read-only field sensitif. */
-export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+/**
+ * Isi "Profil Saya" — dirender sebagai PANEL di bawah kartu (bukan modal),
+ * mengikuti pola "Absensi & Timesheet Harian".
+ */
+export default function MyProfileModal() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
@@ -78,7 +80,6 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
   const role = useOptionalAuth()?.currentUser?.role;
 
   useEffect(() => {
-    if (!isOpen) return;
     let active = true;
     fetch('/api/v1/profile/me')
       .then((r) => (r.ok ? r.json() : null))
@@ -91,11 +92,12 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
           emergency_contact_name: j.data.emergencyContactName ?? '',
           emergency_contact_phone: j.data.emergencyContactPhone ?? '',
           photo_url: j.data.photoUrl ?? '', bio: j.data.bio ?? '',
+          nik: j.data.nik ?? '',
         });
       })
       .catch(() => {});
     return () => { active = false; };
-  }, [isOpen]);
+  }, []);
 
   const save = async () => {
     setSaving(true); setMsg(null);
@@ -123,24 +125,21 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
     }
   };
 
-  if (!isOpen) return null;
-
-  const editable = (key: EditableField, label: string, type = 'text') => (
+  const editable = (key: EditableField, label: string, type = 'text', hint?: string) => (
     <label className="block text-xs">
       <span className="font-semibold text-[#334155]">{label}</span>
       <input type={type} value={form[key] ?? ''} onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+        inputMode={key === 'nik' ? 'numeric' : undefined}
+        maxLength={key === 'nik' ? 16 : undefined}
         className="mt-1 w-full rounded-lg border border-[#e2e8f0] px-2 py-1.5 text-xs" />
+      {hint && <span className="mt-0.5 block text-[10px] text-[#94a3b8]">{hint}</span>}
     </label>
   );
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between p-4 sticky top-0 bg-gradient-to-r from-[#0f172a] to-[#134e4a] text-white">
-          <h3 className="text-sm font-extrabold text-white">Profil Saya</h3>
-          <button onClick={onClose} className="text-slate-300 hover:text-white"><X className="h-4 w-4" /></button>
-        </div>
-
+  // Dirender sebagai ISI PANEL (bukan modal) agar tampil di bawah kartu,
+  // sama seperti "Absensi & Timesheet Harian".
+  return (
+    <div className="space-y-4">
         <div className="p-4 space-y-4">
           {/* Read-only sensitive */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
@@ -148,9 +147,8 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
             <div className="text-xs"><span className="text-[#64748b]">Nama</span><p className="font-bold text-[#0f172a]">{profile?.fullName}</p></div>
             <div className="text-xs"><span className="text-[#64748b]">Email</span><p className="font-bold text-[#0f172a]">{profile?.email}</p></div>
             <div className="text-xs"><span className="text-[#64748b]">Status</span><p className="font-bold text-[#0f172a]">{profile?.status}</p></div>
-            <div className="text-xs"><span className="text-[#64748b]">NIK</span><p className="font-bold text-[#0f172a]">{profile?.nik || '-'}</p></div>
             <div className="text-xs"><span className="text-[#64748b]">Jenis Kelamin</span><p className="font-bold text-[#0f172a]">{profile?.gender ? (GENDER_LABEL[profile.gender] ?? profile.gender) : '-'}</p></div>
-            <p className="text-[10px] text-[#64748b] sm:col-span-2">Field bertanda di atas bersifat read-only (dikelola HR).</p>
+            <p className="text-[10px] text-[#64748b] sm:col-span-2">Field di atas bersifat read-only (dikelola HR). NIK dapat Anda isi sendiri di bawah.</p>
           </div>
 
           {/* Kepegawaian — konteks peran; BOD tidak menampilkan "Dinilai oleh". */}
@@ -219,6 +217,7 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {editable('nik', 'NIK', 'text', '16 digit sesuai KTP. Dipakai HR untuk pendaftaran BPJS & pajak.')}
             {editable('phone_number', 'Telepon')}
             {editable('date_of_birth', 'Tanggal Lahir', 'date')}
             {editable('emergency_contact_name', 'Kontak Darurat (Nama)')}
@@ -242,13 +241,11 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
             digabung di sini agar pegawai menemukan seluruh data pribadinya
             dalam satu tempat. Panel berkas dipakai bersama dengan direktori HR
             sehingga PEOPLE MANAGER, BOD, dan HR melihat data yang sama. */}
-        <div className="p-5 space-y-3 border-t border-[#e2e8f0] bg-[#fafcfb]">
+        <div className="p-5 space-y-3 rounded-xl border border-[#e2e8f0] bg-[#fafcfb]">
           <p className="text-xs font-extrabold text-[#0f172a]">Data Kepegawaian</p>
           <SocialSecurityCard />
           <BerkasKepegawaianPanel bolehUnggah />
         </div>
-      </div>
-    </div>,
-    document.body
+    </div>
   );
 }

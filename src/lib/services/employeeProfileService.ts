@@ -12,6 +12,9 @@ export const EDITABLE_PROFILE_FIELDS = [
   'emergency_contact_phone',
   'photo_url',
   'bio',
+  // NIK dapat diisi/diperbaiki sendiri oleh pegawai: HR memerlukannya untuk
+  // pendaftaran BPJS dan pelaporan pajak.
+  'nik',
 ] as const;
 
 export type EditableProfileField = (typeof EDITABLE_PROFILE_FIELDS)[number];

@@ -55,15 +55,12 @@ import DailyStatusCard from '@/components/employee/DailyStatusCard';
 import DailyKpiChecklist from '@/components/employee/DailyKpiChecklist';
 import PerformanceRecapTabs from '@/components/employee/PerformanceRecapTabs';
 import OvertimeModal from '@/components/employee/OvertimeModal';
-import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
 import DisciplinaryModal from '@/components/employee/DisciplinaryModal';
-import DocumentsCard from '@/components/employee/DocumentsCard';
 import CareerLadderPanel from '@/components/employee/CareerLadderPanel';
 import LetterInboxModal from '@/components/employee/LetterInboxModal';
 import PolicyLibraryModal from '@/components/employee/PolicyLibraryModal';
 import ChatDrawer from '@/components/employee/ChatDrawer';
 import ActivityFeedPanel from '@/components/employee/ActivityFeedPanel';
-import PerformanceCoachPanel from '@/components/employee/PerformanceCoachPanel';
 import MyProfileModal from '@/components/employee/MyProfileModal';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
@@ -71,7 +68,7 @@ import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 
-type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet';
+type EmployeeFeature = 'scorecard' | 'okr' | 'development' | 'timesheet' | 'profile';
 
 export default function EmployeePortalPage() {
   const { currentUser } = useAuth();
@@ -132,7 +129,6 @@ const [isReimbursementOpen, setIsReimbursementOpen] = useState(false);
 const [isTicketOpen, setIsTicketOpen] = useState(false);
 const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
 const [isJobBoardOpen, setIsJobBoardOpen] = useState(false);
-const [isProfileOpen, setIsProfileOpen] = useState(false);
 const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
 const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
 const [isDisciplinaryOpen, setIsDisciplinaryOpen] = useState(false);
@@ -754,8 +750,10 @@ const grupLayanan: Array<{
     aksi: [
       {
         icon: UserCheck, tone: 'emerald', title: 'Profil Saya', tag: 'Self-Service',
-        description: 'Perbarui data profil, kontak, dan informasi pribadi Anda.',
-        onClick: () => setIsProfileOpen(true),
+        description: 'Data pribadi, BPJS, serta kelengkapan berkas kepegawaian Anda.',
+        // Dibuka sebagai panel di bawah kartu (bukan modal), seperti
+        // "Absensi & Timesheet Harian".
+        onClick: () => setOpenFeature('profile'),
       },
       {
         icon: MessageSquare, tone: 'emerald', title: 'Chat Pimpinan', tag: 'Komunikasi',
@@ -1121,19 +1119,13 @@ return (
     </>
   )}
 
-  {/* 1b. Data pribadi kepegawaian — BPJS & berkas digabung di kartu Profil
-      Saya agar tidak terpisah-pisah. */}
-  <div className="grid gap-3 lg:grid-cols-2">
-    <SocialSecurityCard />
-    <DocumentsCard />
-  </div>
+  {/* 1b. BPJS & Berkas Kepegawaian tidak lagi berdiri di fase Saat Kerja —
+      keduanya dipindah ke dalam "Profil Saya" agar data pribadi menyatu. */}
   <CareerLadderPanel />
 
-  {/* 1c. Kolaborasi & kecerdasan (PRD v2 §5.10, §5.11) */}
-  <div className="grid gap-3 lg:grid-cols-2">
-    <PerformanceCoachPanel />
-    <ActivityFeedPanel />
-  </div>
+  {/* 1c. Kolaborasi & catatan aktivitas. "Tanya Performa Anda" dihapus karena
+      rekomendasi sudah tersedia pada "Indikator Pencapaian Target". */}
+  <ActivityFeedPanel />
 
   {/* Kartu "Nilai Kinerja" & "Target Kerja" sudah dipindah ke grup
       "Kinerja & Penilaian" (urutan pertama) agar fitur sejenis berkumpul. */}
@@ -1588,6 +1580,12 @@ return (
     </div>
   </div>
     <AiAnalyzePanel feature="employee" />
+  </ExpandablePanel>
+
+  {/* Panel: Profil Saya — dirender di bawah kartu layanan (bukan modal),
+      mengikuti pola "Absensi & Timesheet Harian". */}
+  <ExpandablePanel open={openFeature === 'profile'} title="Profil Saya" onClose={() => setOpenFeature(null)}>
+    <MyProfileModal />
   </ExpandablePanel>
 
   {/* Panel: Pengembangan Diri */}
@@ -2284,7 +2282,8 @@ return (
 
   {/* Learning & Development telah dipindahkan ke Panel Pengembangan Diri */}
 
-  <MyProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+  {/* Profil Saya dirender sebagai PANEL di bawah kartu (lihat panel "Profil
+      Saya" pada blok layanan mandiri), bukan modal. */}
 
   {/* Govera360 Modals */}
   <PaySlipModal
