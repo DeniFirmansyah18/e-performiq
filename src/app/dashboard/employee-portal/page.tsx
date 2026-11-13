@@ -636,6 +636,45 @@ const grupLayanan: Array<{
   }>;
 }> = [
   {
+    // Kinerja & Penilaian diletakkan PALING AWAL: ini fokus utama pegawai.
+    // Kartu "Target Kerja" dan "Nilai Kinerja" (dulu berupa FeatureCard
+    // terpisah di atas) dipindahkan ke grup ini.
+    judul: 'Kinerja & Penilaian',
+    ket: 'Sasaran kerja, nilai kinerja, dan dokumen pendukungnya.',
+    aksi: [
+      ...(isPengawas
+        ? []
+        : [
+            {
+              icon: Target, tone: 'emerald' as const, title: 'Target Kerja', tag: () => `${totalWeight}%`,
+              description: 'Sasaran kerja aktif yang terhubung ke Balanced Scorecard perusahaan, lengkap dengan input realisasi.',
+              onClick: () => setOpenFeature('okr'),
+            },
+            {
+              icon: Compass, tone: 'emerald' as const, title: 'Nilai Kinerja', tag: '4 Pilar',
+              description: 'Ringkasan nilai Anda: Target Kerja, Kepatuhan Prosedur, Kemampuan & Pelatihan, serta Sikap & Penilaian Rekan.',
+              onClick: () => setOpenFeature('scorecard'),
+            },
+          ]),
+      {
+        icon: Send, tone: 'emerald', title: `Ajukan Finalisasi ${periodShortLabel}`, tag: 'Self-Appraisal',
+        description: `Kirim pengajuan finalisasi penilaian kinerja periode ${periodShortLabel} kepada atasan.`,
+        onClick: () => setIsFinalizeOpen(true),
+      },
+      {
+        icon: Bookmark, tone: 'emerald', title: 'Unggah Bukti', tag: 'Evidence',
+        description: 'Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI.',
+        onClick: () => setIsEvidenceOpen(true),
+      },
+      {
+        icon: Download, tone: 'emerald', title: 'Unduh Portofolio KPI', tag: 'Dokumen',
+        description: 'Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF.',
+        onClick: () => downloadKpiPortfolio(),
+        disabled: () => isDownloadingKpi,
+      },
+    ],
+  },
+  {
     judul: 'Kehadiran & Waktu',
     ket: 'Catat kehadiran harian, lembur, dan pengajuan izin.',
     aksi: [
@@ -690,28 +729,6 @@ const grupLayanan: Array<{
         icon: AlertTriangle, tone: 'emerald', title: 'Sanksi & Penghargaan', tag: 'Transparan',
         description: 'Lihat catatan sanksi beserta masa berlaku, ajukan keberatan, dan unduh sertifikat penghargaan.',
         onClick: () => setIsDisciplinaryOpen(true),
-      },
-    ],
-  },
-  {
-    judul: 'Kinerja & Penilaian',
-    ket: 'Kesimpulan penilaian periode ini dan dokumen pendukungnya.',
-    aksi: [
-      {
-        icon: Send, tone: 'emerald', title: `Ajukan Finalisasi ${periodShortLabel}`, tag: 'Self-Appraisal',
-        description: `Kirim pengajuan finalisasi penilaian kinerja periode ${periodShortLabel} kepada atasan.`,
-        onClick: () => setIsFinalizeOpen(true),
-      },
-      {
-        icon: Bookmark, tone: 'emerald', title: 'Unggah Bukti', tag: 'Evidence',
-        description: 'Unggah dokumen bukti pencapaian untuk mendukung penilaian KPI.',
-        onClick: () => setIsEvidenceOpen(true),
-      },
-      {
-        icon: Download, tone: 'emerald', title: 'Unduh Portofolio KPI', tag: 'Dokumen',
-        description: 'Unduh rekapitulasi portofolio KPI Anda dalam satu berkas PDF.',
-        onClick: () => downloadKpiPortfolio(),
-        disabled: () => isDownloadingKpi,
       },
     ],
   },
@@ -1104,7 +1121,8 @@ return (
     </>
   )}
 
-  {/* 1b. Layanan mandiri (PRD v2 §5.6) */}
+  {/* 1b. Data pribadi kepegawaian — BPJS & berkas digabung di kartu Profil
+      Saya agar tidak terpisah-pisah. */}
   <div className="grid gap-3 lg:grid-cols-2">
     <SocialSecurityCard />
     <DocumentsCard />
@@ -1117,29 +1135,8 @@ return (
     <ActivityFeedPanel />
   </div>
 
-  {/* 2. Feature Card Grid (click to open) */}
-  <FeatureGrid>
-    {!isPengawas && (
-      <FeatureCard
-        icon={Compass}
-        title="Nilai Kinerja"
-        metric="4-Pilar"
-        tag="Model GCG"
-        description="Ringkasan nilai Anda: Target Kerja (50%), Kepatuhan Prosedur (20%), Kemampuan & Pelatihan (15%), Sikap & Penilaian Rekan (15%)."
-        onOpen={() => setOpenFeature('scorecard')}
-      />
-    )}
-    {!isPengawas && (
-    <FeatureCard
-      icon={Target}
-      title="Target Kerja"
-      metric={`${totalWeight}%`}
-      tag="Cascading BSC"
-      description="Sasaran kerja aktif yang terhubung hierarkis ke Balanced Scorecard perusahaan, lengkap dengan input realisasi."
-      onOpen={() => setOpenFeature('okr')}
-    />
-    )}
-  </FeatureGrid>
+  {/* Kartu "Nilai Kinerja" & "Target Kerja" sudah dipindah ke grup
+      "Kinerja & Penilaian" (urutan pertama) agar fitur sejenis berkumpul. */}
 
   {/* 3. Layanan Mandiri Karyawan — dikelompokkan seperti "Kontrol Siklus
       3-Fase" di HR agar fitur yang sejenis tidak terpisah-pisah. */}

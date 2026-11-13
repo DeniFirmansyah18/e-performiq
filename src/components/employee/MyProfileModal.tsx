@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Camera } from 'lucide-react';
 import { useAuth, useOptionalAuth } from '@/lib/context/AuthContext';
+import SocialSecurityCard from '@/components/employee/SocialSecurityCard';
+import DocumentsCard from '@/components/employee/DocumentsCard';
 
 interface Profile {
   employeeCode: string; fullName: string; email: string; status: string;
@@ -234,6 +236,14 @@ export default function MyProfileModal({ isOpen, onClose }: { isOpen: boolean; o
             className="px-4 py-2 text-xs font-bold text-white bg-[#007a5a] rounded-lg hover:bg-[#006347] disabled:opacity-60">
             {saving ? 'Menyimpan…' : 'Simpan Perubahan'}
           </button>
+        </div>
+
+        {/* Data kepegawaian: BPJS & berkas digabung di sini agar pegawai
+            menemukan seluruh data pribadinya dalam satu tempat. */}
+        <div className="p-5 space-y-3 border-t border-[#e2e8f0] bg-[#fafcfb]">
+          <p className="text-xs font-extrabold text-[#0f172a]">Data Kepegawaian</p>
+          <SocialSecurityCard />
+          <DocumentsCard />
         </div>
       </div>
     </div>,
