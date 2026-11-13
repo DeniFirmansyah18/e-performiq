@@ -15,6 +15,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
 import { matchOerResources, validateModuleUrl, type OerResource } from '@/lib/services/oerCatalogService';
+import { periksaStatisOer } from '@/lib/services/oerLinkValidator';
 import { plmReferenceForPrompt } from '@/lib/services/companyLearningCatalog';
 
 export interface GeneratedModule {
@@ -36,10 +37,17 @@ export interface GeneratedProgram {
   aiUsed: boolean;
 }
 
-/** Kode kursus onboarding deterministik per posisi (idempoten). */
+/**
+ * Kode kursus onboarding deterministik per posisi (idempoten).
+ *
+ * Memakai id posisi LENGKAP. Sebelumnya hanya 8 huruf pertama, padahal semua
+ * id posisi seed berawalan sama (a0000000-…), sehingga SELURUH posisi berbagi
+ * satu kode ONB-A0000000: posisi pertama membuat kursus, posisi berikutnya
+ * memakai ulang kursus posisi LAIN — akibatnya Compensation & Benefit
+ * Specialist mendapat kurikulum Chief Internal Auditor.
+ */
 function onboardingCourseCode(positionId: string): string {
-  const short = positionId.replace(/-/g, '').slice(0, 8).toUpperCase();
-  return `ONB-${short}`;
+  return `ONB-${positionId.replace(/-/g, '').toUpperCase()}`;
 }
 
 /** Bentuk soal kuis yang disimpan di `content_body` (kunci jawaban TIDAK dikirim). */
@@ -86,18 +94,41 @@ async function loadPositionContext(db: Db, positionId: string): Promise<Position
  * Modul materi gratis (OER) yang dicocokkan dengan skill/topik posisi. Tautan
  * berasal dari katalog tepercaya (OpenLearn, Microsoft Learn, dsb.) sehingga
  * selalu https + domain di-whitelist.
+ *
+ * Aturan bahasa:
+ *  - JUDUL & penjelasan modul memakai Bahasa Indonesia (agar HR dan karyawan
+ *    memahami maksudnya).
+ *  - Nama asli kursus (bila berbahasa Inggris) tetap dicantumkan dalam tanda
+ *    kurung sebagai rujukan, karena materi penyedia memang berbahasa Inggris.
  */
 export function oerModulesForContext(ctx: PositionContext, startIndex: number, max = 2): GeneratedModule[] {
   const keywords = [ctx.positionTitle, ...ctx.requiredSkills].map((s) => String(s));
   const resources = matchOerResources(keywords, max);
   return resources.map((res: OerResource, i) => ({
-    title: res.title,
+    title: `${judulModulIndonesia(ctx.positionTitle, i)} — ${res.title}`,
     orderIndex: startIndex + i,
     contentType: 'VIDEO' as const,
-    contentBody: `Materi gratis dari ${res.provider}. Pelajari materi ini sebagai bagian dari pengembangan kompetensi ${ctx.positionTitle}.`,
+    contentBody:
+      `Materi gratis dari ${res.provider}. ` +
+      `Pelajari materi ini sebagai bagian dari pengembangan kompetensi ${ctx.positionTitle}. ` +
+      (res.title !== res.title.toLowerCase()
+        ? `Materi penyedia berjudul asli "${res.title}".`
+        : ''),
     contentUrl: res.url,
     quizKey: null,
   }));
+}
+
+/** Judul modul berbahasa Indonesia yang bervariasi menurut urutan. */
+function judulModulIndonesia(positionTitle: string, urutan: number): string {
+  const pola = [
+    `Pengantar Kompetensi ${positionTitle}`,
+    `Pendalaman Materi ${positionTitle}`,
+    `Praktik Terbaik ${positionTitle}`,
+    `Studi Kasus ${positionTitle}`,
+    `Evaluasi Pemahaman ${positionTitle}`,
+  ];
+  return pola[urutan % pola.length];
 }
 
 /**
@@ -198,12 +229,15 @@ export function parseModules(raw: string, ctx: PositionContext): GeneratedModule
     const ct = ['TEXT', 'VIDEO', 'PDF', 'QUIZ'].includes(m?.contentType) ? m.contentType : 'TEXT';
     let quizKey: Array<{ q: number; a: number }> | null = null;
     let contentBody: string | null = typeof m?.contentBody === 'string' ? m.contentBody.trim().slice(0, 8000) : '';
-    // Tautan OER: hanya untuk VIDEO/PDF dan WAJIB lolos whitelist domain tepercaya.
+    // Tautan OER: hanya untuk VIDEO/PDF dan WAJIB lolos whitelist domain
+    // tepercaya SEKALIGUS bukan penyedia berbayar / halaman pembelian.
     let contentUrl: string | null = typeof m?.contentUrl === 'string' && m.contentUrl.trim() ? m.contentUrl.trim().slice(0, 500) : null;
     let finalCt = ct;
     if (ct === 'VIDEO' || ct === 'PDF') {
-      if (!validateModuleUrl(ct, contentUrl).ok) {
-        // Tautan tidak valid → turunkan ke TEXT agar modul tetap bermakna.
+      const lolosDomain = validateModuleUrl(ct, contentUrl).ok;
+      const lolosGratis = contentUrl ? periksaStatisOer(contentUrl).gratis : false;
+      if (!lolosDomain || !lolosGratis) {
+        // Tautan tidak valid/berbayar → turunkan ke TEXT agar modul tetap bermakna.
         finalCt = 'TEXT';
         contentUrl = null;
       }
