@@ -194,18 +194,43 @@ export async function listExpenseClaimsForHr(
 }
 
 /**
- * Putuskan klaim reimbursement: setujui atau tolak.
+ * Satu klaim reimbursement beserta identitas pengaju dan pemutusnya.
+ *
+ * Difilter di basis data (bukan memuat semua klaim lalu mencari di memori),
+ * karena endpoint detail dipanggil per klaim.
+ */
+export async function getExpenseClaimById(
+  claimId: string,
+  dbInjeksi?: SqlClient
+): Promise<KlaimUntukHr | null> {
+  const db = dbInjeksi ?? (await getDb());
+  const res = (await db.query<any>(
+    `SELECT ec.*, e.employee_code, e.full_name, d.department_name,
+            u.email AS decided_by_name
+       FROM expense_claims ec
+       JOIN employees e ON e.id = ec.employee_id
+       LEFT JOIN departments d ON d.id = e.department_id
+       LEFT JOIN users u ON u.id = ec.decided_by
+      WHERE ec.id = $1`,
+    [claimId]
+  )) as unknown as { rows: any[] };
+  const row = res.rows?.[0];
+  return row ? keKlaimUntukHr(row) : null;
+}
+
+/**
+ * Putuskan klaim reimbursement: setujui PENUH atau tolak.
  *
  * Aturan (lihat expenseClaimDecision):
  *   - hanya klaim berstatus SUBMITTED yang dapat diputuskan,
  *   - penolakan WAJIB disertai alasan,
- *   - nominal disetujui tidak boleh melebihi pengajuan.
+ *   - kebijakan perusahaan: tidak ada persetujuan sebagian. Nominal yang
+ *     disetujui SELALU sama dengan pengajuan. Pemanggil tidak dapat mengirim
+ *     nominal lain (parameter `disetujui` pada service ini sudah dihapus).
  */
 export async function decideExpenseClaim(input: {
   claimId: string;
   keputusan: 'APPROVED' | 'REJECTED';
-  /** Nominal yang disetujui; kosong berarti memakai nominal pengajuan. */
-  disetujui?: number | null;
   catatan?: string | null;
   decidedByUserId: string;
   peran: string;
@@ -225,12 +250,8 @@ export async function decideExpenseClaim(input: {
   if (!klaim) throw new NotFoundError('Klaim reimbursement tidak ditemukan.');
 
   const diajukan = Number(klaim.amount);
-  const disetujui =
-    input.keputusan === 'APPROVED'
-      ? input.disetujui == null || (input.disetujui as any) === ''
-        ? diajukan
-        : Number(input.disetujui)
-      : 0;
+  // Kebijakan perusahaan: setujui penuh. Nominal mengikuti pengajuan apa adanya.
+  const disetujui = input.keputusan === 'APPROVED' ? diajukan : 0;
 
   const cek = validasiKeputusanKlaim({
     statusSekarang: String(klaim.status),

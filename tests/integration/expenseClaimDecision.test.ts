@@ -110,32 +110,33 @@ describe('HR memutuskan klaim reimbursement', () => {
     expect(daftar.find((k) => k.id === id)?.decisionNote).toContain('tidak terbaca');
   });
 
-  it('menyetujui sebagian: nominal disetujui lebih kecil dari pengajuan', async () => {
+  it('menyetujui SELALU penuh: nominal disetujui = pengajuan apa adanya', async () => {
     const id = await klaimBaru(1000000);
     const hasil = await decideExpenseClaim({
       claimId: id,
       keputusan: 'APPROVED',
-      disetujui: 600000,
       decidedByUserId: SITI_USER,
       peran: 'HR_MANAGER',
       dbInjeksi: client,
     });
     expect(hasil.status).toBe('APPROVED');
-    expect(hasil.approvedAmount).toBe(600000);
+    expect(hasil.approvedAmount).toBe(1000000);
   });
 
-  it('menolak nominal disetujui melebihi pengajuan', async () => {
+  it('nominal kiriman diabaikan: persetujuan selalu penuh, tidak bisa melebihi pengajuan', async () => {
+    // Kebijakan "penuh saja": server TIDAK mempercayai nominal dari klien.
+    // Walau pemanggil mengirim 900000, nilai tersimpan tetap 500000 (pengajuan).
     const id = await klaimBaru(500000);
-    await expect(
-      decideExpenseClaim({
-        claimId: id,
-        keputusan: 'APPROVED',
-        disetujui: 900000,
-        decidedByUserId: SITI_USER,
-        peran: 'HR_MANAGER',
-        dbInjeksi: client,
-      })
-    ).rejects.toThrow(/melebihi/i);
+    const hasil = await decideExpenseClaim({
+      claimId: id,
+      keputusan: 'APPROVED',
+      disetujui: 900000,
+      decidedByUserId: SITI_USER,
+      peran: 'HR_MANAGER',
+      dbInjeksi: client,
+    } as any);
+    expect(hasil.status).toBe('APPROVED');
+    expect(hasil.approvedAmount).toBe(500000);
   });
 
   it('klaim yang sudah diputuskan tidak dapat diputuskan ulang', async () => {

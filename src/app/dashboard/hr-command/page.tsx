@@ -34,6 +34,7 @@ import {
   Building2,
   FileSignature,
   Coins,
+  Receipt,
   BookOpen,
   HeartPulse,
   Gavel,
@@ -65,6 +66,7 @@ import EmployeeRegistrationPanel from '@/components/governance/EmployeeRegistrat
 import ManagerAssignmentPanel from '@/components/governance/ManagerAssignmentPanel';
 import LeaveApprovalPanel from '@/components/governance/LeaveApprovalPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
+import ReimbursementDecisionPanel from '@/components/governance/ReimbursementDecisionPanel';
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
 import HrKpiIndicatorPanel from '@/components/governance/HrKpiIndicatorPanel';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
@@ -250,6 +252,15 @@ const MPP_PANELS: ReadonlyArray<{
     Panel: PolicyManagerPanel,
     icon: BookOpen,
     metric: 'SOP & PP',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'reimbursement',
+    title: 'Reimbursement',
+    description: 'Putuskan klaim biaya pegawai: setujui penuh atau tolak dengan alasan.',
+    Panel: ReimbursementDecisionPanel,
+    icon: Receipt,
+    metric: 'Klaim',
     tag: 'Saat-Kerja',
   },
   {

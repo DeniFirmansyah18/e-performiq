@@ -4,7 +4,7 @@ import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
 import { ok, fail, problem } from '@/lib/api/response';
 import {
-  listExpenseClaimsForHr,
+  getExpenseClaimById,
   decideExpenseClaim,
 } from '@/lib/services/payrollFinanceService';
 
@@ -13,8 +13,6 @@ export const dynamic = 'force-dynamic';
 
 const KeputusanSchema = z.object({
   keputusan: z.enum(['APPROVED', 'REJECTED']),
-  /** Nominal yang disetujui; kosong berarti sama dengan pengajuan. */
-  disetujui: z.number().positive().optional().nullable(),
   /** Alasan penolakan / catatan. Wajib bila REJECTED. */
   catatan: z.string().max(1000).optional().nullable(),
 });
@@ -29,8 +27,7 @@ export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
     const session = await getAuthSession(req);
     assertCan(session, 'payroll:read');
 
-    const semua = await listExpenseClaimsForHr();
-    const klaim = semua.find((k) => k.id === ctx.params.id);
+    const klaim = await getExpenseClaimById(ctx.params.id);
     if (!klaim) return fail('NOT_FOUND', 'Klaim reimbursement tidak ditemukan.', 404);
     return ok(klaim);
   } catch (err) {
@@ -41,8 +38,8 @@ export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
 /**
  * PATCH /api/v1/finance/expense-claims/[id]
  *
- * HR/Finance memutuskan klaim: `APPROVED` (setujui, nominal boleh disesuaikan)
- * atau `REJECTED` (tolak, `catatan` WAJIB berisi alasan).
+ * HR/Finance memutuskan klaim: `APPROVED` (disetujui PENUH sesuai pengajuan)
+ * atau `REJECTED` (ditolak, `catatan` WAJIB berisi alasan).
  */
 export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   try {
@@ -51,13 +48,16 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
 
     const body = KeputusanSchema.safeParse(await req.json().catch(() => ({})));
     if (!body.success) {
-      return fail('VALIDATION_ERROR', body.error.issues[0]?.message ?? 'Data keputusan tidak valid.', 400);
+      return fail(
+        'VALIDATION_ERROR',
+        body.error.issues[0]?.message ?? 'Data keputusan tidak valid.',
+        400
+      );
     }
 
     const hasil = await decideExpenseClaim({
       claimId: ctx.params.id,
       keputusan: body.data.keputusan,
-      disetujui: body.data.disetujui ?? null,
       catatan: body.data.catatan ?? null,
       decidedByUserId: session.userId,
       peran: session.role,
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
     return ok(
       hasil,
       body.data.keputusan === 'APPROVED'
-        ? 'Klaim reimbursement disetujui.'
+        ? 'Klaim reimbursement disetujui penuh.'
         : 'Klaim reimbursement ditolak.'
     );
   } catch (err) {
