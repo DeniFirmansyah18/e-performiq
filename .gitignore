@@ -33,3 +33,6 @@ neon.ts
 
 # Kunci pengunci database lokal (dibuat saat aplikasi berjalan)
 .eperformiq-lock
+
+# Direktori kerja & log sesi DSH (bukan bagian aplikasi)..dsh/
+

@@ -21,15 +21,12 @@ interface PositionWithCourses {
   courses: PositionCourse[];
 }
 
-interface CourseOption {
-  courseId: number;
-  courseCode: string;
-  title: string;
-  category: string | null;
-  targetPhase: string;
-  isMandatoryDefault: boolean;
-  defaultHours: number;
-  moduleCount: number;
+interface EmployeeOption {
+  employeeId: string;
+  employeeCode: string | null;
+  fullName: string;
+  department: string | null;
+  position: string | null;
 }
 
 
@@ -40,7 +37,9 @@ interface CourseOption {
  */
 export default function PositionCourseMappingPanel() {
   const [positions, setPositions] = useState<PositionWithCourses[]>([]);
-  const [courses, setCourses] = useState<CourseOption[]>([]);
+  // Pilihan pegawai untuk dikaitkan saat generate kurikulum (akan tampil di onboarding-nya).
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selected, setSelected] = useState<string>('');
   // Filter & pilih-banyak agar konfigurasi 18+ posisi tidak melelahkan.
   const [filterDept, setFilterDept] = useState('');
@@ -84,7 +83,6 @@ export default function PositionCourseMappingPanel() {
       const json = await res.json();
       const list: PositionWithCourses[] = json.data?.positions ?? [];
       setPositions(list);
-      setCourses(json.data?.courses ?? []);
       setSelected((prev) => prev || list[0]?.positionId || '');
     } catch {
       setErr('Gagal memuat data pemetaan.');
@@ -93,7 +91,19 @@ export default function PositionCourseMappingPanel() {
     }
   }, []);
 
+  /** Muat daftar pegawai aktif untuk dikaitkan saat generate kurikulum. */
+  const muatPegawai = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/hr/employees');
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) setEmployees(json?.data?.employees ?? []);
+    } catch {
+      /* picker pegawai opsional; tanpa daftar, generate tetap jalan */
+    }
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void muatPegawai(); }, [muatPegawai]);
 
   const current = positions.find((p) => p.positionId === selected) ?? null;
 
@@ -115,16 +125,6 @@ export default function PositionCourseMappingPanel() {
    * yang dicentang, pakai posisi pada `selected` (perilaku lama).
    */
   const tujuanPemetaan = pilihBanyak.length > 0 ? pilihBanyak : selected ? [selected] : [];
-
-  async function petakanKeSemua(courseId: number, isMandatory = true) {
-    for (const positionId of tujuanPemetaan) {
-      await fetch('/api/v1/learning/position-courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ positionId, courseId, isMandatory }),
-      });
-    }
-  }
 
   /** Muat daftar materi sebuah kursus. */
   async function muatMateri(courseId: number) {
@@ -265,31 +265,6 @@ export default function PositionCourseMappingPanel() {
     } finally { setCariBusy(false); }
   }
 
-  async function addMapping(courseId: number, isMandatory = true) {
-    if (tujuanPemetaan.length === 0) return;
-    setBusy(true); setMsg(null); setErr(null);
-    try {
-      // Bila lebih dari satu posisi dicentang, kursus dipetakan ke semuanya.
-      if (tujuanPemetaan.length > 1) {
-        await petakanKeSemua(courseId, isMandatory);
-        setMsg(`Kursus dipetakan ke ${tujuanPemetaan.length} posisi.`);
-        await load();
-        return;
-      }
-      const res = await fetch('/api/v1/learning/position-courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ positionId: tujuanPemetaan[0], courseId, isMandatory }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setErr(json?.detail || 'Gagal menambah mapping.'); return; }
-      setMsg('Kursus berhasil dipetakan ke posisi.');
-      await load();
-    } catch {
-      setErr('Gagal menambah mapping.');
-    } finally { setBusy(false); }
-  }
-
   async function removeMapping(courseId: number) {
     if (!selected) return;
     setBusy(true); setMsg(null); setErr(null);
@@ -356,12 +331,40 @@ export default function PositionCourseMappingPanel() {
 
     // Tampilkan ringkasannya agar HR tahu apa yang dihasilkan.
     setHasilGenerate(dibuat);
+
+    // Bila HR memilih pegawai, kaitkan kurikulum ke onboarding pegawai tsb
+    // (kursus wajib posisi akan muncul & harus diselesaikan oleh karyawan).
+    let pegawaiDidaftarkan = false;
+    let namaPegawai = '';
+    if (selectedEmployee) {
+      try {
+        const enrollRes = await fetch('/api/v1/recruitment/onboarding/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employeeId: selectedEmployee }),
+        });
+        const enrollJson = await enrollRes.json().catch(() => ({}));
+        if (enrollRes.ok && enrollJson?.data?.programId) {
+          pegawaiDidaftarkan = true;
+          namaPegawai = employees.find((e) => e.employeeId === selectedEmployee)?.fullName ?? '';
+        }
+      } catch {
+        /* enroll gagal — laporan tetap muncul, HR bisa coba lewat Generate Onboarding */
+      }
+    }
+
     if (gagal === tujuanPemetaan.length) {
       setErr('Gagal generate kurikulum untuk semua posisi terpilih.');
     } else {
+      const bagianPegawai = pegawaiDidaftarkan
+        ? ` · ${namaPegawai || 'pegawai terpilih'} didaftarkan ke onboarding.`
+        : selectedEmployee
+          ? ' · (pegawai tidak didaftarkan, coba lagi lewat Generate Onboarding)'
+          : '';
       setMsg(
         `Kurikulum dibuat untuk ${dibuat.length} posisi · ${jumlahModul} modul · ${jumlahOer} materi OER gratis.` +
-          (gagal ? ` (${gagal} posisi gagal)` : '')
+          (gagal ? ` (${gagal} posisi gagal)` : '') +
+          bagianPegawai
       );
     }
 
@@ -441,6 +444,28 @@ export default function PositionCourseMappingPanel() {
                 placeholder="Ketik nama posisi…"
                 className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
               />
+            </label>
+            {/* Nama pegawai yang akan menerima kurikulum (muncul di onboarding-nya).
+                Diisi otomatis ke daftar karyawan aktif; opsional. */}
+            <label className="min-w-[220px]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#64748b] mb-1">
+                Nama pegawai{' '}
+                <span className="font-medium normal-case text-[#94a3b8]">(opsional)</span>
+              </span>
+              <select
+                value={selectedEmployee}
+                onChange={(e) => setSelectedEmployee(e.target.value)}
+                className="w-full rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a]"
+              >
+                <option value="">— Pilih pegawai —</option>
+                {employees
+                  .filter((e) => !filterDept || e.department === filterDept)
+                  .map((e) => (
+                    <option key={e.employeeId} value={e.employeeId}>
+                      {e.fullName}{e.employeeCode ? ` (${e.employeeCode})` : ''}
+                    </option>
+                  ))}
+              </select>
             </label>
             <button
               type="button"
