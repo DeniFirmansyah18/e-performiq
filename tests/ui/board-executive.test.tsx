@@ -125,6 +125,14 @@ describe('BoardTabNav', () => {
     fireEvent.click(screen.getByText('Aktivitas & Kepatuhan Tim'));
     expect(onChange).toHaveBeenCalledWith('activity');
   });
+
+  it('menampilkan tab e-Surat & Disposisi untuk BOD dan memanggil onChange keys', () => {
+    const onChange = vi.fn();
+    render(<BoardTabNav active="letters" onChange={onChange} />);
+    expect(screen.getByText('e-Surat & Disposisi')).toBeTruthy();
+    fireEvent.click(screen.getByText('Persetujuan MPP'));
+    expect(onChange).toHaveBeenCalledWith('mpp-approval');
+  });
 });
 
 describe('BoardActivityPanel', () => {

@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-export type BoardTab = 'overview' | 'vision' | 'cost' | 'position-fit' | 'activity' | 'mpp-approval';
+export type BoardTab = 'overview' | 'vision' | 'cost' | 'position-fit' | 'activity' | 'mpp-approval' | 'letters';
 
 export interface BoardTabItem {
   key: BoardTab;
@@ -53,6 +53,13 @@ export const BOARD_TABS: BoardTabItem[] = [
     label: '6. Persetujuan MPP',
     shortLabel: 'Persetujuan MPP',
     tooltip: 'Langkah 6: Putuskan pengajuan kebutuhan formasi (MPP) yang diajukan HRD, dengan bantuan rekomendasi AI',
+  },
+  {
+    key: 'letters',
+    step: 7,
+    label: '7. e-Surat & Disposisi',
+    shortLabel: 'e-Surat',
+    tooltip: 'Langkah 7: Terbitkan surat keputusan/direktif dari BOD ke HR, telusuri disposisi ke atasan & pegawai',
   },
 ];
 

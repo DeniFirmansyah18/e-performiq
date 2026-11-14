@@ -112,7 +112,8 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'analytics:manage': ['SUPER_ADMIN', 'HR_MANAGER', 'BOD'],
 'system:health': ['SUPER_ADMIN', 'HR_MANAGER'],
 'letter:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
-'letter:manage': ['SUPER_ADMIN', 'HR_MANAGER'],
+// #4 e-Surat: BOD menerbitkan surat untuk diteruskan ke HR (semula hanya HR).
+'letter:manage': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER'],
 'letter:dispose': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'chat:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'chat:write': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],

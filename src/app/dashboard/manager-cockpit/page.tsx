@@ -23,6 +23,8 @@ import {
   Star as StarIcon,
   ClipboardCheck,
   Target,
+  Mail,
+  BookOpen,
 } from 'lucide-react';
 import InternalApplicationReview from '@/components/manager/InternalApplicationReview';
 import DailyVerificationPanel from '@/components/governance/DailyVerificationPanel';
@@ -33,6 +35,8 @@ import FeatureCard from '@/components/ui/FeatureCard';
 import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+import LetterInboxModal from '@/components/employee/LetterInboxModal';
+import PolicyLibraryModal from '@/components/employee/PolicyLibraryModal';
 
 type ManagerFeature = 'roster' | 'approval' | 'evaluasi' | 'indikator';
 
@@ -135,7 +139,9 @@ interface TeamMember {
 }
 
 export default function ManagerCockpitPage() {
-  const [openFeature, setOpenFeature] = useState<ManagerFeature | null>(null);
+  const [openFeature, setOpenFeature] = useState<ManagerFeature | null>(null)
+  const [isLetterOpen, setIsLetterOpen] = useState(false);
+  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'ready' | 'attention'>('all');
   const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
@@ -592,6 +598,22 @@ export default function ManagerCockpitPage() {
             tag="Dokumen"
             description="Unduh rekapitulasi penilaian kinerja anggota tim."
             onClick={() => window.print()}
+          />
+          <ActionCard
+            icon={Mail}
+            tone="emerald"
+            title="e-Surat & Disposisi"
+            tag="Kepatuhan"
+            description="Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya."
+            onClick={() => setIsLetterOpen(true)}
+          />
+          <ActionCard
+            icon={BookOpen}
+            tone="emerald"
+            title="SOP & Peraturan"
+            tag="Wajib dibaca"
+            description="Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami."
+            onClick={() => setIsPolicyOpen(true)}
           />
         </div>
         {/* Kartu "Roster & Penugasan" & "Evaluasi Nilai Kinerja Tim" membuka
@@ -1342,6 +1364,9 @@ export default function ManagerCockpitPage() {
         </div>,
         document.body
       )}
+
+      <LetterInboxModal open={isLetterOpen} onClose={() => setIsLetterOpen(false)} />
+      <PolicyLibraryModal open={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} />
 
     </div>
   );

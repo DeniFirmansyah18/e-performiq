@@ -35,12 +35,13 @@ import BoardActivityPanel from '@/components/executive/BoardActivityPanel';
 import BoardVisionPanel from '@/components/executive/BoardVisionPanel';
 import BoardPositionFitPanel from '@/components/executive/BoardPositionFitPanel';
 import MppApprovalPanel from '@/components/governance/MppApprovalPanel';
+import LetterManagerPanel from '@/components/governance/LetterManagerPanel';
 import BoardCostPanel from '@/components/executive/BoardCostPanel';
 import BoardDrilldownPanel from '@/components/executive/BoardDrilldownPanel';
 
 type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession' | 'drilldown';
 
-const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'vision', 'cost', 'position-fit', 'activity'];
+const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'vision', 'cost', 'position-fit', 'activity', 'letters'];
 
 /** Membaca `?tab=` agar tautan langsung membuka tab yang tepat. */
 function resolveInitialTab(): BoardTab {
@@ -860,6 +861,11 @@ export default function ExecutiveBoardroomPage() {
 {mainTab === 'mpp-approval' && (
   <section className="stitch-card-white p-5">
     <MppApprovalPanel />
+  </section>
+)}
+{mainTab === 'letters' && (
+  <section className="stitch-card-white p-5">
+    <LetterManagerPanel />
   </section>
 )}
 

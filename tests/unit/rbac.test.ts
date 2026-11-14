@@ -27,6 +27,21 @@ describe('matriks RBAC', () => {
     expect(can('SUPER_ADMIN', 'audit:read')).toBe(true);
   });
 
+  it('BOD menerbitkan & mendisposisi surat (e-Surat: BOD->HR)', () => {
+    // BOD membaca + mendisposisi surat (perilaku lama), dan kini juga dapat
+    // menerbitkan surat untuk diteruskan ke HR (#4).
+    expect(can('BOD', 'letter:read')).toBe(true);
+    expect(can('BOD', 'letter:dispose')).toBe(true);
+    expect(can('BOD', 'letter:manage')).toBe(true);
+  });
+
+  it('HR_MANAGER menerbitkan surat, EMPLOYEE hanya membaca', () => {
+    expect(can('HR_MANAGER', 'letter:manage')).toBe(true);
+    expect(can('EMPLOYEE', 'letter:read')).toBe(true);
+    expect(can('EMPLOYEE', 'letter:manage')).toBe(false);
+    expect(can('EMPLOYEE', 'letter:dispose')).toBe(false);
+  });
+
   it('PEOPLE_MANAGER boleh menghitung GPA namun tidak mengkalibrasi', () => {
     expect(can('PEOPLE_MANAGER', 'appraisal:calculate')).toBe(true);
     expect(can('PEOPLE_MANAGER', 'kpi:read')).toBe(true);
