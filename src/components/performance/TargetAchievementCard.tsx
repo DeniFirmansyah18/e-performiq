@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import KpiCascadePanel from '@/components/governance/KpiCascadePanel';
 import AnalisisCapaianAi from '@/components/performance/AnalisisCapaianAi';
 import {
   Target,
@@ -51,6 +52,7 @@ export default function TargetAchievementCard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(!compact);
+  const [showCascade, setShowCascade] = useState(false);
   const [activeTab, setActiveTab] = useState<'TEAM' | 'MY_OWN'>('TEAM');
   const [selectedDept, setSelectedDept] = useState<string>(initialDeptId || '');
   // Paginasi daftar departemen (organisasi bisa punya puluhan divisi).
@@ -315,6 +317,19 @@ export default function TargetAchievementCard({
           </div>
 
           <div className="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setShowCascade((v) => !v)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                showCascade
+                  ? 'bg-[#0ea5e9] border-[#0284c7] text-white'
+                  : 'bg-white border-[#cbd5e1] text-[#0f172a] hover:bg-[#f8fafc]'
+              }`}
+              title="Lihat peta turunan KPI dari visi & misi sampai pegawai"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              {showCascade ? 'Kembali ke Capaian' : 'Alur KPI Berjenjang'}
+            </button>
             {data.periodCode && (
               <span className="px-2.5 py-1 rounded-lg bg-[#f1f5f9] border border-[#cbd5e1] font-mono text-[11px] text-[#334155] font-semibold">
                 Periode: {data.periodCode}
@@ -428,7 +443,11 @@ export default function TargetAchievementCard({
       </div>
 
       {/* Expanded Content Area */}
-      {expanded && (
+      {showCascade ? (
+        <div className="p-5">
+          <KpiCascadePanel onClose={() => setShowCascade(false)} />
+        </div>
+      ) : expanded && (
         <div className="p-5 space-y-4">
           {/* ==================== INDIVIDUAL VIEW ==================== */}
           {data.scopeLevel === 'INDIVIDUAL' && data.individualKpis && (
