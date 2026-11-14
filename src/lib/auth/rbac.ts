@@ -58,7 +58,12 @@ export type Permission =
 | 'postemployment:read'
 | 'postemployment:manage'
 | 'postemployment:alumni'
-| 'postemployment:analytics';
+| 'postemployment:analytics'
+// Lamaran lowongan INTERNAL (bursa kerja internal). Sengaja dipisah dari
+// `kpi:*` agar menyetujui lamaran tidak bergantung pada izin KPI yang tak
+// berkaitan. `read` = melihat antrean & detail; `decide` = setujui/tolak.
+| 'internal-application:read'
+| 'internal-application:decide';
 
 /** Satu matriks deklaratif, bukan if tersebar di 18 route (spec §6.2).
 
@@ -67,6 +72,11 @@ const MATRIX: Record<Permission, ReadonlyArray<UserRole>> = {
 'kpi:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'kpi:write': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER', 'EMPLOYEE'],
 'kpi:approve': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
+// Bursa kerja internal. Desk HR membaca semua lamaran; atasan langsung
+// memutuskan lamaran anggota timnya (kepemilikan dicek di service, bukan di
+// matriks ini). Pegawai TIDAK dapat memutuskan lamarannya sendiri.
+'internal-application:read': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
+'internal-application:decide': ['SUPER_ADMIN', 'BOD', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'appraisal:calculate': ['SUPER_ADMIN', 'HR_MANAGER', 'PEOPLE_MANAGER'],
 'appraisal:batch': ['SUPER_ADMIN', 'HR_MANAGER'],
 'audit:read': ['SUPER_ADMIN'],

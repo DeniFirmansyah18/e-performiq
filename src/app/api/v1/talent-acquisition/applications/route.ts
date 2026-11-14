@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
 import { assertCan } from '@/lib/auth/rbac';
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
     const session = await getAuthSession(req).catch(() => null);
     if (!session) return problem(new AuthError(), 'applications');
 
-    assertCan(session, 'kpi:approve');
+    assertCan(session, 'internal-application:read');
 
     const items = await listApplicationsForReview(db);
     return ok({ items, total: items.length }, 'Daftar lamaran berhasil dimuat.');
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     const session = await getAuthSession(req).catch(() => null);
     if (!session) return problem(new AuthError(), 'applications');
 
-    assertCan(session, 'kpi:write');
+    assertCan(session, 'internal-application:read');
     if (!session.employeeId) {
       throw new ForbiddenError('Akun pengguna ini tidak memiliki ID karyawan aktif.');
     }
@@ -77,9 +78,28 @@ export async function PATCH(req: NextRequest) {
     const session = await getAuthSession(req).catch(() => null);
     if (!session) return problem(new AuthError(), 'applications');
 
-    assertCan(session, 'kpi:approve');
+    assertCan(session, 'internal-application:decide');
 
     const body = await parseBody(req, ReviewSchema);
+
+    // Kepemilikan: pemutus tidak boleh memutuskan lamarannya SENDIRI.
+    // Hanya berlaku untuk APPROVE/REJECT (keputusan atas nama perusahaan);
+    // DECLINE adalah tindakan kandidat menarik diri, jadi bukan pelanggaran.
+    if (body.action !== 'DECLINE') {
+      const pemilik = (await db.execute(
+        sql`SELECT applicant_employee_id::text AS "employeeId"
+              FROM internal_applications
+             WHERE id = ${body.applicationId}::uuid
+             LIMIT 1`,
+      )) as unknown as { rows: Array<{ employeeId: string | null }> };
+      const employeeId = pemilik.rows?.[0]?.employeeId ?? null;
+      if (employeeId && session.employeeId && employeeId === session.employeeId) {
+        throw new ForbiddenError(
+          'Anda tidak dapat memutuskan lamaran lowongan internal milik sendiri.',
+        );
+      }
+    }
+
     const result =
       body.action === 'APPROVE'
         ? await approveApplication(db, body.applicationId, session.userId)
