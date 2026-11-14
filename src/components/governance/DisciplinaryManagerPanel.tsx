@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { POIN_BAKU, KATEGORI_PELANGGARAN, type KategoriPelanggaran } from '@/lib/services/disciplinaryPoints';
-import { AlertTriangle, Plus, Gavel } from 'lucide-react';
+import { AlertTriangle, Plus, Gavel, UserX, RefreshCw } from 'lucide-react';
 import ListPager from '@/components/ui/ListPager';
 import { useAuth } from '@/lib/context/AuthContext';
 
@@ -59,6 +59,49 @@ export default function DisciplinaryManagerPanel() {
     violationPoints: '',
     violationCategory: 'ABSENSI' as KategoriPelanggaran,
   });
+
+  // ---- Rekomendasi sanksi absensi otomatis (kategori ABSENSI) ----
+  const [showAbsensiRec, setShowAbsensiRec] = useState(false);
+  const [absensiMonth, setAbsensiMonth] = useState(today().slice(0, 7));
+  const [absensiRec, setAbsensiRec] = useState<KandidatAbsensi[]>([]);
+  const [loadingAbsensi, setLoadingAbsensi] = useState(false);
+
+  interface KandidatAbsensi {
+    employeeId: string;
+    employeeCode: string;
+    fullName: string;
+    positionTitle: string | null;
+    departmentName: string | null;
+    jumlahAlpa: number;
+    rekomendasi: { actionType: string; poin: number; alasan: string } | null;
+  }
+
+  const loadAbsensiRec = useCallback(async () => {
+    setLoadingAbsensi(true);
+    try {
+      const res = await fetch(`/api/v1/hr/attendance-sanctions?month=${absensiMonth}`)
+        .then((r) => (r.ok ? r.json() : null));
+      setAbsensiRec(res?.data?.items ?? []);
+    } catch {
+      setAbsensiRec([]);
+    } finally {
+      setLoadingAbsensi(false);
+    }
+  }, [absensiMonth]);
+
+  const isiFormDariRekomendasi = (k: KandidatAbsensi) => {
+    if (!k.rekomendasi) return;
+    setForm((f) => ({
+      ...f,
+      employeeId: k.employeeId,
+      actionType: k.rekomendasi!.actionType as Action['actionType'],
+      reason: k.rekomendasi!.alasan,
+      effectiveDate: today(),
+      expiryDate: '',
+      violationPoints: String(k.rekomendasi!.poin),
+      violationCategory: 'ABSENSI' as KategoriPelanggaran,
+    }));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +191,85 @@ export default function DisciplinaryManagerPanel() {
         <p className="text-[11px] text-[#0f172a] bg-[#f1f5f9] border border-[#e2e8f0] rounded-lg px-3 py-2">
           {notice}
         </p>
+      )}
+
+      {/* Rekomendasi sanksi absensi otomatis */}
+      {canWrite && (
+        <div className="rounded-xl border border-[#e2e8f0] p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-bold text-[#0f172a] flex items-center gap-1.5">
+              <UserX className="h-3.5 w-3.5 text-[#b45309]" aria-hidden="true" />
+              Sanksi Absensi Otomatis
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="month"
+                value={absensiMonth}
+                onChange={(e) => setAbsensiMonth(e.target.value)}
+                className="rounded-lg border border-[#cbd5e1] px-2 py-1 text-[11px] text-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007a5a]"
+              />
+              <button
+                type="button"
+                disabled={loadingAbsensi}
+                onClick={loadAbsensiRec}
+                className="inline-flex items-center gap-1 rounded-lg bg-[#b45309] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#92400e] disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3 w-3 ${loadingAbsensi ? 'animate-spin' : ''}`} aria-hidden="true" />
+                {showAbsensiRec ? 'Muat Rekomendasi' : 'Cek Alpa Otomatis'}
+              </button>
+            </div>
+          </div>
+
+          {showAbsensiRec && (
+            loadingAbsensi ? (
+              <p className="text-[11px] text-[#64748b]">Menghitung ketidakhadiran tanpa keterangan…</p>
+            ) : absensiRec.length === 0 ? (
+              <p className="text-[11px] text-[#64748b] bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-lg px-3 py-2">
+                Tidak ada ketidakhadiran tanpa keterangan pada {absensiMonth}.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                {absensiRec.map((k) => (
+                  <div
+                    key={k.employeeId}
+                    className="rounded-lg border border-[#e2e8f0] px-3 py-2 text-[11px]"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-[#0f172a]">
+                          {k.fullName} <span className="text-[10px] text-[#94a3b8]">({k.employeeCode})</span>
+                        </p>
+                        <p className="text-[10px] text-[#64748b]">
+                          {k.positionTitle || '—'} · {k.departmentName || '—'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {k.rekomendasi ? (
+                          <>
+                            <span className="rounded bg-[#fce8e6] px-1.5 py-0.5 text-[10px] font-bold text-[#c5221f]">
+                              {k.jumlahAlpa}× alpa → {k.rekomendasi.actionType} ({k.rekomendasi.poin} poin)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => isiFormDariRekomendasi(k)}
+                              className="rounded-lg border border-[#007a5a] px-2 py-1 text-[10px] font-semibold text-[#007a5a] hover:bg-[#e6f4ea]"
+                            >
+                              Isi ke Form
+                            </button>
+                          </>
+                        ) : (
+                          <span className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569]">
+                            {k.jumlahAlpa}× alpa — belum layak sanksi
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
       )}
 
       {/* Form penerbitan */}
