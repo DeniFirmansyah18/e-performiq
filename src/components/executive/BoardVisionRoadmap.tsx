@@ -19,6 +19,44 @@ export default function BoardVisionRoadmap() {
   const [catatan, setCatatan] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  // Status simpan per KPI: 'pending' | 'ok' | 'skip'
+  const [simpan, setSimpan] = useState<Record<string, 'pending' | 'ok' | 'skip'>>({});
+
+  async function setujui(k: any, idx: number) {
+    const key = k?.kpiName ?? idx;
+    setSimpan((s) => ({ ...s, [key]: 'pending' }));
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await fetch('/api/v1/performance/kpi-cascade/corporate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pillar_id: k.pillarId,
+          period_year: new Date().getFullYear(),
+          kpi_name: k.kpiName,
+          target_value: k.targetValue,
+          unit_of_measure: k.unitOfMeasure,
+          kpi_code: `BOD-${new Date().getFullYear()}-${String(idx + 1).padStart(2, '0')}`,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(json?.detail ?? json?.message ?? `Gagal menyimpan ${k.kpiName}.`);
+        setSimpan((s) => ({ ...s, [key]: 'pending' }));
+        return;
+      }
+      setSimpan((s) => ({ ...s, [key]: 'ok' }));
+    } catch {
+      setErr(`Gagal menyimpan ${k.kpiName}.`);
+      setSimpan((s) => ({ ...s, [key]: 'pending' }));
+    }
+  }
+
+  function tolak(k: any, idx: number) {
+    const key = k?.kpiName ?? idx;
+    setSimpan((s) => ({ ...s, [key]: 'skip' }));
+  }
 
   async function generate() {
     setBusy(true);
@@ -90,23 +128,58 @@ export default function BoardVisionRoadmap() {
 
       {usulan && (
         <div className="space-y-1.5">
-          {usulan.map((k: any, i: number) => (
-            <div key={k?.kpiName ?? i} className="flex items-start gap-2 text-[11px] text-[#334155] bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#007a5a] mt-0.5 shrink-0" />
-              <div className="min-w-0 space-y-0.5">
-                <p className="font-semibold text-[#0f172a]">
-                  {k?.kpiName ?? '(tanpa nama)'}
-                  <span className="text-[10px] font-normal text-[#64748b] ml-2">
-                    {k?.pillarName ?? ''}{k?.perspective ? ` · ${k.perspective}` : ''}
-                  </span>
-                </p>
-                <p className="text-[10px] text-[#64748b]">
-                  Target {k?.targetValue ?? '-'} {k?.unitOfMeasure ?? ''} · bobot {k?.weightPct ?? 0}%
-                </p>
-                {k?.rationale ? <p className="text-[10px] text-[#475569] italic">{k.rationale}</p> : null}
+          {usulan.map((k: any, i: number) => {
+            const key = k?.kpiName ?? i;
+            const st = simpan[key] ?? 'pending';
+            return (
+              <div key={key} className="flex flex-wrap items-start gap-2 text-[11px] text-[#334155] bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#007a5a] mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="font-semibold text-[#0f172a]">
+                    {k?.kpiName ?? '(tanpa nama)'}
+                    <span className="text-[10px] font-normal text-[#64748b] ml-2">
+                      {k?.pillarName ?? ''}{k?.perspective ? ` · ${k.perspective}` : ''}
+                    </span>
+                  </p>
+                  <p className="text-[10px] text-[#64748b]">
+                    Target {k?.targetValue ?? '-'} {k?.unitOfMeasure ?? ''} · bobot {k?.weightPct ?? 0}%
+                  </p>
+                  {k?.rationale ? <p className="text-[10px] text-[#475569] italic">{k.rationale}</p> : null}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {st === 'ok' && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#137333] bg-[#e6f4ea] px-2 py-1 rounded-md">
+                      <CheckCircle2 className="h-3 w-3" /> Disetujui &amp; disimpan
+                    </span>
+                  )}
+                  {st === 'skip' && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#64748b] bg-[#f1f5f9] px-2 py-1 rounded-md">
+                      Dilewati
+                    </span>
+                  )}
+                  {st === 'pending' && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void setujui(k, i)}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#007a5a] px-2.5 py-1 text-[10px] font-semibold text-white disabled:opacity-50"
+                      >
+                        {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />} Setujui
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => tolak(k, i)}
+                        className="rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1 text-[10px] font-semibold text-[#64748b]"
+                      >
+                        Tidak
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {usulan.length === 0 && (
             <p className="text-[11px] text-[#64748b]">
               Belum ada usulan yang dapat ditampilkan. Lengkapi visi &amp; misi serta pilar strategis terlebih dahulu.

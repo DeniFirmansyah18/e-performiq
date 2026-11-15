@@ -17,6 +17,8 @@ import { SARAN_JUMLAH_KPI } from './kpiCascade';
 
 export interface UsulanKpi {
   kpiName: string;
+  /** Id pilar strategis pendukung (dipakai tombol Setujui & Simpan). */
+  pillarId: string;
   /** Nama pilar strategis yang didukung. */
   pillarName: string;
   perspective: string;
@@ -39,7 +41,7 @@ export interface KonteksPerusahaan {
   vision: string;
   mission: string;
   /** Pilar strategis yang sudah ada di sistem. */
-  pilar: Array<{ perspective: string; pillarName: string; weight: number }>;
+  pilar: Array<{ pillarId: string; perspective: string; pillarName: string; weight: number }>;
 }
 
 /** Satuan yang wajar dipakai KPI korporat. */
@@ -85,6 +87,7 @@ export function fallbackUsulanKpi(ctx: KonteksPerusahaan): UsulanKpi[] {
   const bobot = normalkanBobot(ctx.pilar.map((p) => p.weight));
   return ctx.pilar.map((p, i) => ({
     kpiName: `Capaian ${p.pillarName}`,
+    pillarId: p.pillarId,
     pillarName: p.pillarName,
     perspective: p.perspective,
     targetValue: p.perspective === 'FINANCIAL' ? 1_000_000_000 : 95,
@@ -100,7 +103,9 @@ function sanitasiUsulan(
   ctx: KonteksPerusahaan
 ): UsulanKpi[] {
   if (!Array.isArray(mentah)) return [];
-  const namaPilar = new Set(ctx.pilar.map((p) => p.pillarName));
+  // Pencocokan pilar case-insensitive & toleransi spasi, agar AI yang menulis
+  // nama pilar sedikit beda (kapital/typo kecil) tetap diterima.
+  const pilarKecil = new Map(ctx.pilar.map((p) => [p.pillarName.toLowerCase().trim(), p]));
 
   const bersih: UsulanKpi[] = [];
   for (const m of mentah) {
@@ -115,19 +120,20 @@ function sanitasiUsulan(
     const satuan = String(o.unitOfMeasure ?? o.unit_of_measure ?? '%').toUpperCase();
     if (!SATUAN_VALID.includes(satuan)) continue;
 
-    // Pilar WAJIB salah satu yang ada — mencegah AI mengarang pilar baru.
+    // Pilar WAJIB salah satu yang ada (case-insensitive) — cegah AI mengarang pilar.
     const pilar = String(o.pillarName ?? o.pillar_name ?? '').trim();
-    if (!namaPilar.has(pilar)) continue;
+    const p = pilarKecil.get(pilar.toLowerCase());
+    if (!p) continue;
 
-    const p = ctx.pilar.find((x) => x.pillarName === pilar)!;
     bersih.push({
       kpiName: nama,
-      pillarName: pilar,
+      pillarId: p.pillarId,
+      pillarName: p.pillarName,
       perspective: p.perspective,
       targetValue: target,
       unitOfMeasure: satuan,
       weightPct: Number(o.weightPct ?? o.weight_pct ?? 0) || 0,
-      rationale: String(o.rationale ?? '').trim().slice(0, 300),
+      rationale: String(o.rationale ?? o.rasional ?? '').trim().slice(0, 300),
     });
   }
 
@@ -216,18 +222,23 @@ export async function usulkanKpiDariVisiMisi(ctx: KonteksPerusahaan): Promise<Ha
 /** Baca visi, misi, dan pilar strategis dari basis data. */
 export async function muatKonteksPerusahaan(db: Db, companyId: string): Promise<KonteksPerusahaan> {
   const { sql } = await import('drizzle-orm');
+  // Visi & misi terbaru — tanpa filter company_id agar baris yang disimpan
+  // BOD (yang bisa tanpa company_id) tetap terbaca oleh generator AI.
   const vm = (await db.execute(sql`
     SELECT vision, mission FROM company_vision_mission
-     WHERE company_id = ${companyId}::uuid LIMIT 1
+     ORDER BY updated_at DESC LIMIT 1
   `)) as unknown as { rows: Array<{ vision: string; mission: string }> };
 
   const pilar = (await db.execute(sql`
-    SELECT perspective::text AS "perspective", pillar_name AS "pillarName",
+    SELECT id::text AS "pillarId", perspective::text AS "perspective",
+           pillar_name AS "pillarName",
            strategic_weight::float8 AS "weight"
       FROM strategic_pillars
-     WHERE company_id = ${companyId}::uuid AND is_active = TRUE
+     WHERE is_active = TRUE
      ORDER BY strategic_weight DESC
-  `)) as unknown as { rows: Array<{ perspective: string; pillarName: string; weight: number }> };
+  `)) as unknown as {
+    rows: Array<{ pillarId: string; perspective: string; pillarName: string; weight: number }>;
+  };
 
   return {
     vision: vm.rows?.[0]?.vision ?? '',

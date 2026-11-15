@@ -10,10 +10,10 @@ const CTX: KonteksPerusahaan = {
   vision: 'Menjadi perusahaan kelas dunia dengan tata kelola unggul.',
   mission: 'Membangun ekosistem kinerja terintegrasi | Mengembangkan talenta',
   pilar: [
-    { perspective: 'FINANCIAL', pillarName: 'Pertumbuhan Pendapatan', weight: 25 },
-    { perspective: 'CUSTOMER', pillarName: 'Kepuasan Stakeholder', weight: 25 },
-    { perspective: 'INTERNAL_PROCESS', pillarName: 'Keunggulan Operasional', weight: 25 },
-    { perspective: 'LEARNING_GROWTH', pillarName: 'Kapabilitas Human Capital', weight: 25 },
+    { pillarId: 'pillar-1', perspective: 'FINANCIAL', pillarName: 'Pertumbuhan Pendapatan', weight: 25 },
+    { pillarId: 'pillar-2', perspective: 'CUSTOMER', pillarName: 'Kepuasan Stakeholder', weight: 25 },
+    { pillarId: 'pillar-3', perspective: 'INTERNAL_PROCESS', pillarName: 'Keunggulan Operasional', weight: 25 },
+    { pillarId: 'pillar-4', perspective: 'LEARNING_GROWTH', pillarName: 'Kapabilitas Human Capital', weight: 25 },
   ],
 };
 
