@@ -104,8 +104,11 @@ function sanitasiUsulan(
 ): UsulanKpi[] {
   if (!Array.isArray(mentah)) return [];
   // Pencocokan pilar case-insensitive & toleransi spasi, agar AI yang menulis
-  // nama pilar sedikit beda (kapital/typo kecil) tetap diterima.
+  // nama pilar sedikit beda (kapital/typo kecil) tetap diterima. Plus pemetaan
+  // per perspective: beberapa model mengembalikan perspective (mis. "CUSTOMER")
+  // di field pillarName, jadi dicocokkan juga.
   const pilarKecil = new Map(ctx.pilar.map((p) => [p.pillarName.toLowerCase().trim(), p]));
+  const pilarByPerspective = new Map(ctx.pilar.map((p) => [p.perspective.toLowerCase().trim(), p]));
 
   const bersih: UsulanKpi[] = [];
   for (const m of mentah) {
@@ -122,7 +125,10 @@ function sanitasiUsulan(
 
     // Pilar WAJIB salah satu yang ada (case-insensitive) — cegah AI mengarang pilar.
     const pilar = String(o.pillarName ?? o.pillar_name ?? '').trim();
-    const p = pilarKecil.get(pilar.toLowerCase());
+    const p =
+      pilarKecil.get(pilar.toLowerCase()) ??
+      pilarByPerspective.get(pilar.toLowerCase()) ??
+      pilarByPerspective.get(String(o.perspective ?? '').trim().toLowerCase());
     if (!p) continue;
 
     bersih.push({
