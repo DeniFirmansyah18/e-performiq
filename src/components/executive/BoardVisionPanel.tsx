@@ -4,6 +4,8 @@ import DataTable from '@/components/ui/DataTable';
 import React, { useEffect, useState } from 'react';
 import { Compass, Target, ShieldAlert, ListChecks } from 'lucide-react';
 import BoardAiInsight from './BoardAiInsight';
+import BoardVisionEditor from './BoardVisionEditor';
+import BoardVisionRoadmap from './BoardVisionRoadmap';
 
 async function fetchJson(url: string): Promise<any> {
   const res = await fetch(url);
@@ -29,9 +31,12 @@ export default function BoardVisionPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [versi, setVersi] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError(null);
     fetchJson('/api/v1/analytics/vision-achievement')
       .then((json) => {
         if (active && json?.status === 'success') setData(json.data);
@@ -45,7 +50,7 @@ export default function BoardVisionPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [versi]);
 
   if (loading) {
     return <div className="p-6 text-sm text-slate-500 animate-pulse">Memuat capaian visi-misi...</div>;
@@ -60,6 +65,11 @@ export default function BoardVisionPanel() {
 
   return (
     <div className="space-y-5">
+      <BoardVisionEditor
+        vision={data?.vision ?? null}
+        mission={(data?.missions ?? []).join(' | ') || null}
+        onSaved={() => setVersi((x) => x + 1)}
+      />
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-5">
         <div className="flex items-start gap-3">
           <Compass className="w-6 h-6 text-emerald-700 flex-shrink-0 mt-0.5" />
@@ -114,6 +124,8 @@ export default function BoardVisionPanel() {
           </div>
         </div>
       </div>
+
+      <BoardVisionRoadmap />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {(data?.pillars ?? []).map((p: any) => (

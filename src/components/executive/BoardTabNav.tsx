@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-export type BoardTab = 'overview' | 'vision' | 'cost' | 'position-fit' | 'activity' | 'mpp-approval' | 'letters';
+export type BoardTab = 'overview' | 'vision' | 'cost' | 'activity' | 'mpp-approval' | 'letters';
 
 export interface BoardTabItem {
   key: BoardTab;
@@ -34,32 +34,25 @@ export const BOARD_TABS: BoardTabItem[] = [
     tooltip: 'Langkah 3: Pantau total pengeluaran gaji bersih, biaya per karyawan, lembur, dan anggaran operasional',
   },
   {
-    key: 'position-fit',
-    step: 4,
-    label: '4. Peta Talenta & Posisi Kunci',
-    shortLabel: 'Talenta & Posisi',
-    tooltip: 'Langkah 4: Evaluasi kesesuaian pejabat struktural, pemenuhan kompetensi, dan calon suksesor posisi kritis',
-  },
-  {
     key: 'activity',
-    step: 5,
-    label: '5. Aktivitas & Kepatuhan Tim',
+    step: 4,
+    label: '4. Aktivitas & Kepatuhan Tim',
     shortLabel: 'Aktivitas Kerja',
-    tooltip: 'Langkah 5: Tinjau catatan rutinitas kerja harian, partisipasi karyawan aktif, dan integritas kepatuhan',
+    tooltip: 'Langkah 4: Tinjau catatan rutinitas kerja harian, partisipasi karyawan aktif, dan integritas kepatuhan',
   },
   {
     key: 'mpp-approval',
-    step: 6,
-    label: '6. Persetujuan MPP',
+    step: 5,
+    label: '5. Persetujuan MPP',
     shortLabel: 'Persetujuan MPP',
-    tooltip: 'Langkah 6: Putuskan pengajuan kebutuhan formasi (MPP) yang diajukan HRD, dengan bantuan rekomendasi AI',
+    tooltip: 'Langkah 5: Putuskan pengajuan kebutuhan formasi (MPP) yang diajukan HRD, dengan bantuan rekomendasi AI',
   },
   {
     key: 'letters',
-    step: 7,
-    label: '7. e-Surat & Disposisi',
+    step: 6,
+    label: '6. e-Surat & Disposisi',
     shortLabel: 'e-Surat',
-    tooltip: 'Langkah 7: Terbitkan surat keputusan/direktif dari BOD ke HR, telusuri disposisi ke atasan & pegawai',
+    tooltip: 'Langkah 6: Terbitkan surat keputusan/direktif dari BOD ke HR, telusuri disposisi ke atasan & pegawai',
   },
 ];
 

@@ -31,6 +31,7 @@ import FeatureCard from '@/components/ui/FeatureCard';
 
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
+import { useAuth } from '@/lib/context/AuthContext';
 
 type NineboxFeature = 'distribusi' | 'inspection' | 'simulasi';
 
@@ -185,6 +186,15 @@ const QUADRANTS: QuadrantData[] = [
 ];
 
 export default function NineBoxMatrixPage() {
+  const { activeRole } = useAuth();
+  // Arah tombol "Kembali" sesuai peran — BOD ke eksekutif, bukan ke HR.
+  const dashboardAsal: Record<string, string> = {
+    BOD: '/dashboard/executive',
+    HR_MANAGER: '/dashboard/hr-command',
+    PEOPLE_MANAGER: '/dashboard/manager-cockpit',
+    SUPER_ADMIN: '/dashboard/account-management',
+  };
+  const asalUrl = dashboardAsal[activeRole] ?? '/dashboard/hr-command';
   const [openFeature, setOpenFeature] = useState<NineboxFeature | null>(null);
   const [selectedBox, setSelectedBox] = useState<number>(9);
   // Halaman daftar pegawai pada panel inspeksi (5 per halaman).
@@ -338,10 +348,10 @@ export default function NineBoxMatrixPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <Link
-            href="/dashboard/hr-command"
+            href={asalUrl}
             className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke HR Command Center
+            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Dashboard
           </Link>
           {/* Breadcrumb & GCG Tag */}
           {/* <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">

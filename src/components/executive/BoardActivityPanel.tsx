@@ -202,7 +202,7 @@ export default function BoardActivityPanel() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Activity className="w-4 h-4 text-indigo-600" /> Total Catatan Aktivitas
+            <Activity className="w-4 h-4 text-[#007a5a]" /> Total Catatan Aktivitas
           </div>
           <div className="text-2xl font-bold text-slate-800">{data?.totalEvents ?? 0}</div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
@@ -239,7 +239,7 @@ export default function BoardActivityPanel() {
       {/* Temuan & Catatan Produktivitas Tim */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
         <h3 className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-indigo-600" />
+          <Activity className="w-4 h-4 text-[#007a5a]" />
           <span>Temuan & Catatan Produktivitas Tim</span>
         </h3>
         <ul className="space-y-1.5">

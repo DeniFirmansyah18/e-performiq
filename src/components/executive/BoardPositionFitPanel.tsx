@@ -287,7 +287,7 @@ export default function BoardPositionFitPanel() {
       {/* Temuan Analisis Highlight */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
         <h3 className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-2">
-          <Briefcase className="w-4 h-4 text-indigo-600" />
+          <Briefcase className="w-4 h-4 text-[#007a5a]" />
           <span>Temuan Analisis Kesesuaian Posisi</span>
           {data?.periodCode && (
             <span className="text-[11px] font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
@@ -298,7 +298,7 @@ export default function BoardPositionFitPanel() {
         <ul className="space-y-1.5">
           {(data?.analysis?.highlights ?? []).map((h: string, i: number) => (
             <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
-              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#007a5a] shrink-0" />
               <span>{h}</span>
             </li>
           ))}

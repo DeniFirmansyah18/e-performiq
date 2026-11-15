@@ -301,7 +301,7 @@ export default function BoardCostPanel() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <Wallet className="w-4 h-4 text-indigo-600" /> Total Gaji Bersih (Net)
+            <Wallet className="w-4 h-4 text-[#007a5a]" /> Total Gaji Bersih (Net)
           </div>
           <div className="text-lg font-bold text-slate-800">
             {rupiah(data?.payroll?.latest?.totalNet)}
@@ -352,7 +352,7 @@ export default function BoardCostPanel() {
         <ul className="space-y-1">
           {(data?.analysis?.highlights ?? []).map((h: string, i: number) => (
             <li key={i} className="text-xs text-slate-600 flex gap-2">
-              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0" />
+              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#007a5a] flex-shrink-0" />
               {h}
             </li>
           ))}

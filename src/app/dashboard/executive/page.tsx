@@ -40,7 +40,7 @@ import BoardDrilldownPanel from '@/components/executive/BoardDrilldownPanel';
 
 type ExecFeature = 'vmai' | 'perspectives' | 'trend' | 'succession' | 'drilldown';
 
-const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'vision', 'cost', 'position-fit', 'activity', 'letters'];
+const BOARD_TAB_KEYS: BoardTab[] = ['overview', 'vision', 'cost', 'activity', 'letters'];
 
 /** Membaca `?tab=` agar tautan langsung membuka tab yang tepat. */
 function resolveInitialTab(): BoardTab {
@@ -788,6 +788,11 @@ export default function ExecutiveBoardroomPage() {
 
             </div>
             <AiAnalyzePanel feature="executive" />
+            {/* Peta Talenta & Posisi Kunci dilebur ke kartu suksesi (dulu tab terpisah). */}
+            <div className="mt-4 border-t border-[#e2e8f0] pt-4">
+              <h3 className="text-sm font-extrabold text-[#0f172a] mb-3">Peta Talenta &amp; Posisi Kunci</h3>
+              <BoardPositionFitPanel />
+            </div>
           </ExpandablePanel>
           <ExpandablePanel
             open={openFeature === 'drilldown'}
@@ -804,7 +809,6 @@ export default function ExecutiveBoardroomPage() {
 
       {mainTab === 'vision' && <BoardVisionPanel />}
       {mainTab === 'cost' && <BoardCostPanel />}
-      {mainTab === 'position-fit' && <BoardPositionFitPanel />}
       {mainTab === 'activity' && <BoardActivityPanel />}
 {mainTab === 'mpp-approval' && (
   <section className="stitch-card-white p-5">
