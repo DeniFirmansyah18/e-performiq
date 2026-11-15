@@ -119,8 +119,9 @@ describe('BoardTabNav', () => {
     expect(screen.getByText('Kesehatan Perusahaan')).toBeTruthy();
     expect(screen.getByText('Arah Strategi & Saran AI')).toBeTruthy();
     expect(screen.getByText('Biaya & Gaji Karyawan')).toBeTruthy();
-    expect(screen.getByText('Peta Talenta & Posisi Kunci')).toBeTruthy();
     expect(screen.getByText('Aktivitas & Kepatuhan Tim')).toBeTruthy();
+    expect(screen.getByText('Persetujuan MPP')).toBeTruthy();
+    expect(screen.getByText('e-Surat & Disposisi')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Aktivitas & Kepatuhan Tim'));
     expect(onChange).toHaveBeenCalledWith('activity');
@@ -195,7 +196,7 @@ describe('BoardVisionPanel', () => {
       await waitFor(() => expect(screen.getByText(/kelas dunia/)).toBeTruthy());
 
       // Angka resmi tetap seluruh pilar (69,6), bukan renormalisasi (92,8).
-      expect(screen.getByText(/Capaian Target Resmi/)).toBeTruthy();
+      expect(screen.getByText(/Sumber data: pilar strategis/)).toBeTruthy();
       expect(screen.getByText('69.6%')).toBeTruthy();
 
       // Cakupan dan capaian terukur tampil terpisah agar tidak tertukar.

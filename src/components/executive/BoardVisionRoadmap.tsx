@@ -15,6 +15,8 @@ import { Sparkles, Loader2, CheckCircle2, Lightbulb } from 'lucide-react';
 export default function BoardVisionRoadmap() {
   const [busy, setBusy] = useState(false);
   const [usulan, setUsulan] = useState<any[] | null>(null);
+  const [sumber, setSumber] = useState<string | null>(null);
+  const [catatan, setCatatan] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -23,6 +25,8 @@ export default function BoardVisionRoadmap() {
     setErr(null);
     setMsg(null);
     setUsulan(null);
+    setSumber(null);
+    setCatatan(null);
     try {
       const res = await fetch('/api/v1/performance/kpi-cascade/corporate/generate', {
         method: 'POST',
@@ -32,9 +36,17 @@ export default function BoardVisionRoadmap() {
         setErr(json?.detail ?? json?.message ?? 'Gagal menyusun usulan KPI.');
         return;
       }
-      const isi = json?.data?.items ?? json?.data?.usulan ?? json?.data;
-      setUsulan(Array.isArray(isi) ? isi : isi && Array.isArray(isi.items) ? isi.items : []);
-      setMsg('Usulan KPI dari visi & misi berhasil disusun. Tinjau lalu simpan di tab KPI.');
+      // Respons endpoint: { kpis: [...], sumber: 'AI'|'FALLBACK', catatan: string|null }
+      const data = json?.data ?? {};
+      const daftar = Array.isArray(data?.kpis) ? data.kpis : [];
+      setUsulan(daftar);
+      setSumber(data?.sumber ?? null);
+      setCatatan(data?.catatan ?? null);
+      setMsg(
+        daftar.length > 0
+          ? 'Usulan KPI dari visi & misi berhasil disusun. Tinjau lalu simpan di KPI Command.'
+          : data?.catatan ?? 'Belum ada usulan yang dapat disusun.'
+      );
     } catch {
       setErr('Gagal menyusun usulan KPI.');
     } finally {
@@ -68,23 +80,37 @@ export default function BoardVisionRoadmap() {
 
       {err && <p className="text-[11px] text-[#b91c1c] bg-[#fef2f2] px-2 py-1 rounded-md">{err}</p>}
       {msg && <p className="text-[11px] text-[#137333] bg-[#e6f4ea] px-2 py-1 rounded-md">{msg}</p>}
+      {sumber && (
+        <p className="text-[10px] text-[#64748b]">
+          Sumber usulan:{' '}
+          <span className="font-bold text-[#007a5a]">{sumber === 'AI' ? 'AI (model)' : 'Fallback pilar strategis'}</span>
+          {catatan ? ` — ${catatan}` : ''}
+        </p>
+      )}
 
       {usulan && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {usulan.map((k: any, i: number) => (
-            <div key={k?.kpiCode ?? i} className="flex items-start gap-2 text-[11px] text-[#334155] bg-white border border-[#e2e8f0] rounded-lg px-2 py-1.5">
+            <div key={k?.kpiName ?? i} className="flex items-start gap-2 text-[11px] text-[#334155] bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-[#007a5a] mt-0.5 shrink-0" />
-              <span>
-                <span className="font-mono text-[10px] text-[#64748b] mr-1.5">{k?.kpiCode ?? ''}</span>
-                {k?.kpiName ?? k?.name ?? k?.usulan ?? '(tanpa nama)'}
-                {typeof k?.target_value === 'number' && (
-                  <span className="text-[10px] text-[#64748b] ml-2">target {k.target_value}</span>
-                )}
-              </span>
+              <div className="min-w-0 space-y-0.5">
+                <p className="font-semibold text-[#0f172a]">
+                  {k?.kpiName ?? '(tanpa nama)'}
+                  <span className="text-[10px] font-normal text-[#64748b] ml-2">
+                    {k?.pillarName ?? ''}{k?.perspective ? ` · ${k.perspective}` : ''}
+                  </span>
+                </p>
+                <p className="text-[10px] text-[#64748b]">
+                  Target {k?.targetValue ?? '-'} {k?.unitOfMeasure ?? ''} · bobot {k?.weightPct ?? 0}%
+                </p>
+                {k?.rationale ? <p className="text-[10px] text-[#475569] italic">{k.rationale}</p> : null}
+              </div>
             </div>
           ))}
           {usulan.length === 0 && (
-            <p className="text-[11px] text-[#64748b]">Belum ada usulan yang dapat ditampilkan.</p>
+            <p className="text-[11px] text-[#64748b]">
+              Belum ada usulan yang dapat ditampilkan. Lengkapi visi &amp; misi serta pilar strategis terlebih dahulu.
+            </p>
           )}
         </div>
       )}

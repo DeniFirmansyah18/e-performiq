@@ -74,7 +74,7 @@ export default function BoardTabNav({
             title={tab.tooltip}
             className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               isActive
-                ? 'bg-[#0f172a] text-white shadow-sm ring-2 ring-[#0f172a]/20'
+                ? 'bg-[#007a5a] text-white shadow-sm ring-2 ring-[#007a5a]/20'
                 : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-slate-200 shadow-2xs'
             }`}
           >

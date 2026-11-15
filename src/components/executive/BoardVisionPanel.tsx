@@ -94,7 +94,7 @@ export default function BoardVisionPanel() {
           </div>
           <div className="ml-auto text-right">
             <p className="text-[10px] font-semibold text-slate-500">
-              Capaian Target Resmi (Seluruh Pilar)
+              Sumber data: pilar strategis &amp; KPI individual ({data?.periodCode ?? 'periode aktif'})
             </p>
             <p className="text-3xl font-extrabold text-emerald-700">
               {data?.overallAchievementPercentage ?? 0}%
@@ -222,33 +222,21 @@ export default function BoardVisionPanel() {
                   <ListChecks className="w-3.5 h-3.5 text-amber-600" />
                   Daftar Target Perusahaan yang Belum Diturunkan ke Karyawan
                 </div>
-                <div className="divide-y divide-slate-100">
-                  {(data.cascadeGaps ?? []).map((g: any) => (
-                    <div key={g.corporateKpiId} className="p-3 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-800">
-                            <span className="font-mono text-[11px] text-slate-500 mr-2">{g.kpiCode}</span>
-                            {g.kpiName}
-                          </p>
-                          <p className="text-[10px] text-slate-500">
-                            {g.pillarPerspective} &bull; {g.templateCount} template jabatan,{' '}
-                            {g.coveredTemplateCount} sudah punya KPI cocok
-                          </p>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap">
-                          Belum diturunkan
-                        </span>
-                      </div>
-                      {(g.positionsMissingKpi ?? []).length > 0 && (
-                        <p className="text-[11px] text-slate-600">
-                          <span className="font-semibold">Posisi yang perlu diberi KPI:</span>{' '}
-                          {g.positionsMissingKpi.join('; ')}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <DataTable
+                  rows={(data.cascadeGaps ?? [])}
+                  rowKey={(g: any) => g.corporateKpiId}
+                  searchPlaceholder="Cari kode, sasaran, atau pilar..."
+                  itemLabel="sasaran"
+                  emptyMessage="Tidak ada target yang menunggu penurunan."
+                  pageSize={8}
+                  columns={[
+                    { key: 'kode', header: 'Kode', value: (g: any) => g.kpiCode, render: (g: any) => <span className="font-mono text-[11px] text-slate-500">{g.kpiCode}</span> },
+                    { key: 'sasaran', header: 'Sasaran', value: (g: any) => g.kpiName, render: (g: any) => g.kpiName },
+                    { key: 'pilar', header: 'Pilar', value: (g: any) => g.pillarPerspective, render: (g: any) => `${g.pillarPerspective} · ${g.pillarName ?? ''}` },
+                    { key: 'template', header: 'Template', value: (g: any) => `${g.coveredTemplateCount}/${g.templateCount}`, render: (g: any) => <span className="font-semibold text-slate-700">{g.coveredTemplateCount}/{g.templateCount}</span> },
+                    { key: 'posisi', header: 'Posisi Perlu KPI', value: (g: any) => (g.positionsMissingKpi ?? []).join('; '), render: (g: any) => <span className="text-[11px] text-slate-600">{(g.positionsMissingKpi ?? []).join('; ') || '-'}</span> },
+                  ]}
+                />
               </div>
             )}
 

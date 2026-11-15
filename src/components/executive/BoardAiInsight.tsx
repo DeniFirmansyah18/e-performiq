@@ -31,8 +31,6 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
         fromCache: json?.data?.fromCache ?? false,
       });
     } catch (err) {
-      // Kegagalan transport/HTTP bukan berarti kunci provider belum diisi,
-      // jadi jangan tampilkan pesan "belum dikonfigurasi" untuk kasus ini.
       setInsight(null);
       setConfigured(null);
       setMeta(null);
@@ -43,17 +41,17 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
   };
 
   return (
-    <div className="bg-white rounded-xl border border-indigo-100 p-4 space-y-3">
+    <div className="bg-white rounded-xl border border-[#b7e1cd] p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-indigo-600" />
-          <h3 className="text-xs font-semibold text-slate-800">Analisis AI Boardroom</h3>
+          <Sparkles className="w-4 h-4 text-[#007a5a]" />
+          <h3 className="text-xs font-bold text-[#0f172a]">Analisis AI Boardroom</h3>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => run(false)}
             disabled={loading}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-[11px] font-semibold disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-[#007a5a] text-white text-[11px] font-semibold disabled:opacity-50"
           >
             {loading ? 'Memproses...' : 'Analisis AI'}
           </button>
@@ -61,7 +59,7 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
             <button
               onClick={() => run(true)}
               disabled={loading}
-              className="px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-700 text-[11px] font-semibold disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg border border-[#007a5a]/40 text-[#007a5a] text-[11px] font-semibold disabled:opacity-50"
             >
               Analisis ulang
             </button>
@@ -70,8 +68,8 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
       </div>
 
       {loading && (
-        <p className="text-[11px] text-slate-500 inline-flex items-center gap-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menganalisis data…
+        <p className="text-[11px] text-[#64748b] inline-flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menganalisis data...
         </p>
       )}
 
@@ -84,7 +82,7 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
           )}
           <p className="text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap">{renderRichText(insight)}</p>
           {meta?.generatedAt && (
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-[#64748b]">
               {meta.fromCache ? 'Dari cache' : 'Baru dibuat'} &bull; {meta.provider ?? '-'} &bull;{' '}
               {String(meta.generatedAt).slice(0, 19).replace('T', ' ')}
             </p>
@@ -99,7 +97,7 @@ export default function BoardAiInsight({ periodCode }: { periodCode?: string }) 
       )}
 
       {!loading && !error && !insight && (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-[#64748b]">
           Tekan &ldquo;Analisis AI&rdquo; untuk merangkum capaian pilar, RJMP, kesesuaian posisi,
           dan aktivitas. Gaji serta data BPJS tidak pernah dikirim ke model.
         </p>
