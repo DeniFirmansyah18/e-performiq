@@ -20,7 +20,6 @@ import {
   Calculator,
   X,
   Users,
-  Star as StarIcon,
   ClipboardCheck,
   Target,
   Mail,
@@ -32,7 +31,6 @@ import KpiIndicatorPanel from '@/components/governance/KpiIndicatorPanel';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
-import ActionCard from '@/components/ui/ActionCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 import LetterInboxModal from '@/components/employee/LetterInboxModal';
@@ -523,7 +521,14 @@ export default function ManagerCockpitPage() {
       {/* 1. Verifikasi Kinerja Harian Tim (PRD v2 §5.5) */}
       <DailyVerificationPanel />
 
-      {/* 2. Feature Card Grid (click to open) */}
+      {/* Grup 1: Kepemimpinan & Kinerja Tim */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6f4ea] text-[10px] font-extrabold text-[#137333]">1</span>
+        <h3 className="text-xs font-extrabold text-[#0f172a]">Kepemimpinan &amp; Kinerja Tim</h3>
+      </div>
+      <p className="text-[11px] text-[#64748b] mb-2.5">
+        Pantau roster, sahkan nilai, dan telusuri indikator KPI harian anggota tim.
+      </p>
       <FeatureGrid>
         <FeatureCard
           icon={Users}
@@ -559,65 +564,31 @@ export default function ManagerCockpitPage() {
         />
       </FeatureGrid>
 
-      {/* Aksi Cepat (kartu) */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Manajerial</h2>
-          <span className="text-[11px] text-[#64748b]">Persetujuan, evaluasi &amp; ekspor</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ActionCard
-            icon={CheckSquare}
-            tone="emerald"
-            title={isApproving ? 'Menyetujui...' : 'Setujui Semua Nilai Tim'}
-            tag="Persetujuan"
-            description="Setujui seluruh nilai evaluasi anggota tim sekaligus."
-            onClick={handleApproveAll}
-            disabled={isApproving}
-          />
-          <ActionCard
-            icon={StarIcon}
-            tone="amber"
-            title="Evaluasi Nilai Kinerja Tim"
-            tag="Nilai"
-            description="Hitung dan tinjau nilai kinerja anggota tim Anda."
-            onClick={() => setOpenFeature('evaluasi')}
-          />
-          <ActionCard
-            icon={ClipboardCheck}
-            tone="blue"
-            title="Roster & Penugasan"
-            tag="Tim"
-            description="Tinjau roster tim dan status penugasan berjalan."
-            onClick={() => setOpenFeature('roster')}
-          />
-          <ActionCard
-            icon={Download}
-            tone="slate"
-            title="Ekspor Rekapitulasi"
-            tag="Dokumen"
-            description="Unduh rekapitulasi penilaian kinerja anggota tim."
-            onClick={() => window.print()}
-          />
-          <ActionCard
-            icon={Mail}
-            tone="emerald"
-            title="e-Surat & Disposisi"
-            tag="Kepatuhan"
-            description="Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya."
-            onClick={() => setIsLetterOpen(true)}
-          />
-          <ActionCard
-            icon={BookOpen}
-            tone="emerald"
-            title="SOP & Peraturan"
-            tag="Wajib dibaca"
-            description="Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami."
-            onClick={() => setIsPolicyOpen(true)}
-          />
-        </div>
-        {/* Kartu "Roster & Penugasan" & "Evaluasi Nilai Kinerja Tim" membuka
-            panelnya TEPAT DI BAWAH grid ini (pola sama dengan HR). */}
+      {/* Grup 2: Surat & Kepatuhan */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6f4ea] text-[10px] font-extrabold text-[#137333]">2</span>
+        <h3 className="text-xs font-extrabold text-[#0f172a]">Surat &amp; Kepatuhan</h3>
+      </div>
+      <p className="text-[11px] text-[#64748b] mb-2.5">
+        Surat masuk dan disposisi pimpinan, serta perpustakaan SOP dan peraturan yang wajib dipahami.
+      </p>
+      <FeatureGrid>
+        <FeatureCard
+          icon={Mail}
+          title="e-Surat & Disposisi"
+          tag="Kepatuhan"
+          description="Surat masuk, surat perintah, dan disposisi pimpinan beserta status tindak lanjutnya."
+          onOpen={() => setIsLetterOpen(true)}
+        />
+        <FeatureCard
+          icon={BookOpen}
+          title="SOP & Peraturan"
+          tag="Wajib dibaca"
+          description="Perpustakaan SOP, PP, dan SK aktif beserta kewajiban menandai telah dipahami."
+          onOpen={() => setIsPolicyOpen(true)}
+        />
+      </FeatureGrid>
+      {/* Panel "Roster" & "Evaluasi" membuka TEPAT DI BAWAH grid (pola sama dengan HR). */}
       <ExpandablePanel open={openFeature === 'roster'} title="Roster Tim" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
@@ -872,7 +843,6 @@ export default function ManagerCockpitPage() {
       <InternalApplicationReview />
         <AiAnalyzePanel feature="manager" />
       </ExpandablePanel>
-      </div>
 
       {/* Indikator Pencapaian Target Tim */}
       <TargetAchievementCard periodId={PERIOD_ID} title="Indikator Pencapaian Target Tim" />

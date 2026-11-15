@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
-import ActionCard from '@/components/ui/ActionCard';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
@@ -797,57 +796,6 @@ export default function ExecutiveBoardroomPage() {
           >
             <BoardDrilldownPanel periodCode="2026-Q3" />
           </ExpandablePanel>
-
-          {/* 3. Aksi Cepat Direktur Utama */}
-          {/* <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-extrabold text-[#0f172a]">Aksi Cepat Direktur Utama</h2>
-              <span className="text-[11px] text-[#64748b]">Laporan resmi, evaluasi suksesi & kepatuhan audit</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <ActionCard
-                icon={Printer}
-                tone="slate"
-                title="Cetak Laporan Rapat Direksi"
-                tag="Dokumen Resmi"
-                description="Cetak risalah rapat evaluasi Dewan Direksi untuk arsip fisik."
-                onClick={() => window.print()}
-              />
-              <ActionCard
-                icon={Download}
-                tone="emerald"
-                title="Unduh Ringkasan Hasil Evaluasi"
-                tag="Laporan Teks"
-                description="Unduh berkas ringkasan eksekutif dan ketercapaian target dalam 1 klik."
-                onClick={downloadExecutiveSummary}
-              />
-              <ActionCard
-                icon={Grid3X3}
-                tone="blue"
-                title="Buka Peta Evaluasi Talenta"
-                tag="Kesiapan Suksesi"
-                description="Tinjau matriks 9-Box untuk penetapan calon suksesor dan promosi."
-                onClick={() => setOpenFeature('succession')}
-              />
-              <ActionCard
-                icon={ShieldCheck}
-                tone="emerald"
-                title="Cek Kepatuhan & Keamanan Data"
-                tag="Kepatuhan Audit"
-                description="Pantau kepatuhan tata kelola, integritas audit digital, dan keamanan data."
-                onClick={() => setOpenFeature('vmai')}
-              />
-            </div>
-          </div> */}
-
-          {/* Panel: Skor Kesehatan */}
-
-          {/* Panel: Perspektif BSC (ringkasan empat pilar) */}
-
-          {/* Panel: Tren Komparasi */}
-
-          {/* Panel: Suksesi, Tata Kelola & Risiko Talenta */}
-
 
           {/* 5. Peringatan Dini Attrition & Burnout (PRD §5.4) */}
           <FlightRiskHeatmap />
