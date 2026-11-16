@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 .next
 .pglite
 .env
@@ -34,5 +34,6 @@ neon.ts
 # Kunci pengunci database lokal (dibuat saat aplikasi berjalan)
 .eperformiq-lock
 
-# Direktori kerja & log sesi DSH (bukan bagian aplikasi)..dsh/
+# Direktori kerja & log sesi DSH (bukan bagian aplikasi)
+.dsh/
 
