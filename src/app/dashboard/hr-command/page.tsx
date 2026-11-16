@@ -67,6 +67,15 @@ import ManagerAssignmentPanel from '@/components/governance/ManagerAssignmentPan
 import LeaveApprovalPanel from '@/components/governance/LeaveApprovalPanel';
 import PayrollPanel from '@/components/governance/PayrollPanel';
 import ReimbursementDecisionPanel from '@/components/governance/ReimbursementDecisionPanel';
+import KpiTurunanPanel from '@/components/governance/KpiTurunanPanel';
+
+/** Chip panel bertingkat: KPI direktur -> divisi, dan divisi -> People Manager. */
+function PanelKpiDivisi() {
+  return <KpiTurunanPanel tingkat="DEPARTEMEN" />;
+}
+function PanelKpiManajer() {
+  return <KpiTurunanPanel tingkat="MANAJER" />;
+}
 import HrDashboardCards from '@/components/governance/HrDashboardCards';
 import HrKpiIndicatorPanel from '@/components/governance/HrKpiIndicatorPanel';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
@@ -291,6 +300,24 @@ const MPP_PANELS: ReadonlyArray<{
     tag: 'Saat-Kerja',
   },
   {
+    feature: 'kpi-divisi',
+    title: 'KPI Direktur → Divisi',
+    description: 'Bagi KPI korporat dari Direksi menjadi KPI tiap departemen, dengan bantuan AI atau manual.',
+    Panel: PanelKpiDivisi,
+    icon: Target,
+    metric: 'Turunkan',
+    tag: 'Saat-Kerja',
+  },
+  {
+    feature: 'kpi-manajer',
+    title: 'KPI Divisi → People Manager',
+    description: 'Tugaskan KPI divisi kepada People Manager departemen terkait, dengan bantuan AI atau manual.',
+    Panel: PanelKpiManajer,
+    icon: Target,
+    metric: 'Tugaskan',
+    tag: 'Saat-Kerja',
+  },
+  {
     feature: 'scorecard',
     title: 'Indikator KPI & Realisasi Harian',
     description: 'Tetapkan indikator harian, tarik realisasi menjadi capaian periode, dan sahkan KPI karyawan.',
@@ -424,7 +451,7 @@ const PANEL_GROUPS: Record<"PRE" | "DURING" | "POST", Array<{ judul: string; ket
   DURING: [
     { judul: "Administrasi & Kehadiran", ket: "Urusan harian: atasan langsung, cuti, gaji, surat, dan SOP.", fitur: ["manager-assignment", "leave", "payroll", "e-letter", "policy"] },
     { judul: "Kesejahteraan & Kepatuhan", ket: "Jaminan sosial karyawan dan penanganan pelanggaran aturan.", fitur: ["bpjs", "disciplinary"] },
-    { judul: "Pengembangan Kinerja", ket: "Mengatur jenjang karier dan memantau capaian kinerja.", fitur: ["career-ladder", "scorecard"] },
+    { judul: "Pengembangan Kinerja", ket: "Mengatur jenjang karier, menurunkan KPI berjenjang, dan memantau capaian kinerja.", fitur: ["kpi-divisi", "kpi-manajer", "career-ladder", "scorecard"] },
     { judul: "Pantauan & Wawasan", ket: "Gambaran menyeluruh untuk pengambilan keputusan.", fitur: ["pipeline", "learning"] },
   ],
   POST: [

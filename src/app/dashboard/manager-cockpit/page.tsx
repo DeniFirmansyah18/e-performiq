@@ -31,12 +31,13 @@ import KpiIndicatorPanel from '@/components/governance/KpiIndicatorPanel';
 import TargetAchievementCard from '@/components/performance/TargetAchievementCard';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import FeatureCard from '@/components/ui/FeatureCard';
+import KpiTurunanPanel from '@/components/governance/KpiTurunanPanel';
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
 import LetterInboxModal from '@/components/employee/LetterInboxModal';
 import PolicyLibraryModal from '@/components/employee/PolicyLibraryModal';
 
-type ManagerFeature = 'roster' | 'approval' | 'evaluasi' | 'indikator';
+type ManagerFeature = 'roster' | 'approval' | 'evaluasi' | 'indikator' | 'kpi-posisi';
 
 /** Periode penilaian aktif yang dipakai seluruh panel cockpit manajer. */
 const PERIOD_ID = 'd0000000-0000-4000-8000-000000000001';
@@ -588,7 +589,29 @@ export default function ManagerCockpitPage() {
           onOpen={() => setIsPolicyOpen(true)}
         />
       </FeatureGrid>
-      {/* Panel "Roster" & "Evaluasi" membuka TEPAT DI BAWAH grid (pola sama dengan HR). */}
+
+      {/* Grup 3: Penugasan KPI ke Pegawai */}
+      <div className="flex items-center gap-2 mb-1.5 mt-2">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6f4ea] text-[10px] font-extrabold text-[#137333]">3</span>
+        <h3 className="text-xs font-extrabold text-[#0f172a]">Penugasan KPI ke Pegawai</h3>
+      </div>
+      <p className="text-[11px] text-[#64748b] mb-2.5">
+        Turunkan KPI yang ditugaskan HR kepada Anda menjadi KPI posisi anggota tim, dengan bantuan AI atau manual.
+      </p>
+      <FeatureGrid>
+        <FeatureCard
+          icon={Target}
+          title="KPI Manajer → Posisi Pegawai"
+          tag="Berjenjang"
+          description="Bagi KPI Anda menjadi KPI posisi untuk pegawai yang dipimpin, lalu sahkan agar menjadi sasaran kerja mereka."
+          onOpen={() => setOpenFeature('kpi-posisi')}
+        />
+      </FeatureGrid>
+      {openFeature === 'kpi-posisi' && (
+        <div className="mt-4">
+          <KpiTurunanPanel tingkat="POSISI" />
+        </div>
+      )}
       <ExpandablePanel open={openFeature === 'roster'} title="Roster Tim" onClose={() => setOpenFeature(null)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
