@@ -6,6 +6,7 @@ import { Compass, Target, ShieldAlert, ListChecks } from 'lucide-react';
 import BoardAiInsight from './BoardAiInsight';
 import BoardVisionEditor from './BoardVisionEditor';
 import BoardVisionRoadmap from './BoardVisionRoadmap';
+import { labelPerspektif } from '@/lib/performance/perspectiveLabel';
 
 async function fetchJson(url: string): Promise<any> {
   const res = await fetch(url);
@@ -134,7 +135,7 @@ export default function BoardVisionPanel() {
               <div>
                 <p className="text-xs font-semibold text-slate-800">{p.pillarName}</p>
                 <p className="text-[10px] text-slate-500">
-                  {p.perspective} &bull; bobot {p.strategicWeight}%
+                  {labelPerspektif(p.perspective)} &bull; bobot {p.strategicWeight}%
                 </p>
               </div>
               <span
@@ -232,7 +233,7 @@ export default function BoardVisionPanel() {
                   columns={[
                     { key: 'kode', header: 'Kode', value: (g: any) => g.kpiCode, render: (g: any) => <span className="font-mono text-[11px] text-slate-500">{g.kpiCode}</span> },
                     { key: 'sasaran', header: 'Sasaran', value: (g: any) => g.kpiName, render: (g: any) => g.kpiName },
-                    { key: 'pilar', header: 'Pilar', value: (g: any) => g.pillarPerspective, render: (g: any) => `${g.pillarPerspective} · ${g.pillarName ?? ''}` },
+                    { key: 'pilar', header: 'Pilar', value: (g: any) => labelPerspektif(g.pillarPerspective), render: (g: any) => `${labelPerspektif(g.pillarPerspective)} - ${g.pillarName ?? ''}` },
                     { key: 'template', header: 'Template', value: (g: any) => `${g.coveredTemplateCount}/${g.templateCount}`, render: (g: any) => <span className="font-semibold text-slate-700">{g.coveredTemplateCount}/{g.templateCount}</span> },
                     { key: 'posisi', header: 'Posisi Perlu KPI', value: (g: any) => (g.positionsMissingKpi ?? []).join('; '), render: (g: any) => <span className="text-[11px] text-slate-600">{(g.positionsMissingKpi ?? []).join('; ') || '-'}</span> },
                   ]}

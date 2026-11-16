@@ -81,6 +81,49 @@ export async function listCorporateKpis(
   return res.rows ?? [];
 }
 
+const PREFIKS_PERSPEKTIF: Record<string, string> = {
+  FINANCIAL: 'FIN',
+  CUSTOMER: 'CUS',
+  INTERNAL_PROCESS: 'INT',
+  LEARNING_GROWTH: 'LRN',
+};
+
+/**
+ * Buat kode KPI korporat yang belum dipakai.
+ *
+ * Kode lama dulu ditentukan pemanggil (mis. "BOD-2026-01"), sehingga klik
+ * Setujui kedua kalinya bentrok dengan UNIQUE kpi_code dan gagal tanpa sebab
+ * yang jelas. Sekarang server yang menjamin keunikan.
+ */
+async function kodeKorporatUnik(db: Db, pillarId: string): Promise<string> {
+  const p = (await db.execute(sql`
+    SELECT perspective::text AS perspektif FROM strategic_pillars WHERE id = ${pillarId}::uuid
+  `)) as unknown as { rows: Array<{ perspektif: string }> };
+  const prefiks = PREFIKS_PERSPEKTIF[p.rows?.[0]?.perspektif ?? ''] ?? 'CORP';
+
+  const ada = (await db.execute(sql`
+    SELECT kpi_code AS kode FROM corporate_kpis WHERE kpi_code LIKE ${'CORP-' + prefiks + '-%'}
+  `)) as unknown as { rows: Array<{ kode: string }> };
+
+  let maks = 0;
+  for (const r of ada.rows ?? []) {
+    const m = String(r.kode).match(/-(\d+)$/);
+    if (m) maks = Math.max(maks, Number(m[1]));
+  }
+
+  let urut = maks + 1;
+  // Jaga-jaga bila baris dengan kode itu ada tapi tidak ikut pola di atas.
+  for (let coba = 0; coba < 50; coba += 1) {
+    const kandidat = `CORP-${prefiks}-${String(urut).padStart(2, '0')}`;
+    const bentrok = (await db.execute(sql`
+      SELECT 1 AS x FROM corporate_kpis WHERE kpi_code = ${kandidat} LIMIT 1
+    `)) as unknown as { rows: unknown[] };
+    if (!bentrok.rows?.length) return kandidat;
+    urut += 1;
+  }
+  return `CORP-${prefiks}-${Date.now()}`;
+}
+
 export async function createCorporateKpi(
   db: Db,
   actor: CascadeActor,
@@ -90,7 +133,8 @@ export async function createCorporateKpi(
     kpiName: string;
     targetValue: number;
     unitOfMeasure: string;
-    kpiCode: string;
+    /** Opsional: bila kosong, server membuat kode unik sendiri. */
+    kpiCode?: string;
   }
 ): Promise<{ id: string; kpiCode: string }> {
   pastikanBolehSetTingkat(actor.role, 'PERUSAHAAN');
@@ -108,10 +152,20 @@ export async function createCorporateKpi(
     throw new BusinessRuleError('Target KPI korporat wajib lebih besar dari 0.');
   }
 
+  const diminta = (data.kpiCode ?? '').trim();
+  let kode = diminta || (await kodeKorporatUnik(db, data.pillarId));
+  if (diminta) {
+    const pakai = (await db.execute(sql`
+      SELECT 1 AS x FROM corporate_kpis WHERE kpi_code = ${diminta} LIMIT 1
+    `)) as unknown as { rows: unknown[] };
+    // Kode yang diminta sudah dipakai: jangan gagal, buat kode unik lain.
+    if (pakai.rows?.length) kode = await kodeKorporatUnik(db, data.pillarId);
+  }
+
   const ins = (await db.execute(sql`
     INSERT INTO corporate_kpis
       (strategic_pillar_id, period_year, kpi_code, kpi_name, target_value, unit_of_measure)
-    VALUES (${data.pillarId}::uuid, ${data.periodYear}, ${data.kpiCode},
+    VALUES (${data.pillarId}::uuid, ${data.periodYear}, ${kode},
             ${data.kpiName}, ${data.targetValue}::float8, ${data.unitOfMeasure})
     RETURNING id::text AS id, kpi_code AS "kpiCode"
   `)) as unknown as { rows: Array<{ id: string; kpiCode: string }> };

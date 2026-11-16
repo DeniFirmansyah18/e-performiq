@@ -37,7 +37,6 @@ export default function BoardVisionRoadmap() {
           kpi_name: k.kpiName,
           target_value: k.targetValue,
           unit_of_measure: k.unitOfMeasure,
-          kpi_code: `BOD-${new Date().getFullYear()}-${String(idx + 1).padStart(2, '0')}`,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -137,9 +136,11 @@ export default function BoardVisionRoadmap() {
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="font-semibold text-[#0f172a]">
                     {k?.kpiName ?? '(tanpa nama)'}
-                    <span className="text-[10px] font-normal text-[#64748b] ml-2">
-                      {k?.pillarName ?? ''}{k?.perspective ? ` · ${k.perspective}` : ''}
-                    </span>
+                    {k?.pillarName ? (
+                      <span className="text-[10px] font-normal text-[#64748b] ml-2">
+                        {k.pillarName}
+                      </span>
+                    ) : null}
                   </p>
                   <p className="text-[10px] text-[#64748b]">
                     Target {k?.targetValue ?? '-'} {k?.unitOfMeasure ?? ''} · bobot {k?.weightPct ?? 0}%

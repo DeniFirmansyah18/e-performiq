@@ -1,4 +1,4 @@
-﻿import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db/client';
 import { getAuthSession } from '@/lib/auth/getAuthSession';
@@ -14,7 +14,7 @@ const CreateSchema = z.object({
   kpi_name: z.string().min(1, 'kpi_name wajib diisi'),
   target_value: z.number().positive('target_value wajib lebih besar dari 0'),
   unit_of_measure: z.string().default('%'),
-  kpi_code: z.string().min(1, 'kpi_code wajib diisi'),
+  kpi_code: z.string().min(1, 'kpi_code wajib diisi').optional(),
 });
 
 // GET /api/v1/performance/kpi-cascade/corporate
