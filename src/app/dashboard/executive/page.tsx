@@ -270,7 +270,7 @@ export default function ExecutiveBoardroomPage() {
             />
             <FeatureCard
               icon={UserCheck}
-              title="Kesiapan Calon Pemimpin"
+              title="Peta Talenta & Suksesi"
               metric="3 Posisi Kritis"
               tag="Prioritas Suksesi"
               description="Pemantauan kesiapan calon penerus posisi kunci manajerial dan kepatuhan prinsip tata kelola organisasi."
@@ -610,7 +610,7 @@ export default function ExecutiveBoardroomPage() {
             </div>
             <AiAnalyzePanel feature="executive" />
           </ExpandablePanel>
-          <ExpandablePanel open={openFeature === 'succession'} title="Kesiapan Calon Pemimpin & Risiko Talenta" onClose={() => setOpenFeature(null)}>
+          <ExpandablePanel open={openFeature === 'succession'} title="Peta Talenta & Suksesi" onClose={() => setOpenFeature(null)}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
               {/* Card 1: Peringatan Kesenjangan (Pembelajaran & SDM) */}

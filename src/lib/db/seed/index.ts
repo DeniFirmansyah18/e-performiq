@@ -134,8 +134,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Strategic Pillars (BSC 4 Perspektif, sum = 100)
 INSERT INTO strategic_pillars (id, company_id, perspective, pillar_name, description, strategic_weight) VALUES
   ('c0000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000001','FINANCIAL','Pertumbuhan Pendapatan Berkelanjutan & Efisiensi Anggaran','Optimalisasi realisasi anggaran formasi MPP, EBITDA margin korporasi, dan efisiensi belanja operasional.',25),
-  ('c0000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000001','CUSTOMER','Kepuasan Stakeholder & Keunggulan Layanan Ekosistem','Indeks kepuasan pengguna internal (CSAT >= 85%) dan pemenuhan SLA rekrutmen tepat waktu.',25),
-  ('c0000000-0000-4000-8000-000000000003','a0000000-0000-4000-8000-000000000001','INTERNAL_PROCESS','Keunggulan Operasional & Zero Fatal SOP Compliance','Kepatuhan tata kelola proses bisnis ISO 9001/30414, 0 fatal audit finding, keandalan sistem 99.9%.',25),
+  ('c0000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000001','CUSTOMER','Pelayanan yang Memuaskan.','Indeks kepuasan pengguna internal (CSAT >= 85%) dan pemenuhan SLA rekrutmen tepat waktu.',25),
+  ('c0000000-0000-4000-8000-000000000003','a0000000-0000-4000-8000-000000000001','INTERNAL_PROCESS','Proses Kerja Tertib dan Andal.','Kepatuhan tata kelola proses bisnis ISO 9001/30414, 0 fatal audit finding, keandalan sistem 99.9%.',25),
   ('c0000000-0000-4000-8000-000000000004','a0000000-0000-4000-8000-000000000001','LEARNING_GROWTH','Kapabilitas Human Capital & Penguatan Budaya AKHLAK','Rata-rata 24 jam pelatihan/karyawan/tahun, retensi Top 20% Talent, dan indeks kepemimpinan 360.',25)
 ON CONFLICT (id) DO NOTHING;
 

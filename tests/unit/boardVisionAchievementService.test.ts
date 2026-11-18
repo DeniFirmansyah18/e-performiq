@@ -122,7 +122,7 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
     const result = await getVisionAchievement(db);
     expect(result.analysis.achievedPillarCount).toBe(1);
     expect(result.analysis.belowTargetPillarCount).toBe(2);
-    expect(result.analysis.strongestPillar).toContain('Keunggulan Operasional');
+    expect(result.analysis.strongestPillar).toContain('Proses Kerja Tertib dan Andal');
     expect(result.analysis.weakestPillar).toContain('Kapabilitas Human Capital');
     expect(result.analysis.highlights.length).toBeGreaterThan(0);
   });
@@ -218,8 +218,10 @@ describe('Vision Achievement (Visi-Misi & RJMP)', () => {
       const result = await getVisionAchievement(isoDb, '2026-Q3');
       expect(result.analysis.previousPeriodCode).toBe('2026-Q2');
 
-      const finding = result.analysis.governanceFindings.find((f) =>
-        f.pillarName.includes('Kepuasan')
+      // Pilar CUSTOMER kini bernama "Pelayanan yang Memuaskan." — cocokkan lewat
+      // perspektifnya, bukan potongan nama lama.
+      const finding = result.analysis.governanceFindings.find(
+        (f) => f.perspective === 'CUSTOMER'
       );
       expect(finding?.code).toBe('UNMEASURED_CONSECUTIVE_PERIODS');
       expect(finding?.severity).toBe('GOVERNANCE');

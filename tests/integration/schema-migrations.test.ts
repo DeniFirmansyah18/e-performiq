@@ -50,6 +50,44 @@ describe('Idempotensi migrasi skema (G-07)', () => {
     await expect(applyAllMigrationsRaw(client)).resolves.toBeUndefined();
   });
 
+  it('memperbarui hanya label pilar baku yang tepat dan dapat diulang', async () => {
+    await client.query(`
+      INSERT INTO companies (id, company_name, legal_entity_code)
+      VALUES ('a0000000-0000-4000-8000-000000000099', 'Test', 'TEST-MIGRATION')
+    `);
+    await client.query(`
+      INSERT INTO strategic_pillars
+        (id, company_id, perspective, pillar_name, description, strategic_weight)
+      VALUES
+        ('c0000000-0000-4000-8000-000000000091', 'a0000000-0000-4000-8000-000000000099', 'CUSTOMER', 'Kepuasan Stakeholder & Keunggulan Layanan Ekosistem', 'tetap', 25),
+        ('c0000000-0000-4000-8000-000000000092', 'a0000000-0000-4000-8000-000000000099', 'INTERNAL_PROCESS', 'Keunggulan Operasional & Zero Fatal SOP Compliance', 'tetap', 25),
+        ('c0000000-0000-4000-8000-000000000093', 'a0000000-0000-4000-8000-000000000099', 'FINANCIAL', 'Kepuasan Stakeholder & Keunggulan Layanan Ekosistem', 'custom', 25),
+        ('c0000000-0000-4000-8000-000000000094', 'a0000000-0000-4000-8000-000000000099', 'CUSTOMER', 'Nama Pilar Khusus', 'custom', 25)
+    `);
+
+    const migration = readFileSync(join(MIGRATIONS_DIR, '0072_plain_language_bod_pillars.sql'), 'utf8');
+    await client.exec(migration);
+    await client.exec(migration);
+
+    const result = await client.query<{ id: string; pillar_name: string; description: string; strategic_weight: number }>(
+      `SELECT id, pillar_name, description, strategic_weight FROM strategic_pillars
+       WHERE id IN (
+         'c0000000-0000-4000-8000-000000000091',
+         'c0000000-0000-4000-8000-000000000092',
+         'c0000000-0000-4000-8000-000000000093',
+         'c0000000-0000-4000-8000-000000000094'
+       ) ORDER BY id`
+    );
+    expect(Object.fromEntries(result.rows.map((row) => [row.id, row.pillar_name]))).toEqual({
+      'c0000000-0000-4000-8000-000000000091': 'Pelayanan yang Memuaskan.',
+      'c0000000-0000-4000-8000-000000000092': 'Proses Kerja Tertib dan Andal.',
+      'c0000000-0000-4000-8000-000000000093': 'Kepuasan Stakeholder & Keunggulan Layanan Ekosistem',
+      'c0000000-0000-4000-8000-000000000094': 'Nama Pilar Khusus',
+    });
+    expect(result.rows.every((row) => row.description === 'tetap' || row.description === 'custom')).toBe(true);
+    expect(result.rows.every((row) => Number(row.strategic_weight) === 25)).toBe(true);
+  });
+
   it('semua tabel Govera360 tersedia setelah migrasi ganda', async () => {
     for (const table of GOVERA360_TABLES) {
       const res = await client.query<{ regclass: string | null }>(

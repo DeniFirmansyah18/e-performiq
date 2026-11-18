@@ -55,6 +55,51 @@ describe('fallback usulan KPI dari pilar strategis', () => {
     }
   });
 
+  it('menggunakan nama dan alasan sederhana tanpa mengubah identitas pilar', () => {
+    const expected: Record<string, [string, string]> = {
+      FINANCIAL: [
+        'Pertumbuhan Pendapatan dan Penggunaan Anggaran yang Hemat',
+        'Mengukur pertumbuhan pendapatan dan penggunaan anggaran yang hemat.',
+      ],
+      CUSTOMER: [
+        'Pelayanan yang Memuaskan',
+        'Mengukur apakah pengguna layanan merasa puas.',
+      ],
+      INTERNAL_PROCESS: [
+        'Proses Kerja Tertib dan Andal',
+        'Mengukur apakah pekerjaan selesai dengan tertib dan sesuai aturan.',
+      ],
+      LEARNING_GROWTH: [
+        'Kemampuan dan Budaya Kerja Karyawan',
+        'Mengukur peningkatan kemampuan dan budaya kerja karyawan.',
+      ],
+    };
+
+    for (const [index, pilar] of Array.from(CTX.pilar.entries())) {
+      const [kpi] = fallbackUsulanKpi({ ...CTX, pilar: [pilar] });
+      expect(kpi.kpiName).toBe(expected[pilar.perspective][0]);
+      expect(kpi.rationale).toBe(expected[pilar.perspective][1]);
+      expect(kpi.pillarName).toBe(pilar.pillarName);
+      expect(kpi.targetValue).toBe(pilar.perspective === 'FINANCIAL' ? 1_000_000_000 : 95);
+      expect(kpi.unitOfMeasure).toBe(pilar.perspective === 'FINANCIAL' ? 'IDR' : '%');
+      expect(kpi.weightPct).toBe(100);
+      void index;
+    }
+  });
+
+  it('nama pilar khusus memakai bahasa netral tanpa menyalin istilahnya', () => {
+    const custom = {
+      pillarId: 'custom',
+      perspective: 'CUSTOM',
+      pillarName: 'Zero Fatal SLA Compliance',
+      weight: 100,
+    };
+    const [kpi] = fallbackUsulanKpi({ ...CTX, pilar: [custom] });
+    expect(kpi.kpiName).toBe('Hasil pada pilar ini');
+    expect(kpi.rationale).toBe('Mengukur hasil yang dicapai pada pilar ini.');
+    expect(kpi.pillarName).toBe(custom.pillarName);
+  });
+
   it('tanpa pilar → tidak ada usulan', () => {
     expect(fallbackUsulanKpi({ ...CTX, pilar: [] })).toEqual([]);
   });

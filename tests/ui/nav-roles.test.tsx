@@ -31,11 +31,11 @@ describe('menu per peran', () => {
     expect(screen.queryByRole('link', { name: /9-Box/i })).toBeNull();
   });
 
-  it('BOD melihat Ruang Eksekutif (CEO) dan Peta Talenta & Suksesi', () => {
+  it('BOD hanya melihat pintasan Ruang Eksekutif (CEO) di navbar', () => {
     renderFor('BOD');
     expect(screen.getByRole('link', { name: /Ruang Eksekutif \(CEO\)/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Peta Talenta & Suksesi/i })).toBeTruthy();
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: /Peta Talenta & Suksesi/i })).toBeNull();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
   it('PEOPLE_MANAGER punya Cockpit Evaluasi Manajer dan opsi ke Portal Karyawan', () => {

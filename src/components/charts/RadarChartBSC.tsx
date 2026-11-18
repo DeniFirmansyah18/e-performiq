@@ -13,7 +13,7 @@ interface PerspectiveData {
 const DEFAULT_DATA: PerspectiveData[] = [
   { label: 'Finansial', key: 'financial', actual: 92.4, target: 100, driver: 'Efisiensi Anggaran & MPP Adherence' },
   { label: 'Customer / Stakeholder', key: 'customer', actual: 87.1, target: 100, driver: 'Internal CSAT & Onboarding Index' },
-  { label: 'Proses Internal', key: 'internal', actual: 94.8, target: 100, driver: 'Zero Fatal SOP Error & SLA Speed' },
+  { label: 'Proses Internal', key: 'internal', actual: 94.8, target: 100, driver: 'Ketepatan proses kerja dan penyelesaian layanan' },
   { label: 'Pembelajaran & Pertumbuhan', key: 'learning', actual: 83.3, target: 100, driver: '24 Jam Pelatihan & Retensi Top Talent' },
 ];
 

@@ -31,7 +31,7 @@ import FeatureCard from '@/components/ui/FeatureCard';
 
 import ExpandablePanel from '@/components/ui/ExpandablePanel';
 import AiAnalyzePanel from '@/components/ai/AiAnalyzePanel';
-import { useAuth } from '@/lib/context/AuthContext';
+import { useOptionalAuth } from '@/lib/context/AuthContext';
 
 type NineboxFeature = 'distribusi' | 'inspection' | 'simulasi';
 
@@ -186,15 +186,18 @@ const QUADRANTS: QuadrantData[] = [
 ];
 
 export default function NineBoxMatrixPage() {
-  const { activeRole } = useAuth();
+  // Opsional: halaman ini bisa dirender di luar AuthProvider (mis. tes
+  // komponen tunggal) tanpa melempar; peran tak diketahui jatuh ke HR.
+  const { activeRole } = useOptionalAuth() ?? { activeRole: 'HR_MANAGER' };
   // Arah tombol "Kembali" sesuai peran — BOD ke eksekutif, bukan ke HR.
-  const dashboardAsal: Record<string, string> = {
-    BOD: '/dashboard/executive',
-    HR_MANAGER: '/dashboard/hr-command',
-    PEOPLE_MANAGER: '/dashboard/manager-cockpit',
-    SUPER_ADMIN: '/dashboard/account-management',
+  const dashboardAsal: Record<string, { href: string; label: string }> = {
+    BOD: { href: '/dashboard/executive', label: 'Kembali ke Dashboard' },
+    HR_MANAGER: { href: '/dashboard/hr-command', label: 'Kembali ke HR Command Center' },
+    PEOPLE_MANAGER: { href: '/dashboard/manager-cockpit', label: 'Kembali ke Dashboard' },
+    SUPER_ADMIN: { href: '/dashboard/account-management', label: 'Kembali ke Dashboard' },
   };
-  const asalUrl = dashboardAsal[activeRole] ?? '/dashboard/hr-command';
+  const asal = dashboardAsal[activeRole] ?? dashboardAsal.HR_MANAGER;
+  const asalUrl = asal.href;
   const [openFeature, setOpenFeature] = useState<NineboxFeature | null>(null);
   const [selectedBox, setSelectedBox] = useState<number>(9);
   // Halaman daftar pegawai pada panel inspeksi (5 per halaman).
@@ -351,7 +354,7 @@ export default function NineBoxMatrixPage() {
             href={asalUrl}
             className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#334155] hover:bg-[#f8fafc]"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Dashboard
+            <ArrowLeft className="h-3.5 w-3.5" /> {asal.label}
           </Link>
           {/* Breadcrumb & GCG Tag */}
           {/* <div className="flex items-center gap-2 text-xs text-[#64748b] mb-1.5">

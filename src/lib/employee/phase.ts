@@ -68,6 +68,8 @@ export const FEATURE_PHASE: Readonly<Record<string, WorkPhase>> = Object.freeze(
   disciplinary: 'DURING', // Sanksi & keberatan
   'career-ladder': 'DURING', // Konfigurasi jenjang karir
   scorecard: 'DURING',
+  'kpi-divisi': 'DURING', // Turunkan KPI direksi → divisi
+  'kpi-manajer': 'DURING', // Tugaskan KPI divisi → People Manager
   'appraisal-calibration': 'DURING', // Kalibrasi nilai semester
   okr: 'DURING',
   development: 'DURING',

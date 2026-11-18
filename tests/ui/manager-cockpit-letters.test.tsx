@@ -26,7 +26,9 @@ afterEach(() => {
 describe('Manager Cockpit: e-Surat & SOP (rantai #4, HR -> PM)', () => {
   it('menampilkan aksi cepat e-Surat & SOP untuk People Manager', async () => {
     render(<ManagerCockpitPage />);
-    await waitFor(() => expect(screen.getByText('Aksi Cepat Manajerial')).toBeTruthy());
+    // Sejak refactor 2874d95 grid "Aksi Cepat Manajerial" dihapus; e-Surat dan
+    // SOP tampil sebagai FeatureCard di grup bernomor "Surat & Kepatuhan".
+    await waitFor(() => expect(screen.getByText('Surat & Kepatuhan')).toBeTruthy());
     expect(screen.getByText('e-Surat & Disposisi')).toBeTruthy();
     expect(screen.getByText('SOP & Peraturan')).toBeTruthy();
   });

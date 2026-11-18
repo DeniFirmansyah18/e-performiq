@@ -413,6 +413,20 @@ describe('Executive Boardroom page', () => {
     await waitFor(() => expect(screen.getByText(/11 aktivitas tercatat/)).toBeTruthy());
   });
 
+  it('menampilkan kartu Peta Talenta & Suksesi yang tetap membuka akses 9-Box', async () => {
+    window.history.replaceState({}, '', '/dashboard/executive');
+    const Page = (await import('@/app/dashboard/executive/page')).default;
+
+    render(<Page />);
+    const card = await screen.findByRole('button', { name: /Peta Talenta & Suksesi/ });
+    expect(card).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Kesiapan Calon Pemimpin/ })).toBeNull();
+
+    fireEvent.click(card);
+    const nineBoxLink = await screen.findByRole('link', { name: /Buka Peta Evaluasi Talenta \(9-Box\)/ });
+    expect(nineBoxLink.getAttribute('href')).toBe('/dashboard/ninebox-matrix');
+  });
+
   it('membuka tab vision lewat deep-link ?tab=vision', async () => {
     window.history.replaceState({}, '', '/dashboard/executive?tab=vision');
     const Page = (await import('@/app/dashboard/executive/page')).default;

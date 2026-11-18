@@ -10,7 +10,6 @@ import {
   CheckSquare,
   UserCheck,
   ShieldCheck,
-  Grid3X3,
 } from 'lucide-react';
 
 type NavItem = { name: string; href: string; icon: any; roles: UserRole[] };
@@ -20,7 +19,6 @@ type NavItem = { name: string; href: string; icon: any; roles: UserRole[] };
  */
 const NAV_ITEMS: NavItem[] = [
   { name: 'Ruang Eksekutif (CEO)', href: '/dashboard/executive', icon: LineChart, roles: ['BOD'] },
-  { name: 'Peta Talenta & Suksesi', href: '/dashboard/ninebox-matrix', icon: Grid3X3, roles: ['BOD'] },
   { name: 'Cockpit Evaluasi Manajer', href: '/dashboard/manager-cockpit', icon: CheckSquare, roles: ['PEOPLE_MANAGER'] },
   { name: 'Manajemen Akun', href: '/dashboard/account-management', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
 ];

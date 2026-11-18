@@ -81,20 +81,45 @@ export function normalkanBobot(bobot: number[]): number[] {
  * Setiap pilar menghasilkan satu KPI yang mendukung visi/misi, sehingga jumlah
  * dan bobotnya selalu konsisten dengan pilar yang benar-benar ada di sistem.
  */
+const BAHASA_KPI: Record<string, { nama: string; alasan: string }> = {
+  FINANCIAL: {
+    nama: 'Pertumbuhan Pendapatan dan Penggunaan Anggaran yang Hemat',
+    alasan: 'Mengukur pertumbuhan pendapatan dan penggunaan anggaran yang hemat.',
+  },
+  CUSTOMER: {
+    nama: 'Pelayanan yang Memuaskan',
+    alasan: 'Mengukur apakah pengguna layanan merasa puas.',
+  },
+  INTERNAL_PROCESS: {
+    nama: 'Proses Kerja Tertib dan Andal',
+    alasan: 'Mengukur apakah pekerjaan selesai dengan tertib dan sesuai aturan.',
+  },
+  LEARNING_GROWTH: {
+    nama: 'Kemampuan dan Budaya Kerja Karyawan',
+    alasan: 'Mengukur peningkatan kemampuan dan budaya kerja karyawan.',
+  },
+};
+
 export function fallbackUsulanKpi(ctx: KonteksPerusahaan): UsulanKpi[] {
   if (ctx.pilar.length === 0) return [];
 
   const bobot = normalkanBobot(ctx.pilar.map((p) => p.weight));
-  return ctx.pilar.map((p, i) => ({
-    kpiName: `Capaian ${p.pillarName}`,
-    pillarId: p.pillarId,
-    pillarName: p.pillarName,
-    perspective: p.perspective,
-    targetValue: p.perspective === 'FINANCIAL' ? 1_000_000_000 : 95,
-    unitOfMeasure: p.perspective === 'FINANCIAL' ? 'IDR' : '%',
-    weightPct: bobot[i],
-    rationale: `Mendukung misi perusahaan melalui pilar ${p.pillarName}.`,
-  }));
+  return ctx.pilar.map((p, i) => {
+    const bahasa = BAHASA_KPI[p.perspective] ?? {
+      nama: 'Hasil pada pilar ini',
+      alasan: 'Mengukur hasil yang dicapai pada pilar ini.',
+    };
+    return {
+      kpiName: bahasa.nama,
+      pillarId: p.pillarId,
+      pillarName: p.pillarName,
+      perspective: p.perspective,
+      targetValue: p.perspective === 'FINANCIAL' ? 1_000_000_000 : 95,
+      unitOfMeasure: p.perspective === 'FINANCIAL' ? 'IDR' : '%',
+      weightPct: bobot[i],
+      rationale: bahasa.alasan,
+    };
+  });
 }
 
 /** Validasi & bersihkan usulan AI agar layak disimpan. */
@@ -155,6 +180,7 @@ function bangunPrompt(ctx: KonteksPerusahaan): string {
     .join('\n');
 
   return `Anda konsultan manajemen kinerja. Susun KPI KORPORAT yang mendukung visi & misi berikut.
+Gunakan bahasa Indonesia yang sederhana, tanpa jargon dan tanpa istilah asing yang tidak perlu, sehingga nama KPI dan alasan mudah dipahami masyarakat umum.
 
 VISI: ${ctx.vision}
 MISI: ${ctx.mission}

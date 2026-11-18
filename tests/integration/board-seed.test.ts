@@ -20,6 +20,18 @@ describe('Seed data operasional Boardroom', () => {
     return r.rows[0].n;
   };
 
+  it('menggunakan label pilar BOD yang sederhana pada seed', async () => {
+    const result = await client.query<{ perspective: string; pillar_name: string }>(
+      `SELECT perspective, pillar_name FROM strategic_pillars
+       WHERE perspective IN ('CUSTOMER', 'INTERNAL_PROCESS')
+       ORDER BY perspective`
+    );
+    expect(result.rows).toEqual([
+      { perspective: 'CUSTOMER', pillar_name: 'Pelayanan yang Memuaskan.' },
+      { perspective: 'INTERNAL_PROCESS', pillar_name: 'Proses Kerja Tertib dan Andal.' },
+    ]);
+  });
+
   it('menyediakan event aktivitas lintas tipe dan peran', async () => {
     expect(await count('activity_events')).toBeGreaterThanOrEqual(10);
     const types = await client.query<{ n: number }>(
